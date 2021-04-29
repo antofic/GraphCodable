@@ -131,7 +131,7 @@ Rows by rows:
 			- **Int**, **Int8**, **Int16**, **Int32**, **Int64**, **UInt**, **UInt8**, **UInt16**, **UInt32**, **UInt64**
 			- **Float**, **Double**
 			- **String**, **Data**
-			In addition, GraphCodable conforms the following types to GCodable:
+		-	In addition, GraphCodable conforms the following types to GCodable:
 			- **Array**, **Dictionary**, **Set**, **Optional**, **OptionSet**
 			- any **enum** whose rawValue is a native type, except **Data**
 		- 	Then you see: ``"aclass": POINTER? Obj1001`` This is because aclass has been conditionally archived.
