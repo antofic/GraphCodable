@@ -83,7 +83,7 @@ struct Example : GCodable, Equatable {
 		}
 
 	enum Key: String {
-	case name, examples
+		case name, examples
 	}
 
 	init(from decoder: GDecoder) throws {
@@ -110,6 +110,7 @@ let outRoot	= try GraphDecoder().decode( type(of:inRoot), from: data )
 
 print( outRoot == inRoot )	// prints: true
 ```
+As you can see, GraphCodable uses enums with string rawValue as keys.
 
 ### Reference Types - Duplication - Keyed and unkeyed encode/decode
 

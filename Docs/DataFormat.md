@@ -1,5 +1,5 @@
 #  Data Format
-GraphEncoder stores the root in binary format. You can get a readable representation of the data saved in a string with the dump function.
+GraphEncoder encode data in binary format. You can get a readable representation of the data in a string with the `dump()` function.
 
 ## Readable output of the encoded data
 Let's consider this example:
@@ -128,12 +128,12 @@ Rows by rows:
 		This object in turn contains a structure corresponding to the key 'astruct' and an object corresponding to the key 'aclass'
 		-	First, you see the complete definition of the struct ``*.AStruct``, with its array and its dictionary. They contain native types.
 			GraphCodable treats the following types as "native" (knows how to save them):
-				- **Int**, **Int8**, **Int16**, **Int32**, **Int64**, **UInt**, **UInt8**, **UInt16**, **UInt32**, **UInt64**
-				- **Float**, **Double**
-				- **String**, **Data**
-				In addition, GraphCodable conforms the following types to GCodable:
-				- **Array**, **Dictionary**, **Set**, **Optional**, **OptionSet**
-				- any **enum** whose rawValue is a native type, except **Data**
+			- **Int**, **Int8**, **Int16**, **Int32**, **Int64**, **UInt**, **UInt8**, **UInt16**, **UInt32**, **UInt64**
+			- **Float**, **Double**
+			- **String**, **Data**
+			In addition, GraphCodable conforms the following types to GCodable:
+			- **Array**, **Dictionary**, **Set**, **Optional**, **OptionSet**
+			- any **enum** whose rawValue is a native type, except **Data**
 		- 	Then you see: ``"aclass": POINTER? Obj1001`` This is because aclass has been conditionally archived.
 			The encoder assigns it an attempt ``ID (POINTER?)`` and waits for it to be stored unconditionally if it happens.
 	-	The second, third and fourth element of the array are always **b**, which has already been stored with ``ID=Obj1000``.
