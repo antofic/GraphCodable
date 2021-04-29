@@ -478,25 +478,25 @@ do {	// same thing with Codable
 	print( e1 === e2 )	// prints: false --> we use '===': different references!
 	print( e1 === e3 )	// prints: false --> we use '===': different references!
 
-	///  This is the graph obtained from Codable:
+	/// This is the graph obtained from Codable:
 	///                ╭───╮   ╭───╮
 	///                │ d │──▶︎│ e │
 	///                ╰───╯   ╰───╯
 	///                  ▲
 	///                  │
 	///                ╭───╮   ╭───╮
-	///	         ┌────▶︎│ c │──▶︎│ e │
-	///	         │     ╰───╯   ╰───╯
+	///          ┌────▶︎│ c │──▶︎│ e │
+	///          │     ╰───╯   ╰───╯
 	///          │
 	///        ╭───╮   ╭───╮   ╭───╮   ╭───╮
-	///	root = │ a │──▶︎│ b │──▶︎│ d │──▶︎│ e │
-	///	       ╰───╯   ╰───╯   ╰───╯   ╰───╯
+	/// root = │ a │──▶︎│ b │──▶︎│ d │──▶︎│ e │
+	///        ╰───╯   ╰───╯   ╰───╯   ╰───╯
 	///         │ │
 	///         │ │    ╭───╮
 	///         │ └───▶︎│ d │
 	///         │      ╰───╯
 	///         │      ╭───╮
-	///	        └─────▶︎│ e │
+	///         └─────▶︎│ e │
 	///                ╰───╯
 }
 ```
