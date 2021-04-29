@@ -373,20 +373,20 @@ The variables that contain objects realize direct type graphs. Arc requires that
 The next example shows how GraphCodable encode and decode this DAG taken from the Wikipedia page:
 [DAG](https://en.wikipedia.org/wiki/Directed_acyclic_graph)
 [DAG Example](https://en.wikipedia.org/wiki/Directed_acyclic_graph#/media/File:Tred-G.svg)
-``
-.                 ╭───╮
-.   ┌────────────▶︎│ c │─────┐
-.   │             ╰───╯     │
-.   │               │       │
-.   │               ▼       ▼
-. ╭───╮   ╭───╮   ╭───╮   ╭───╮
-. │ a │──▶︎│ b │──▶︎│ d │──▶︎│ e │
-. ╰───╯   ╰───╯   ╰───╯   ╰───╯
-.  │ │              ▲       ▲
-.  │ │              │       │
-.  │ └──────────────┘       │
-.  └────────────────────────┘
-``
+```
+                 ╭───╮
+   ┌────────────▶︎│ c │─────┐
+   │             ╰───╯     │
+   │               │       │
+   │               ▼       ▼
+ ╭───╮   ╭───╮   ╭───╮   ╭───╮
+ │ a │──▶︎│ b │──▶︎│ d │──▶︎│ e │
+ ╰───╯   ╰───╯   ╰───╯   ╰───╯
+  │ │              ▲       ▲
+  │ │              │       │
+  │ └──────────────┘       │
+  └────────────────────────┘
+```
 ```swift
 
 import Foundation
@@ -505,27 +505,27 @@ do {	// same thing with Codable
 GraphCodable decodes the original structure of the graph.
 Codable duplicates the same object reachable through different paths, destroying the original structure of the graph.
 The result of Codable decoding is this:
-``
-.         ╭───╮   ╭───╮
-.         │ d │──▶︎│ e │
-.         ╰───╯   ╰───╯
-.           ▲
-.           │
-.         ╭───╮   ╭───╮
-.   ┌────▶︎│ c │──▶︎│ e │
-.   │     ╰───╯   ╰───╯
-.   │
-. ╭───╮   ╭───╮   ╭───╮   ╭───╮
-. │ a │──▶︎│ b │──▶︎│ d │──▶︎│ e │
-. ╰───╯   ╰───╯   ╰───╯   ╰───╯
-.  │ │
-.  │ │    ╭───╮
-.  │ └───▶︎│ d │
-.  │      ╰───╯
-.  │      ╭───╮
-.  └─────▶︎│ e │
-.         ╰───╯
-``
+```
+         ╭───╮   ╭───╮
+         │ d │──▶︎│ e │
+         ╰───╯   ╰───╯
+           ▲
+           │
+         ╭───╮   ╭───╮
+   ┌────▶︎│ c │──▶︎│ e │
+   │     ╰───╯   ╰───╯
+   │
+ ╭───╮   ╭───╮   ╭───╮   ╭───╮
+ │ a │──▶︎│ b │──▶︎│ d │──▶︎│ e │
+ ╰───╯   ╰───╯   ╰───╯   ╰───╯
+  │ │
+  │ │    ╭───╮
+  │ └───▶︎│ d │
+  │      ╰───╯
+  │      ╭───╮
+  └─────▶︎│ e │
+         ╰───╯
+```
 ### Reference Types - Directed Cyclic Graphs (DCG)
 
 What happens if you add a connection from **e** to **b** in the previous example?
@@ -659,33 +659,33 @@ For another example of DCG, see testDGC() in the tests section (DirectedCyclicGr
 ### Coding Rules
 
 This table summarizes the methods to be used depending on the type of variable to be encoded and decoded:
-``
-. ┌─────────────────────────────────────────────────────────────────────────┐
-. │                          ENCODE/DECODE RULES                            │
-. ├───────────────────┬─────────────────┬───────────────────────────────────┤
-. │                   │   VALUE  TYPE   │          REFERENCE  TYPE          │
-. │      METHOD       ├────────┬────────┼────────┬────────┬────────┬────────┤
-. │                   │        │    ?   │    s   │   s?   │  w? O  │  w? Ø  │
-. ╞═══════════════════╪════════╪════════╪════════╪════════╪════════╪════════╡
-. │ encode            │ ██████ │ ██████ │ ██████ │ ██████ │        │        │
-. ├───────────────────┼────────┼────────┼────────┼────────┼────────┼────────┤
-. │ encodeConditional │        │        │        │ ██████ │ ██████ │ ██████ │
-. ╞═══════════════════╪════════╪════════╪════════╪════════╪════════╪════════╡
-. │ decode            │ ██████ │ ██████ │ ██████ │ ██████ │ ██████ │        │
-. ├───────────────────┼────────┼────────┼────────┼────────┼────────┼────────┤
-. │ deferDecode       │        │        │        │        │        │ ██████ │
-. ╞═══════════════════╧════════╧════════╧════════╧════════╧════════╧════════╡
-. │    ?   = optional                                                       │
-. │    s   = strong reference                                               │
-. │    s?  = optional strong reference                                      │
-. │    w?  = weak reference (always optional)                               │
-. │    Ø   = weak reference used to prevent strong memory cycles in ARC     │
-. │    O   = any other use of a weak reference                              │
-. │  Note  : Swift does not allow calling deferDecode from the init of a    │
-. │          value type, but only from that of a reference type. Swift      │
-. │          forces to call it after super class initialization.            │
-. └─────────────────────────────────────────────────────────────────────────┘
-``
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          ENCODE/DECODE RULES                            │
+├───────────────────┬─────────────────┬───────────────────────────────────┤
+│                   │   VALUE  TYPE   │          REFERENCE  TYPE          │
+│      METHOD       ├────────┬────────┼────────┬────────┬────────┬────────┤
+│                   │        │    ?   │    s   │   s?   │  w? O  │  w? Ø  │
+╞═══════════════════╪════════╪════════╪════════╪════════╪════════╪════════╡
+│ encode            │ ██████ │ ██████ │ ██████ │ ██████ │        │        │
+├───────────────────┼────────┼────────┼────────┼────────┼────────┼────────┤
+│ encodeConditional │        │        │        │ ██████ │ ██████ │ ██████ │
+╞═══════════════════╪════════╪════════╪════════╪════════╪════════╪════════╡
+│ decode            │ ██████ │ ██████ │ ██████ │ ██████ │ ██████ │        │
+├───────────────────┼────────┼────────┼────────┼────────┼────────┼────────┤
+│ deferDecode       │        │        │        │        │        │ ██████ │
+╞═══════════════════╧════════╧════════╧════════╧════════╧════════╧════════╡
+│    ?   = optional                                                       │
+│    s   = strong reference                                               │
+│    s?  = optional strong reference                                      │
+│    w?  = weak reference (always optional)                               │
+│    Ø   = weak reference used to prevent strong memory cycles in ARC     │
+│    O   = any other use of a weak reference                              │
+│  Note  : Swift does not allow calling deferDecode from the init of a    │
+│          value type, but only from that of a reference type. Swift      │
+│          forces to call it after super class initialization.            │
+└─────────────────────────────────────────────────────────────────────────┘
+```
 ### UserInfo dictionary
 
 The use is identical to that of Codable.
