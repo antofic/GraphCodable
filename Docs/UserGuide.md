@@ -41,7 +41,7 @@ func initializeGraphCodable() {
 // call after startup:
 initializeGraphCodable()
 ```
-The encoder automatically registers all types it encounters, and so there is no need to register any types if you are decoding a file after encoding it. The next examples will take advantage of this feature. The following examples take advantage of this functionality, and so they just call `GTypesRepository.initialize()`.
+The encoder automatically registers all types it encounters, and so there is no need to register any types if you are decoding a file after encoding it for testing purposes. The next examples will take advantage of this feature. The following examples take advantage of this functionality, and so they just call `GTypesRepository.initialize()`.
 We will return to the topic at the end of the document.
 
 ## Code Examples
@@ -1003,6 +1003,8 @@ To alleviate this problem, GraphCodable offers two help functions.
 The first provides in a string the Swift code that contains the function necessary to register all the types currently present in the repository. In other words, the result of all the recordings made automatically by the encoder from the opening of the program.
 
 The second provides in a string the Swift code that contains the function necessary to register all types present in the data file that is passed to it. That is, the types that must be in the repository to be able to dearchive that data file.
+
+To clear the content of the repository, simply reiniziale it with `GTypesRepository.initialize()`
 ### Type Names
 By design, GraphCodable **never exposes type names as strings**. Even in the case of type replacements, GraphCodable forces you to define an empty type with the name of the type to replace (as showed in "Type replacement system") instead of using the string of its name.
 
