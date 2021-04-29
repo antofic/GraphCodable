@@ -15,7 +15,7 @@ Specifically, GraphCodable:
 - implements a type version system;
 - implements a type substitution system during decode;
 
-Check code examples in the [User Guide](/Docs/UserGuide.md).
+Check code examples in the [User Guide](/Docs/UserGuide.md). Check the tests section, too.
 
 GraphCodable natively supports the following types: Int, Int8, Int16, Int32, Int64, UInt, UInt8, UInt16, UInt32, UInt64, Float, Double, String, Data
 GraphCodable make Optional, Array, Set, Dictionary codable if the hold codable types. OptionSet and Enum with rawValue of native type (except Data) are codable, too.
