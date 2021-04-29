@@ -29,3 +29,4 @@ This table summarizes the methods to be used in your `func encode(to encoder: GE
 │          forces to call it after super class initialization.            │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
+All GraphCodable protocols are defined [here](/Sources/GraphCodable/GraphCodable.swift)
