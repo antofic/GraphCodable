@@ -19,7 +19,7 @@ public final class GTypesRepository {
 Swift doesn't provide a way to get this name, not even at runtime. And so it is taken from `#fileID`.
 
 ## Types registration (first part)
-Typically, the initialization is carried out simultaneously with the registration of all the types that can be decoded by defining a specific function as in the following example and calling it from your main module when your software starts.
+Typically, the initialization is carried out simultaneously with the registration of all the types that can be decoded by defining a specific function as in the following example and calling it from your main module when your software starts. 
 ```swift
 import GraphCodable
 
