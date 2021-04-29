@@ -33,9 +33,9 @@ GraphCodable is written entirely in Swift. The use of 'unsafe' methods is limite
 (*) Fully type checking at compile time is mutually exclusive with the ability to encode/decode heterogeneous collections (i.e. [Any]) containing 'codable' elements. I chose to support the first feature while giving up the second.
 
 ## Other documents
-- [User Guide](/Docs/User+Guide.md)
-- [Coding Rules](/Docs/Coding+Rules.md)
-- [Data Format](/Docs/Data+Format.md)
+- [User Guide](/Docs/UserGuide.md)
+- [Coding Rules](/Docs/CodingRules.md)
+- [Data Format](/Docs/DataFormat.md)
 
 ## Simple interface comparison to Swift Codable
 In GraphCodable:
