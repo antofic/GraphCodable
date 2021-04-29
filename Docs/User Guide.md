@@ -536,7 +536,7 @@ Just like ARC cannot release **e**, **b** and **d** because each retain the othe
 Swift does not allow to create non-initialized values. So, when GraphCodable during decode encounters a cycle that it cannot resolve, it throws an exception.
 
 ARC has a specific solution for these cases: the use of weak variables.
-Similarly, GraphCodable uses a slightly different way to decode weak variables used to break strong memory cycles: it postpones, calling a closure with the `deferDecode(...)`` method, the initialization of these variables until the objects they point to have been initialized.
+Similarly, GraphCodable uses a slightly different way to decode weak variables used to break strong memory cycles: it postpones, calling a closure with the ``deferDecode(...)`` method, the initialization of these variables until the objects they point to have been initialized.
 
 There is therefore a **one-to-one** correspondence between using weak variables to break strong memory cycles in ARC and using ``deferDecode(...)`` to allow initialization of such variables. ``deferDecode(...)`` **should not be used in any other case**.
 
@@ -935,26 +935,26 @@ do {
 You can see the contents of the GTYpesRepository with ``print( GTypesRepository.shared )``.
 In this case (With some additional indentation):
 
-``
-. GTypesRepository(
-. 	* = "MyCodableApp",
-. 	nativeTypes = [
-. 		"Foundation.Data", "Swift.Bool", "Swift.Double", "Swift.Float",
-. 		"Swift.Int", "Swift.Int16", "Swift.Int32", "Swift.Int64",
-. 		"Swift.Int8", "Swift.String", "Swift.UInt", "Swift.UInt16",
-. 		"Swift.UInt32", "Swift.UInt64", "Swift.UInt8"
-. 	],
-. 	registeredTypes = [
-. 		"*.MyNewData",
-. 		"*.NewContainer<*.MyNewData>",
-. 		"Swift.Array<*.NewContainer<*.MyNewData>>"
-. 	],
-. 	typeReplacementsTable = [
-. 		"*.Container<*.MyData>": "*.NewContainer<*.MyNewData>",
-.		"*.MyData": "*.MyNewData"
-. 	]
-. )
-``
+```
+GTypesRepository(
+	* = "MyCodableApp",
+	nativeTypes = [
+		"Foundation.Data", "Swift.Bool", "Swift.Double", "Swift.Float",
+		"Swift.Int", "Swift.Int16", "Swift.Int32", "Swift.Int64",
+		"Swift.Int8", "Swift.String", "Swift.UInt", "Swift.UInt16",
+		"Swift.UInt32", "Swift.UInt64", "Swift.UInt8"
+	],
+	registeredTypes = [
+		"*.MyNewData",
+		"*.NewContainer<*.MyNewData>",
+		"Swift.Array<*.NewContainer<*.MyNewData>>"
+	],
+	typeReplacementsTable = [
+		"*.Container<*.MyData>": "*.NewContainer<*.MyNewData>",
+		"*.MyData": "*.MyNewData"
+	]
+)
+```
 ## Types registration (reprise)
 ### Premise
 Ideally, Swift should make two functions available for transforming types into some form of archivable data and vice versa.
@@ -962,7 +962,7 @@ For example, like these:
 ``func serializeType( type:Any.Type ) -> [UInt8]``
 ``func deserializeType( from:[UInt8] ) -> Any.Type``
 
-Having this functionality, the need to keep a repository of the decoding types vanishes, because the bytes describing the type can be stored during encoding and retrieved during decoding. Then you can:
+Having this functionality, **the need to keep a repository of the decoding types vanishes**, because the bytes describing the type can be stored during encoding and retrieved during decoding. Then you can:
 
 ```swift
 // 1) construct the type from its bytes description
@@ -974,7 +974,6 @@ guard let decodableType = type as? GCodable.Type else {
 }
 // 3) istantiate the value
 let decodedValue = decodableType(from: ...)
-
 ```
 Beyond the real possibility of offering functions such as ``func serializeType( type:Any.Type ) -> [UInt8]`` and ``func deserializeType( from:[UInt8] ) -> Any.Type``, which I do not discuss because I do not have the skills, I do not understand what problem such a feature can pose to security.
 There is nothing I can do with the decoded ``Any.type`` if I don't check for conformance to a predefined protocol first. Only after I have done this can I use the type to build instances.
@@ -1009,8 +1008,8 @@ and call it after startup. It is important to call it from the main module becau
 Maintaining a consistent repository of all types that can be decoded during application development can be a tedious task.
 To alleviate this problem, GraphCodable offers two help functions.
 
-- [x] ``GTypesRepository.shared.help()``
-- [x] ``GraphDecoder().help( from data: Data )``
+- ``GTypesRepository.shared.help()``
+-  ``GraphDecoder().help( from data: Data )``
 
 The first provides in a string the Swift code that contains the function necessary to register all the types currently present in the repository. In other words, the result of all the recordings made automatically by the encoder from the opening of the program.
 
