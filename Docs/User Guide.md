@@ -370,9 +370,7 @@ do {
 ### Reference Types - Directed Acyclic Graphs (DAG)
 
 The variables that contain objects realize direct type graphs. Arc requires that strong variables do not create direct cyclical graphs because the cycles prevent the release of memory. Graphcodable is perfectly capable of encoding and decoding direct acyclic graphics (DAG) without the need for any special treatment.
-The next example shows how GraphCodable encode and decode this DAG taken from the Wikipedia page:
-[DAG](https://en.wikipedia.org/wiki/Directed_acyclic_graph)
-[DAG Example](https://en.wikipedia.org/wiki/Directed_acyclic_graph#/media/File:Tred-G.svg)
+The next example shows how GraphCodable encode and decode this [DAG](https://en.wikipedia.org/wiki/Directed_acyclic_graph#/media/File:Tred-G.svg) taken from this [Wikipedia page](https://en.wikipedia.org/wiki/Directed_acyclic_graph).
 ```
                  ╭───╮
    ┌────────────▶︎│ c │─────┐
