@@ -344,6 +344,6 @@ public protocol GDecoder {
 /// │    Ø   = weak reference used to prevent strong memory cycles in ARC     │
 /// │    O   = any other use of a weak reference                              │
 /// │  Note  : Swift does not allow calling deferDecode from the init of a    │
-///	│          value type, but only from that of a reference type. Swift      │
-///	│          forces to call it after super class initialization.            │
+/// │          value type, but only from that of a reference type. Swift      │
+/// │          forces to call it after super class initialization.            │
 /// └─────────────────────────────────────────────────────────────────────────┘
