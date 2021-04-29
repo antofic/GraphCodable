@@ -24,5 +24,8 @@ let package = Package(
         .testTarget(
             name: "GraphCodableTests",
             dependencies: ["GraphCodable"]),
-    ]
+		.testTarget(
+			name: "GraphCodablePerformanceTests",
+			dependencies: ["GraphCodable"]),
+	]
 )
