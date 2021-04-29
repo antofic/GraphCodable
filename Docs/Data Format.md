@@ -64,49 +64,49 @@ print( try GraphEncoder().dump( inRoot ) )
 ```
 The result:
 
-``
-. == HEADER ========================================================
-. ^ Filetype = gcodable V0, * = GCodable, U1 = 0, U2 = 0
-. == GRAPH =========================================================
-. - STRUCT Swift.Array<*.AClass>
-. 	- CLASS *.AClass Obj1000
-. 		+ "astruct": STRUCT *.AStruct
-. 			+ "array": STRUCT Swift.Array<Swift.Int>
-. 				- Swift.Int 1
-. 				- Swift.Int 2
-. 				- Swift.Int 3
-. 			.
-. 			+ "dict": STRUCT Swift.Dictionary<Swift.String,Swift.Int>
-. 				- Swift.String "4"
-. 				- Swift.Int 4
-. 				- Swift.String "5"
-. 				- Swift.Int 5
-. 			.
-. 		.
-. 		+ "aclass": POINTER? Obj1001
-. 	.
-. 	- POINTER Obj1000
-. 	- POINTER Obj1000
-. 	- POINTER Obj1000
-. 	- CLASS *.AClass Obj1001
-. 		+ "astruct": STRUCT *.AStruct
-. 			+ "array": STRUCT Swift.Array<Swift.Int>
-. 				- Swift.Int 1
-. 				- Swift.Int 2
-. 				- Swift.Int 3
-. 			.
-. 			+ "dict": STRUCT Swift.Dictionary<Swift.String,Swift.Int>
-. 				- Swift.String "5"
-. 				- Swift.Int 5
-. 				- Swift.String "4"
-. 				- Swift.Int 4
-. 			.
-. 		.
-. 		+ "aclass": nil
-. 	.
-. .
-. ==================================================================
-``
+```
+== HEADER ========================================================
+^ Filetype = gcodable V0, * = GCodable, U1 = 0, U2 = 0
+== GRAPH =========================================================
+- STRUCT Swift.Array<*.AClass>
+	- CLASS *.AClass Obj1000
+		+ "astruct": STRUCT *.AStruct
+			+ "array": STRUCT Swift.Array<Swift.Int>
+				- Swift.Int 1
+				- Swift.Int 2
+				- Swift.Int 3
+			.
+			+ "dict": STRUCT Swift.Dictionary<Swift.String,Swift.Int>
+				- Swift.String "4"
+				- Swift.Int 4
+				- Swift.String "5"
+				- Swift.Int 5
+			.
+		.
+		+ "aclass": POINTER? Obj1001
+	.
+	- POINTER Obj1000
+	- POINTER Obj1000
+	- POINTER Obj1000
+	- CLASS *.AClass Obj1001
+		+ "astruct": STRUCT *.AStruct
+			+ "array": STRUCT Swift.Array<Swift.Int>
+				- Swift.Int 1
+				- Swift.Int 2
+				- Swift.Int 3
+			.
+			+ "dict": STRUCT Swift.Dictionary<Swift.String,Swift.Int>
+				- Swift.String "5"
+				- Swift.Int 5
+				- Swift.String "4"
+				- Swift.Int 4
+			.
+		.
+		+ "aclass": nil
+	.
+.
+==================================================================
+```
  You can see:
 
 The **HEADER**, with the file format name (gcodable), its version, a the placeholder ``* = MainModuleName`` and some unused fields.
@@ -152,62 +152,62 @@ By using the '.binaryLike' option you can see the data saved in a format that mo
 
 `print( try GraphEncoder().dump( inRoot, options: .binaryLike ) )`
 
-``
-. == HEADER ========================================================
-. ^ Filetype = gcodable V0, * = GCodable, U1 = 0, U2 = 0
-. == TYPEMAP =======================================================
-. # Type101: V0 *.AClass
-. # Type104: V0 Swift.Int
-. # Type106: V0 Swift.String
-. # Type105: V0 Swift.Dictionary<Swift.String,Swift.Int>
-. # Type103: V0 Swift.Array<Swift.Int>
-. # Type102: V0 *.AStruct
-. # Type100: V0 Swift.Array<*.AClass>
-. == GRAPH =========================================================
-. - STRUCT Type100
-. 	- CLASS Type101 Obj1000
-. 		+ Key100: STRUCT Type102
-. 			+ Key101: STRUCT Type103
-. 				- Type104 1
-. 				- Type104 2
-. 				- Type104 3
-. 			.
-. 			+ Key102: STRUCT Type105
-. 				- Type106 "4"
-. 				- Type104 4
-. 				- Type106 "5"
-. 				- Type104 5
-. 			.
-. 		.
-. 		+ Key103: POINTER? Obj1001
-. 	.
-. 	- POINTER Obj1000
-. 	- POINTER Obj1000
-. 	- POINTER Obj1000
-. 	- CLASS Type101 Obj1001
-. 		+ Key100: STRUCT Type102
-. 			+ Key101: STRUCT Type103
-. 				- Type104 1
-. 				- Type104 2
-. 				- Type104 3
-. 			.
-. 			+ Key102: STRUCT Type105
-. 				- Type106 "5"
-. 				- Type104 5
-. 				- Type106 "4"
-. 				- Type104 4
-. 			.
-. 		.
-. 		+ Key103: nil
-. 	.
-. .
-. == KEYMAP ========================================================
-. # Key103: "aclass"
-. # Key102: "dict"
-. # Key100: "astruct"
-. # Key101: "array"
-. ==================================================================
-``
+```
+== HEADER ========================================================
+^ Filetype = gcodable V0, * = GCodable, U1 = 0, U2 = 0
+== TYPEMAP =======================================================
+# Type101: V0 *.AClass
+# Type104: V0 Swift.Int
+# Type106: V0 Swift.String
+# Type105: V0 Swift.Dictionary<Swift.String,Swift.Int>
+# Type103: V0 Swift.Array<Swift.Int>
+# Type102: V0 *.AStruct
+# Type100: V0 Swift.Array<*.AClass>
+== GRAPH =========================================================
+- STRUCT Type100
+	- CLASS Type101 Obj1000
+		+ Key100: STRUCT Type102
+			+ Key101: STRUCT Type103
+				- Type104 1
+				- Type104 2
+				- Type104 3
+			.
+			+ Key102: STRUCT Type105
+				- Type106 "4"
+				- Type104 4
+				- Type106 "5"
+				- Type104 5
+			.
+		.
+		+ Key103: POINTER? Obj1001
+	.
+	- POINTER Obj1000
+	- POINTER Obj1000
+	- POINTER Obj1000
+	- CLASS Type101 Obj1001
+		+ Key100: STRUCT Type102
+			+ Key101: STRUCT Type103
+				- Type104 1
+				- Type104 2
+				- Type104 3
+			.
+			+ Key102: STRUCT Type105
+				- Type106 "5"
+				- Type104 5
+				- Type106 "4"
+				- Type104 4
+			.
+		.
+		+ Key103: nil
+	.
+.
+== KEYMAP ========================================================
+# Key103: "aclass"
+# Key102: "dict"
+# Key100: "astruct"
+# Key101: "array"
+==================================================================
+```
 We see how the **GRAPH** section uses IDs for types and keys, while the type and key strings are stored once in only two tables, one (**TYPEMAP**) preceding the **GRAPH** section and another (**KEYMAP**) following it. The version of the type (**V...**) is also stored in the type table.
 
 
