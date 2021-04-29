@@ -1,4 +1,4 @@
-#  User Guide (with examples)
+#  User Guide
 
 ## Initialization
 GraphCodable must be initialized before using it by calling the function from the main module.
@@ -19,7 +19,7 @@ public final class GTypesRepository {
 Swift doesn't provide a way to get this name, not even at runtime. And so it is taken from `#fileID`.
 
 ## Types registration (first part)
-Typically, the initialization is carried out simultaneously with the registration of all the types that can be decoded by defining a specific function as in the following example and calling it from your main module when your software starts. 
+Typically, the initialization is carried out simultaneously with the registration of all the types that can be decoded by defining a specific function as in the following example and calling it from your main module when your software starts.
 ```swift
 import GraphCodable
 
@@ -44,7 +44,8 @@ initializeGraphCodable()
 The encoder automatically registers all types it encounters, and so there is no need to register any types if you are decoding a file after encoding it. The next examples will take advantage of this feature. The following examples take advantage of this functionality, and so they just call `GTypesRepository.initialize()`.
 We will return to the topic at the end of the document.
 
-## Commented examples
+## Code Examples
+Copy and paste examples in your main.swift file.
 
 ### Native types and collection support
 ```swift
@@ -67,7 +68,6 @@ print( outRoot == inRoot )	// prints: true
 ### Complex Value Types
 
 ```swift
-
 import Foundation
 import GraphCodable
 
@@ -95,7 +95,6 @@ struct Example : GCodable, Equatable {
 		try encoder.encode( name, for:  Key.name )
 		try encoder.encode( examples, for:  Key.examples )
 	}
-	
 }
 
 let eA	= Example(name: "exampleA")
@@ -118,12 +117,10 @@ Up to now the behavior of GraphCodable is similar to that of Codable. That chang
 The same example with a reference type will show how GraphCodable don't duplicate it.  Codable duplicates it.
 
 ```swift
-
 import Foundation
 import GraphCodable
 
 GTypesRepository.initialize()
-
 
 final class Example : GCodable, Equatable, Codable {
 	private(set) var name		: String
@@ -180,12 +177,10 @@ do {	//	Codable
 The same example using unkeyed coding. With unkeyed coding you must decode values in the same order in which they are encoded.
 
 ```swift
-
 import Foundation
 import GraphCodable
 
 GTypesRepository.initialize()
-
 
 final class Example : GCodable, Equatable {
 	private(set) var name		: String
@@ -253,7 +248,6 @@ The latter case clearly shows that with GraphCodable **the values are removed fr
 GraphCodable **supports inheritance**: in other words, the type of decoded object always corresponds to the real type of the encoded object, as you can see in the next example. Codable lost type information.
 
 ```swift
-
 import Foundation
 import GraphCodable
 
@@ -306,7 +300,6 @@ import Foundation
 import GraphCodable
 
 GTypesRepository.initialize()
-
 
 class ConditionalList : GCodable {
 	private (set) var next : ConditionalList?
@@ -386,7 +379,6 @@ The next example shows how GraphCodable encode and decode this [DAG](https://en.
   └────────────────────────┘
 ```
 ```swift
-
 import Foundation
 import GraphCodable
 
@@ -548,7 +540,6 @@ Similarly, this pattern requires to 'deferDecode' the weak variable (parent) bec
 *Note:* Swift does not allow calling deferDecode from the init of a value type, but only from that of a reference type and forces to call it **after** super class initialization.
 
 ```swift
-
 import Foundation
 import GraphCodable
 
@@ -573,7 +564,6 @@ func == <T:AnyObject>(lhs: T, rhs: T) -> Bool {
 func != <T:AnyObject>(lhs: T, rhs: T) -> Bool {
 	return lhs !== rhs
 }
-
 
 class Node : Hashable, GCodable, CustomStringConvertible {
 	private weak var _parent : Node?
@@ -614,7 +604,6 @@ class Node : Hashable, GCodable, CustomStringConvertible {
 		try decoder.deferDecode( for: Key._parent ) { self._parent = $0 }
 	}	
 }
-
 
 class View		: Node {}
 class Window	: View {}	// we make window subclass of view

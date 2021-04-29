@@ -6,14 +6,16 @@ GraphCodable is an **experimental** encode/decode library (similar to Codable at
 In other words, GraphCodable tries to offer functionalities similar to those of NSCoder within the "limits" of a language (Swift) less dynamic than Objective C.
 
 Specifically, GraphCodable:
-- [x] saves all type information;
-- [x] supports reference types inheritance;
-- [x] never duplicates the same object (as defined by ObjectIdentifier) during the decoding process;
-- [x] is fully type checked at compile time (*);
-- [x] supports keyed and unkeyed storage, also employed simultaneously in the same type;
-- [x] supports conditional encoding;
-- [x] implements a type version system;
-- [x] implements a type substitution system during decode;
+- saves all type information;
+- supports reference types inheritance;
+- never duplicates the same object (as defined by ObjectIdentifier) during the decoding process;
+- is fully type checked at compile time (*);
+- supports keyed and unkeyed storage, also employed simultaneously in the same type;
+- supports conditional encoding;
+- implements a type version system;
+- implements a type substitution system during decode;
+
+Check code examples in the [User Guide](/Docs/User+Guide.md).
 
 GraphCodable natively supports the following types: Int, Int8, Int16, Int32, Int64, UInt, UInt8, UInt16, UInt32, UInt64, Float, Double, String, Data
 GraphCodable make Optional, Array, Set, Dictionary codable if the hold codable types. OptionSet and Enum with rawValue of native type (except Data) are codable, too.
@@ -30,12 +32,17 @@ GraphCodable is written entirely in Swift. The use of 'unsafe' methods is limite
 
 (*) Fully type checking at compile time is mutually exclusive with the ability to encode/decode heterogeneous collections (i.e. [Any]) containing 'codable' elements. I chose to support the first feature while giving up the second.
 
+## Other documents
+- [User Guide](/Docs/User+Guide.md)
+- [Coding Rules](/Docs/Coding+Rules.md)
+- [Data Format](/Docs/Data+Format.md)
+
 ## Simple interface comparison to Swift Codable
 In GraphCodable:
-- [x] GEncodable, GDecodable and GCodable have the same roles as Encodable, Decodable and Codable
-- [x] GEncoder, GDecoder have the same roles as Encoder, Decoder
-- [x] GraphEncoder has the same role as JSONEncoder, PropertyListEncoder
-- [x] GraphDecoder has the same role as JSONDecoder, PropertyListDecoder
+- GEncodable, GDecodable and GCodable have the same roles as Encodable, Decodable and Codable
+- GEncoder, GDecoder have the same roles as Encoder, Decoder
+- GraphEncoder has the same role as JSONEncoder, PropertyListEncoder
+- GraphDecoder has the same role as JSONDecoder, PropertyListDecoder
 
 GraphCodable does not use containers.
 
