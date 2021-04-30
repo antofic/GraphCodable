@@ -1018,7 +1018,7 @@ func initializeGraphCodable() {
 ```
 and call it after startup. It is important to call it from the main module because GraphCodable needs this name and gets it from the default ``#fileID`` 'hidden' parameter in the ``GTypesRepository.initialize( fromFileID fileID:String = #fileID )`` function. Swift should really offer a function to get the main module name to avoid such tricks.
 
-Maintaining a consistent repository of all types that can be decoded during application development can be a tedious task.
+Maintaining a consistent repository of all types that can be decoded during application development can be a tedious and error prone task.
 To alleviate this problem, GraphCodable offers two help functions.
 
 - ``GTypesRepository.shared.help()``
