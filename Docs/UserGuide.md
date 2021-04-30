@@ -1,10 +1,10 @@
 #  User Guide
 
 - [Initialization](#Initialization)
-- [Types registration (first part)](#Types-registration-(first-part))
+- [Types registration / first part](#Types-registration-/-first-part)
 - [Code examples](#Code-examples)
 	- [Native types and collection support](#Native-types-and-collection-support)
-	- [Value types, keyed coding](#Value-types,-keyed-coding)
+	- [Value types and keyed coding](#Value-types-and-keyed-coding)
 	- [Reference types](#Reference-types)
 		- [No duplication of objects](#No-duplication-of-objects)
 		- [Unkeyed coding](#Unkeyed-coding)
@@ -12,7 +12,7 @@
 		- [Conditional encode](#Conditional-encode)
 		- [Directed acyclic graphs](#Directed-acyclic-graphs)
 		- [Directed cyclic graphs](#Directed-cyclic-graphs)
-	- [Coding rules for value and reference types](#Coding+rules+for+value+and+reference+types)
+	- [Coding rules](#Coding+rules)
 	- [Other features](#Other+features)
 		- [UserInfo dictionary](#UserInfo-dictionary)
 		- [Type version system](#Type-version-system)
@@ -40,7 +40,7 @@ public final class GTypesRepository {
 ```
 Swift doesn't provide a way to get this name, not even at runtime. And so it is taken from `#fileID`.
 
-## Types registration (first part)
+## Types registration / first part
 Typically, the initialization is carried out simultaneously with the registration of all the types that can be decoded by defining a specific function as in the following example and calling it from your main module when your software starts.
 ```swift
 import GraphCodable
@@ -87,7 +87,7 @@ let outRoot	= try GraphDecoder().decode( type(of:inRoot), from: data )
 
 print( outRoot == inRoot )	// prints: true
 ```
-### Value types, keyed coding
+### Value types and keyed coding
 
 ```swift
 import Foundation
@@ -667,7 +667,7 @@ print( outRoot === outRoot.childs.first?.childs.first?.parent?.parent! )	// prin
 
 For another example of DCG, see testDGC() in the tests section (DirectedCyclicGraphTests).
 
-### Coding rules for value and reference types
+### Coding rules
 
 This table summarizes the methods to be used depending on the type of variable to be encoded and decoded:
 ```
