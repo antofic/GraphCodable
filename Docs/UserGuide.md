@@ -197,7 +197,7 @@ let outRoot	= try GraphDecoder().decode( type(of:inRoot), from: data )
 print( outRoot == inRoot )	// prints: true
 ```
 It is also possible to mix keyed and unkeyed coding, as long as the unkeyed variables are decoded in the same order in which they were encoded.
-It is recommended that you use unkeyed coding not in cases like this, but rather when you need to store a single value or a sequence of values. The following example shows how array conformance is implemented in the GraphCodable using unkeyed encode/decode:
+It is recommended that you use unkeyed coding not in cases like this, but rather when you need to store a single value or a sequence of values. The following example shows how array conformance is implemented in the GraphCodable package using unkeyed encode/decode:
 
 ```swift
 extension Array: GCodable where Element:GCodable {
@@ -217,7 +217,7 @@ extension Array: GCodable where Element:GCodable {
 	}
 }
 ```
-The latter case clearly shows that with GraphCodable **the values are removed from the decoder as they are decoded** and this also happens for keyed values.
+The ``init( from:... )`` method clearly shows that with GraphCodable **the values are removed from the decoder as they are decoded**. This also happens for keyed values.
 
 ### Reference types
 #### No duplication of the same object
