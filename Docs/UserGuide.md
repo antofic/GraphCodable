@@ -5,9 +5,9 @@
 - [Code examples](#Code-examples)
 	- [Native types and collection support](#Native-types-and-collection-support)
 	- [Value types and keyed coding](#Value-types-and-keyed-coding)
+	- [Unkeyed coding](#Unkeyed-coding)
 	- [Reference types](#Reference-types)
 		- [No duplication of objects](#No-duplication-of-objects)
-		- [Unkeyed coding](#Unkeyed-coding)
 		- [Inheritance](#Inheritance)
 		- [Conditional encode](#Conditional-encode)
 		- [Directed acyclic graphs](#Directed-acyclic-graphs)
@@ -134,6 +134,75 @@ print( outRoot == inRoot )	// prints: true
 ```
 As you can see, GraphCodable uses enums with string rawValue as keys.
 
+#### Unkeyed coding
+The same example using unkeyed coding. With unkeyed coding you must decode values in the same order in which they are encoded.
+
+```swift
+import Foundation
+import GraphCodable
+
+GTypesRepository.initialize()
+
+struct Example : GCodable, Equatable {
+	private(set) var name		: String
+	private(set) var examples	: [Example]
+
+	init( name : String, examples : [Example] = [Example]()) {
+		self.name		= name
+		self.examples	= examples
+		}
+
+	enum Key: String {
+		case name, examples
+	}
+
+	init(from decoder: GDecoder) throws {
+		self.name		= try decoder.decode()
+		self.examples	= try decoder.decode()
+	}
+	
+	func encode(to encoder: GEncoder) throws {
+		try encoder.encode( name )
+		try encoder.encode( examples )
+	}
+}
+
+let eA	= Example(name: "exampleA")
+let eB	= Example(name: "exampleB", examples: [eA,eA,eA] )
+
+let inRoot	= eB
+
+// encode inRoot in data
+let data	= try GraphEncoder().encode( inRoot )
+
+// decode outRoot from data
+let outRoot	= try GraphDecoder().decode( type(of:inRoot), from: data )
+
+print( outRoot == inRoot )	// prints: true
+```
+It is also possible to mix keyed and unkeyed coding, as long as the unkeyed variables are decoded in the same order in which they were encoded.
+It is recommended that you use unkeyed coding not in cases like this, but rather when you need to store a single value or a sequence of values. The following example shows how array conformance is implemented in the GraphCodable using unkeyed encode/decode:
+
+```swift
+extension Array: GCodable where Element:GCodable {
+	public func encode(to encoder: GEncoder) throws {
+		for element in self {
+			try encoder.encode( element )
+		}
+	}
+	public init(from decoder: GDecoder) throws {
+		self.init()
+
+		self.reserveCapacity( try decoder.unkeyedCount() )
+
+		while try decoder.unkeyedCount() > 0 {
+			self.append( try decoder.decode() )
+		}
+	}
+}
+```
+The latter case clearly shows that with GraphCodable **the values are removed from the decoder as they are decoded** and this also happens for keyed values.
+
 ### Reference types
 #### No duplication of objects
 
@@ -197,75 +266,6 @@ do {	//	Codable
 	print( outRoot.examples[0] === outRoot.examples[2] )	// prints: false --> we use '===': reference duplicated!
 }
 ```
-#### Unkeyed coding
-The same example using unkeyed coding. With unkeyed coding you must decode values in the same order in which they are encoded.
-
-```swift
-import Foundation
-import GraphCodable
-
-GTypesRepository.initialize()
-
-final class Example : GCodable, Equatable {
-	private(set) var name		: String
-	private(set) var examples	: [Example]
-	
-	init( name : String, examples : [Example] = [Example]()) {
-		self.name		= name
-		self.examples	= examples
-	}
-	
-	init(from decoder: GDecoder) throws {
-		self.name		= try decoder.decode()
-		self.examples	= try decoder.decode()
-	}
-	
-	func encode(to encoder: GEncoder) throws {
-		try encoder.encode( name )
-		try encoder.encode( examples )
-	}
-	
-	static func == (lhs: Example, rhs: Example) -> Bool {
-		return lhs.name == rhs.name && lhs.examples == rhs.examples
-	}
-}
-
-let eA	= Example(name: "exampleA")
-let eB	= Example(name: "exampleB", examples: [eA,eA,eA] )
-
-let inRoot	= eB
-
-// encode inRoot in data
-let data	= try GraphEncoder().encode( inRoot )
-
-// decode outRoot from data
-let outRoot	= try GraphDecoder().decode( type(of:inRoot), from: data )
-
-print( outRoot == inRoot )	// prints: true
-print( outRoot.examples[0] === outRoot.examples[1] )	// prints: true --> we use '===': same reference!
-print( outRoot.examples[0] === outRoot.examples[2] )	// prints: true --> we use '===': same reference!
-```
-It is recommended that you use unkeyed coding not in cases like this, but rather when you need to store a single value or a sequence of values. The following example shows how array conformance is implemented in the GraphCodable using unkeyed encode/decode:
-
-```swift
-extension Array: GCodable where Element:GCodable {
-	public func encode(to encoder: GEncoder) throws {
-		for element in self {
-			try encoder.encode( element )
-		}
-	}
-	public init(from decoder: GDecoder) throws {
-		self.init()
-
-		self.reserveCapacity( try decoder.unkeyedCount() )
-
-		while try decoder.unkeyedCount() > 0 {
-			self.append( try decoder.decode() )
-		}
-	}
-}
-```
-The latter case clearly shows that with GraphCodable **the values are removed from the decoder as they are decoded** and this also happens for keyed values.
 
 ### Inheritance
 
