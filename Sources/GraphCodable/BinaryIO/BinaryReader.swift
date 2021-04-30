@@ -24,6 +24,7 @@ import Foundation
 
 // faster than BinaryReaderBase<Data> even if you initialize with Data
 typealias BinaryReader = BinaryReaderBase<Array<UInt8>>
+//	typealias BinaryReader = BinaryReaderBase<Data>
 
 enum BinaryReaderError : Error {
 	case outOfBounds
@@ -163,6 +164,7 @@ where T:MutableDataProtocol, T:ContiguousBytes, T.SubSequence:ContiguousBytes {
 		if bytes.count < size { throw BinaryReaderError.outOfBounds }
 	}
 
+	// usafe section ---------------------------------------------------------
 	
 	private mutating func readValue<T>( _ v : inout T ) throws {
 		let inSize	= MemoryLayout<T>.size

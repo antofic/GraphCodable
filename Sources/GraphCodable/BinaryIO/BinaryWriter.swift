@@ -24,6 +24,7 @@ import Foundation
 
 //	faster than BinaryWriterBase<Data> even if you ask for the result as Data
 typealias BinaryWriter = BinaryWriterBase<Array<UInt8>>
+//	typealias BinaryWriter = BinaryWriterBase<Data>
 
 struct BinaryWriterBase<T>
 where T:MutableDataProtocol, T:ContiguousBytes
@@ -80,7 +81,7 @@ where T:MutableDataProtocol, T:ContiguousBytes
 	mutating func write<T>( _ v:T ) where T : RawRepresentable, T.RawValue == Bool					{ write(v.rawValue) }
 
 	// ----------------------------------------------------------------------------------------------------------
-	// Private
+	// Private / unsafe section
 	// ----------------------------------------------------------------------------------------------------------
 	
 	private mutating func writeValue<T>( _ v:T ) {
