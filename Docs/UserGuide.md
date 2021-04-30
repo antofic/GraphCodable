@@ -1027,13 +1027,17 @@ So why did I call this package "**experimental**"?
 
 Apart from all the possible internal improvements to the package, there are some unsolvable iussues (as far as I know) related to some current Swift features.
 
-- ``String (reflecting:)`` might change the format to make unarchiving impossible without a package update. That said, as long as context information is kept inside parentheses, this shouldn't happen.
+- ``String (reflecting:)`` might change the format to make unarchiving impossible without a package update. That said, as long as context information is kept inside round brackets, this shouldn't happen.
 - An unfortunate, albeit minor, circumstance is that Swift doesn't have a function to get the main module name. ``#mainModule`` would be perfect.
-- The need to use ``deferDecode(...)`` for weak variables used to break strong memory cycles is not a big problem, in my opinion, because you know exactly what and where they are. If anything, the limitation is that these variables must necessarily be owned by a reference type because ``deferDecode(...)`` cannot be called in the ``init(from: ...)`` method of a value type.
+- There is nothing I can do to avoid duplication of the internal object used as storage by collection types like Arrays. Ideally, it should be made GCodable compliant to avoid duplicating it during decode, but I don't have access to it. Therefore, if 10 arrays sharing a single storage object containing 100 integers are encoded, 10 arrays each with its own distinct storage object containing 100 integers are decoded, effectively tenfolding their memory footprint.
+- The need to use ``deferDecode(...)`` for weak variables used to break ARC strong memory cycles is not a big problem, in my opinion, because you know exactly what and where they are. If anything, the limitation is that these variables must necessarily be owned by a reference type because ``deferDecode(...)`` cannot be called in the ``init(from: ...)`` method of a value type. The ``WeakBox<T>`` used in ``testDGC()`` (see tests section - DirectedCyclicGraphTests) can't be a struct.
 - The big problem, in my opinion, is that you have to keep the type repository updated during the development of an application. The absence of a single 'GCodable' type from the type repository makes it impossible to decode a data file containing it.
+ 
   Ideally, Swift should make two functions available for transforming types into some form of archivable data and vice versa.
   For example, like these:
+  
   ``func serializeType( type:Any.Type ) -> [UInt8]``
+  
   ``func deserializeType( from:[UInt8] ) -> Any.Type``
   
   Having this functionality, **the need to keep a repository of the decoding types vanishes**, because the bytes describing the type can be stored during encoding and retrieved during decoding. Then you can:
@@ -1049,6 +1053,7 @@ Apart from all the possible internal improvements to the package, there are some
   let decodedValue = decodableType(from: ...)
   ```
   Furthermore, the need to manage the names of the types also disappears, because only the types must be managed inside the package.
+  
   Beyond the real possibility of offering functions such as ``func serializeType( type:Any.Type ) -> [UInt8]`` and ``func deserializeType( from:[UInt8] ) -> Any.Type``, which I do not discuss because I do not   have the skills, I do not understand what problem such a feature can pose to security.
   There is nothing I can do with the decoded ``Any.type`` if I don't check for conformance to a predefined protocol first. Only after I have done this can I use the type to build instances.
   But this functionality does not exist and therefore it is necessary to keep a repository of all possible types that may be encountered during decode.
