@@ -967,9 +967,11 @@ do {
 }
 
 ```
-You can see the contents of the GTYpesRepository with ``print( GTypesRepository.shared )``.
-With the previous example it will print (with some additional indentation for clarity):
+## Type registration
 
+### Types repository
+
+You can see the contents of the GTypesRepository with ``print( GTypesRepository.shared )``. With the previous example it will print (with some additional indentation for clarity):
 ```
 GTypesRepository(
 	* = "MyCodableApp",
@@ -990,9 +992,6 @@ GTypesRepository(
 	]
 )
 ```
-## Type registration
-
-### Types repository
 The types repository is a sigleton object that contain a dictionary of string / type pairs, where the string is the type name. The encoder encode the name of every type it encounters. The decoder decode the type name and consults the type repository to get the corresponding type with which to instantiate the value.
 And so **you have to register in the repository all possible types that may be encountered during decode** otherwise the decoder can't costruct values from their type.
 
