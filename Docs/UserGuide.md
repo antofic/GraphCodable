@@ -687,7 +687,8 @@ For another example of DCG, see ``testDGC()`` in the tests section (DirectedCycl
 
 ### Coding rules
 
-This table summarizes the methods to be used in your `func encode(to encoder: GEncoder) throws { ... }` and `func encode(to encoder: GEncoder) throws { ... }` depending on the type of variable to be encoded and decoded:
+This table summarizes the methods to be used in your `func encode(to encoder: GEncoder) throws { ... }` and `init(from decoder: GDecoder) throws { ... }` depending on the type of variable to be encoded and decoded:
+
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                          ENCODE/DECODE RULES                            │
