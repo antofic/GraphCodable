@@ -8,7 +8,7 @@
 		- [Keyed coding](#Keyed-coding)
 		- [Unkeyed coding](#Unkeyed-coding)
 	- [Reference types](#Reference-types)
-		- [No duplication of objects](#No-duplication-of-objects)
+		- [No duplication of the same object](#No-duplication-of-the-same-object)
 		- [Inheritance](#Inheritance)
 		- [Conditional encode](#Conditional-encode)
 		- [Directed acyclic graphs](#Directed-acyclic-graphs)
@@ -64,7 +64,7 @@ func initializeGraphCodable() {
 // call after startup:
 initializeGraphCodable()
 ```
-The encoder automatically registers all types it encounters, and so there is no need to register any types if you are decoding a file after encoding it for testing purposes. The next examples will take advantage of this feature. The following examples take advantage of this functionality, and so they just call `GTypesRepository.initialize()`.
+The encoder automatically registers all types it encounters, and so there is no need to register any types if you are decoding a file after encoding it for testing purposes. The next examples will take advantage of this feature and so they just call `GTypesRepository.initialize()`.
 I will return to the topic at the end of the document.
 
 ## Code examples
@@ -211,7 +211,7 @@ extension Array: GCodable where Element:GCodable {
 The latter case clearly shows that with GraphCodable **the values are removed from the decoder as they are decoded** and this also happens for keyed values.
 
 ### Reference types
-#### No duplication of objects
+#### No duplication of the same object
 
 Up to now the behavior of GraphCodable is similar to that of Codable. That changes with reference types.
 The same example with a reference type will show how GraphCodable don't duplicate it.  Codable duplicates it.
@@ -393,7 +393,7 @@ do {
 
 #### Directed acyclic graphs
 
-The variables that contain objects realize direct type graphs. Arc requires that strong variables do not create **direct cyclic graphs** (DCG) because the cycles prevent the release of memory. GraphCodable is capable of encoding and decoding **direct acyclic graphs** (DAG) without the need for any special treatment.
+The variables that contain objects realize **directed graphs**. Arc requires that strong variables do not create **directed cyclic graphs** (DCG) because the cycles prevent the release of memory. GraphCodable is capable of encoding and decoding **directed acyclic graphs** (DAG) without the need for any special treatment.
 The next example shows how GraphCodable encode and decode this [DAG](https://en.wikipedia.org/wiki/Directed_acyclic_graph#/media/File:Tred-G.svg) taken from this [Wikipedia page](https://en.wikipedia.org/wiki/Directed_acyclic_graph).
 ```
                  ╭───╮
@@ -1022,26 +1022,36 @@ By design, GraphCodable **never exposes type names as strings**. Even in the cas
 But, as described, encoding / decoding requires the internal use of type names. Swift does not offer a function to obtain a string that can uniquely and stably identify each type. ``String (describing:)`` does not provide enough information, so I must necessarily use ``String (reflecting:)`` to get a suitable string. The aforementioned string is not used as it is; it is recursively decomposed into all component types, context information in the form ``.(____).(____).`` is eliminated where present, and a stable (*within the limits of the possible*) type name is reconstructed.
 
 ## My final thoughts
-Ideally, Swift should make two functions available for transforming types into some form of archivable data and vice versa.
-For example, like these:
-``func serializeType( type:Any.Type ) -> [UInt8]``
-``func deserializeType( from:[UInt8] ) -> Any.Type``
 
-Having this functionality, **the need to keep a repository of the decoding types vanishes**, because the bytes describing the type can be stored during encoding and retrieved during decoding. Then you can:
+So why did I call this package "**experimental**"?
 
-```swift
-// 1) construct the type from its bytes description
-let type = deserializeType( from: bytes )
+Apart from all the possible internal improvements to the package, there are some unsolvable iussues (as far as I know) related to some current Swift features.
 
-// 2) check that it conforms the desired protocol
-guard let decodableType = type as? GCodable.Type else {
-	throw ...
-}
-// 3) istantiate the value
-let decodedValue = decodableType(from: ...)
-```
-Beyond the real possibility of offering functions such as ``func serializeType( type:Any.Type ) -> [UInt8]`` and ``func deserializeType( from:[UInt8] ) -> Any.Type``, which I do not discuss because I do not have the skills, I do not understand what problem such a feature can pose to security.
-There is nothing I can do with the decoded ``Any.type`` if I don't check for conformance to a predefined protocol first. Only after I have done this can I use the type to build instances.
-But this functionality does not exist and therefore it is necessary to keep a repository of all possible types that may be encountered during decode.
-
+- ``String (reflecting:)`` might change the format to make unarchiving impossible without a package update. That said, as long as context information is kept inside parentheses, this shouldn't happen.
+- An unfortunate, albeit minor, circumstance is that Swift doesn't have a function to get the main module name. ``#mainModule`` would be perfect.
+- The need to use ``deferDecode(...)`` for weak variables used to break strong memory cycles is not a big problem, in my opinion, because you know exactly what and where they are. If anything, the limitation is that these variables must necessarily be owned by a reference type because ``deferDecode(...)`` cannot be called in the ``init(from: ...)`` method of a value type.
+- The big problem, in my opinion, is that you have to keep the type repository updated during the development of an application. The absence of a single 'GCodable' type from the type repository makes it impossible to decode a data file containing it.
+  Ideally, Swift should make two functions available for transforming types into some form of archivable data and vice versa.
+  For example, like these:
+  ``func serializeType( type:Any.Type ) -> [UInt8]``
+  ``func deserializeType( from:[UInt8] ) -> Any.Type``
+  
+  Having this functionality, **the need to keep a repository of the decoding types vanishes**, because the bytes describing the type can be stored during encoding and retrieved during decoding. Then you can:
+  ```swift
+  // 1) construct the type from its bytes description
+  let type = deserializeType( from: bytes )
+  
+  // 2) check that it conforms the desired protocol
+  guard let decodableType = type as? GCodable.Type else {
+  	throw ...
+  }
+  // 3) istantiate the value
+  let decodedValue = decodableType(from: ...)
+  ```
+  Furthermore, the need to manage the names of the types also disappears, because only the types must be managed inside the package.
+  Beyond the real possibility of offering functions such as ``func serializeType( type:Any.Type ) -> [UInt8]`` and ``func deserializeType( from:[UInt8] ) -> Any.Type``, which I do not discuss because I do not   have the skills, I do not understand what problem such a feature can pose to security.
+  There is nothing I can do with the decoded ``Any.type`` if I don't check for conformance to a predefined protocol first. Only after I have done this can I use the type to build instances.
+  But this functionality does not exist and therefore it is necessary to keep a repository of all possible types that may be encountered during decode.
+  
+  Another possibility is to automate the generation of the repository, which however requires the use of some magic in the compiler.
 
