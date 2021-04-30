@@ -9,10 +9,12 @@ In other words, GraphCodable tries to offer functionalities similar to those of 
 GraphCodable:
 - saves all type information;
 - supports reference types inheritance;
-- never duplicates the same object (as defined by ObjectIdentifier) during the decoding process;
+- never duplicates the same object (as defined by ObjectIdentifier);
+- in other words, it preserves the structure (the directed graph) of your data unaltered during encoding and decoding;
 - is fully type checked at compile time (*);
 - supports keyed and unkeyed coding, also employed simultaneously in the same type;
 - supports conditional encoding;
+- implements an userInfo dictionary;
 - implements a type version system;
 - implements a type substitution system during decode;
 
@@ -35,6 +37,9 @@ GraphCodable does not use a "public" format for the data (such as JSON or others
 GraphCodable is written entirely in Swift. The use of 'unsafe' methods is limited to a handful of functions related to reading and writing data in binary format (see BinaryIO). Everything else is 'safe'.
 
 (*) Fully type checking at compile time is mutually exclusive with the ability to encode/decode heterogeneous collections (i.e. [Any]) containing 'codable' elements. I chose to support the first feature while giving up the second.
+
+## Limitations
+The package limitations related to Swift features are described in the [last paragraph](/Docs/UserGuide.md#Final-thoughts) of the user guide. I recommend reading it after reading the entire [User Guide](/Docs/UserGuide.md) and trying code examples.
 
 ## Other documents
 - [User Guide](/Docs/UserGuide.md)
