@@ -149,6 +149,8 @@ let outRoot	= try GraphDecoder().decode( type(of:inRoot), from: data )
 
 print( outRoot == inRoot )	// prints: true
 ```
+You can check if a keyed value is present in the archive with ``try decoder.contains(...)`` before decoding it.
+**Values are removed from the decoder as they are decoded**.
 
 #### Unkeyed coding
 The same example using unkeyed coding. With unkeyed coding you must decode values in the same order in which they are encoded.
@@ -217,7 +219,7 @@ extension Array: GCodable where Element:GCodable {
 	}
 }
 ```
-The ``init( from:... )`` method clearly shows that **the values are removed from the decoder as they are decoded**. This also happens for keyed values.
+The ``init( from:... )`` method clearly shows that **values are removed from the decoder as they are decoded**.
 
 ### Reference types
 #### No duplication of the same object
