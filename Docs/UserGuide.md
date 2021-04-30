@@ -1050,7 +1050,7 @@ Apart from all the possible internal improvements to the package, there are some
   
   ``func deserializeType( from:[UInt8] ) -> Any.Type``
   
-  Having this functionality, **the need to keep a repository of the decoding types vanishes**, because the bytes describing the type can be stored during encoding and retrieved during decoding. Then you can:
+  With this functionality **the need to keep a repository of the decoding types vanishes** because the bytes describing the type can be stored during encoding and retrieved during decoding. Then you can:
   ```swift
   // 1) construct the type from its bytes description
   let type = deserializeType( from: bytes )
