@@ -10,9 +10,9 @@ GraphCodable:
 - saves all type information;
 - supports reference types inheritance;
 - never duplicates the same object (as defined by ObjectIdentifier);
-- in other words, it preserves the structure (the directed graph) of your data unaltered during encoding and decoding;
+- in other words, it preserves the structure and the types of your model unaltered during encoding and decoding;
 - is fully type checked at compile time (*);
-- supports keyed and unkeyed coding, also employed simultaneously in the same type;
+- supports keyed and unkeyed coding, also usable simultaneously;
 - supports conditional encoding;
 - implements an userInfo dictionary;
 - implements a type version system;
