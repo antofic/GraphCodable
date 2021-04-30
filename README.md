@@ -61,6 +61,6 @@ GraphCodable does not use containers.
 
 ## License
 
-GraphCodable is released under the MIT license. [See LICENSE](/Docs/LICENSE) for more details.
+GraphCodable is released under the MIT license. [See LICENSE](/LICENSE.txt) for more details.
 
 
