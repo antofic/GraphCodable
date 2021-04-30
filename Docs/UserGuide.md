@@ -217,7 +217,7 @@ extension Array: GCodable where Element:GCodable {
 	}
 }
 ```
-The ``init( from:... )`` method clearly shows that with GraphCodable **the values are removed from the decoder as they are decoded**. This also happens for keyed values.
+The ``init( from:... )`` method clearly shows that **the values are removed from the decoder as they are decoded**. This also happens for keyed values.
 
 ### Reference types
 #### No duplication of the same object
@@ -685,7 +685,7 @@ For another example of DCG, see ``testDGC()`` in the tests section (DirectedCycl
 
 ### Coding rules
 
-This table summarizes the methods to be used depending on the type of variable to be encoded and decoded:
+This table summarizes the methods to be used in your `func encode(to encoder: GEncoder) throws { ... }` and `func encode(to encoder: GEncoder) throws { ... }` depending on the type of variable to be encoded and decoded:
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                          ENCODE/DECODE RULES                            │
