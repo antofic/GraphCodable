@@ -1,4 +1,5 @@
 #  Data Format
+
 GraphEncoder encode data in binary format. You can get a readable representation of the data in a string with the `dump()` function.
 
 ## Readable output of the encoded data
@@ -112,7 +113,7 @@ The result:
 The **HEADER**, with the file format name (gcodable), its version, a the placeholder ``* = MainModuleName`` and some unused fields.
 The main module name purposely has no effect when unarchiving and for this reason is replaced by an asterisk in the following type definitions.
 This way you can open the same file from an app with a different main module name.
-GrapCodable does not currently allow access to the data contained in the header.
+GraphCodable does not currently allow access to the data contained in the header.
 
 The **GRAPH** that contains the structured data, organized in:
 - *Sequences*: a list of items preceded by the **-** symbol.

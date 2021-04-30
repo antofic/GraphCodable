@@ -1,5 +1,27 @@
 #  User Guide
 
+- [Initialization](#Initialization)
+- [Types registration (first part)](#Types-registration-(first-part))
+- [Code examples](#Code-examples)
+	- [Native types and collection support](#Native-types-and-collection-support)
+	- [Value types, keyed coding](#Value-types,-keyed-coding)
+	- [Reference types](#Reference-types)
+		- [No duplication of objects](#No-duplication-of-objects)
+		- [Unkeyed coding](#Unkeyed-coding)
+		- [Inheritance](#Inheritance)
+		- [Conditional encode](#Conditional-encode)
+		- [Directed acyclic graphs](#Directed-acyclic-graphs)
+		- [Directed cyclic graphs](#Directed-cyclic-graphs)
+	- [Coding rules for value and reference types](#Coding+rules+for+value+and+reference+types)
+	- [Other features](#Other+features)
+		- [UserInfo dictionary](#UserInfo-dictionary)
+		- [Type version system](#Type-version-system)
+		- [Type replacement system](#Type-replacement-system)
+- [Types registration (reprise)](#Types-registration-(reprise))
+	- [My thoughts](#My-thoughts)
+	- [Types repository](#Types-repository)
+	- [Type names](#Type-names)
+	
 ## Initialization
 GraphCodable must be initialized before using it by calling the function from the main module.
 ```swift
@@ -44,7 +66,7 @@ initializeGraphCodable()
 The encoder automatically registers all types it encounters, and so there is no need to register any types if you are decoding a file after encoding it for testing purposes. The next examples will take advantage of this feature. The following examples take advantage of this functionality, and so they just call `GTypesRepository.initialize()`.
 We will return to the topic at the end of the document.
 
-## Code Examples
+## Code examples
 Copy and paste examples in your main.swift file.
 
 ### Native types and collection support
@@ -65,7 +87,7 @@ let outRoot	= try GraphDecoder().decode( type(of:inRoot), from: data )
 
 print( outRoot == inRoot )	// prints: true
 ```
-### Complex Value Types
+### Value types, keyed coding
 
 ```swift
 import Foundation
@@ -112,7 +134,8 @@ print( outRoot == inRoot )	// prints: true
 ```
 As you can see, GraphCodable uses enums with string rawValue as keys.
 
-### Reference Types - Duplication - Keyed and unkeyed encode/decode
+### Reference types
+#### No duplication of objects
 
 Up to now the behavior of GraphCodable is similar to that of Codable. That changes with reference types.
 The same example with a reference type will show how GraphCodable don't duplicate it.  Codable duplicates it.
@@ -174,7 +197,7 @@ do {	//	Codable
 	print( outRoot.examples[0] === outRoot.examples[2] )	// prints: false --> we use '===': reference duplicated!
 }
 ```
-
+#### Unkeyed coding
 The same example using unkeyed coding. With unkeyed coding you must decode values in the same order in which they are encoded.
 
 ```swift
@@ -244,7 +267,7 @@ extension Array: GCodable where Element:GCodable {
 ```
 The latter case clearly shows that with GraphCodable **the values are removed from the decoder as they are decoded** and this also happens for keyed values.
 
-### Reference Types - Inheritance
+### Inheritance
 
 GraphCodable **supports inheritance**: in other words, the type of decoded object always corresponds to the real type of the encoded object, as you can see in the next example. Codable lost type information.
 
@@ -292,7 +315,7 @@ do {	// Codable
 }
 ```
 
-### Reference Types - Conditional encode
+#### Conditional encode
 
 GraphCodable supports conditional encoding. Codable appears to be designed for conditional encoding in mind, but neither the JSONEncoder nor the PropertyListEncoder support it.
 
@@ -361,9 +384,9 @@ do {
 }
 ```
 
-### Reference Types - Directed Acyclic Graphs (DAG)
+#### Directed acyclic graphs
 
-The variables that contain objects realize direct type graphs. Arc requires that strong variables do not create direct cyclical graphs because the cycles prevent the release of memory. Graphcodable is perfectly capable of encoding and decoding direct acyclic graphics (DAG) without the need for any special treatment.
+The variables that contain objects realize direct type graphs. Arc requires that strong variables do not create **direct cyclic graphs** (DCG) because the cycles prevent the release of memory. GraphCodable is capable of encoding and decoding **direct acyclic graphs** (DAG) without the need for any special treatment.
 The next example shows how GraphCodable encode and decode this [DAG](https://en.wikipedia.org/wiki/Directed_acyclic_graph#/media/File:Tred-G.svg) taken from this [Wikipedia page](https://en.wikipedia.org/wiki/Directed_acyclic_graph).
 ```
                  ╭───╮
@@ -517,12 +540,12 @@ The result of Codable decoding is this:
   └─────▶︎│ e │
          ╰───╯
 ```
-### Reference Types - Directed Cyclic Graphs (DCG)
+#### Directed cyclic graphs
 
 What happens if you add a connection from **e** to **b** in the previous example?
 - The graph become cyclic (DCG);
 - Your software leaks memory: ARC cannot release **e**, **b** and **d** because each retain the other;
-- Graphcodable encodes it but generates an exception during decoding;
+- GraphCodable encodes it but generates an exception during decoding;
 - Codable EXC_BAD_ACCESS during encoding.
 
 Just like ARC cannot release **e**, **b** and **d** because each retain the other, GraphCodable cannot initialize **e**, **b** and **d** because the initialization of each of them requires that the other be initialized.
@@ -644,7 +667,7 @@ print( outRoot === outRoot.childs.first?.childs.first?.parent?.parent! )	// prin
 
 For another example of DCG, see testDGC() in the tests section (DirectedCyclicGraphTests).
 
-### Coding Rules
+### Coding rules for value and reference types
 
 This table summarizes the methods to be used depending on the type of variable to be encoded and decoded:
 ```
@@ -674,11 +697,12 @@ This table summarizes the methods to be used depending on the type of variable t
 │          forces to call it after super class initialization.            │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
-### UserInfo dictionary
+### Other features
+#### UserInfo dictionary
 
 The use is identical to that of Codable.
 
-### Type version system
+#### Type version system
 
 GraphCodable implements a type version system:
 
@@ -758,7 +782,7 @@ do {
 		}
 	}
 	
-	//	we need to register MyData type because it has a new init
+	//	we need to register MyData type because it is a new type
 	//	this call overwrite the old MyData registration automatically
 	//	generated by GraphEncoder().encode( inRoot )
 	MyData.register()
@@ -772,7 +796,7 @@ do {
 	print( outRoot )	// print MyData(string: "3")
 }
 ```
-### Type replacement system
+#### Type replacement system
 
 GraphCodable implements a type replacement system:
 
@@ -923,7 +947,7 @@ do {
 
 ```
 You can see the contents of the GTYpesRepository with ``print( GTypesRepository.shared )``.
-In this case (With some additional indentation):
+With the previous example it will print (with some additional indentation for clarity):
 
 ```
 GTypesRepository(
@@ -946,7 +970,7 @@ GTypesRepository(
 )
 ```
 ## Types registration (reprise)
-### Premise
+### My thoughts
 Ideally, Swift should make two functions available for transforming types into some form of archivable data and vice versa.
 For example, like these:
 ``func serializeType( type:Any.Type ) -> [UInt8]``
@@ -968,11 +992,12 @@ let decodedValue = decodableType(from: ...)
 Beyond the real possibility of offering functions such as ``func serializeType( type:Any.Type ) -> [UInt8]`` and ``func deserializeType( from:[UInt8] ) -> Any.Type``, which I do not discuss because I do not have the skills, I do not understand what problem such a feature can pose to security.
 There is nothing I can do with the decoded ``Any.type`` if I don't check for conformance to a predefined protocol first. Only after I have done this can I use the type to build instances.
 But this functionality does not exist and therefore it is necessary to keep a repository of all possible types that may be encountered during decode.
-### The Types Repository
-The types repository is a sigleton class that contain a dictionary of string / type pairs, wherethe string is the type name. The encoder encode the name of every type it encounters. The decoder decode the type name and consults the type repository to get the corresponding type with which to instantiate the value.
-And so **you have to register in the repository all possible types that may be encountered during decode**.
 
-To register a decodable type ``myType`` , you simply call ``myType.register()``
+### Types repository
+The types repository is a sigleton object that contain a dictionary of string / type pairs, where the string is the type name. The encoder encode the name of every type it encounters. The decoder decode the type name and consults the type repository to get the corresponding type with which to instantiate the value.
+And so **you have to register in the repository all possible types that may be encountered during decode** otherwise the deconder can't costruct the istance from the type.
+
+To register a decodable type ``myType`` , you simply call ``myType.register()``.
 
 We suggest creating a function like the following **in your app main module**:
 ```swift
@@ -1001,15 +1026,15 @@ To alleviate this problem, GraphCodable offers two help functions.
 - ``GTypesRepository.shared.help()``
 -  ``GraphDecoder().help( from data: Data )``
 
-The first provides in a string the Swift code that contains the function necessary to register all the types currently present in the repository. In other words, the result of all the recordings made automatically by the encoder from the opening of the program.
+The first provides in a string the Swift code that contains the function necessary to register all the types currently present in the repository. In other words, the result of all the encodings made automatically by the encoder from the opening of the program.
 
 The second provides in a string the Swift code that contains the function necessary to register all types present in the data file that is passed to it. That is, the types that must be in the repository to be able to dearchive that data file.
 
 To clear the content of the repository, simply reiniziale it with `GTypesRepository.initialize()`
-### Type Names
+### Type names
 By design, GraphCodable **never exposes type names as strings**. Even in the case of type replacements, GraphCodable forces you to define an empty type with the name of the type to replace (as showed in "Type replacement system") instead of using the string of its name.
 
-But, as described, encoding / decoding requires the use of type names. Swift does not offer a function to obtain a string that can uniquely and stably identify each type. ``String (describing:)`` does not provide enough information, so we must necessarily use ``String (reflecting:)`` to get a suitable string. The aforementioned string is not used as it is; it is recursively decomposed into all component types, context information in the form ``.(____).(____).`` is eliminated where present, and a stable (*within the limits of the possible*) type name is reconstructed.
+But, as described, encoding / decoding requires the internal use of type names. Swift does not offer a function to obtain a string that can uniquely and stably identify each type. ``String (describing:)`` does not provide enough information, so we must necessarily use ``String (reflecting:)`` to get a suitable string. The aforementioned string is not used as it is; it is recursively decomposed into all component types, context information in the form ``.(____).(____).`` is eliminated where present, and a stable (*within the limits of the possible*) type name is reconstructed.
 
 
 
