@@ -68,7 +68,15 @@ The encoder automatically registers all types it encounters, and so there is no 
 I will return to the topic at the end of the document.
 
 ## Code examples
-Copy and paste examples in your main.swift file.
+
+Keep in mind that in GraphCodable:
+- GEncodable, GDecodable and GCodable have the same roles as Encodable, Decodable and Codable
+- GEncoder, GDecoder have the same roles as Encoder, Decoder
+- GraphEncoder has the same role as JSONEncoder, PropertyListEncoder
+- GraphDecoder has the same role as JSONDecoder, PropertyListDecoder
+GraphCodable does not use containers.
+
+To check examples, sopy and paste in your file main.swift.
 
 ### Native types and collection support
 GraphCodable natively supports the following types: Int, Int8, Int16, Int32, Int64, UInt, UInt8, UInt16, UInt32, UInt64, Float, Double, String, Data
@@ -659,7 +667,7 @@ view3.parent	= windowB	// make view3 child of windowB
 windowA.parent	= screen	// make windowA child of screen
 windowB.parent	= screen	// make windowB child of screen
 
-let inRoot	= screen as View	// we encode as View
+let inRoot	= screen as Node	// we encode as View
 let data	= try GraphEncoder().encode( inRoot )
 let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 
@@ -672,7 +680,7 @@ print( outRoot )	// print 'Screen [Window [View [], View [View []]], Window [Vie
 print( outRoot === outRoot.childs.first?.childs.first?.parent?.parent! )	// print true
 ```
 
-For another example of DCG, see testDGC() in the tests section (DirectedCyclicGraphTests).
+For another example of DCG, see ``testDGC()`` in the tests section (DirectedCyclicGraphTests).
 
 ### Coding rules
 
@@ -704,6 +712,8 @@ This table summarizes the methods to be used depending on the type of variable t
 │          forces to call it after super class initialization.            │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
+All GraphCodable protocols are defined [here](/Sources/GraphCodable/GraphCodable.swift)
+
 ### Other features
 #### UserInfo dictionary
 
@@ -1015,7 +1025,7 @@ The first provides in a string the Swift code that contains the function necessa
 
 The second provides in a string the Swift code that contains the function necessary to register all types present in the data file that is passed to it. That is, the types that must be in the repository to be able to dearchive that data file.
 
-To clear the content of the repository, simply reiniziale it with `GTypesRepository.initialize()`
+To clear the content of the repository, simply reinizialize it with `GTypesRepository.initialize()`
 ### Type names
 By design, GraphCodable **never exposes type names as strings**. Even in the case of type replacements, GraphCodable forces you to define an empty type with the name of the type to replace (as showed in "Type replacement system") instead of using the string of its name.
 
@@ -1029,8 +1039,8 @@ Apart from all the possible internal improvements to the package, there are some
 
 - ``String(reflecting:)`` used to obtain type names might change the format to make decoding impossible without a package update. That said, as long as context information is kept inside round brackets, this shouldn't happen.
 - An unfortunate, albeit minor, circumstance is that Swift doesn't have a function to get the main module name. A ``#mainModule`` would be greatly appreciated.
-- There is nothing I can do to avoid duplication of the internal object used as storage by collection types like Arrays. Ideally, it should be made GCodable compliant to avoid duplicating it during decode, but I don't have access to it. Therefore, if 10 arrays sharing a single storage object containing 100 integers are encoded, 10 arrays each with its own distinct storage object containing 100 integers are decoded, effectively tenfolding their memory footprint. Conversely, I emphasize that GraphCodable does not duplicate objects stored as elements in arrays, as already demonstrated by the examples in this document. 
-- The need to use ``deferDecode(...)`` for weak variables used to break ARC strong memory cycles is not a big problem, in my opinion, because you know exactly what and where they are. Just stick to the [rules](/Docs/CodingRules.md). If anything, the limitation is that these variables must necessarily be owned by a reference type because ``deferDecode(...)`` cannot be called in the ``init(from: ...)`` method of a value type. The ``WeakBox<T>`` used in ``testDGC()`` (see tests section - DirectedCyclicGraphTests) must be a class.
+- There is nothing I can do to avoid duplication of the internal object used as storage by collection types like Arrays. Ideally, it should be made GCodable compliant to avoid duplicating it during decode, but I don't have access to it. Therefore, if 10 arrays sharing a single storage object containing 100 integers are encoded, 10 arrays each with its own distinct storage object containing 100 integers are decoded, effectively tenfolding their memory footprint. Conversely, I emphasize that GraphCodable does not duplicate objects stored as elements of collections, as already demonstrated by the examples in this document. 
+- The need to use ``deferDecode(...)`` for weak variables used to break ARC strong memory cycles is not a big problem, in my opinion, because you know exactly what and where they are. Just stick to the [rules](/Docs/CodingRules.md). If anything, the limitation is that these variables must necessarily be owned by a reference type because ``deferDecode(...)`` cannot be called in the ``init(from: ...)`` method of a value type. The ``WeakBox<T>`` used in ``testDGC()`` (see [DirectedCyclicGraphTests](/Tests/GraphCodableTests/5-DirectedCyclicGraphTests.swift)) must be a class.
 - The true big problem, in my opinion, is that you have to keep the type repository updated during the development of an application. The absence of a single 'GCodable' type from the type repository makes it impossible to decode a data file containing it.
  
   Ideally, Swift should make two functions available for transforming types into some form of archivable data and vice versa.
