@@ -4,8 +4,9 @@
 - [Introduction to types registration](#Introduction-to-types-registration)
 - [Code examples](#Code-examples)
 	- [Native types and collection support](#Native-types-and-collection-support)
-	- [Value types and keyed coding](#Value-types-and-keyed-coding)
-	- [Unkeyed coding](#Unkeyed-coding)
+	- [Value types](#Value-types)
+		- [Keyed coding](#Keyed-coding)
+		- [Unkeyed coding](#Unkeyed-coding)
 	- [Reference types](#Reference-types)
 		- [No duplication of objects](#No-duplication-of-objects)
 		- [Inheritance](#Inheritance)
@@ -18,9 +19,9 @@
 		- [Type version system](#Type-version-system)
 		- [Type replacement system](#Type-replacement-system)
 - [Types registration](#Types-registration)
-	- [My thoughts](#My-thoughts)
 	- [Types repository](#Types-repository)
 	- [Type names](#Type-names)
+- [My final thoughts](#My-final-thoughts)
 	
 ## Initialization
 GraphCodable must be initialized before using it by calling the function from the main module.
@@ -70,6 +71,9 @@ We will return to the topic at the end of the document.
 Copy and paste examples in your main.swift file.
 
 ### Native types and collection support
+GraphCodable natively supports the following types: Int, Int8, Int16, Int32, Int64, UInt, UInt8, UInt16, UInt32, UInt64, Float, Double, String, Data
+GraphCodable make Optional, Array, Set, Dictionary codable if the hold codable types. OptionSet and Enum with rawValue of native type (except Data) are codable, too.
+
 ```swift
 
 import Foundation
@@ -87,7 +91,11 @@ let outRoot	= try GraphDecoder().decode( type(of:inRoot), from: data )
 
 print( outRoot == inRoot )	// prints: true
 ```
-### Value types and keyed coding
+### Value types
+As can be seen from the following examples, the archiving and unarchiving interface is very similar to that of Codable, except that it does not use containers.
+
+#### Keyed coding
+GraphCodable uses enums with string rawValue as keys.
 
 ```swift
 import Foundation
@@ -132,7 +140,6 @@ let outRoot	= try GraphDecoder().decode( type(of:inRoot), from: data )
 
 print( outRoot == inRoot )	// prints: true
 ```
-As you can see, GraphCodable uses enums with string rawValue as keys.
 
 #### Unkeyed coding
 The same example using unkeyed coding. With unkeyed coding you must decode values in the same order in which they are encoded.
@@ -970,28 +977,6 @@ GTypesRepository(
 )
 ```
 ## Types registration
-### My thoughts
-Ideally, Swift should make two functions available for transforming types into some form of archivable data and vice versa.
-For example, like these:
-``func serializeType( type:Any.Type ) -> [UInt8]``
-``func deserializeType( from:[UInt8] ) -> Any.Type``
-
-Having this functionality, **the need to keep a repository of the decoding types vanishes**, because the bytes describing the type can be stored during encoding and retrieved during decoding. Then you can:
-
-```swift
-// 1) construct the type from its bytes description
-let type = deserializeType( from: bytes )
-
-// 2) check that it conforms the desired protocol
-guard let decodableType = type as? GCodable.Type else {
-	throw ...
-}
-// 3) istantiate the value
-let decodedValue = decodableType(from: ...)
-```
-Beyond the real possibility of offering functions such as ``func serializeType( type:Any.Type ) -> [UInt8]`` and ``func deserializeType( from:[UInt8] ) -> Any.Type``, which I do not discuss because I do not have the skills, I do not understand what problem such a feature can pose to security.
-There is nothing I can do with the decoded ``Any.type`` if I don't check for conformance to a predefined protocol first. Only after I have done this can I use the type to build instances.
-But this functionality does not exist and therefore it is necessary to keep a repository of all possible types that may be encountered during decode.
 
 ### Types repository
 The types repository is a sigleton object that contain a dictionary of string / type pairs, where the string is the type name. The encoder encode the name of every type it encounters. The decoder decode the type name and consults the type repository to get the corresponding type with which to instantiate the value.
@@ -1036,5 +1021,27 @@ By design, GraphCodable **never exposes type names as strings**. Even in the cas
 
 But, as described, encoding / decoding requires the internal use of type names. Swift does not offer a function to obtain a string that can uniquely and stably identify each type. ``String (describing:)`` does not provide enough information, so we must necessarily use ``String (reflecting:)`` to get a suitable string. The aforementioned string is not used as it is; it is recursively decomposed into all component types, context information in the form ``.(____).(____).`` is eliminated where present, and a stable (*within the limits of the possible*) type name is reconstructed.
 
+## My final thoughts
+Ideally, Swift should make two functions available for transforming types into some form of archivable data and vice versa.
+For example, like these:
+``func serializeType( type:Any.Type ) -> [UInt8]``
+``func deserializeType( from:[UInt8] ) -> Any.Type``
+
+Having this functionality, **the need to keep a repository of the decoding types vanishes**, because the bytes describing the type can be stored during encoding and retrieved during decoding. Then you can:
+
+```swift
+// 1) construct the type from its bytes description
+let type = deserializeType( from: bytes )
+
+// 2) check that it conforms the desired protocol
+guard let decodableType = type as? GCodable.Type else {
+	throw ...
+}
+// 3) istantiate the value
+let decodedValue = decodableType(from: ...)
+```
+Beyond the real possibility of offering functions such as ``func serializeType( type:Any.Type ) -> [UInt8]`` and ``func deserializeType( from:[UInt8] ) -> Any.Type``, which I do not discuss because I do not have the skills, I do not understand what problem such a feature can pose to security.
+There is nothing I can do with the decoded ``Any.type`` if I don't check for conformance to a predefined protocol first. Only after I have done this can I use the type to build instances.
+But this functionality does not exist and therefore it is necessary to keep a repository of all possible types that may be encountered during decode.
 
 
