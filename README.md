@@ -20,7 +20,7 @@ Check code examples in the [User Guide](/Docs/UserGuide.md). Check the tests sec
 
 ## Other information
 GraphCodable natively supports the following types: Int, Int8, Int16, Int32, Int64, UInt, UInt8, UInt16, UInt32, UInt64, Float, Double, String, Data
-GraphCodable make Optional, Array, Set, Dictionary codable if the hold codable types. OptionSet and Enum with rawValue of native type (except Data) are codable, too.
+GraphCodable make Optional, Array, Set, Dictionary codable if they hold codable types. OptionSet and Enum with rawValue of native type (except Data) are codable, too.
 
 GraphCodable can dearchive any ARC compatible Swift object graph, regardless of how complex it is, reconstructing its original structure with its original types without duplicating objects.
 Only the weak variables possibly used in the object graph in order to avoid strong memory cycles in ARC require special treatment during initialization from the decoder within the 'init (from: GDecoder)' method.
@@ -49,6 +49,10 @@ In GraphCodable:
 - GraphDecoder has the same role as JSONDecoder, PropertyListDecoder
 
 GraphCodable does not use containers.
+
+## Supported technologies
+
+- Swift 5.3
 
 ## License
 
