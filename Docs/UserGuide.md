@@ -335,7 +335,7 @@ do {	// Codable
 
 #### Conditional encode
 
-GraphCodable supports conditional encoding. Codable appears to be designed for conditional encoding in mind, but neither the JSONEncoder nor the PropertyListEncoder support it.
+GraphCodable supports conditional encoding:  `encodeConditional(...)` encodes a reference to the given object only if it is encoded unconditionally elsewhere in the payload (previously, or in the future). Codable appears to be designed for conditional encoding in mind, but neither the JSONEncoder nor the PropertyListEncoder support it.
 
 ```swift
 import Foundation
@@ -670,7 +670,7 @@ view3.parent	= windowB	// make view3 child of windowB
 windowA.parent	= screen	// make windowA child of screen
 windowB.parent	= screen	// make windowB child of screen
 
-let inRoot	= screen as Node	// we encode as View
+let inRoot	= screen
 let data	= try GraphEncoder().encode( inRoot )
 let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 
