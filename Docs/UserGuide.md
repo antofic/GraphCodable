@@ -74,9 +74,10 @@ Keep in mind that in GraphCodable:
 - GEncoder, GDecoder have the same roles as Encoder, Decoder
 - GraphEncoder has the same role as JSONEncoder, PropertyListEncoder
 - GraphDecoder has the same role as JSONDecoder, PropertyListDecoder
+
 GraphCodable does not use containers.
 
-To check examples, sopy and paste in your file main.swift.
+To check examples, copy and paste in your file main.swift.
 
 ### Native types and collection support
 GraphCodable natively supports the following types: Int, Int8, Int16, Int32, Int64, UInt, UInt8, UInt16, UInt32, UInt64, Float, Double, String, Data
@@ -559,7 +560,7 @@ The result of Codable decoding is this:
 
 What happens if you add a connection from **e** to **b** in the previous example?
 - The graph become cyclic (DCG);
-- Your software leaks memory: ARC cannot release **e**, **b** and **d** because each retain the other;
+- Your code leaks memory: ARC cannot release **e**, **b** and **d** because each retain the other;
 - GraphCodable encodes it but generates an exception during decoding;
 - Codable EXC_BAD_ACCESS during encoding.
 
@@ -576,7 +577,7 @@ Similarly, this pattern requires to 'deferDecode' the weak variable (parent) bec
 
 *Note:* Since a weak variable can become nil at 'any' time, it **must be encoded** with ``encodeConditional(...)``.
 
-*Note:* Swift does not allow calling deferDecode from the init of a value type, but only from that of a reference type and forces to call it **after** super class initialization.
+*Note:* Swift does not allow to call ``deferDecode(...)`` from the init of a value type, but only from that of a reference type and forces to call it **after** super class initialization.
 
 ```swift
 import Foundation
@@ -712,7 +713,7 @@ This table summarizes the methods to be used depending on the type of variable t
 │          forces to call it after super class initialization.            │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
-All GraphCodable protocols are defined [here](/Sources/GraphCodable/GraphCodable.swift)
+All GraphCodable protocols are defined [here](/Sources/GraphCodable/GraphCodable.swift).
 
 ### Other features
 #### UserInfo dictionary
@@ -1025,11 +1026,11 @@ The first provides in a string the Swift code that contains the function necessa
 
 The second provides in a string the Swift code that contains the function necessary to register all types present in the data file that is passed to it. That is, the types that must be in the repository to be able to dearchive that data file.
 
-To clear the content of the repository, simply reinizialize it with `GTypesRepository.initialize()`
+To clear the content of the repository, simply reinizialize it with `GTypesRepository.initialize()`.
 ### Type names
 By design, GraphCodable **never exposes type names as strings**. Even in the case of type replacements, GraphCodable forces you to define an empty type with the name of the type to replace (as showed in "Type replacement system") instead of using the string of its name.
 
-But, as described, encoding / decoding requires the internal use of type names. Swift does not offer a function to obtain a string that can uniquely and stably identify each type. ``String (describing:)`` does not provide enough information, so I must necessarily use ``String(reflecting:)`` to get a suitable string. The aforementioned string is not used as it is; it is recursively decomposed into all component types, context information in the form ``.(____).(____).`` is eliminated where present, and a stable (*within the limits of the possible*) type name is reconstructed.
+But, as described, encoding / decoding requires the internal use of type names. Swift does not offer a function to obtain a string that can uniquely and stably identify each type. ``String(describing:)`` does not provide enough information, so I must necessarily use ``String(reflecting:)`` to get a suitable string. The aforementioned string is not used as it is; it is recursively decomposed into all component types, context information in the form ``.(____).(____).`` is eliminated where present, and a stable (*within the limits of the possible*) type name is reconstructed. The type name thus obtained is then cached so that this rather expensive operation occurs only once for each type.
 
 ## Final thoughts
 
