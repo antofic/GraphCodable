@@ -1,7 +1,7 @@
 #  User Guide
 
 - [Initialization](#Initialization)
-- [Types registration / first part](#Types-registration-/-first-part)
+- [Introduction to types registration](#Introduction-to-types-registration)
 - [Code examples](#Code-examples)
 	- [Native types and collection support](#Native-types-and-collection-support)
 	- [Value types and keyed coding](#Value-types-and-keyed-coding)
@@ -17,7 +17,7 @@
 		- [UserInfo dictionary](#UserInfo-dictionary)
 		- [Type version system](#Type-version-system)
 		- [Type replacement system](#Type-replacement-system)
-- [Types registration (reprise)](#Types-registration-(reprise))
+- [Types registration](#Types-registration)
 	- [My thoughts](#My-thoughts)
 	- [Types repository](#Types-repository)
 	- [Type names](#Type-names)
@@ -40,7 +40,7 @@ public final class GTypesRepository {
 ```
 Swift doesn't provide a way to get this name, not even at runtime. And so it is taken from `#fileID`.
 
-## Types registration / first part
+## Introduction to types registration
 Typically, the initialization is carried out simultaneously with the registration of all the types that can be decoded by defining a specific function as in the following example and calling it from your main module when your software starts.
 ```swift
 import GraphCodable
@@ -969,7 +969,7 @@ GTypesRepository(
 	]
 )
 ```
-## Types registration (reprise)
+## Types registration
 ### My thoughts
 Ideally, Swift should make two functions available for transforming types into some form of archivable data and vice versa.
 For example, like these:
