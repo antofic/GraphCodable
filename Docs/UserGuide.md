@@ -18,7 +18,7 @@
 		- [UserInfo dictionary](#UserInfo-dictionary)
 		- [Type version system](#Type-version-system)
 		- [Type replacement system](#Type-replacement-system)
-- [Types registration](#Types-registration)
+- [Type registration](#Type-registration)
 	- [Types repository](#Types-repository)
 	- [Type names](#Type-names)
 - [Final thoughts](#Final-thoughts)
@@ -989,11 +989,11 @@ GTypesRepository(
 	]
 )
 ```
-## Types registration
+## Type registration
 
 ### Types repository
 The types repository is a sigleton object that contain a dictionary of string / type pairs, where the string is the type name. The encoder encode the name of every type it encounters. The decoder decode the type name and consults the type repository to get the corresponding type with which to instantiate the value.
-And so **you have to register in the repository all possible types that may be encountered during decode** otherwise the deconder can't costruct the istance from the type.
+And so **you have to register in the repository all possible types that may be encountered during decode** otherwise the decoder can't costruct values from their type.
 
 To register a decodable type ``myType`` , you simply call ``myType.register()``.
 
@@ -1016,7 +1016,7 @@ func initializeGraphCodable() {
 	// ...
 }
 ```
-and call it after startup. It is important to call it from the main module because GraphCodable needs this name and gets it from the default ``#fileID`` parameter in the ``GTypesRepository.initialize()`` function. Swift should really offer a function to get the main module name to avoid such tricks.
+and call it after startup. It is important to call it from the main module because GraphCodable needs this name and gets it from the default ``#fileID`` 'hidden' parameter in the ``GTypesRepository.initialize( fromFileID fileID:String = #fileID )`` function. Swift should really offer a function to get the main module name to avoid such tricks.
 
 Maintaining a consistent repository of all types that can be decoded during application development can be a tedious task.
 To alleviate this problem, GraphCodable offers two help functions.
@@ -1024,7 +1024,7 @@ To alleviate this problem, GraphCodable offers two help functions.
 - ``GTypesRepository.shared.help()``
 -  ``GraphDecoder().help( from data: Data )``
 
-The first provides in a string the Swift code that contains the function necessary to register all the types currently present in the repository. In other words, the result of all the encodings made automatically by the encoder from the opening of the program.
+The first provides in a string the Swift code that contains the function necessary to register all the types currently present in the repository. In other words, the result of all the encodings made automatically by the encoder from the opening of the program or tha last call to `GTypesRepository.initialize()`.
 
 The second provides in a string the Swift code that contains the function necessary to register all types present in the data file that is passed to it. That is, the types that must be in the repository to be able to dearchive that data file.
 
