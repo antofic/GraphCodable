@@ -30,7 +30,7 @@ import GraphCodable
 
 GTypesRepository.initialize()
 ```
-When called with no arguments, GraphCodable uses this function to know the name of the swift main module and remove it from the type name (replacing it with an *asterisk*) so that reading a file does not depend on this name.
+When called with no arguments, GraphCodable uses this function to know the name of the swift main module and remove it from the type name (replacing it with an *asterisk*) so that decoding a file does not depend on this name.
 ```swift
 
 public final class GTypesRepository {
@@ -214,7 +214,7 @@ The latter case clearly shows that with GraphCodable **the values are removed fr
 #### No duplication of the same object
 
 Up to now the behavior of GraphCodable is similar to that of Codable. That changes with reference types.
-The same example with a reference type will show how GraphCodable don't duplicate it.  Codable duplicates it.
+The same example with a reference type will show how GraphCodable don't duplicate the same reference. Codable duplicates it.
 
 ```swift
 import Foundation
@@ -555,11 +555,11 @@ What happens if you add a connection from **e** to **b** in the previous example
 - GraphCodable encodes it but generates an exception during decoding;
 - Codable EXC_BAD_ACCESS during encoding.
 
-Just like ARC cannot release **e**, **b** and **d** because each retain the other, GraphCodable cannot initialize **e**, **b** and **d** because the initialization of each of them requires that the other be initialized.
-Swift does not allow to create non-initialized values. So, when GraphCodable during decode encounters a cycle that it cannot resolve, it throws an exception.
+Just like ARC cannot release **e**, **b** and **d** because each retain the other, GraphCodable cannot initialize **e**, **b** and **d** because the initialization of each of them requires that the other be initialized and
+Swift does not allow to exit from an init method without inizializing all variables. So, when GraphCodable during decode encounters a cycle that it cannot resolve, it throws an exception.
 
 ARC has a specific solution for these cases: the use of weak variables.
-Similarly, GraphCodable uses a slightly different way to decode weak variables used to break strong memory cycles: it postpones, calling a closure with the ``deferDecode(...)`` method, the initialization of these variables until the objects they point to have been initialized.
+Similarly, GraphCodable uses a slightly different way to decode weak variables used to break strong memory cycles: it postpones, calling a closure with the ``deferDecode(...)`` method, the setting of these variables (remember: they are optional, so they are auto-inizializated to nil) until the objects they point to have been initialized.
 
 There is therefore a **one-to-one** correspondence between using weak variables to break strong memory cycles in ARC and using ``deferDecode(...)`` to allow initialization of such variables. ``deferDecode(...)`` **should not be used in any other case**.
 
