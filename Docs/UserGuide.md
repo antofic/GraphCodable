@@ -21,7 +21,7 @@
 - [Types registration](#Types-registration)
 	- [Types repository](#Types-repository)
 	- [Type names](#Type-names)
-- [My final thoughts](#My-final-thoughts)
+- [Final thoughts](#Final-thoughts)
 	
 ## Initialization
 GraphCodable must be initialized before using it by calling the function from the main module.
@@ -1019,16 +1019,16 @@ To clear the content of the repository, simply reiniziale it with `GTypesReposit
 ### Type names
 By design, GraphCodable **never exposes type names as strings**. Even in the case of type replacements, GraphCodable forces you to define an empty type with the name of the type to replace (as showed in "Type replacement system") instead of using the string of its name.
 
-But, as described, encoding / decoding requires the internal use of type names. Swift does not offer a function to obtain a string that can uniquely and stably identify each type. ``String (describing:)`` does not provide enough information, so I must necessarily use ``String (reflecting:)`` to get a suitable string. The aforementioned string is not used as it is; it is recursively decomposed into all component types, context information in the form ``.(____).(____).`` is eliminated where present, and a stable (*within the limits of the possible*) type name is reconstructed.
+But, as described, encoding / decoding requires the internal use of type names. Swift does not offer a function to obtain a string that can uniquely and stably identify each type. ``String (describing:)`` does not provide enough information, so I must necessarily use ``String(reflecting:)`` to get a suitable string. The aforementioned string is not used as it is; it is recursively decomposed into all component types, context information in the form ``.(____).(____).`` is eliminated where present, and a stable (*within the limits of the possible*) type name is reconstructed.
 
-## My final thoughts
+## Final thoughts
 
 So why did I call this package "**experimental**"?
 
 Apart from all the possible internal improvements to the package, there are some unsolvable iussues (as far as I know) related to some current Swift features.
 
-- ``String (reflecting:)`` might change the format to make unarchiving impossible without a package update. That said, as long as context information is kept inside round brackets, this shouldn't happen.
-- An unfortunate, albeit minor, circumstance is that Swift doesn't have a function to get the main module name. ``#mainModule`` would be perfect.
+- ``String(reflecting:)`` might change the format to make decoding impossible without a package update. That said, as long as context information is kept inside round brackets, this shouldn't happen.
+- An unfortunate, albeit minor, circumstance is that Swift doesn't have a function to get the main module name. A ``#mainModule`` would be greatly appreciated.
 - There is nothing I can do to avoid duplication of the internal object used as storage by collection types like Arrays. Ideally, it should be made GCodable compliant to avoid duplicating it during decode, but I don't have access to it. Therefore, if 10 arrays sharing a single storage object containing 100 integers are encoded, 10 arrays each with its own distinct storage object containing 100 integers are decoded, effectively tenfolding their memory footprint.
 - The need to use ``deferDecode(...)`` for weak variables used to break ARC strong memory cycles is not a big problem, in my opinion, because you know exactly what and where they are. If anything, the limitation is that these variables must necessarily be owned by a reference type because ``deferDecode(...)`` cannot be called in the ``init(from: ...)`` method of a value type. The ``WeakBox<T>`` used in ``testDGC()`` (see tests section - DirectedCyclicGraphTests) can't be a struct.
 - The big problem, in my opinion, is that you have to keep the type repository updated during the development of an application. The absence of a single 'GCodable' type from the type repository makes it impossible to decode a data file containing it.
@@ -1052,11 +1052,11 @@ Apart from all the possible internal improvements to the package, there are some
   // 3) istantiate the value
   let decodedValue = decodableType(from: ...)
   ```
-  Furthermore, the need to manage the names of the types also disappears, because only the types must be managed inside the package.
+  Furthermore, the need to manage the type names inside the package also disappears, because types suffices.
   
   Beyond the real possibility of offering functions such as ``func serializeType( type:Any.Type ) -> [UInt8]`` and ``func deserializeType( from:[UInt8] ) -> Any.Type``, which I do not discuss because I do not   have the skills, I do not understand what problem such a feature can pose to security.
   There is nothing I can do with the decoded ``Any.type`` if I don't check for conformance to a predefined protocol first. Only after I have done this can I use the type to build instances.
   But this functionality does not exist and therefore it is necessary to keep a repository of all possible types that may be encountered during decode.
   
-  Another possibility is to automate the generation of the repository, which however requires the use of some magic in the compiler.
+  Another possibility is to automate the generation of the repository, which however requires the use of some magic: the compiler must keep track of all GCodable types encountered during compilation and automatically generate the code to register them.
 
