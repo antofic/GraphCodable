@@ -65,7 +65,7 @@ func initializeGraphCodable() {
 initializeGraphCodable()
 ```
 The encoder automatically registers all types it encounters, and so there is no need to register any types if you are decoding a file after encoding it for testing purposes. The next examples will take advantage of this feature. The following examples take advantage of this functionality, and so they just call `GTypesRepository.initialize()`.
-We will return to the topic at the end of the document.
+I will return to the topic at the end of the document.
 
 ## Code examples
 Copy and paste examples in your main.swift file.
@@ -984,7 +984,7 @@ And so **you have to register in the repository all possible types that may be e
 
 To register a decodable type ``myType`` , you simply call ``myType.register()``.
 
-We suggest creating a function like the following **in your app main module**:
+I suggest creating a function like the following **in your app main module**:
 ```swift
 
 func initializeGraphCodable() {
@@ -1019,7 +1019,7 @@ To clear the content of the repository, simply reiniziale it with `GTypesReposit
 ### Type names
 By design, GraphCodable **never exposes type names as strings**. Even in the case of type replacements, GraphCodable forces you to define an empty type with the name of the type to replace (as showed in "Type replacement system") instead of using the string of its name.
 
-But, as described, encoding / decoding requires the internal use of type names. Swift does not offer a function to obtain a string that can uniquely and stably identify each type. ``String (describing:)`` does not provide enough information, so we must necessarily use ``String (reflecting:)`` to get a suitable string. The aforementioned string is not used as it is; it is recursively decomposed into all component types, context information in the form ``.(____).(____).`` is eliminated where present, and a stable (*within the limits of the possible*) type name is reconstructed.
+But, as described, encoding / decoding requires the internal use of type names. Swift does not offer a function to obtain a string that can uniquely and stably identify each type. ``String (describing:)`` does not provide enough information, so I must necessarily use ``String (reflecting:)`` to get a suitable string. The aforementioned string is not used as it is; it is recursively decomposed into all component types, context information in the form ``.(____).(____).`` is eliminated where present, and a stable (*within the limits of the possible*) type name is reconstructed.
 
 ## My final thoughts
 Ideally, Swift should make two functions available for transforming types into some form of archivable data and vice versa.
