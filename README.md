@@ -27,7 +27,7 @@ GraphCodable natively supports the following types: Int, Int8, Int16, Int32, Int
 GraphCodable make Optional, Array, Set, Dictionary codable if they hold codable types. OptionSet and Enum with rawValue of native type (except Data) are codable, too.
 
 GraphCodable can encode and decode any 'ARC compatible' Swift object graph, regardless of how complex it is, reconstructing its original structure with its original types without duplicating objects.
-Weak variables used in the object graph in order to avoid strong memory cycles in ARC require [special treatment](/Docs/UserGuide.md#Directed-cyclic-graphs) during initialization within the `init (from: GDecoder)` method.
+Only weak variables used in the object graph in order to avoid strong memory cycles in ARC require [special treatment](/Docs/UserGuide.md#Directed-cyclic-graphs) during initialization within the `init (from: GDecoder)` method.
 One limitation exists: you cannot put a weak variable that must employ the above mechanism inside a value type but only inside a reference type.
 
 [This table](/Docs/CodingRules.md) summarizes the methods to be used depending on the type of variable to be encoded and decoded.
