@@ -489,7 +489,7 @@ do {
 	let data	= try GraphEncoder().encode( inRoot )
 	let out_a	= try GraphDecoder().decode( type(of:inRoot), from:data )
 	
-	// Now we reach "e" from to different paths:
+	// Now we reach "e" from different paths:
 	let e1		= out_a["b"]?["d"]?["e"]!
 	let e2		= out_a["c"]?["e"]!
 	let e3		= out_a["e"]!
@@ -504,7 +504,7 @@ do {	// same thing with Codable
 	let data	= try JSONEncoder().encode( inRoot )
 	let out_a	= try JSONDecoder().decode( type(of:inRoot), from:data )
 	
-	// Now we reach "e" from to different paths:
+	// Now we reach "e" from different paths:
 	let e1		= out_a["b"]?["d"]?["e"]!
 	let e2		= out_a["c"]?["e"]!
 	let e3		= out_a["e"]!
