@@ -930,15 +930,15 @@ do {
 		}
 
 		private enum Key : String {
-			case bubbu
+			case value
 		}
 
 		init(from decoder: GDecoder) throws {
-			self.value	= try decoder.decode(for: Key.bubbu)
+			self.value	= try decoder.decode(for: Key.value)
 		}
 		
 		func encode(to encoder: GEncoder) throws {
-			try encoder.encode( value, for:Key.bubbu )
+			try encoder.encode( value, for:Key.value )
 		}
 
 		var description: String {
