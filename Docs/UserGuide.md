@@ -976,6 +976,29 @@ do {
 ```
 ## Type registration
 
+To register a decodable type ``myType`` in the types repository, you simply call ``myType.register()``.
+
+I suggest creating a function like the following **in your app main module**:
+```swift
+
+func initializeGraphCodable() {
+	GTypesRepository.initialize()	
+	
+	Body.register()
+	Body.Presence.register()
+	Boy.register()
+	Girl.register()
+	Presence.register()
+	Swift.Array<Child>.register()
+	Swift.Array<Swift.Int>.register()
+	Swift.Dictionary<Swift.Int,Swift.String>.register()
+	Swift.Set<Swift.Int>.register()
+	Woman.register()
+	// ...
+}
+```
+and call it after startup. It is important to call it from the main module because GraphCodable needs this name and gets it from the default ``#fileID`` 'hidden' parameter in the ``GTypesRepository.initialize( fromFileID fileID:String = #fileID )`` function. Swift should really offer a function to get the main module name to avoid such tricks.
+
 ### Types repository
 
 You can see the contents of the GTypesRepository with ``print( GTypesRepository.shared )``. With the previous example it will print (with some additional indentation for clarity):
@@ -999,31 +1022,9 @@ GTypesRepository(
 	]
 )
 ```
-The types repository is a sigleton object that contain a dictionary of string / type pairs, where the string is the type name. The encoder encode the name of every type it encounters. The decoder decode the type name and consults the type repository to get the corresponding type with which to instantiate the value.
+The types repository is a sigleton object that contain a dictionary of string / type pairs, where the string is a "stabilized" form of type name. The encoder encode the name of every type it encounters. The decoder decode the type name and consults the type repository to get the corresponding type with which to instantiate the value.
 And so **you have to register in the repository all possible types that may be encountered during decode** otherwise the decoder can't costruct values from their type.
 
-To register a decodable type ``myType`` , you simply call ``myType.register()``.
-
-I suggest creating a function like the following **in your app main module**:
-```swift
-
-func initializeGraphCodable() {
-	GTypesRepository.initialize()	
-	
-	Body.register()
-	Body.Presence.register()
-	Boy.register()
-	Girl.register()
-	Presence.register()
-	Swift.Array<Child>.register()
-	Swift.Array<Swift.Int>.register()
-	Swift.Dictionary<Swift.Int,Swift.String>.register()
-	Swift.Set<Swift.Int>.register()
-	Woman.register()
-	// ...
-}
-```
-and call it after startup. It is important to call it from the main module because GraphCodable needs this name and gets it from the default ``#fileID`` 'hidden' parameter in the ``GTypesRepository.initialize( fromFileID fileID:String = #fileID )`` function. Swift should really offer a function to get the main module name to avoid such tricks.
 
 Maintaining a consistent repository of all types that can be decoded during application development can be a tedious and error prone task.
 To alleviate this problem, GraphCodable offers two help functions.
