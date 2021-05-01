@@ -18,7 +18,7 @@ This table summarizes the methods to be used in your `func encode(to encoder: GE
 ├───────────────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────┤
 │ deferDecode       │¹        │¹        │¹        │²³       │²³       │² █████  │
 ╞═══════════════════╧═════════╧═════════╧═════════╧═════════╧═════════╧═════════╡
-│	 ?    = optional                                                            │
+│    ?    = optional                                                            │
 │ strong  = strong reference                                                    │
 │ strong? = optional strong reference                                           │
 │  weak?  = weak reference (always optional)                                    │
