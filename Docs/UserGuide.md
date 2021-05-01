@@ -1,7 +1,7 @@
 #  User Guide
 
 - [Initialization](#Initialization)
-- [Introduction to types registration](#Introduction-to-types-registration)
+- [Introduction to type registration](#Introduction-to-type-registration)
 - [Code examples](#Code-examples)
 	- [Native types and collection support](#Native-types-and-collection-support)
 	- [Value types](#Value-types)
@@ -41,7 +41,7 @@ public final class GTypesRepository {
 ```
 Swift doesn't provide a way to get this name, not even at runtime. And so it is taken from `#fileID`.
 
-## Introduction to types registration
+## Introduction to type registration
 Typically, the initialization is carried out simultaneously with the registration of all the types that can be decoded by defining a specific function as in the following example and calling it from your main module when your software starts.
 ```swift
 import GraphCodable
@@ -126,13 +126,13 @@ struct Example : GCodable, Equatable {
 	}
 
 	init(from decoder: GDecoder) throws {
-		self.name		= try decoder.decode( for: Key.name )
+		self.name	= try decoder.decode( for: Key.name )
 		self.examples	= try decoder.decode( for: Key.examples )
 	}
 	
 	func encode(to encoder: GEncoder) throws {
-		try encoder.encode( name, for:  Key.name )
-		try encoder.encode( examples, for:  Key.examples )
+		try encoder.encode( name, for: Key.name )
+		try encoder.encode( examples, for: Key.examples )
 	}
 }
 
@@ -175,7 +175,7 @@ struct Example : GCodable, Equatable {
 	}
 
 	init(from decoder: GDecoder) throws {
-		self.name		= try decoder.decode()
+		self.name	= try decoder.decode()
 		self.examples	= try decoder.decode()
 	}
 	
@@ -247,13 +247,13 @@ final class Example : GCodable, Equatable, Codable {
 	}
 	
 	init(from decoder: GDecoder) throws {
-		self.name		= try decoder.decode( for: Key.name )
+		self.name	= try decoder.decode( for: Key.name )
 		self.examples	= try decoder.decode( for: Key.examples )
 	}
 	
 	func encode(to encoder: GEncoder) throws {
-		try encoder.encode( name, for:  Key.name )
-		try encoder.encode( examples, for:  Key.examples )
+		try encoder.encode( name, for: Key.name )
+		try encoder.encode( examples, for: Key.examples )
 	}
 	
 	static func == (lhs: Example, rhs: Example) -> Bool {
@@ -437,7 +437,7 @@ class Node : Codable, GCodable {
 	func connect( to nodes: Node... ) {
 		for node in nodes {
 			connections[node.name]	= node
-			}
+		}
 	}
 	
 	init( _ name:String ) {
@@ -454,7 +454,7 @@ class Node : Codable, GCodable {
 	}
 	
 	func encode(to encoder: GEncoder) throws {
-		try encoder.encode(name, 		for: Key.name )
+		try encoder.encode(name, for: Key.name )
 		try encoder.encode(connections, for: Key.connections )
 	}
 }
@@ -869,15 +869,15 @@ do {
 		}
 
 		private enum Key : String {
-			case bubbu
+			case value
 		}
 
 		init(from decoder: GDecoder) throws {
-			self.value	= try decoder.decode(for: Key.bubbu)
+			self.value	= try decoder.decode(for: Key.value)
 		}
 		
 		func encode(to encoder: GEncoder) throws {
-			try encoder.encode( value, for:Key.bubbu )
+			try encoder.encode( value, for:Key.value )
 		}
 
 		var description: String {
