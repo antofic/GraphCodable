@@ -128,7 +128,7 @@ public extension GDecodable {
 ///    		try encoder.encode( valueB )
 ///			...
 ///		}
-///	**Warning!** Don't encode **weak** references with these methods.
+///	**Note:** You should not encode **weak** references with these methods.
 ///
 /// -- To encode a **optional** reference to the given object only
 /// if it is encoded unconditionally elsewhere in the payload
@@ -141,8 +141,8 @@ public extension GDecodable {
 ///			...
 ///		}
 ///
-///	**Warning! Weak** references **must** always be encoded with
-///	theese methods.
+///	**Note:** You should always encode **weak** references with
+///	"conditional" these methods.
 ///
 /// * **Decoding rules**
 ///
@@ -171,7 +171,7 @@ public extension GDecodable {
 ///			...
 ///		}
 ///
-/// **Warning!** The weak reference **must** have been conditionally encoded.
+/// **Note:** The weak reference **should** have be conditionally encoded.
 /// Deferred decoding **requires** the caller to be the init method
 /// of a class and can be called only after initializing the superclass.
 ///
