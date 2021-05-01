@@ -1079,5 +1079,5 @@ Apart from all the possible internal improvements to the package, there are some
   There is nothing I can do with the decoded ``Any.type`` if I don't check for conformance to a predefined protocol first. Only after I have done this can I use the type to build instances.
   But this functionality does not exist and therefore it is necessary to keep a repository of all possible types that may be encountered during decode.
   
-  Another possibility is to automate the generation of the repository, which however requires the use of some magic (as far as I know): the compiler must keep track of all GCodable types encountered during compilation and automatically generate the code to register them.
+  Another possibility is to automate the generation of the repository, which however requires the use of some compiler magic (as far as I know): the compiler must keep track of all GCodable types encountered during compilation and automatically generate the code to register them.
 
