@@ -121,7 +121,7 @@ struct Example : GCodable, Equatable {
 		self.examples	= examples
 		}
 
-	enum Key: String {
+	private enum Key: String {
 		case name, examples
 	}
 
@@ -170,7 +170,7 @@ struct Example : GCodable, Equatable {
 		self.examples	= examples
 		}
 
-	enum Key: String {
+	private enum Key: String {
 		case name, examples
 	}
 
@@ -242,7 +242,7 @@ final class Example : GCodable, Equatable, Codable {
 		self.examples	= examples
 	}
 	
-	enum Key: String {
+	private enum Key: String {
 		case name, examples
 	}
 	
