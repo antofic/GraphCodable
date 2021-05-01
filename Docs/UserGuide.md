@@ -611,12 +611,12 @@ class Node : Hashable, GCodable, CustomStringConvertible {
 	private(set) var childs = Set<Node>()
 
 	weak var parent : Node? {
-		willSet( newValue ) {
+		willSet {
 			if newValue != parent {
 				parent?.childs.remove( self )
 			}
 		}
-		didSet( oldValue ) {
+		didSet {
 			if parent != oldValue {
 				parent?.childs.insert( self )
 			}
