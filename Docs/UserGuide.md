@@ -1060,20 +1060,22 @@ Apart from all the possible internal improvements to the package, there are some
   
   ``func serializeType( type:Any.Type ) -> [UInt8]``
   
-  ``func deserializeType( from:[UInt8] ) -> Any.Type``
+  ``func deserializeType( from bytes:[UInt8] ) throws -> Any.Type``
   
   With this functionality **the need to keep a repository of the decoding types vanishes** because the bytes describing the type can be stored during encoding and retrieved during decoding. Then you can:
-  ```swift
-  // 1) construct the type from its bytes description
-  let type = deserializeType( from: bytes )
   
-  // 2) check that it conforms the desired protocol
-  guard let decodableType = type as? GCodable.Type else {
-  	throw ...
-  }
-  // 3) istantiate the value
-  let decodedValue = decodableType(from: ...)
-  ```
+	```swift
+	// 1) construct the type from its bytes description
+	let type = try deserializeType( from: bytes )
+  
+	// 2) check that it conforms the desired protocol
+	guard let decodableType = type as? GCodable.Type else {
+		throw ...
+	 
+	}
+	// 3) istantiate the value
+	let decodedValue = try decodableType(from: ...)
+	 ```
   Furthermore, the need to manage the type names inside the package also disappears, because types suffices.
   
   Beyond the real possibility of offering functions such as ``func serializeType( type:Any.Type ) -> [UInt8]`` and ``func deserializeType( from:[UInt8] ) -> Any.Type``, which I do not discuss because I do not   have the skills, I do not understand what problem such a feature can pose to security.
