@@ -577,7 +577,7 @@ There is therefore a **one-to-one** correspondence between using weak variables 
 Let's see how with a classic example: the **parent-childs pattern**. In this pattern the parent variable is weak to break the strong cycles (self.parent.child === self) that would otherwise form with his childs.
 Similarly, this pattern requires to 'deferDecode' the weak variable (parent) because the initialization of parent depends on that of its childs and vice versa.
 
-*Note:* Since a weak variable can become nil at 'any' time, it **must be encoded** with ``encodeConditional(...)``.
+*Note:* You should **always** use ``encodeConditional(...)`` to encode a weak variable. Otherwise you run the risk of unnecessarily encoding and decoding objects that will be immediately released  after decoding.
 
 *Note:* Swift does not allow to call ``deferDecode(...)`` from the init of a value type, but only from that of a reference type and forces to call it **after** super class initialization.
 
@@ -690,31 +690,38 @@ For another example of DCG, see ``testDGC()`` in the tests section (DirectedCycl
 This table summarizes the methods to be used in your `func encode(to encoder: GEncoder) throws { ... }` and `init(from decoder: GDecoder) throws { ... }` depending on the type of variable to be encoded and decoded:
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                          ENCODE/DECODE RULES                            │
-├───────────────────┬─────────────────┬───────────────────────────────────┤
-│                   │   VALUE  TYPE   │          REFERENCE  TYPE          │
-│      METHOD       ├────────┬────────┼────────┬────────┬────────┬────────┤
-│                   │        │    ?   │    s   │   s?   │  w? O  │  w? Ø  │
-╞═══════════════════╪════════╪════════╪════════╪════════╪════════╪════════╡
-│ encode            │ ██████ │ ██████ │ ██████ │ ██████ │        │        │
-├───────────────────┼────────┼────────┼────────┼────────┼────────┼────────┤
-│ encodeConditional │        │        │        │ ██████ │ ██████ │ ██████ │
-╞═══════════════════╪════════╪════════╪════════╪════════╪════════╪════════╡
-│ decode            │ ██████ │ ██████ │ ██████ │ ██████ │ ██████ │        │
-├───────────────────┼────────┼────────┼────────┼────────┼────────┼────────┤
-│ deferDecode       │        │        │        │        │        │ ██████ │
-╞═══════════════════╧════════╧════════╧════════╧════════╧════════╧════════╡
-│    ?   = optional                                                       │
-│    s   = strong reference                                               │
-│    s?  = optional strong reference                                      │
-│    w?  = weak reference (always optional)                               │
-│    Ø   = weak reference used to prevent strong memory cycles in ARC     │
-│    O   = any other use of a weak reference                              │
-│  Note  : Swift does not allow calling deferDecode from the init of a    │
-│          value type, but only from that of a reference type. Swift      │
-│          forces to call it after super class initialization.            │
-└─────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                           ENCODE/DECODE RULES                                 │
+├───────────────────┬───────────────────┬───────────────────────────────────────┤
+│                   │    VALUE   TYPE   │            REFERENCE TYPE             │
+│      METHOD       ├─────────┬─────────┼─────────┬─────────┬─────────┬─────────┤
+│                   │         │    ?    │ strong  │ strong? │ weak? O │ weak? Ø │
+╞═══════════════════╪═════════╪═════════╪═════════╪═════════╪═════════╪═════════╡
+│ encode            │  █████  │  █████  │  █████  │  █████  │⁵        │⁵        │
+├───────────────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────┤
+│ encodeConditional │¹        │¹        │¹        │  █████  │  █████  │  █████  │
+╞═══════════════════╪═════════╪═════════╪═════════╪═════════╪═════════╪═════════╡
+│ decode            │  █████  │  █████  │  █████  │  █████  │  █████  │⁴        │
+├───────────────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────┤
+│ deferDecode       │¹        │¹        │¹        │³        │³        │² █████  │
+╞═══════════════════╧═════════╧═════════╧═════════╧═════════╧═════════╧═════════╡
+│    ?    = optional                                                            │
+│ strong  = strong reference                                                    │
+│ strong? = optional strong reference                                           │
+│  weak?  = weak reference (always optional)                                    │
+│    Ø    = weak reference used to prevent strong memory cycles in ARC          │
+│    O    = any other use of a weak reference                                   │
+├───────────────────────────────────────────────────────────────────────────────┤
+│  █████  = mandatory or highly recommended                                     │
+│ ¹       = not allowed by Swift                                                │
+│ ²       = allowed by Swift only in the init method of a reference type        │
+│           Swift forces to call it after super class initialization            │
+│ ³       = you don't need deferDecode: use decode(...) instead                 │
+│ ⁴       = GraphCodable exception during decode: use deferDecode(...) instead  │
+│ ⁵       = allowed but not recommendend: you run the risk of unnecessarily     │
+│           encoding and decoding objects that will be immediately released     │
+│           after decoding. Use encodeConditional(...) instead.                 │
+└───────────────────────────────────────────────────────────────────────────────┘
 ```
 All GraphCodable protocols are defined [here](/Sources/GraphCodable/GraphCodable.swift).
 
