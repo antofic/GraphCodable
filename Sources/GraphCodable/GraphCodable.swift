@@ -279,7 +279,7 @@ public protocol GDecoder {
 	/// - returns: A value of the requested type, if present for the given key
 	///   and convertible to the requested type.
 	func decode<Key, Value>(for key: Key) throws -> Value where
-		Key : RawRepresentable, Value : GEncodable, Key.RawValue == String
+		Key : RawRepresentable, Value : GDecodable, Key.RawValue == String
 
 	/// Decodes a reference of the given type for the given key when it become available.
 	///
@@ -291,7 +291,7 @@ public protocol GDecoder {
 	/// - parameter key: The key that the decoded reference is associated with.
 	/// - parameter setter: A closure to which the required reference is provided.
 	func deferDecode<Key, Value>( for key: Key, _ setter: @escaping (Value?) -> ()) throws where
-		Key : RawRepresentable, Value : AnyObject, Value : GEncodable, Key.RawValue == String
+		Key : RawRepresentable, Value : AnyObject, Value : GDecodable, Key.RawValue == String
 
 	/// The number of elements still available for unkeyed decoding.
 	///

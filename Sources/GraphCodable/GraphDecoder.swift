@@ -95,7 +95,7 @@ public final class GraphDecoder {
 		}
 		
 		func decode<Key, Value>(for key: Key) throws -> Value
-		where Key : RawRepresentable, Value : GEncodable, Key.RawValue == String
+		where Key : RawRepresentable, Value : GDecodable, Key.RawValue == String
 		{
 			let	block = try constructor.popNode( key:key.rawValue )
 			
@@ -107,7 +107,7 @@ public final class GraphDecoder {
 		}
 		
 		func deferDecode<Key, Value>( for key: Key, _ setter: @escaping (Value?) -> ()) throws
-		where Key : RawRepresentable, Value : AnyObject, Value : GEncodable, Key.RawValue == String
+		where Key : RawRepresentable, Value : AnyObject, Value : GDecodable, Key.RawValue == String
 		{
 			try constructor.decodeNode( graphBlock:try constructor.popNode( key:key.rawValue ), setter )
 		}
