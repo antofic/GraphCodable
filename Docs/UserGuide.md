@@ -1031,7 +1031,7 @@ I can't do much to alleviate this problem, but I have equipped GraphCodable with
 - ``GTypesRepository.shared.help()``
 -  ``GraphDecoder().help( from data: Data )``
 
-The first provides in a string the Swift code that contains the function necessary to register all the types currently present in the repository. In other words, the result of all the encodings made automatically by the encoder from the opening of the program or tha last call to `GTypesRepository.initialize()`.
+The first provides in a string the Swift code that contains the function necessary to register all the types currently present in the repository. In other words, the result of all the registrations made automatically by the encoder from the opening of the program or tha last call to `GTypesRepository.initialize()`.
 
 The second provides in a string the Swift code that contains the function necessary to register all types present in the data file that is passed to it. That is, the types that must be in the repository to be able to dearchive that data file.
 
