@@ -1070,8 +1070,7 @@ Apart from all the possible internal improvements to the package, there are some
   
 	// 2) check that it conforms the desired protocol
 	guard let decodableType = type as? GCodable.Type else {
-		throw ...
-	 
+		throw ...	 
 	}
 	// 3) istantiate the value
 	let decodedValue = try decodableType(from: ...)
