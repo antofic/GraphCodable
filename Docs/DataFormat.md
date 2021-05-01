@@ -120,7 +120,9 @@ GraphCodable does not currently allow access to the data contained in the header
 The **GRAPH** that contains the structured data, organized in:
 - *Sequences*: a list of items preceded by the **-** symbol.
 - *Dictionaries*: a list of items (in the form "key": value) preceded by the **+** symbol.
+
 Both lists end when the symbol **.** is encountered.
+
 The root is always the only item of the first sequence.
 
 Rows by rows:
