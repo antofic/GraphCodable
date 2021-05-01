@@ -577,7 +577,7 @@ There is therefore a **one-to-one** correspondence between using weak variables 
 Let's see how with a classic example: the **parent-childs pattern**. In this pattern the parent variable is weak to break the strong cycles (self.parent.child === self) that would otherwise form with his childs.
 Similarly, this pattern requires to 'deferDecode' the weak variable (parent) because the initialization of parent depends on that of its childs and vice versa.
 
-*Note:* You should **always** use ``encodeConditional(...)`` to encode a weak variable. Otherwise you run the risk of unnecessarily encoding and decoding objects that will be immediately released  after decoding.
+*Note:* You should **always** use ``encodeConditional(...)`` to encode a weak variable. Otherwise you run the risk of unnecessarily encode and decode objects that will be immediately released  after decoding.
 
 *Note:* Swift does not allow to call ``deferDecode(...)`` from the init of a value type, but only from that of a reference type and forces to call it **after** super class initialization.
 
