@@ -1033,7 +1033,7 @@ I can't do much to alleviate this problem, but I have equipped GraphCodable with
 
 The first provides in a string the Swift code that contains the function necessary to register all the types currently present in the repository. In other words, the result of all the registrations made automatically by the encoder from the opening of the program or the last call to `GTypesRepository.initialize()`.
 
-The second provides in a string the Swift code that contains the function necessary to register all types present in the data file that is passed to it. That is, the types that must be in the repository to be able to dearchive that data file.
+The second provides in a string the Swift code that contains the function necessary to register all types present in the data file that is passed to it. That is, the types that must be registered to be able to dearchive that data file.
 
 To clear the content of the repository, simply reinizialize it with `GTypesRepository.initialize()`.
 ### Type names
