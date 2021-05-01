@@ -69,7 +69,7 @@ fileprivate class Node : Hashable, GCodable, CustomStringConvertible {
 	func encode(to encoder: GEncoder) throws {
 		try encoder.encode( childs, for: Key.childs )
 
-		//	weak variables must be encoded conditionally!!!
+		//	weak variables should be encoded conditionally
 		try encoder.encodeConditional( _parent, for: Key._parent )
 	}
 	

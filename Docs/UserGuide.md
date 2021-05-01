@@ -489,7 +489,7 @@ do {
 	let data	= try GraphEncoder().encode( inRoot )
 	let out_a	= try GraphDecoder().decode( type(of:inRoot), from:data )
 	
-	// Now we reach and from to different paths:
+	// Now we reach "e" from to different paths:
 	let e1		= out_a["b"]?["d"]?["e"]!
 	let e2		= out_a["c"]?["e"]!
 	let e3		= out_a["e"]!
@@ -504,7 +504,7 @@ do {	// same thing with Codable
 	let data	= try JSONEncoder().encode( inRoot )
 	let out_a	= try JSONDecoder().decode( type(of:inRoot), from:data )
 	
-	// Now we reach and from to different paths:
+	// Now we reach "e" from to different paths:
 	let e1		= out_a["b"]?["d"]?["e"]!
 	let e2		= out_a["c"]?["e"]!
 	let e3		= out_a["e"]!
@@ -634,7 +634,7 @@ class Node : Hashable, GCodable, CustomStringConvertible {
 	func encode(to encoder: GEncoder) throws {
 		try encoder.encode( childs, for: Key.childs )
 	
-		//	weak variables must always be encoded conditionally:
+		//	weak variables should always be encoded conditionally:
 		try encoder.encodeConditional( _parent, for: Key._parent )
 	}
 
@@ -647,7 +647,7 @@ class Node : Hashable, GCodable, CustomStringConvertible {
 	}	
 }
 
-class View		: Node {}
+class View	: Node {}
 class Window	: View {}	// we make window subclass of view
 class Screen	: View {}	// we make the screen subclass of view
 
