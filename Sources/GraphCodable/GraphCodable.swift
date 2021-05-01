@@ -352,7 +352,7 @@ public protocol GDecoder {
 │ ³       = you don't need deferDecode: use decode(...) instead                 │
 │ ⁴       = GraphCodable exception during decode: use deferDecode(...) instead  │
 │ ⁵       = allowed but not recommendend: you run the risk of unnecessarily     │
-│           encoding and decoding objects that will be immediately released     │
-│           after decoding. Use encodeConditional(...) instead.                 │
+│           encode and decode objects that will be immediately released after   │
+│           decoding. Use encodeConditional(...) instead.                       │
 └───────────────────────────────────────────────────────────────────────────────┘
 */
