@@ -608,24 +608,26 @@ func != <T:AnyObject>(lhs: T, rhs: T) -> Bool {
 }
 
 class Node : Hashable, GCodable, CustomStringConvertible {
-	private weak var _parent : Node?
 	private(set) var childs = Set<Node>()
-	
-	init() {}
-	
-	var	parent : Node? {
-		get { return _parent }
-		set {
-			if newValue != _parent {
-				self._parent?.childs.remove( self )
-				self._parent = newValue
-				self._parent?.childs.insert( self )
+
+	weak var parent : Node? {
+		willSet( newValue ) {
+			if newValue != parent {
+				parent?.childs.remove( self )
 			}
 		}
+		didSet( oldValue ) {
+			if parent != oldValue {
+				parent?.childs.insert( self )
+			}
+		}
+		
 	}
 	
+	init() {}
+
 	private enum Key : String {
-		case childs, _parent
+		case childs, parent
 	}
 	var description: String {
 		return "\( type(of:self) ) \(childs)"
@@ -635,7 +637,7 @@ class Node : Hashable, GCodable, CustomStringConvertible {
 		try encoder.encode( childs, for: Key.childs )
 	
 		//	weak variables should always be encoded conditionally:
-		try encoder.encodeConditional( _parent, for: Key._parent )
+		try encoder.encodeConditional( parent, for: Key.parent )
 	}
 
 	required init(from decoder: GDecoder) throws {
@@ -643,8 +645,8 @@ class Node : Hashable, GCodable, CustomStringConvertible {
 
 		//	weak variables used to break strong memory cycles must
 		//	be decoded with:
-		try decoder.deferDecode( for: Key._parent ) { self._parent = $0 }
-	}	
+		try decoder.deferDecode( for: Key.parent ) { self.parent = $0 }
+	}
 }
 
 class View	: Node {}
