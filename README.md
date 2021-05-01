@@ -3,8 +3,6 @@
 Firstly, I apologize for my poor English. I hope the content remains understandable.
 
 GraphCodable is an **experimental** Swift encode/decode package (similar to Codable at interface level) that does not treat reference types as second-class citizens.
- 
-Test change
 
 ## Features
 GraphCodable:
