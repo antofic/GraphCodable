@@ -58,12 +58,15 @@ final class TypeVersionAndReplaceTests: XCTestCase {
 			data	= try GraphEncoder().encode( person )
 		}
 		
-		//	now we change the Person implementation
+		//	now in new version of of our app we
+		//	change the Person implementation
 		//	choosing to store the name as components
 		//	because we dont because we don't want all
 		//	those whitespaces in the name string.
 		//	How to decode files that contain the old
 		//	version of Person?
+
+		GTypesRepository.initialize()
 		
 		do {
 			struct Person : GCodable {	// Person V1
@@ -109,10 +112,6 @@ final class TypeVersionAndReplaceTests: XCTestCase {
 				}
 			}
 			
-			//	Note: GraphEncoder().encode( ... ) automatically
-			//	register all types involved in encoding. We
-			//	need to override the old Person registration with
-			//	the new version:
 			Person.register()
 			
 			var person : Person

@@ -130,10 +130,16 @@ public final class GTypesRepository {
 	}
 
 	func register<T:GDecodable>( type:T.Type ) {
+		let typeName = typeName(type: type)
+		
 		if let type = type as? GNativeCodable.Type  {
-			nativeTypes[ self.typeName(type: type) ] = type
+			nativeTypes[ typeName ] = type
 		} else {
-			decodableTypes[ self.typeName(type: type) ] = type
+			if let oldType = decodableTypes[ typeName ] {
+				precondition( oldType == type, "Attempt to overwrite \( String(reflecting:oldType) ) with \( String(reflecting:type) )")
+			} else {
+				decodableTypes[ typeName ] = type
+			}
 		}
 	}
 
