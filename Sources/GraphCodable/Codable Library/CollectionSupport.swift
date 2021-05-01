@@ -77,30 +77,3 @@ extension Dictionary: GCodable where Key:GCodable, Value:GCodable {
 	}
 }
 
-//	OPTIONAL SUPPORT
-extension Optional : GCodable where Wrapped : GCodable {
-	public func encode(to encoder: GEncoder) throws {
-		switch self {
-		case .none:
-			guard let encoder = encoder as? GOptionalEncoder else {
-				throw GCodableError.optionalEncodeError
-			}
-			try encoder.encodeNil()
-		case .some( let unwrapped ):
-			try encoder.encode( unwrapped )
-		}
-		preconditionFailure()
-	}
-	
-	public init(from decoder: GDecoder) throws {
-		guard let decoder = decoder as? GOptionalDecoder else {
-			throw GCodableError.optionalEncodeError
-		}
-		if try decoder.decodeNil() {
-			self = .none
-		} else {
-			self = .some( try decoder.decode() )
-		}
-	}
-}
-
