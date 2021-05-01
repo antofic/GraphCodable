@@ -22,7 +22,7 @@
 
 import Foundation
 
-//	faster than BinaryWriterBase<Data> even if you ask for the result as Data
+//	faster than BinaryWriterBase<Data> even if you must generate a Data result
 typealias BinaryWriter = BinaryWriterBase<Array<UInt8>>
 //	typealias BinaryWriter = BinaryWriterBase<Data>
 

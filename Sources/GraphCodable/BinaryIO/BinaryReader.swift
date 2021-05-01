@@ -22,7 +22,7 @@
 
 import Foundation
 
-// faster than BinaryReaderBase<Data> even if you initialize with Data
+// faster than BinaryReaderBase<Data> even if bytes originally comes from Data
 typealias BinaryReader = BinaryReaderBase<Array<UInt8>>
 //	typealias BinaryReader = BinaryReaderBase<Data>
 
