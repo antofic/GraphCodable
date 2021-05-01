@@ -173,7 +173,7 @@ public final class GraphEncoder {
 			// now value if not nil!
 			
 			guard let encodable = value as? GEncodable else {
-				throw GCodableError.dontEncodableType( typeName: "\(type(of:value))" )
+				throw GCodableError.notEncodableType( typeName: "\(type(of:value))" )
 			}
 			// now value is GEncodable
 			

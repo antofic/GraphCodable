@@ -32,11 +32,11 @@ enum GCodableError : Error {
 	case nativeEncodeError
 	case nativeDecodeError
 
-	// LineData
+	// DataBlock
 	case parsingError
 
 	// KeyedEncoder
-	case dontEncodableType( typeName:String )
+	case notEncodableType( typeName:String )
 
 	// KeyedEncoder and NodeData
 	case duplicateTypeID( typeID:IntID )

@@ -288,7 +288,7 @@ fileprivate struct BlockDecoder {
 				}
 				
 				if unregisteredTypes.isEmpty == false {
-					throw GCodableError.unregisteredTypes( typeNames:unregisteredTypes.map { $0.typeName } )
+					throw GCodableError.unregisteredTypes( typeNames:unregisteredTypes.map { $0.swiftTypeString } )
 				}
 			}
 			_graphDataBlocks.append( dataBlock )
@@ -625,6 +625,14 @@ fileprivate final class TypeConstructor {
 		switch graphBlock.dataBlock {
 		case .Nil( _ ):
 			setter( nil )
+		case .ObjSPtr( _, let objID ):
+			//	con questo fallthrough scompare l'obblico di impiegare
+			//	encodeConditional per le variabili weak e tutto funziona,
+			//	ma la cosa non ha logicamente senso perché se non sono
+			//	tenute in vita da qualche strong path, diventerebbero
+			//	comunque nulle non appena viene completato il decode.
+			NSLog("You should always use encodeConditional() to encode a weak variable (\(graphBlock.dataBlock)).")
+			fallthrough
 		case .ObjWPtr( _, let objID ):
 			let anySetter : (AnyObject) throws -> () = {
 				anyValue in
