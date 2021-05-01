@@ -1023,11 +1023,10 @@ GTypesRepository(
 )
 ```
 The types repository is a sigleton object that contain a dictionary of string / type pairs, where the string is a "stabilized" form of type name. The encoder encode the name of every type it encounters. The decoder decode the type name and consults the type repository to get the corresponding type with which to instantiate the value.
-And so **you have to register in the repository all possible types that may be encountered during decode** otherwise the decoder can't costruct values from their type.
-
+And so **you have to register in the repository all possible types that may be encountered during decode** otherwise the decoder can't costruct values from their type. In this case, GraphCodable throws an exception showing which types are missing from the repository.
 
 Maintaining a consistent repository of all types that can be decoded during application development can be a tedious and error prone task.
-To alleviate this problem, GraphCodable offers two help functions.
+I can't do much to alleviate this problem, but I have equipped GraphCodable with two functions:
 
 - ``GTypesRepository.shared.help()``
 -  ``GraphDecoder().help( from data: Data )``
