@@ -1038,7 +1038,7 @@ The second provides in a string the Swift code that contains the function necess
 
 To clear the content of the repository, simply reinizialize it with `GTypesRepository.initialize()`.
 ### Type names
-By design, GraphCodable **never exposes type names as strings**. Even in the case of type replacements, GraphCodable forces you to define an empty type with the name of the type to replace (as showed in "Type replacement system") instead of using the string of its name.
+By design, GraphCodable **never exposes type names as strings**. Even in the case of type replacements, GraphCodable forces you to define an empty type with the name of the type to replace (as showed in [Type replacement system](#Type-replacement-system)) instead of using the string of its name.
 
 But, as described, encoding / decoding requires the internal use of type names. Swift does not offer a function to obtain a string that can uniquely and stably identify each type. ``String(describing:)`` does not provide enough information, so I must necessarily use ``String(reflecting:)`` to get a suitable string. The aforementioned string is not used as it is; it is recursively decomposed into all component types, context information in the form ``.(____).(____).`` is eliminated where present, and a stable (*within the limits of the possible*) type name is reconstructed. The type name thus obtained is then cached so that this rather expensive operation occurs only once for each type.
 
