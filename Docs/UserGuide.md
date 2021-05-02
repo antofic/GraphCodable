@@ -731,9 +731,7 @@ The use is identical to that of Codable.
 
 #### Reference type version system
 
-GraphCodable implements a type version system:
-
-**This example needes to be updated.**
+GraphCodable implements a reference type version system:
 
 ```swift
 import Foundation
@@ -744,7 +742,7 @@ GTypesRepository.initialize()
 let data : Data
 
 do {
-	struct MyData :GCodable {
+	class MyData :GCodable {
 		let number : Int
 		
 		init( number: Int ) {
@@ -755,7 +753,7 @@ do {
 			case number
 		}
 		
-		init(from decoder: GDecoder) throws {
+		required init(from decoder: GDecoder) throws {
 			self.number	= try decoder.decode(for: Key.number)
 			}
 	
@@ -774,7 +772,7 @@ do {
 GTypesRepository.initialize()
 
 do {
-	struct MyData :GCodable {
+	class MyData :GCodable {
 		let string : String
 		
 		init( string: String ) {
@@ -793,7 +791,7 @@ do {
 		static var	encodeVersion: UInt32 { return 1 }
 		
 		// ...so that during the dearchive it can be distinguished from the old one:
-		init(from decoder: GDecoder) throws {
+		required init(from decoder: GDecoder) throws {
 			let version = try decoder.encodedVersion( type(of:self) )
 			
 			switch version {
@@ -833,9 +831,7 @@ do {
 ```
 #### Reference type replacement system
 
-GraphCodable implements a type replacement system:
-
-**This example needes to be updated.**
+The type name of value types is not encoded, so it is always possible to change the name of a "struct" without affecting the decoding. The same thing doesn't happen for reference types. Therefore GraphCodable implements a reference type replacements system.
 
 ```swift
 import Foundation
@@ -846,7 +842,7 @@ GTypesRepository.initialize()
 let data : Data
 
 do {
-	struct MyData :GCodable, CustomStringConvertible {
+	class MyData :GCodable, CustomStringConvertible {
 		let number : Int
 		
 		init( number: Int ) {
@@ -857,7 +853,7 @@ do {
 			case number
 		}
 		
-		init(from decoder: GDecoder) throws {
+		required init(from decoder: GDecoder) throws {
 			self.number	= try decoder.decode(for: Key.number)
 		}
 		
@@ -870,7 +866,7 @@ do {
 		}
 	}
 	
-	struct Container<T:GCodable> :GCodable, CustomStringConvertible {
+	class Container<T:GCodable> :GCodable, CustomStringConvertible {
 		let value : T
 
 		init( value: T ) {
@@ -881,7 +877,7 @@ do {
 			case value
 		}
 
-		init(from decoder: GDecoder) throws {
+		required init(from decoder: GDecoder) throws {
 			self.value	= try decoder.decode(for: Key.value)
 		}
 		
@@ -905,7 +901,7 @@ GTypesRepository.initialize()
 do {
 	//	Now suppose we want to change the type of MyData to MyNewData
 
-	struct MyNewData :GCodable, CustomStringConvertible {
+	class MyNewData :GCodable, CustomStringConvertible {
 		let number : Int
 	
 		init( number: Int ) {
@@ -916,7 +912,7 @@ do {
 			case number
 		}
 		
-		init(from decoder: GDecoder) throws {
+		required init(from decoder: GDecoder) throws {
 			self.number	= try decoder.decode(for: Key.number)
 		}
 		
@@ -931,7 +927,7 @@ do {
 
 	//	and the type of Container<...> to NewContainer<...>
 
-	struct NewContainer<T:GCodable> :GCodable, CustomStringConvertible {
+	class NewContainer<T:GCodable> :GCodable, CustomStringConvertible {
 		let value : T
 
 		init( value: T ) {
@@ -942,7 +938,7 @@ do {
 			case value
 		}
 
-		init(from decoder: GDecoder) throws {
+		required init(from decoder: GDecoder) throws {
 			self.value	= try decoder.decode(for: Key.value)
 		}
 		
@@ -959,10 +955,9 @@ do {
 	//	types are encountered during the decode, the new MyNewData
 	//	and NewContainer<...> types must be created in their place.
 	
-	//	We need dummy structs with the names that we want replace:
-	//	(if you need to replace a class, use a dummy class)
-	struct MyData {}
-	struct Container<T> {}
+	//	We need dummy classes with the names that we want replace:
+	class MyData {}
+	class Container<T> {}
 
 	//	unregister MyData if needed, register MyNewData and teach
 	//	the TypesRepository to replace MyData with MyNewData:
@@ -972,16 +967,11 @@ do {
 	//	and teach the TypesRepository to replace Container<MyData> with
 	//	NewContainer<MyNewData>:
 	try NewContainer<MyNewData>.replace(type: Container<MyData>.self)
-
-	//	now we need to register the other new type
-	//	(This function is normally called at the beginning of the program)
-	[NewContainer<MyNewData>].register()
 	
 	//	notice how substitution also occurs for types nested in other types
 	let outRoot	= try GraphDecoder().decode( [NewContainer<MyNewData>].self, from: data )
 	print( outRoot )	// print [NewContainer<MyNewData>(value: MyNewData(number: 3))]
 }
-
 ```
 ## Reference type registration
 
@@ -1011,21 +1001,14 @@ You can see the contents of the GTypesRepository with ``print( GTypesRepository.
 **This example needes to be updated.**
 ```
 GTypesRepository(
-	* = "MyCodableApp",
-	nativeTypes = [
-		"Foundation.Data", "Swift.Bool", "Swift.Double", "Swift.Float",
-		"Swift.Int", "Swift.Int16", "Swift.Int32", "Swift.Int64",
-		"Swift.Int8", "Swift.String", "Swift.UInt", "Swift.UInt16",
-		"Swift.UInt32", "Swift.UInt64", "Swift.UInt8"
-	],
+	* = "MyGraphCodableApp",
 	registeredTypes = [
 		"*.MyNewData",
-		"*.NewContainer<*.MyNewData>",
-		"Swift.Array<*.NewContainer<*.MyNewData>>"
+		"*.NewContainer<*.MyNewData>"
 	],
 	typeReplacementsTable = [
-		"*.Container<*.MyData>": "*.NewContainer<*.MyNewData>",
-		"*.MyData": "*.MyNewData"
+		"*.MyData": "*.MyNewData",
+		"*.Container<*.MyData>": "*.NewContainer<*.MyNewData>"
 	]
 )
 ```
@@ -1043,6 +1026,7 @@ The first provides in a string the Swift code that contains the function necessa
 The second provides in a string the Swift code that contains the function necessary to register all reference types present in the data file that is passed to it. That is, the types that must be registered to be able to dearchive that data file.
 
 To clear the content of the repository, simply reinizialize it with `GTypesRepository.initialize()`.
+
 ### Type names
 By design, GraphCodable **never exposes type names as strings**. Even in the case of type replacements, GraphCodable forces you to define an empty type with the name of the reference type to replace (as showed in [Type replacement system](#Type-replacement-system)) instead of using the string of its name.
 
@@ -1060,7 +1044,7 @@ Apart from all the possible internal improvements to the package, there are some
 - The need to use ``deferDecode(...)`` for weak variables used to break ARC strong memory cycles is not a big problem, in my opinion, because you know exactly what and where they are. Just stick to the [rules](/Docs/CodingRules.md). If anything, the limitation is that these variables must necessarily be owned by a reference type because ``deferDecode(...)`` cannot be called in the ``init(from: ...)`` method of a value type. The ``WeakBox<T>`` used in ``testDGC()`` (see [DirectedCyclicGraphTests](/Tests/GraphCodableTests/5-DirectedCyclicGraphTests.swift)) must be a class.
 - The main difficulty, in my opinion, is that you have to keep the types repository updated during the development of an application. The absence of a single 'GCodable' reference type from the types repository makes it impossible to decode a data file containing it.
  
-  Ideally, Swift should make two functions available for transforming types into some form of archivable data and vice versa.
+  Ideally, Swift should make two functions available for transforming types (reference types, at least) into some form of archivable data and vice versa.
   For example, like these:
   
   ``func serializeType( type:Any.Type ) -> [UInt8]``

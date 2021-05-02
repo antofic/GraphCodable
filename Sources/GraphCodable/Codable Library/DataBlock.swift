@@ -328,9 +328,9 @@ extension DataBlock {
 		
 		switch self {
 		case .Header( let version, let module, let unused1, let unused2 ):
-			return "^ Filetype = \(HeaderID.gcodable) V\(version), * = \(module), U1 = \(unused1), U2 = \(unused2)"
+			return "Filetype = \(HeaderID.gcodable) V\(version), * = \(module), U1 = \(unused1), U2 = \(unused2)"
 		case .TypeMap	( let typeID, let typeVersion, let typeName ):
-			return	"# Type\( typeID ): V\( typeVersion ) \( typeName )"
+			return	"Type\( typeID ): V\( typeVersion ) \( typeName )"
 		case .Nil		( let keyID ):
 			return format( keyID, info, "nil")
 		case .Native	( let keyID, let value ):
@@ -350,7 +350,7 @@ extension DataBlock {
 		case .End:
 			return 	"."
 		case .KeyMap	( let keyID, let keyName ):
-			return "# Key\( keyID ): \"\( keyName )\""
+			return "Key\( keyID ): \"\( keyName )\""
 		}
 	}
 }

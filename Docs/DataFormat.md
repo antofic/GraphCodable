@@ -67,25 +67,23 @@ print( try GraphEncoder().dump( inRoot ) )
 ```
 The result:
 
-**This example needes to be updated.**
-
 ```
 == HEADER ========================================================
-^ Filetype = gcodable V0, * = GCodable, U1 = 0, U2 = 0
+Filetype = gcodable V0, * = MyGraphCodableApp, U1 = 0, U2 = 0
 == GRAPH =========================================================
-- STRUCT Swift.Array<*.AClass>
+- STRUCT
 	- CLASS *.AClass Obj1000
-		+ "astruct": STRUCT *.AStruct
-			+ "array": STRUCT Swift.Array<Swift.Int>
-				- Swift.Int 1
-				- Swift.Int 2
-				- Swift.Int 3
+		+ "astruct": STRUCT
+			+ "array": STRUCT
+				- 1
+				- 2
+				- 3
 			.
-			+ "dict": STRUCT Swift.Dictionary<Swift.String,Swift.Int>
-				- Swift.String "4"
-				- Swift.Int 4
-				- Swift.String "5"
-				- Swift.Int 5
+			+ "dict": STRUCT
+				- "4"
+				- 4
+				- "5"
+				- 5
 			.
 		.
 		+ "aclass": POINTER? Obj1001
@@ -94,17 +92,17 @@ The result:
 	- POINTER Obj1000
 	- POINTER Obj1000
 	- CLASS *.AClass Obj1001
-		+ "astruct": STRUCT *.AStruct
-			+ "array": STRUCT Swift.Array<Swift.Int>
-				- Swift.Int 1
-				- Swift.Int 2
-				- Swift.Int 3
+		+ "astruct": STRUCT
+			+ "array": STRUCT
+				- 1
+				- 2
+				- 3
 			.
-			+ "dict": STRUCT Swift.Dictionary<Swift.String,Swift.Int>
-				- Swift.String "5"
-				- Swift.Int 5
-				- Swift.String "4"
-				- Swift.Int 4
+			+ "dict": STRUCT
+				- "4"
+				- 4
+				- "5"
+				- 5
 			.
 		.
 		+ "aclass": nil
@@ -128,12 +126,12 @@ Both lists end when the symbol **.** is encountered.
 The root is always the only item of the first sequence.
 
 Rows by rows:
--	``STRUCT Swift.Array<*.AClass>``, which is a value type (``STRUCT``), is the root.
+-	``STRUCT``, a value type, is the root.
 -	It contains 5 elements corresponding to ``[b, b, b, b, a]``:
 	-	The first element ``CLASS *.AClass Obj1000`` is a reference (``CLASS``) type.
 		GraphCodable assigns a unique numeric ``ID (ObjXXXX)`` to each object it encounters.
 		This object in turn contains a structure corresponding to the key 'astruct' and an object corresponding to the key 'aclass'
-		-	First, you see the complete definition of the struct ``*.AStruct``, with its array and its dictionary. They contain native types.
+		-	First, you see the complete definition of the struct, with its array and its dictionary. They contain native types.
 			-	GraphCodable treats the following types as "native" (knows how to save them):
 				-	**Int**, **Int8**, **Int16**, **Int32**, **Int64**, **UInt**, **UInt8**, **UInt16**, **UInt32**, **UInt64**
 				-	**Float**, **Double**
@@ -159,33 +157,25 @@ By using the '.binaryLike' option you can see the data saved in a format that mo
 
 `print( try GraphEncoder().dump( inRoot, options: .binaryLike ) )`
 
-**This example needes to be updated.**
-
 ```
 == HEADER ========================================================
-^ Filetype = gcodable V0, * = GCodable, U1 = 0, U2 = 0
+Filetype = gcodable V0, * = MyGraphCodableApp, U1 = 0, U2 = 0
 == TYPEMAP =======================================================
-# Type101: V0 *.AClass
-# Type104: V0 Swift.Int
-# Type106: V0 Swift.String
-# Type105: V0 Swift.Dictionary<Swift.String,Swift.Int>
-# Type103: V0 Swift.Array<Swift.Int>
-# Type102: V0 *.AStruct
-# Type100: V0 Swift.Array<*.AClass>
+Type100: V0 *.AClass
 == GRAPH =========================================================
-- STRUCT Type100
-	- CLASS Type101 Obj1000
-		+ Key100: STRUCT Type102
-			+ Key101: STRUCT Type103
-				- Type104 1
-				- Type104 2
-				- Type104 3
+- STRUCT
+	- CLASS Type100 Obj1000
+		+ Key100: STRUCT
+			+ Key101: STRUCT
+				- 1
+				- 2
+				- 3
 			.
-			+ Key102: STRUCT Type105
-				- Type106 "4"
-				- Type104 4
-				- Type106 "5"
-				- Type104 5
+			+ Key102: STRUCT
+				- "5"
+				- 5
+				- "4"
+				- 4
 			.
 		.
 		+ Key103: POINTER? Obj1001
@@ -193,28 +183,28 @@ By using the '.binaryLike' option you can see the data saved in a format that mo
 	- POINTER Obj1000
 	- POINTER Obj1000
 	- POINTER Obj1000
-	- CLASS Type101 Obj1001
-		+ Key100: STRUCT Type102
-			+ Key101: STRUCT Type103
-				- Type104 1
-				- Type104 2
-				- Type104 3
+	- CLASS Type100 Obj1001
+		+ Key100: STRUCT
+			+ Key101: STRUCT
+				- 1
+				- 2
+				- 3
 			.
-			+ Key102: STRUCT Type105
-				- Type106 "5"
-				- Type104 5
-				- Type106 "4"
-				- Type104 4
+			+ Key102: STRUCT
+				- "5"
+				- 5
+				- "4"
+				- 4
 			.
 		.
 		+ Key103: nil
 	.
 .
 == KEYMAP ========================================================
-# Key103: "aclass"
-# Key102: "dict"
-# Key100: "astruct"
-# Key101: "array"
+Key100: "astruct"
+Key102: "dict"
+Key101: "array"
+Key103: "aclass"
 ==================================================================
 ```
 We see how the **GRAPH** section uses IDs for types and keys, while the type and key strings are stored once in only two tables, one (**TYPEMAP**) preceding the **GRAPH** section and another (**KEYMAP**) following it. The version of the type (**V...**) is also stored in the type table.
