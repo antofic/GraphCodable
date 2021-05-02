@@ -56,7 +56,7 @@ public final class GraphDecoder {
 	// ----- Decoder
 	// -------------------------------------------------
 	
-	private final class Decoder : GOptionalDecoder {		
+	private final class Decoder : GDecoder {
 		var	userInfo			= [String:Any]()
 		
 		func storedTypesAndVersions( from: Data ) throws -> [TypeNameVersion] {
@@ -130,14 +130,7 @@ public final class GraphDecoder {
 		func deferDecode<Value>(_ setter: @escaping (Value?) -> ()) throws where Value : GDecodable, Value : AnyObject {
 			try constructor.decodeNode( graphBlock:try constructor.popNode(), setter )
 		}
-		
-		func decodeNil() throws -> Bool {
-			guard let isNil = constructor.currentBlock.popIfNil() else {
-				throw GCodableError.unkeyedChildNotFound( parentDataBlock: constructor.currentBlock.dataBlock )
-			}
-			return isNil
-		}
-		
+
 		// ------ Private
 		
 		private var constructor : TypeConstructor {

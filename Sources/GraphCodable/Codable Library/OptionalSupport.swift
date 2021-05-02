@@ -7,13 +7,6 @@
 
 import Foundation
 
-protocol GOptionalEncoder : GEncoder {
-	func encodeNil() throws
-}
-
-protocol GOptionalDecoder : GDecoder {
-	func decodeNil() throws -> Bool
-}
 
 protocol OptionalProtocol {
 	var	isNil			: Bool		{ get }
@@ -62,28 +55,22 @@ extension Optional where Wrapped == Any {
 }
 
 //	OPTIONAL CONFORMANCE
+
 extension Optional : GCodable where Wrapped : GCodable {
 	public func encode(to encoder: GEncoder) throws {
 		switch self {
-		case .none:
-			guard let encoder = encoder as? GOptionalEncoder else {
-				throw GCodableError.optionalEncodeError
-			}
-			try encoder.encodeNil()
+		case .none:	// nothing to do
+			break
 		case .some( let unwrapped ):
 			try encoder.encode( unwrapped )
 		}
-		preconditionFailure()
 	}
 	
 	public init(from decoder: GDecoder) throws {
-		guard let decoder = decoder as? GOptionalDecoder else {
-			throw GCodableError.optionalEncodeError
-		}
-		if try decoder.decodeNil() {
-			self = .none
-		} else {
+		if try decoder.unkeyedCount() > 0 {
 			self = .some( try decoder.decode() )
+		} else {
+			self = .none
 		}
 	}
 }

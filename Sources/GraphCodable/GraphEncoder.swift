@@ -78,7 +78,7 @@ public final class GraphEncoder {
 	// ----- Encoder
 	// -------------------------------------------------
 
-	private final class Encoder : GOptionalEncoder {
+	private final class Encoder : GEncoder {
 		var userInfo	= [String:Any]()
 		
 		private func _encodeRoot<T>( _ value: T ) throws -> EncodedData where T:GEncodable {
@@ -122,10 +122,6 @@ public final class GraphEncoder {
 		where Key : RawRepresentable, Value : AnyObject, Value : GEncodable, Key.RawValue == String
 		{
 			try encodeUnwrapping( value, forKey: key.rawValue, weak:true )
-		}
-
-		func encodeNil() throws {
-			try encodeAny( nil, forKey: nil, weak:false )
 		}
 
 		// --------------------------------------------------------
