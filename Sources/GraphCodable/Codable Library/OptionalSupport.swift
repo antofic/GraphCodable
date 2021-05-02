@@ -55,23 +55,9 @@ extension Optional where Wrapped == Any {
 }
 
 //	OPTIONAL CONFORMANCE
-
+//	un optional viene archiviato come il suo wrapped value oppure come .Nil
+//	quindi qui dentro non arriva mai
 extension Optional : GCodable where Wrapped : GCodable {
-	public func encode(to encoder: GEncoder) throws {
-		switch self {
-		case .none:	// nothing to do
-			break
-		case .some( let unwrapped ):
-			try encoder.encode( unwrapped )
-		}
-	}
-	
-	public init(from decoder: GDecoder) throws {
-		if try decoder.unkeyedCount() > 0 {
-			self = .some( try decoder.decode() )
-		} else {
-			self = .none
-		}
-	}
+	public func encode(to encoder: GEncoder) throws	{ throw GCodableError.optionalEncodeError }
+	public init(from decoder: GDecoder) throws		{ throw GCodableError.optionalDecodeError }
 }
-
