@@ -32,7 +32,7 @@ public protocol GEncodable {
 	/// - Parameter encoder: The encoder to write data to.
 	func encode(to encoder: GEncoder) throws
 
-	/// The version of the encoded value.
+	/// The version of the encoded object.
 	static var	encodeVersion:	UInt32 { get }
 }
 
@@ -51,20 +51,16 @@ public protocol GDecodable {
 	///
 	/// - Parameter decoder: The decoder to read data from.
 	init(from decoder: GDecoder) throws
-
-	static func register()
-	static func unregister()
-	static func replace( type oldType:Any.Type ) throws
 }
 
-public extension GDecodable {
+public extension GDecodable where Self:AnyObject {
 	static func register() {
 		GTypesRepository.shared.register( type: self )
 	}
 	static func unregister() {
 		GTypesRepository.shared.unregister(type: self)
 	}
-	static func replace( type:Any.Type ) throws {
+	static func replace( type:AnyObject.Type ) throws {
 		try GTypesRepository.shared.replace( type, with: self )
 	}
 }
@@ -250,11 +246,12 @@ public protocol GDecoder {
 	/// Any contextual information set by the user for encoding.
 	var userInfo : [String:Any] { get }
 	
-	/// Returns the version of the encoded type
+	/// Returns the version of the encoded object
 	///
-	/// Corresponds to the value of encodedVersion () when encoding the
+	/// Corresponds to the value of encodedVersion() when encoding the
 	/// data and can be used to decide on different decoding strategies.
-	func encodedVersion<Value>( _ type: Value.Type ) throws -> UInt32  where Value:GDecodable
+	/// Only objects can have a version.
+	func encodedVersion<Value>( _ type: Value.Type ) throws -> UInt32  where Value:GDecodable, Value:AnyObject
 	
 	/// Returns a Boolean value indicating whether the decoder contains a value
 	/// associated with the given key.

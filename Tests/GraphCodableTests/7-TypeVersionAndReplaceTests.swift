@@ -24,6 +24,28 @@ import XCTest
 @testable import GraphCodable
 
 
+fileprivate extension Hashable where Self: AnyObject {
+	func hash(into hasher: inout Hasher) {
+		hasher.combine( ObjectIdentifier(self) )
+	}
+}
+
+fileprivate extension Equatable where Self: AnyObject {
+	static func == (lhs:Self, rhs:Self) -> Bool {
+		return lhs === rhs
+	}
+}
+
+fileprivate func == <T:AnyObject>(lhs: T, rhs: T) -> Bool {
+	return lhs === rhs
+}
+
+fileprivate func != <T:AnyObject>(lhs: T, rhs: T) -> Bool {
+	return lhs !== rhs
+}
+
+
+
 final class TypeVersionAndReplaceTests: XCTestCase {
 	override func setUp() {
 		GTypesRepository.initialize()
@@ -33,7 +55,7 @@ final class TypeVersionAndReplaceTests: XCTestCase {
 		var data : Data
 		
 		do {
-			struct Person : GCodable {
+			class Person : GCodable {
 				let name : String
 				
 				init( name:String ) {
@@ -44,7 +66,7 @@ final class TypeVersionAndReplaceTests: XCTestCase {
 					case name
 				}
 				
-				init(from decoder: GDecoder) throws {
+				required init(from decoder: GDecoder) throws {
 					name	= try decoder.decode( for:Key.name )
 				}
 				
@@ -69,7 +91,7 @@ final class TypeVersionAndReplaceTests: XCTestCase {
 		GTypesRepository.initialize()
 		
 		do {
-			struct Person : GCodable {	// Person V1
+			class Person : GCodable {	// Person V1
 				let nameComponents	: [String]
 				
 				var name : String {
@@ -80,7 +102,7 @@ final class TypeVersionAndReplaceTests: XCTestCase {
 					self.nameComponents = nameComponents
 				}
 				
-				init( name: String ) {
+				convenience init( name: String ) {
 					self.init( nameComponents: name.split { return $0.isWhitespace || $0.isNewline } .map { return String($0) } )
 				}
 				
@@ -97,15 +119,16 @@ final class TypeVersionAndReplaceTests: XCTestCase {
 					try encoder.encode( nameComponents, for: Key.nameComponents )
 				}
 				
-				init(from decoder: GDecoder) throws {
+				required init(from decoder: GDecoder) throws {
 					// we get the encondend Person version
 					let encodedVersion = try decoder.encodedVersion( Self.self )
 					
 					switch  encodedVersion {
 					case 0:	// previous Person version
-						self.init(name: try decoder.decode( for: Key.name ) as String )
+						let name = try decoder.decode( for: Key.name ) as String
+						self.nameComponents	= name.split { return $0.isWhitespace || $0.isNewline } .map { return String($0) }
 					case Self.encodeVersion:	// actual Person version
-						self.init(nameComponents: try decoder.decode( for: Key.nameComponents ) as [String] )
+						self.nameComponents	= try decoder.decode( for: Key.nameComponents )
 					default:
 						preconditionFailure( "Unknown \(Self.self) version \(encodedVersion)!" )
 					}
@@ -210,10 +233,10 @@ final class TypeVersionAndReplaceTests: XCTestCase {
 		var data : Data
 		
 		do {
-			struct Pippo : GCodable, Equatable, Hashable, CustomStringConvertible {
+			class Pippo : GCodable, Equatable, Hashable, CustomStringConvertible {
 				var description: String { return "Pippo" }
 				init() {}
-				init(from decoder: GDecoder) throws {}
+				required init(from decoder: GDecoder) throws {}
 				func encode(to encoder: GEncoder) throws {}
 			}
 			
@@ -234,15 +257,15 @@ final class TypeVersionAndReplaceTests: XCTestCase {
 		GTypesRepository.initialize()
 		
 		do { //	new software version:
-			struct NewPippo : GCodable, Equatable, Hashable, CustomStringConvertible {
+			class NewPippo : GCodable, Equatable, Hashable, CustomStringConvertible {
 				var description: String { return "NewPippo" }
 				init() {}
-				init(from decoder: GDecoder) throws {}
+				required init(from decoder: GDecoder) throws {}
 				func encode(to encoder: GEncoder) throws {}
 			}
 			
 			//	we define a dummy typename with the old type Name
-			struct Pippo {}
+			class Pippo {}
 			
 			do {
 				//	So we tell the registry to build a NewPippo every
@@ -266,7 +289,6 @@ final class TypeVersionAndReplaceTests: XCTestCase {
 				
 				//	register all GCodable types:
 				NewPippo.register()	// V=0
-				Swift.Dictionary<NewPippo,NewPippo>.register()	// V=0
 			}
 			initializeGraphCodable()
 	
@@ -286,6 +308,4 @@ final class TypeVersionAndReplaceTests: XCTestCase {
 			XCTAssertEqual( outRoot.description , "[NewPippo: NewPippo]" )
 		}
 	}
-
-	
 }

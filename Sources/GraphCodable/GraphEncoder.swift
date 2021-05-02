@@ -173,46 +173,47 @@ public final class GraphEncoder {
 			}
 			// now value is GEncodable
 			
-			let typeName	= GTypesRepository.shared.typeName(type: type(of:value) )
-			let typeVersion	= type(of:encodable).encodeVersion
-			let newType		= !encodedData.contains(typeName: typeName)
-			let typeID		= encodedData.createTypeIDIfNeeded( typeName:typeName, version: typeVersion )
-			
 			if let nativeValue = value as? GNativeCodable {
-				encodedData.append( .Native(keyID: keyID, typeID: typeID, value: nativeValue))
-			} else {
-				if newType, let decodableValue = value as? GDecodable {
+/*				let typeName	= GTypesRepository.shared.typeName( type: type(of:value) )
+				let typeID		= encodedData.createTypeIDIfNeeded( typeName:typeName, version: typeVersion )
+*/
+				encodedData.append( .Native(keyID: keyID, value: nativeValue) )
+			} else if type(of:value) is AnyClass {
+				let typeName	= GTypesRepository.shared.typeName( type: type(of:value) )
+				let typeVersion	= type(of:encodable).encodeVersion
+				let newType		= !encodedData.contains(typeName: typeName)
+				let typeID		= encodedData.createTypeIDIfNeeded( typeName:typeName, version: typeVersion )
+				
+				// registriamo solo le classi
+				if newType, let decodableValue = value as? GDecodable & AnyObject {
 					// we update ever the register
 					type(of:decodableValue).register()
 				}
-
-				if type(of:value) is AnyClass {
-					// siamo sicuri che è un oggetto
-					if let objID = referenceID.strongID( value as AnyObject ) {
-						// l'oggetto è stato già memorizzato, basta un pointer
-						if weak {
-							encodedData.append( .ObjWPtr(keyID: keyID, objID: objID))
-						} else {
-							encodedData.append( .ObjSPtr(keyID: keyID, objID: objID))
-						}
-					} else if weak {
-						// WeakRef: avrei la descrizione ma non la voglio usare
-						// perché servirà solo se arriverà da uno strongRef
-						let objID	= referenceID.createWeakID( value as AnyObject )
+				// siamo sicuri che è un oggetto
+				if let objID = referenceID.strongID( value as AnyObject ) {
+					// l'oggetto è stato già memorizzato, basta un pointer
+					if weak {
 						encodedData.append( .ObjWPtr(keyID: keyID, objID: objID))
 					} else {
-						//	memorizzo l'oggetto
-						let objID	= referenceID.createStrongID( value as AnyObject )
-						
-						encodedData.append( .Object(keyID: keyID, typeID: typeID, objID: objID) )
-						try encodeEncodable( encodable:encodable, to:self )
-						encodedData.append( .End )
+						encodedData.append( .ObjSPtr(keyID: keyID, objID: objID))
 					}
-				} else {	// full value (struct)
-					encodedData.append( .Struct(keyID: keyID, typeID: typeID) )
+				} else if weak {
+					// WeakRef: avrei la descrizione ma non la voglio usare
+					// perché servirà solo se arriverà da uno strongRef
+					let objID	= referenceID.createWeakID( value as AnyObject )
+					encodedData.append( .ObjWPtr(keyID: keyID, objID: objID))
+				} else {
+					//	memorizzo l'oggetto
+					let objID	= referenceID.createStrongID( value as AnyObject )
+					
+					encodedData.append( .Object(keyID: keyID, typeID: typeID, objID: objID) )
 					try encodeEncodable( encodable:encodable, to:self )
 					encodedData.append( .End )
 				}
+			} else {	// full value (struct)
+				encodedData.append( .Struct( keyID: keyID ) )
+				try encodeEncodable( encodable:encodable, to:self )
+				encodedData.append( .End )
 			}
 		}
 

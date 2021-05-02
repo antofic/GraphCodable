@@ -67,6 +67,8 @@ print( try GraphEncoder().dump( inRoot ) )
 ```
 The result:
 
+**This example needes to be updated.**
+
 ```
 == HEADER ========================================================
 ^ Filetype = gcodable V0, * = GCodable, U1 = 0, U2 = 0
@@ -156,6 +158,8 @@ For example, types and keys are saved only once in special tables and are addres
 By using the '.binaryLike' option you can see the data saved in a format that more closely resembles the binary format actually used.
 
 `print( try GraphEncoder().dump( inRoot, options: .binaryLike ) )`
+
+**This example needes to be updated.**
 
 ```
 == HEADER ========================================================

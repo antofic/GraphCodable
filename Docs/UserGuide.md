@@ -1,7 +1,7 @@
 #  User Guide
 
 - [Initialization](#Initialization)
-- [Introduction to type registration](#Introduction-to-type-registration)
+- [Introduction to reference type registration](#Introduction-to-reference-type-registration)
 - [Code examples](#Code-examples)
 	- [Native types and collection support](#Native-types-and-collection-support)
 	- [Value types](#Value-types)
@@ -16,9 +16,9 @@
 	- [Coding rules](#Coding+rules)
 	- [Other features](#Other+features)
 		- [UserInfo dictionary](#UserInfo-dictionary)
-		- [Type version system](#Type-version-system)
-		- [Type replacement system](#Type-replacement-system)
-- [Type registration](#Type-registration)
+		- [Reference type version system](#Reference-type-version-system)
+		- [Reference type replacement system](#Reference-type-replacement-system)
+- [Reference type registration](#Reference-type-registration)
 	- [Types repository](#Types-repository)
 	- [Type names](#Type-names)
 - [Final thoughts](#Final-thoughts)
@@ -41,30 +41,27 @@ public final class GTypesRepository {
 ```
 Swift doesn't provide a way to get this name, not even at runtime. And so it is taken from `#fileID`.
 
-## Introduction to type registration
-Typically, the initialization is carried out simultaneously with the registration of all the types that can be decoded by defining a specific function as in the following example and calling it from your main module when your software starts.
+## Introduction to reference type registration
+Typically, the initialization is carried out simultaneously with the registration of all the **reference types** that can be decoded by defining a specific function as in the following example and calling it from your main module when your software starts.
 ```swift
 import GraphCodable
 
 func initializeGraphCodable() {
 	GTypesRepository.initialize()	
-	
-	Body.register()
-	Body.Presence.register()
+
 	Boy.register()
 	Girl.register()
-	Presence.register()
-	Swift.Array<Child>.register()
-	Swift.Array<Swift.Int>.register()
-	Swift.Dictionary<Swift.Int,Swift.String>.register()
-	Swift.Set<Swift.Int>.register()
+	Men.register()
 	Woman.register()
+	// etc...
 }
 
 // call after startup:
 initializeGraphCodable()
 ```
-The encoder automatically registers all types it encounters, and so there is no need to register any types if you are decoding a file after encoding it for testing purposes. The next examples will take advantage of this feature and so they just call `GTypesRepository.initialize()`.
+**Registration of reference types is required to support inheritance. Value types do not need to be registered.**
+
+The encoder automatically registers all reference types it encounters, and so there is no need to register any types if you are decoding a file after encoding it for testing purposes. The next examples will take advantage of this feature and so they just call `GTypesRepository.initialize()`.
 I will return to the topic at the end of the document.
 
 ## Code examples
@@ -732,9 +729,11 @@ All GraphCodable protocols are defined [here](/Sources/GraphCodable/GraphCodable
 
 The use is identical to that of Codable.
 
-#### Type version system
+#### Reference type version system
 
 GraphCodable implements a type version system:
+
+**This example needes to be updated.**
 
 ```swift
 import Foundation
@@ -832,9 +831,11 @@ do {
 	// print: MyData(string: "3")
 }
 ```
-#### Type replacement system
+#### Reference type replacement system
 
 GraphCodable implements a type replacement system:
+
+**This example needes to be updated.**
 
 ```swift
 import Foundation
@@ -982,27 +983,23 @@ do {
 }
 
 ```
-## Type registration
+## Reference type registration
 
-To register a decodable type ``myType`` in the types repository, you simply call ``myType.register()``.
+Registration of reference types is required to support inheritance. Value types do not need to be registered.
+
+To register a decodable **reference** type ``myType`` in the types repository, you simply call ``myType.register()``.
 
 I suggest creating a function like the following **in your app main module**:
 ```swift
 
 func initializeGraphCodable() {
 	GTypesRepository.initialize()	
-	
-	Body.register()
-	Body.Presence.register()
+
 	Boy.register()
 	Girl.register()
-	Presence.register()
-	Swift.Array<Child>.register()
-	Swift.Array<Swift.Int>.register()
-	Swift.Dictionary<Swift.Int,Swift.String>.register()
-	Swift.Set<Swift.Int>.register()
+	Men.register()
 	Woman.register()
-	// ...
+	// etc...
 }
 ```
 and call it after startup. It is important to call it from the main module because GraphCodable needs this name and gets it from the default ``#fileID`` 'hidden' parameter in the ``GTypesRepository.initialize( fromFileID fileID:String = #fileID )`` function. Swift should really offer a function to get the main module name to avoid such tricks.
@@ -1010,6 +1007,8 @@ and call it after startup. It is important to call it from the main module becau
 ### Types repository
 
 You can see the contents of the GTypesRepository with ``print( GTypesRepository.shared )``. With the previous example it will print (with some additional indentation for clarity):
+
+**This example needes to be updated.**
 ```
 GTypesRepository(
 	* = "MyCodableApp",
@@ -1030,8 +1029,8 @@ GTypesRepository(
 	]
 )
 ```
-The types repository is a sigleton object that contain a dictionary of string / type pairs, where the string is a "stabilized" form of type name. The encoder encode the name of every type it encounters. The decoder decode the type name and consults the type repository to get the corresponding type with which to instantiate the value.
-And so **you have to register in the repository all possible types that may be encountered during decode** otherwise the decoder can't costruct values from their type. In this case, GraphCodable throws an exception showing which types are missing from the repository.
+The types repository is a sigleton object that contain a dictionary of string / reference type pairs, where the string is a "stabilized" form of type name. The encoder encode the name of every reference type it encounters. The decoder decode the type name and consults the type repository to get the corresponding type with which to instantiate the value.
+And so **you have to register in the repository all possible reference types that may be encountered during decode** otherwise the decoder can't costruct values from their type. In this case, GraphCodable throws an exception showing which types are missing from the repository.
 
 Maintaining a consistent repository of all types that can be decoded during application development can be a tedious and error prone task.
 I can't do much to alleviate this problem, but I have equipped GraphCodable with two functions:
@@ -1039,13 +1038,13 @@ I can't do much to alleviate this problem, but I have equipped GraphCodable with
 - ``GTypesRepository.shared.help()``
 -  ``GraphDecoder().help( from data: Data )``
 
-The first provides in a string the Swift code that contains the function necessary to register all the types currently present in the repository. In other words, the result of all the registrations made automatically by the encoder from the opening of the program or the last call to `GTypesRepository.initialize()`.
+The first provides in a string the Swift code that contains the function necessary to register all the reference types currently present in the repository. In other words, the result of all the registrations made automatically by the encoder from the opening of the program or the last call to `GTypesRepository.initialize()`.
 
-The second provides in a string the Swift code that contains the function necessary to register all types present in the data file that is passed to it. That is, the types that must be registered to be able to dearchive that data file.
+The second provides in a string the Swift code that contains the function necessary to register all reference types present in the data file that is passed to it. That is, the types that must be registered to be able to dearchive that data file.
 
 To clear the content of the repository, simply reinizialize it with `GTypesRepository.initialize()`.
 ### Type names
-By design, GraphCodable **never exposes type names as strings**. Even in the case of type replacements, GraphCodable forces you to define an empty type with the name of the type to replace (as showed in [Type replacement system](#Type-replacement-system)) instead of using the string of its name.
+By design, GraphCodable **never exposes type names as strings**. Even in the case of type replacements, GraphCodable forces you to define an empty type with the name of the reference type to replace (as showed in [Type replacement system](#Type-replacement-system)) instead of using the string of its name.
 
 But, as described, encoding / decoding requires the internal use of type names. Swift does not offer a function to obtain a string that can uniquely and stably identify each type. ``String(describing:)`` does not provide enough information, so I must necessarily use ``String(reflecting:)`` to get a suitable string. The aforementioned string is not used as it is; it is recursively decomposed into all component types, context information in the form ``.(____).(____).`` is eliminated where present, and a stable (*within the limits of the possible*) type name is reconstructed. The type name thus obtained is then cached so that this rather expensive operation occurs only once for each type.
 
@@ -1059,7 +1058,7 @@ Apart from all the possible internal improvements to the package, there are some
 - An unfortunate, albeit minor, circumstance is that Swift doesn't have a function to get the main module name. A ``#mainModule`` would be greatly appreciated and would remove the need to call `GTypesRepository.initialize()` right after startup (but not the need to register types).
 - There is nothing I can do to avoid duplication of the internal object used as storage by collection types like Arrays. Ideally, it should be made GCodable compliant to avoid duplicating it during decode, but I don't have access to it. Therefore, if 10 arrays sharing a single storage object containing 100 integers are encoded, 10 arrays each with its own distinct storage object containing 100 integers are decoded, effectively tenfolding their memory footprint exactly as it happens with Codable. Conversely, I emphasize that GraphCodable, unlike Codable, does not duplicate objects stored as elements of collections, as already demonstrated by the examples in this document. 
 - The need to use ``deferDecode(...)`` for weak variables used to break ARC strong memory cycles is not a big problem, in my opinion, because you know exactly what and where they are. Just stick to the [rules](/Docs/CodingRules.md). If anything, the limitation is that these variables must necessarily be owned by a reference type because ``deferDecode(...)`` cannot be called in the ``init(from: ...)`` method of a value type. The ``WeakBox<T>`` used in ``testDGC()`` (see [DirectedCyclicGraphTests](/Tests/GraphCodableTests/5-DirectedCyclicGraphTests.swift)) must be a class.
-- The main difficulty, in my opinion, is that you have to keep the types repository updated during the development of an application. The absence of a single 'GCodable' type from the types repository makes it impossible to decode a data file containing it.
+- The main difficulty, in my opinion, is that you have to keep the types repository updated during the development of an application. The absence of a single 'GCodable' reference type from the types repository makes it impossible to decode a data file containing it.
  
   Ideally, Swift should make two functions available for transforming types into some form of archivable data and vice versa.
   For example, like these:
@@ -1068,7 +1067,7 @@ Apart from all the possible internal improvements to the package, there are some
   
   ``func deserializeType( from bytes:[UInt8] ) throws -> Any.Type``
   
-  With this functionality **the need to keep a repository of the decoding types vanishes** because the bytes describing the type can be stored during encoding and retrieved during decoding. Then you can:
+  With this functionality **the need to keep a repository of the decoding reference types vanishes** because the bytes describing the type can be stored during encoding and retrieved during decoding. Then you can:
   
 	```swift
 	// 1) construct the type from its bytes description
@@ -1086,5 +1085,5 @@ Apart from all the possible internal improvements to the package, there are some
   Beyond the real possibility of offering functions such as ``serializeType( type:Any.Type ) -> [UInt8]`` and ``deserializeType( from:[UInt8] ) throws -> Any.Type``, which I do not discuss because I do not have the skills, I do not understand what problem such a feature can pose to security.
   There is nothing I can do with the decoded ``Any.type`` if I don't check for conformance to a predefined protocol first. Only after I have done this can I use the type to build instances.
   
-  Another possibility is to automate the generation of the repository, which however requires the use of some compiler magic (as far as I know): the compiler must keep track of all GCodable types encountered during compilation and automatically generate the code to register them. I don't know if this is possible either, given the presence of generic types.
+  Another possibility is to automate the generation of the repository, which however requires the use of some compiler magic (as far as I know): the compiler must keep track of all GCodable reference types encountered during compilation and automatically generate the code to register them. I don't know if this is possible either, given the presence of generic types.
 

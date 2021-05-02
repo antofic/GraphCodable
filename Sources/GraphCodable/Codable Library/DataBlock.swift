@@ -55,12 +55,69 @@ enum HeaderID : UInt64 {
 	case gcodable	= 0x67636F6461626C65	// 'gcodable'
 }
 
+enum Code : RawRepresentable {
+	typealias RawValue = UInt8
+	
+	case header
+	case typeMap
+	case Nil
+	case Struct
+	case Object
+	case ObjSPtr
+	case ObjWPtr
+	case end
+	case keyMap
+	case Native( nativeCode:NativeCode )
+
+	init?(rawValue: UInt8) {
+		switch rawValue {
+		case 0xF0:	self = .header
+		case 0xF1:	self = .typeMap
+		case 0xF2:	self = .Nil
+		case 0xF3:	self = .Struct
+		case 0xF4:	self = .Object
+		case 0xF5:	self = .ObjSPtr
+		case 0xF6:	self = .ObjWPtr
+		case 0xF7:	self = .end
+		case 0xF8:	self = .keyMap
+		default:
+			guard let nativeCode = NativeCode(rawValue: rawValue) else {
+				preconditionFailure("Invalid native code \(rawValue)")
+			}
+			self = .Native( nativeCode:nativeCode )
+		}
+	}
+	
+	var rawValue: UInt8 {
+		switch self {
+		case .header:					return 0xF0
+		case .typeMap:					return 0xF1
+		case .Nil:						return 0xF2
+		case .Struct:					return 0xF3
+		case .Object:					return 0xF4
+		case .ObjSPtr:					return 0xF5
+		case .ObjWPtr:					return 0xF6
+		case .end:						return 0xF7
+		case .keyMap:					return 0xF8
+		case .Native( let nativeCode ): return nativeCode.rawValue
+		}
+	}
+	
+	var nativeCode : NativeCode? {
+		switch self {
+		case .Native( let nativeCode ): return nativeCode
+		default:						return nil
+		}
+	}
+}
+
+
 enum DataBlock {
 	case Header		( version:UInt32, module:String, unused1:UInt32, unused2:UInt64 )
 	case TypeMap	( typeID:IntID, typeVersion:UInt32, typeName:String )
 	case Nil		( keyID:IntID )
-	case Native		( keyID:IntID, typeID:IntID, value:GNativeCodable )
-	case Struct		( keyID:IntID, typeID:IntID )
+	case Native		( keyID:IntID, value:GNativeCodable )
+	case Struct		( keyID:IntID )
 	case Object		( keyID:IntID, typeID:IntID, objID:IntID )
 	case ObjSPtr	( keyID:IntID, objID:IntID )
 	case ObjWPtr	( keyID:IntID, objID:IntID )
@@ -72,7 +129,7 @@ enum DataBlock {
 //	--Binary i/o
 //	-------------------------------------------------
 extension DataBlock {
-	private enum Code : UInt8 {
+/*	private enum Code : UInt8 {
 		case header		= 0x5E	// '^' ascii
 		case typeMap	= 0x23	// '#' ascii
 		case Nil		= 0x30	// '0' ascii
@@ -84,7 +141,7 @@ extension DataBlock {
 		case end		= 0x2E	// '.' ascii
 		case keyMap		= 0x2A	// '*' ascii
 	}
-
+*/
 	func write( to writer: inout BinaryWriter ) throws {
 		switch self {
 		case .Header	( let version, let module, let unused1, let unused2 ):	// 5
@@ -102,15 +159,13 @@ extension DataBlock {
 		case .Nil		( let keyID ):	// 2
 			writer.write( Code.Nil )
 			writer.write( keyID )
-		case .Native	( let keyID, let typeID, let value ):	// 4
-			writer.write( Code.Native )
+		case .Native	( let keyID, let value ):	// 4
+			writer.write( Code.Native( nativeCode: type(of:value).nativeCode ) )
 			writer.write( keyID )
-			writer.write( typeID )
 			try value.write(to: &writer)
-		case .Struct	( let keyID, let typeID ):	// 3
+		case .Struct	( let keyID ):	// 2
 			writer.write( Code.Struct )
 			writer.write( keyID )
-			writer.write( typeID )
 		case .Object	( let keyID, let typeID, let objID ):	// 4
 			writer.write( Code.Object )
 			writer.write( keyID )
@@ -132,23 +187,13 @@ extension DataBlock {
 			writer.write( keyName )
 		}
 	}
-	
-	private static func contruct( from reader:inout BinaryReader, typeID : IntID, typeIDtoName:[IntID:TypeNameVersion]  ) throws -> GNativeCodable {
-		guard let typeName = typeIDtoName[typeID]?.typeName else {
-			throw GCodableError.parsingError
-		}
-		guard let nativeType = GTypesRepository.shared.nativeType(typeName: typeName) else {
-			throw GCodableError.typeNotFoundInRegister( typeName: typeName )
-		}
-		return try nativeType.read(from: &reader)
-	}
-	
+
 	static func read( from reader:inout BinaryReader, typeIDtoName:[IntID:TypeNameVersion]  ) throws -> DataBlock {
-		let code : Code = try reader.read()
-		
+		let code : Code	= try reader.read()
+
 		switch code {
 		case .header:	// 5
-			let _		: HeaderID	= try reader.read()
+			let _		: HeaderID	= try reader.read()	// aggiornare
 			let version	: UInt32	= try reader.read()
 			let module	: String	= try reader.read()
 			let unused1	: UInt32	= try reader.read()
@@ -162,15 +207,13 @@ extension DataBlock {
 		case .Nil:	// 2
 			let keyID	: IntID		= try reader.read()
 			return .Nil(keyID: keyID)
-		case .Native:	// 4
+		case .Native( let nativeCode ):	// 4
 			let keyID	: IntID		= try reader.read()
-			let typeID	: IntID		= try reader.read()
-			let nativeValue			= try contruct( from: &reader, typeID : typeID, typeIDtoName:typeIDtoName  )
-			return .Native(keyID: keyID, typeID: typeID, value: nativeValue)
-		case .Struct:	// 3
+			let nativeValue			= try nativeCode.readNativeType(from: &reader)
+			return .Native(keyID: keyID, value: nativeValue)
+		case .Struct:	// 2
 			let keyID	: IntID		= try reader.read()
-			let typeID	: IntID		= try reader.read()
-			return .Struct(keyID: keyID, typeID: typeID)
+			return .Struct(keyID: keyID)
 		case .Object:	// 4
 			let keyID	: IntID		= try reader.read()
 			let typeID	: IntID		= try reader.read()
@@ -223,8 +266,8 @@ extension DataBlock {
 	var keyID : IntID? {
 		switch self {
 		case .Nil		( let keyID ):			return	keyID > 0 ? keyID : nil
-		case .Native	( let keyID, _, _ ):	return	keyID > 0 ? keyID : nil
-		case .Struct	( let keyID, _ ):		return	keyID > 0 ? keyID : nil
+		case .Native	( let keyID, _ ):		return	keyID > 0 ? keyID : nil
+		case .Struct	( let keyID ):			return	keyID > 0 ? keyID : nil
 		case .Object	( let keyID, _, _ ):	return	keyID > 0 ? keyID : nil
 		case .ObjSPtr	( let keyID, _ ):		return	keyID > 0 ? keyID : nil
 		case .ObjWPtr	( let keyID, _ ):		return	keyID > 0 ? keyID : nil
@@ -234,8 +277,6 @@ extension DataBlock {
 	
 	var typeID : IntID? {
 		switch self {
-		case .Native	( _, let typeID, _ ):	return	typeID
-		case .Struct	( _, let typeID ):		return	typeID
 		case .Object	( _, let typeID, _ ):	return	typeID
 		default:								return	nil
 		}
@@ -292,11 +333,10 @@ extension DataBlock {
 			return	"# Type\( typeID ): V\( typeVersion ) \( typeName )"
 		case .Nil		( let keyID ):
 			return format( keyID, info, "nil")
-		case .Native	( let keyID, let typeID, let value ):
-			let string	= "\( typeString( typeID,info ) ) \( small(value) )"
-			return format( keyID, info, string )
-		case .Struct	( let keyID, let typeID ):
-			let string	= "STRUCT \( typeString( typeID,info ) )"
+		case .Native	( let keyID, let value ):
+			return format( keyID, info, small(value) )
+		case .Struct	( let keyID ):
+			let string	= "STRUCT"
 			return format( keyID, info, string )
 		case .Object	( let keyID, let typeID, let objID ):
 			let string	= "CLASS \( typeString( typeID,info ) ) Obj\(objID)"

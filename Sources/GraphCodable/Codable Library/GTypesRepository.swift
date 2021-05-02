@@ -77,27 +77,27 @@ public final class GTypesRepository {
 		mainModuleName	= name
 		Self._shared	= self
 		
-		registerNativeTypes()
+//		registerNativeTypes()
 	}
-	
+/*
 	private func registerNativeTypes() {
-		register( type:Bool.self )
-		register( type:Int.self )
-		register( type:Int8.self )
-		register( type:Int16.self )
-		register( type:Int32.self )
-		register( type:Int64.self )
-		register( type:UInt.self )
-		register( type:UInt8.self )
-		register( type:UInt16.self )
-		register( type:UInt32.self )
-		register( type:UInt64.self )
-		register( type:Float.self )
-		register( type:Double.self )
-		register( type:String.self )
-		register( type:Data.self )
+		nativeRegister( type:Bool.self )
+		nativeRegister( type:Int.self )
+		nativeRegister( type:Int8.self )
+		nativeRegister( type:Int16.self )
+		nativeRegister( type:Int32.self )
+		nativeRegister( type:Int64.self )
+		nativeRegister( type:UInt.self )
+		nativeRegister( type:UInt8.self )
+		nativeRegister( type:UInt16.self )
+		nativeRegister( type:UInt32.self )
+		nativeRegister( type:UInt64.self )
+		nativeRegister( type:Float.self )
+		nativeRegister( type:Double.self )
+		nativeRegister( type:String.self )
+		nativeRegister( type:Data.self )
 	}
-
+*/
 	// --------------------------------------------------------------------------------
 
 	private var typeNames 			= [ObjectIdentifier: String]()
@@ -119,27 +119,27 @@ public final class GTypesRepository {
 	// --------------------------------------------------------------------------------
 
 	private var decodableTypes		= [String : GDecodable.Type]()
-	private var nativeTypes			= [String : GNativeCodable.Type]()
-
+//	private var nativeTypes			= [String : GNativeCodable.Type]()
+/*
 	func nativeType( typeName:String ) -> GNativeCodable.Type? {
 		return nativeTypes[ typeName ]
 	}
-	
+*/
 	func decodableType( typeName:String ) -> GDecodable.Type? {
 		return decodableTypes[ typeName ]
 	}
-
-	func register<T:GDecodable>( type:T.Type ) {
+/*
+	private func nativeRegister<T>( type:T.Type ) where T:GNativeCodable {
+		nativeTypes[ typeName(type: type) ] = type
+	}
+*/
+	func register<T>( type:T.Type ) where T:GDecodable, T:AnyObject {
 		let typeName = typeName(type: type)
 		
-		if let type = type as? GNativeCodable.Type  {
-			nativeTypes[ typeName ] = type
+		if let oldType = decodableTypes[ typeName ] {
+			precondition( oldType == type, "Attempt to overwrite \( String(reflecting:oldType) ) with \( String(reflecting:type) )")
 		} else {
-			if let oldType = decodableTypes[ typeName ] {
-				precondition( oldType == type, "Attempt to overwrite \( String(reflecting:oldType) ) with \( String(reflecting:type) )")
-			} else {
-				decodableTypes[ typeName ] = type
-			}
+			decodableTypes[ typeName ] = type
 		}
 	}
 
@@ -157,7 +157,7 @@ public final class GTypesRepository {
 	
 	private var typeReplacementsTable		= [String : TypeDescriptor]()	// oldTypeName:	newTypeDescriptor
 
-	func replace<T:GDecodable>( _ type:Any.Type, with newType:T.Type ) throws {
+	func replace<T>( _ type:AnyObject.Type, with newType:T.Type ) throws where T:GDecodable, T:AnyObject {
 		let oldTypeName	= typeName(type: type)
 		decodableTypes.removeValue( forKey: oldTypeName )
 		register(type: newType)
@@ -177,7 +177,7 @@ public final class GTypesRepository {
 	}
 }
 
-extension GTypesRepository {	// HELP	
+extension GTypesRepository {	// HELP
 	public func help( initializeFuncName name:String = "initializeGraphCodable" ) -> String {
 		let tnvs	= decodableTypes.map {
 			//	non ho la versione a disposizione, perché è una proprietà
@@ -218,7 +218,7 @@ extension GTypesRepository : CustomStringConvertible {
 		return
 			"\(type(of: self))( " +
 			"\(TypeDescriptor.mainModulePlaceHolder) = \"\( mainModuleName )\", " +
-			"nativeTypes = \( nativeTypes.keys.map { $0 }.sorted() ), " +
+//			"nativeTypes = \( nativeTypes.keys.map { $0 }.sorted() ), " +
 			"registeredTypes = \( decodableTypes.keys.map { $0 }.sorted() ), " +
 			"typeReplacementsTable = \( typeReplacementsTable ) )"
 

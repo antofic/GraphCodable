@@ -22,9 +22,6 @@
 
 import Foundation
 
-/* test */
-
-
 //	ARRAY SUPPORT
 extension Array: GCodable where Element:GCodable {
 	public func encode(to encoder: GEncoder) throws {

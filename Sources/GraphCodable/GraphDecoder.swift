@@ -62,11 +62,11 @@ public final class GraphDecoder {
 		func storedTypesAndVersions( from: Data ) throws -> [TypeNameVersion] {
 			var reader				= BinaryReader(data: from)
 			let decodedTypes		= try DecodedTypes(from: &reader)
-			let shared				= GTypesRepository.shared
-			let typeNameVersions	= decodedTypes.typeIDtoName.values.filter() {
+//			let shared				= GTypesRepository.shared
+			let typeNameVersions	= decodedTypes.typeIDtoName.values /* .filter() {
 				shared.nativeType(typeName: $0.typeName) == nil
 			}
-			
+	*/
 			return Array( typeNameVersions )
 		}
 		
@@ -82,7 +82,7 @@ public final class GraphDecoder {
 		
 		// ------ keyed support
 		
-		func encodedVersion<T>( _ type: T.Type ) throws -> UInt32  where T:GDecodable {
+		func encodedVersion<T>( _ type: T.Type ) throws -> UInt32  where T:GDecodable, T:AnyObject {
 			return try constructor.encodedVersion( type )
 		}
 		
@@ -99,11 +99,7 @@ public final class GraphDecoder {
 		{
 			let	block = try constructor.popNode( key:key.rawValue )
 			
-			guard let	value = try constructor.decodeNode( block:block, from: self ) as? Value else {
-				throw GCodableError.typeMismatch(dataBlock: block.dataBlock)
-			}
-			
-			return value
+			return try constructor.decodeNode( block:block, from: self )
 		}
 		
 		func deferDecode<Key, Value>( for key: Key, _ setter: @escaping (Value?) -> ()) throws
@@ -120,11 +116,8 @@ public final class GraphDecoder {
 		
 		func decode<Value>() throws -> Value where Value : GDecodable {
 			let	block = try constructor.popNode()
-			guard let value = try constructor.decodeNode( block:block, from: self ) as? Value else {
-				throw GCodableError.typeMismatch(dataBlock: block.dataBlock)
-			}
-			
-			return value
+
+			return try constructor.decodeNode( block:block, from: self )
 		}
 		
 		func deferDecode<Value>(_ setter: @escaping (Value?) -> ()) throws where Value : GDecodable, Value : AnyObject {
@@ -276,7 +269,7 @@ fileprivate struct BlockDecoder {
 				// controllo che tutti i typeNames siano nel registro
 				let shared				= GTypesRepository.shared
 				let unregisteredTypes	= _typeIDtoName.values.filter() {
-					shared.nativeType(typeName: $0.typeName) == nil &&
+/*					shared.nativeType(typeName: $0.typeName) == nil && */
 					shared.decodableType(typeName: $0.typeName) == nil
 				}
 				
@@ -420,7 +413,7 @@ fileprivate final class GraphBlock {
 				objBlockMap: &map, parent:root, lineIterator:&lineIterator,
 				keyIDsToKey:keyIDsToKey, reverse:reverse
 			)
-		case .Struct( _,_ ):
+		case .Struct( _ ):
 			try subFlatten(
 				objBlockMap: &map, parent:block, lineIterator:&lineIterator,
 				keyIDsToKey:keyIDsToKey, reverse:reverse
@@ -477,12 +470,11 @@ fileprivate final class TypeConstructor {
 		self.currentBlock	= decodedData.rootBlock
 	}
 	
-	func decodeRoot<T>( _ type: T.Type, from decoder:GDecoder ) throws -> T {
+	func decodeRoot<T>( _ type: T.Type, from decoder:GDecoder ) throws -> T where T:GDecodable {
 		let rootBlock		= currentBlock
-		guard let value		= try decodeNode( block:rootBlock, from: decoder ) as? T else {
-			throw GCodableError.cantDecodeRoot( dataBlock:rootBlock.dataBlock )
-		}
+		let value : T		= try decodeNode( block:rootBlock, from: decoder )
 		try decodeDelayed()
+
 		return value
 	}
 	
@@ -535,7 +527,7 @@ fileprivate final class TypeConstructor {
 		return typeName
 	}
 	
-	func encodedVersion<T>( _ type: T.Type ) throws -> UInt32  where T:GDecodable {
+	func encodedVersion<T>( _ type: T.Type ) throws -> UInt32  where T:GDecodable, T:AnyObject {
 		let typeName	= GTypesRepository.shared.typeName(type: type)
 		guard let typeID = typeNameToID[typeName] else {
 			throw GCodableError.decodedDataDontContainsTypeName( typeName:typeName )
@@ -543,74 +535,7 @@ fileprivate final class TypeConstructor {
 		return try typeNameVersion(typeID: typeID).version
 	}
 	
-	
-	func decodeObject( objID:IntID, from decoder:GDecoder ) throws -> AnyObject? {
-		//	tutti gli oggetti (reference types) inizialmente si trovano in decodedData.objBlockMap
-		//	quando arriva la prima richiesta di un particolare oggetto (da objID)
-		//	lo costruiamo (se esiste) e lo mettiamo nell'objectRepository in modo
-		//	che le richieste successive peschino di lì.
-		//	se l'oggetto non esiste (possibile, se memorizzato condizionalmente)
-		//	ritorniamo nil.
-		
-		if let object = objectRepository[ objID ] {
-			return object
-		} else if let block = decodedData.pop( objID: objID ) {
-			//	gli unici blocchi possibili sono di tipo .Object
-			switch block.dataBlock {
-			case .Object( _, let typeID, let objID ):
-				let saveCurrent = currentBlock
-				currentBlock	= block
-				defer { currentBlock = saveCurrent }
-				
-				let	typeName	= try typeNameVersion( typeID:typeID ).typeName
-				guard let type	= GTypesRepository.shared.decodableType( typeName:typeName ) else {
-					throw GCodableError.typeNotFoundInRegister( typeName: typeName )
-				}
-				let value		= try type.init(from: decoder)
-				
-				objectRepository[ objID ]	= value as AnyObject
-				return value as AnyObject
-			default:
-				throw GCodableError.inappropriateDataBlock( dataBlock:block.dataBlock )
-			}
-		} else {
-			return nil
-		}
-	}
-	
-	func decodeNode( block:GraphBlock, from decoder:GDecoder ) throws -> Any {
-		let saveCurrent = currentBlock
-		currentBlock	= block
-		defer { currentBlock = saveCurrent }
-		
-		switch block.dataBlock {
-		case .Nil( _ ):
-			let x : Any? = nil
-			return x as Any
-		case .Native( _, _, let value ):
-			return value
-		case .Struct( _, let typeID ):
-			let	typeName	= try typeNameVersion( typeID:typeID ).typeName
-			guard let type	= GTypesRepository.shared.decodableType( typeName:typeName ) else {
-				throw GCodableError.typeNotFoundInRegister( typeName: typeName )
-			}
-			let value		= try type.init(from: decoder)
-
-			return value
-		case .ObjWPtr( _, let objID ):
-			// nessun controllo: può essere nil!
-			return try decodeObject( objID:objID, from:decoder ) as Any
-		case .ObjSPtr( _, let objID ):
-			guard let anyObject = try decodeObject( objID:objID, from:decoder ) else {
-				throw GCodableError.pointerNotFound( dataBlock:block.dataBlock )
-			}
-			return anyObject
-		default:	// .Object is inappropriate, too!
-			throw GCodableError.inappropriateDataBlock( dataBlock:block.dataBlock )
-		}
-	}
-	
-	func decodeNode<T>( graphBlock:GraphBlock, _ setter: @escaping (T?) -> () ) throws {
+	func decodeNode<T>( graphBlock:GraphBlock, _ setter: @escaping (T?) -> () ) throws  where T:GDecodable {
 		let saveCurrent = currentBlock
 		currentBlock	= graphBlock
 		defer { currentBlock = saveCurrent }
@@ -646,4 +571,90 @@ fileprivate final class TypeConstructor {
 		}
 	}
 
+	func decodeNode<T>( block:GraphBlock, from decoder:GDecoder ) throws -> T where T:GDecodable {
+		func decodeAnyNode( block:GraphBlock, from decoder:GDecoder ) throws -> Any {
+			func decodeAnyObject( objID:IntID, from decoder:GDecoder ) throws -> AnyObject? {
+				//	tutti gli oggetti (reference types) inizialmente si trovano in decodedData.objBlockMap
+				//	quando arriva la prima richiesta di un particolare oggetto (da objID)
+				//	lo costruiamo (se esiste) e lo mettiamo nell'objectRepository in modo
+				//	che le richieste successive peschino di lì.
+				//	se l'oggetto non esiste (possibile, se memorizzato condizionalmente)
+				//	ritorniamo nil.
+				
+				if let object = objectRepository[ objID ] {
+					return object
+				} else if let block = decodedData.pop( objID: objID ) {
+					//	gli unici blocchi possibili sono di tipo .Object
+					switch block.dataBlock {
+					case .Object( _, let typeID, let objID ):
+						let saveCurrent = currentBlock
+						currentBlock	= block
+						defer { currentBlock = saveCurrent }
+						
+						let	typeName	= try typeNameVersion( typeID:typeID ).typeName
+						guard let type	= GTypesRepository.shared.decodableType( typeName:typeName ) else {
+							throw GCodableError.typeNotFoundInRegister( typeName: typeName )
+						}
+						let value		= try type.init(from: decoder)
+						
+						objectRepository[ objID ]	= value as AnyObject
+						return value as AnyObject
+					default:
+						throw GCodableError.inappropriateDataBlock( dataBlock:block.dataBlock )
+					}
+				} else {
+					return nil
+				}
+			}
+			
+			switch block.dataBlock {
+			case .Nil( _ ):
+				let x : Any? = nil
+				return x as Any
+			case .Native( _, let value ):
+				return value
+			case .ObjWPtr( _, let objID ):
+				// nessun controllo: può essere nil!
+				return try decodeAnyObject( objID:objID, from:decoder ) as Any
+			case .ObjSPtr( _, let objID ):
+				guard let anyObject = try decodeAnyObject( objID:objID, from:decoder ) else {
+					throw GCodableError.pointerNotFound( dataBlock:block.dataBlock )
+				}
+				return anyObject
+			default:	// .Struct & .Object are inappropriate here!
+				throw GCodableError.inappropriateDataBlock( dataBlock:block.dataBlock )
+			}
+		}
+		
+		let saveCurrent = currentBlock
+		currentBlock	= block
+		defer { currentBlock = saveCurrent }
+
+		switch block.dataBlock {
+		case .Struct( _ ):
+			// se T è opzionale, devo estrarre il contenuto
+			// perché non lavoro mai con opzionali nell'archivio
+			
+			if let optType = T.self as? OptionalProtocol.Type {
+				let wrapped	= optType.fullUnwrappedType
+				
+				guard
+					let decodableType = wrapped as? GDecodable.Type,
+					let value = try decodableType.init(from: decoder) as? T
+				else {
+					throw GCodableError.typeMismatch(dataBlock: block.dataBlock)
+				}
+				
+				return value
+			} else {
+				return try T.init(from: decoder)
+			}
+		default:
+			guard let value = try decodeAnyNode( block:block, from:decoder ) as? T else {
+				throw GCodableError.typeMismatch(dataBlock: block.dataBlock)
+			}
+			
+			return value
+		}
+	}
 }

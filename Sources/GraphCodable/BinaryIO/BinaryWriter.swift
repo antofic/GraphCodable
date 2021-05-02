@@ -74,7 +74,7 @@ where T:MutableDataProtocol, T:ContiguousBytes
 	// ----------------------------------------------------------------------------------------------------------
 	// RawRepresentable
 	// ----------------------------------------------------------------------------------------------------------
-	
+
 	mutating func write<T>( _ v:T ) where T : RawRepresentable, T.RawValue : BinaryInteger			{ write(v.rawValue) }
 	mutating func write<T>( _ v:T ) where T : RawRepresentable, T.RawValue : BinaryFloatingPoint	{ write(v.rawValue) }
 	mutating func write<T>( _ v:T ) where T : RawRepresentable, T.RawValue == String				{ write(v.rawValue) }

@@ -100,7 +100,7 @@ where T:MutableDataProtocol, T:ContiguousBytes, T.SubSequence:ContiguousBytes {
 	// ----------------------------------------------------------------------------------------------------------
 	// RawRepresentable
 	// ----------------------------------------------------------------------------------------------------------
-	
+
 	mutating func read<T>() throws -> T where T : RawRepresentable, T.RawValue : BinaryInteger {
 		guard let v = T( rawValue: try read() ) else {
 			throw BinaryReaderError.cantConstructRawRepresentable
@@ -128,7 +128,7 @@ where T:MutableDataProtocol, T:ContiguousBytes, T.SubSequence:ContiguousBytes {
 		}
 		return v
 	}
-	
+
 	// ----------------------------------------------------------------------------------------------------------
 	// Bool
 	// ----------------------------------------------------------------------------------------------------------
@@ -161,7 +161,9 @@ where T:MutableDataProtocol, T:ContiguousBytes, T.SubSequence:ContiguousBytes {
 	//	---------------------------------------------------------------------
 	
 	private func checkRemainingSize( size:Int ) throws {
-		if bytes.count < size { throw BinaryReaderError.outOfBounds }
+		if bytes.count < size {
+			throw BinaryReaderError.outOfBounds
+		}
 	}
 
 	// usafe section ---------------------------------------------------------
