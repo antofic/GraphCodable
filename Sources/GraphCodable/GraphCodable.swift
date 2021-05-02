@@ -33,12 +33,14 @@ public protocol GEncodable {
 	func encode(to encoder: GEncoder) throws
 
 	/// The version of the encoded object.
+	///
+	/// Only for reference types.
 	static var	encodeVersion:	UInt32 { get }
 }
 
 public extension GEncodable {
 	static var encodeVersion: UInt32 {
-		return 0	// default version
+		return 0
 	}
 }
 
@@ -53,13 +55,17 @@ public protocol GDecodable {
 	init(from decoder: GDecoder) throws
 }
 
+/// Only reference types needs a repository.
 public extension GDecodable where Self:AnyObject {
+	/// Register a reference type in the types repository.
 	static func register() {
 		GTypesRepository.shared.register( type: self )
 	}
+	/// Remove a reference type from the types repository.
 	static func unregister() {
 		GTypesRepository.shared.unregister(type: self)
 	}
+	/// Replace type with type(of:self) during decoding.
 	static func replace( type:AnyObject.Type ) throws {
 		try GTypesRepository.shared.replace( type, with: self )
 	}

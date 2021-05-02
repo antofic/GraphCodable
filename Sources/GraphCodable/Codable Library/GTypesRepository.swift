@@ -76,28 +76,8 @@ public final class GTypesRepository {
 	private init( mainModuleName name:String ) {
 		mainModuleName	= name
 		Self._shared	= self
-		
-//		registerNativeTypes()
 	}
-/*
-	private func registerNativeTypes() {
-		nativeRegister( type:Bool.self )
-		nativeRegister( type:Int.self )
-		nativeRegister( type:Int8.self )
-		nativeRegister( type:Int16.self )
-		nativeRegister( type:Int32.self )
-		nativeRegister( type:Int64.self )
-		nativeRegister( type:UInt.self )
-		nativeRegister( type:UInt8.self )
-		nativeRegister( type:UInt16.self )
-		nativeRegister( type:UInt32.self )
-		nativeRegister( type:UInt64.self )
-		nativeRegister( type:Float.self )
-		nativeRegister( type:Double.self )
-		nativeRegister( type:String.self )
-		nativeRegister( type:Data.self )
-	}
-*/
+	
 	// --------------------------------------------------------------------------------
 
 	private var typeNames 			= [ObjectIdentifier: String]()
@@ -119,20 +99,11 @@ public final class GTypesRepository {
 	// --------------------------------------------------------------------------------
 
 	private var decodableTypes		= [String : GDecodable.Type]()
-//	private var nativeTypes			= [String : GNativeCodable.Type]()
-/*
-	func nativeType( typeName:String ) -> GNativeCodable.Type? {
-		return nativeTypes[ typeName ]
-	}
-*/
+
 	func decodableType( typeName:String ) -> GDecodable.Type? {
 		return decodableTypes[ typeName ]
 	}
-/*
-	private func nativeRegister<T>( type:T.Type ) where T:GNativeCodable {
-		nativeTypes[ typeName(type: type) ] = type
-	}
-*/
+
 	func register<T>( type:T.Type ) where T:GDecodable, T:AnyObject {
 		let typeName = typeName(type: type)
 		
@@ -146,15 +117,9 @@ public final class GTypesRepository {
 	func unregister<T:GDecodable>( type:T.Type ) {
 		decodableTypes.removeValue( forKey: typeName(type: type) )
 	}
-	
-	func reset() {
-		decodableTypes.removeAll()
-		typeReplacementsTable.removeAll()
-	}
 
 	// --------------------------------------------------------------------------------
 
-	
 	private var typeReplacementsTable		= [String : TypeDescriptor]()	// oldTypeName:	newTypeDescriptor
 
 	func replace<T>( _ type:AnyObject.Type, with newType:T.Type ) throws where T:GDecodable, T:AnyObject {
@@ -174,6 +139,13 @@ public final class GTypesRepository {
 			let new	= old.updateToNewType( with: typeReplacementsTable )
 			return new.typeName
 		}
+	}
+
+	// --------------------------------------------------------------------------------
+
+	private func reset() {
+		decodableTypes.removeAll()
+		typeReplacementsTable.removeAll()
 	}
 }
 
@@ -214,17 +186,11 @@ extension GTypesRepository {	// HELP
 
 extension GTypesRepository : CustomStringConvertible {
 	public var description: String {
-
 		return
 			"\(type(of: self))( " +
 			"\(TypeDescriptor.mainModulePlaceHolder) = \"\( mainModuleName )\", " +
-//			"nativeTypes = \( nativeTypes.keys.map { $0 }.sorted() ), " +
 			"registeredTypes = \( decodableTypes.keys.map { $0 }.sorted() ), " +
 			"typeReplacementsTable = \( typeReplacementsTable ) )"
-
-
-		
-//		return "\(type(of: self)) registered types:\(decodableTypes.keys.description)"
 	}
 }
 

@@ -62,12 +62,8 @@ public final class GraphDecoder {
 		func storedTypesAndVersions( from: Data ) throws -> [TypeNameVersion] {
 			var reader				= BinaryReader(data: from)
 			let decodedTypes		= try DecodedTypes(from: &reader)
-//			let shared				= GTypesRepository.shared
-			let typeNameVersions	= decodedTypes.typeIDtoName.values /* .filter() {
-				shared.nativeType(typeName: $0.typeName) == nil
-			}
-	*/
-			return Array( typeNameVersions )
+
+			return Array( decodedTypes.typeIDtoName.values )
 		}
 		
 		func decodeRoot<T>( _ type: T.Type, from data: Data ) throws -> T  where T:GDecodable {
@@ -269,7 +265,6 @@ fileprivate struct BlockDecoder {
 				// controllo che tutti i typeNames siano nel registro
 				let shared				= GTypesRepository.shared
 				let unregisteredTypes	= _typeIDtoName.values.filter() {
-/*					shared.nativeType(typeName: $0.typeName) == nil && */
 					shared.decodableType(typeName: $0.typeName) == nil
 				}
 				
@@ -288,7 +283,6 @@ fileprivate struct BlockDecoder {
 		while let dataBlock	= try peek() {
 			switch dataBlock {
 			case .KeyMap( let keyID, let key ):
-				// ••• PHASE 3 •••
 				guard _keyIDToKey.index(forKey: keyID) == nil else {
 					throw GCodableError.duplicateKey( key:key )
 				}
@@ -632,12 +626,13 @@ fileprivate final class TypeConstructor {
 
 		switch block.dataBlock {
 		case .Struct( _ ):
-			// se T è opzionale, devo estrarre il contenuto
-			// perché non lavoro mai con opzionali nell'archivio
-			
+			// if T is optional
 			if let optType = T.self as? OptionalProtocol.Type {
+				// get the inner non optional type
 				let wrapped	= optType.fullUnwrappedType
 				
+				// check if conforms to GDecodable.Type and
+				// costruct the value and check if is T
 				guard
 					let decodableType = wrapped as? GDecodable.Type,
 					let value = try decodableType.init(from: decoder) as? T
@@ -646,7 +641,7 @@ fileprivate final class TypeConstructor {
 				}
 				
 				return value
-			} else {
+			} else { //	if not, construct it:
 				return try T.init(from: decoder)
 			}
 		default:

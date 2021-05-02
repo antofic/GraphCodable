@@ -10,11 +10,11 @@ import Foundation
 
 protocol OptionalProtocol {
 	static var wrappedType: Any.Type { get }
+	// nested optional types unwrapping
 	static var fullUnwrappedType: Any.Type { get }
 
 	var	isNil			: Bool		{ get }
 	var wrappedValue	: Any 		{ get }
-	var	wrappedType		: Any.Type	{ get }
 }
 
 extension Optional : OptionalProtocol {
@@ -30,10 +30,6 @@ extension Optional : OptionalProtocol {
 		return currentType
 	}
 
-	var wrappedType: Any.Type {
-		return Wrapped.self
-	}
-	
 	var isNil: Bool {
 		switch self {
 		case .some:
@@ -54,7 +50,6 @@ extension Optional : OptionalProtocol {
 }
 
 extension Optional where Wrapped == Any {
-
 	// nested optionals unwrapping
 	init( fullUnwrapping value:Any ) {
 		var	currentValue = value
@@ -74,20 +69,11 @@ extension Optional where Wrapped == Any {
 
 extension Optional : GCodable where Wrapped : GCodable {
 	public func encode(to encoder: GEncoder) throws {
-		switch self {
-		case .none:	// nothing to do
-			break
-		case .some( let unwrapped ):
-			try encoder.encode( unwrapped )
-		}
+		throw GCodableError.optionalEncodeError
 	}
 	
 	public init(from decoder: GDecoder) throws {
-		if try decoder.unkeyedCount() > 0 {
-			self = .some( try decoder.decode() )
-		} else {
-			self = .none
-		}
+		throw GCodableError.optionalDecodeError
 	}
 }
 

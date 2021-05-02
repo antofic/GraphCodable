@@ -174,9 +174,6 @@ public final class GraphEncoder {
 			// now value is GEncodable
 			
 			if let nativeValue = value as? GNativeCodable {
-/*				let typeName	= GTypesRepository.shared.typeName( type: type(of:value) )
-				let typeID		= encodedData.createTypeIDIfNeeded( typeName:typeName, version: typeVersion )
-*/
 				encodedData.append( .Native(keyID: keyID, value: nativeValue) )
 			} else if type(of:value) is AnyClass {
 				let typeName	= GTypesRepository.shared.typeName( type: type(of:value) )
@@ -193,15 +190,15 @@ public final class GraphEncoder {
 				if let objID = referenceID.strongID( value as AnyObject ) {
 					// l'oggetto è stato già memorizzato, basta un pointer
 					if weak {
-						encodedData.append( .ObjWPtr(keyID: keyID, objID: objID))
+						encodedData.append( .ObjWPtr(keyID: keyID, objID: objID) )
 					} else {
-						encodedData.append( .ObjSPtr(keyID: keyID, objID: objID))
+						encodedData.append( .ObjSPtr(keyID: keyID, objID: objID) )
 					}
 				} else if weak {
 					// WeakRef: avrei la descrizione ma non la voglio usare
 					// perché servirà solo se arriverà da uno strongRef
 					let objID	= referenceID.createWeakID( value as AnyObject )
-					encodedData.append( .ObjWPtr(keyID: keyID, objID: objID))
+					encodedData.append( .ObjWPtr(keyID: keyID, objID: objID) )
 				} else {
 					//	memorizzo l'oggetto
 					let objID	= referenceID.createStrongID( value as AnyObject )
@@ -210,7 +207,7 @@ public final class GraphEncoder {
 					try encodeEncodable( encodable:encodable, to:self )
 					encodedData.append( .End )
 				}
-			} else {	// full value (struct)
+			} else {	// full value type (struct)
 				encodedData.append( .Struct( keyID: keyID ) )
 				try encodeEncodable( encodable:encodable, to:self )
 				encodedData.append( .End )
