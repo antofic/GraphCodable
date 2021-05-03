@@ -56,7 +56,7 @@ enum DataBlock {
 		static var header 		: BlockCode { return .header 		}
 		static var typeMap	 	: BlockCode { return .typeMap	  	}
 		static var nilValue	 	: BlockCode { return .nilValue	  	}
-		static var binaryType	: BlockCode { return .binaryType	}
+//		static var binaryType	: BlockCode { return .binaryType	}
 		static var valueType	: BlockCode { return .valueType		}
 		static var objectType	: BlockCode { return .objectType	}
 		static var objectSPtr	: BlockCode { return .objectSPtr	}
@@ -68,7 +68,7 @@ enum DataBlock {
 			case header	= 0xF0	// start from 240
 			case typeMap
 			case nilValue
-			case binaryType
+//			case binaryType
 			case valueType
 			case objectType
 			case objectSPtr
@@ -109,7 +109,7 @@ enum DataBlock {
 	case typeMap	( typeID:IntID, typeVersion:UInt32, typeName:String )
 	case nilValue	( keyID:IntID )
 	case nativeType	( keyID:IntID, value:GNativeCodable )
-	case binaryType	( keyID:IntID, bytes:[UInt8] )
+//	case binaryType	( keyID:IntID, bytes:[UInt8] )
 	case valueType	( keyID:IntID )
 	case objectType	( keyID:IntID, typeID:IntID, objID:IntID )
 	case objectSPtr	( keyID:IntID, objID:IntID )
@@ -144,11 +144,11 @@ extension DataBlock : BinaryIOType {
 			try Code.native( type(of:value).nativeCode ).write(to: &writer)
 			try keyID.write(to: &writer)
 			try value.write(to: &writer)
-		case .binaryType( let keyID, let bytes ):
+/*		case .binaryType( let keyID, let bytes ):
 			try Code.binaryType.write(to: &writer)
 			try keyID.write(to: &writer)
 			try bytes.write(to: &writer)
-		case .valueType	( let keyID ):
+*/		case .valueType	( let keyID ):
 			try Code.valueType.write(to: &writer)
 			try keyID.write(to: &writer)
 		case .objectType( let keyID, let typeID, let objID ):
@@ -198,11 +198,11 @@ extension DataBlock : BinaryIOType {
 			case .nilValue:
 				let keyID	= try IntID		( from: &reader )
 				self = .nilValue(keyID: keyID)
-			case .binaryType:
+/*			case .binaryType:
 				let keyID	= try IntID		( from: &reader )
 				let bytes	= try [UInt8]	( from: &reader )
 				self = .binaryType(keyID: keyID, bytes: bytes)
-			case .valueType:
+*/			case .valueType:
 				let keyID	= try IntID		( from: &reader )
 				self = .valueType(keyID: keyID)
 			case .objectType:
@@ -259,7 +259,7 @@ extension DataBlock {
 		switch self {
 		case .nilValue		( let keyID ):			return	keyID > 0 ? keyID : nil
 		case .nativeType	( let keyID, _ ):		return	keyID > 0 ? keyID : nil
-		case .binaryType	( let keyID, _ ):		return	keyID > 0 ? keyID : nil
+//		case .binaryType	( let keyID, _ ):		return	keyID > 0 ? keyID : nil
 		case .valueType		( let keyID ):			return	keyID > 0 ? keyID : nil
 		case .objectType	( let keyID, _, _ ):	return	keyID > 0 ? keyID : nil
 		case .objectSPtr	( let keyID, _ ):		return	keyID > 0 ? keyID : nil
@@ -332,10 +332,10 @@ extension DataBlock {
 			return format( keyID, info, "nil")
 		case .nativeType	( let keyID, let value ):
 			return format( keyID, info, small( value, info ) )
-		case .binaryType( let keyID, let bytes ):
+/*		case .binaryType( let keyID, let bytes ):
 			let string	= "BINARY \(bytes.count) bytes"
 			return format( keyID, info, string )
-		case .valueType	( let keyID ):
+*/		case .valueType	( let keyID ):
 			let string	= "STRUCT"
 			return format( keyID, info, string )
 		case .objectType( let keyID, let typeID, let objID ):

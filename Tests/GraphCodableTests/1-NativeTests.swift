@@ -65,6 +65,16 @@ final class NativeTests: XCTestCase {
 		XCTAssertEqual( inRoot, outRoot, #function )
 	}
 
+	func testStringArray() throws {
+		let inRoot	= [["Io","Stringa molto molto molto lunga","Ma davvero"]:4, ["forse"]:17]
+		
+		let data	= try GraphEncoder().encode( inRoot )
+		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
+		
+		XCTAssertEqual( inRoot, outRoot, #function )
+	}
+
+	
 	func testComplexArray() throws {
 		let inRoot	= [[1,2,3,nil,5],nil,[nil]]
 		

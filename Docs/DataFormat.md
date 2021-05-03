@@ -155,6 +155,9 @@ GraphCodable employs some tricks to reduce the size of the data to be stored.
 For example, types and keys are saved only once in special tables and are addressed to them through a unique ID.
 By using the '.binaryLike' option you can see the data saved in a format that more closely resembles the binary format actually used.
 
+**NEEDS UPDATE**
+
+
 `print( try GraphEncoder().dump( inRoot, dumpOptions: .binaryLike, encodeOptions: .fastest ) )`
 
 ```
@@ -190,6 +193,9 @@ Key103: "aclass"
 ==================================================================
 ```
 We see how the **GRAPH** section uses IDs for types and keys, while the type and key strings are stored once in only two tables, one (**TYPEMAP**) preceding the **GRAPH** section and another (**KEYMAP**) following it. The version of the type (**V...**) is also stored in the type table.
+
+**NEEDS UPDATE**
+
 We also see an optimization in action, by default during encoding but normally disabled during dump, capable of quickly collapsing any combination of arrays, dictionaries and sets containing ultimately native elements (but not optionals) into a sequence of bytes (you can see **BINARY 64 bytes** replacing the "dict" dictionary) . Thanks to this optimization, encoding and decoding are faster and the size of the generated data reduced.
 
 

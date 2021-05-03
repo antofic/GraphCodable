@@ -120,6 +120,29 @@ extension Data : BinaryIOType {
 	}
 }
 
+// Questa causa problemi... perché?
+/*
+extension Optional : BinaryIOType where Wrapped : BinaryIOType {
+	func write( to writer: inout BinaryWriter ) throws {
+		switch self {
+		case .none:
+			try false.write(to: &writer)
+		case .some( let wrapped ):
+			try true.write(to: &writer)
+			try wrapped.write(to: &writer)
+		}
+	}
+	init( from reader: inout BinaryReader ) throws {
+		switch try Bool(from: &reader) {
+		case false:
+			self = .none
+		case true:
+			self = .some( try Wrapped(from: &reader)  )
+		}
+	}
+}
+
+
 extension Array : BinaryIOType where Element : BinaryIOType {
 	func write( to writer: inout BinaryWriter ) throws {
 		writer.writeArray( self )
@@ -152,3 +175,4 @@ extension Dictionary : BinaryIOType where Key : BinaryIOType, Value : BinaryIOTy
 	}
 }
 
+*/
