@@ -61,7 +61,7 @@ where T:MutableDataProtocol, T:ContiguousBytes, T.SubSequence:ContiguousBytes {
 
 	// usafe section ---------------------------------------------------------
 	
-	mutating func readValue<T>( _ v : inout T ) throws {
+	mutating func readValue<T:FixedSizeIOType>( _ v : inout T ) throws {
 		let inSize	= MemoryLayout<T>.size
 		try checkRemainingSize( size:inSize )
 		defer { bytes.removeFirst( inSize ) }
@@ -73,7 +73,7 @@ where T:MutableDataProtocol, T:ContiguousBytes, T.SubSequence:ContiguousBytes {
 		}
 	}
 	
-	mutating func readArray<T>( count:Int ) throws -> [T] {
+	mutating func readArray<T:FixedSizeIOType>( count:Int ) throws -> [T] {
 		let inSize	= count * MemoryLayout<T>.stride
 		try checkRemainingSize( size:inSize )
 		defer { bytes.removeFirst( inSize ) }
@@ -86,7 +86,7 @@ where T:MutableDataProtocol, T:ContiguousBytes, T.SubSequence:ContiguousBytes {
 		}
 	}
 	
-	mutating func readArray<T>() throws -> [T] {
+	mutating func readArray<T:FixedSizeIOType>() throws -> [T] {
 		var count = 0
 		try readValue( &count )
 		return try readArray( count:count )

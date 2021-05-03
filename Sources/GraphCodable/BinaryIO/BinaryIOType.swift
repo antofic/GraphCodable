@@ -27,6 +27,8 @@ protocol BinaryIOType {
 	init( from: inout BinaryReader ) throws
 }
 
+protocol FixedSizeIOType : BinaryIOType {}
+
 extension BinaryIOType {
 	func bytes() throws -> [UInt8] {
 		var writer = BinaryWriterBase<Array<UInt8>>()
@@ -39,8 +41,9 @@ extension BinaryIOType {
 	}
 }
 
+// -- BinaryInteger support (FixedSizeIOType) -------------------------------------------------------
 
-extension BinaryIOType where Self : BinaryInteger {
+extension BinaryIOType where Self : FixedSizeIOType, Self : BinaryInteger {
 	func write( to writer: inout BinaryWriter ) throws {
 		writer.writeValue( self )
 	}
@@ -51,16 +54,69 @@ extension BinaryIOType where Self : BinaryInteger {
 	}
 }
 
-extension Int : BinaryIOType {}
-extension Int8 : BinaryIOType {}
-extension Int16 : BinaryIOType {}
-extension Int32 : BinaryIOType {}
-extension Int64 : BinaryIOType {}
-extension UInt : BinaryIOType {}
-extension UInt8 : BinaryIOType {}
-extension UInt16 : BinaryIOType {}
-extension UInt32 : BinaryIOType {}
-extension UInt64 : BinaryIOType {}
+extension Int		: FixedSizeIOType {}
+extension Int8		: FixedSizeIOType {}
+extension Int16		: FixedSizeIOType {}
+extension Int32		: FixedSizeIOType {}
+extension Int64		: FixedSizeIOType {}
+extension UInt		: FixedSizeIOType {}
+extension UInt8		: FixedSizeIOType {}
+extension UInt16	: FixedSizeIOType {}
+extension UInt32	: FixedSizeIOType {}
+extension UInt64	: FixedSizeIOType {}
+
+// -- BinaryFloatingPoint support (FixedSizeIOType) -------------------------------------------------------
+
+extension BinaryIOType where Self : FixedSizeIOType, Self : BinaryFloatingPoint {
+	func write( to writer: inout BinaryWriter ) throws {
+		writer.writeValue( self )
+	}
+	init( from reader: inout BinaryReader ) throws {
+		var value = Self.zero
+		try reader.readValue( &value )
+		self = value
+	}
+}
+
+extension Float		: FixedSizeIOType {}
+extension Double	: FixedSizeIOType {}
+
+// -- Bool support (FixedSizeIOType) -------------------------------------------------------
+
+extension Bool : BinaryIOType, FixedSizeIOType {
+	func write( to writer: inout BinaryWriter ) throws {
+		writer.writeValue( self )
+	}
+	init( from reader: inout BinaryReader ) throws {
+		var value = false
+		try reader.readValue( &value )
+		self = value
+	}
+}
+
+// -- String support (BinaryIOType) -------------------------------------------------------
+
+extension String : BinaryIOType {
+	func write( to writer: inout BinaryWriter ) throws {
+		writer.writeString( self )
+	}
+	init( from reader: inout BinaryReader ) throws {
+		self = try reader.readString()
+	}
+}
+
+// -- Data support (BinaryIOType) -------------------------------------------------------
+
+extension Data : BinaryIOType {
+	func write( to writer: inout BinaryWriter ) throws {
+		writer.writeData( self )
+	}
+	init( from reader: inout BinaryReader ) throws {
+		self = try reader.readData()
+	}
+}
+
+// -- RawRepresentable support (BinaryIOType) -------------------------------------------
 
 extension BinaryIOType where Self : RawRepresentable, Self.RawValue : BinaryIOType {
 	func write( to writer: inout BinaryWriter ) throws {
@@ -74,54 +130,21 @@ extension BinaryIOType where Self : RawRepresentable, Self.RawValue : BinaryIOTy
 	}
 }
 
-
-extension BinaryIOType where Self : BinaryFloatingPoint {
+extension FixedSizeIOType where Self : RawRepresentable, Self.RawValue : FixedSizeIOType {
 	func write( to writer: inout BinaryWriter ) throws {
-		writer.writeValue( self )
+		try self.rawValue.write(to: &writer)
 	}
 	init( from reader: inout BinaryReader ) throws {
-		var value = Self.zero
-		try reader.readValue( &value )
+		guard let value = Self(rawValue: try Self.RawValue(from: &reader) ) else {
+			throw BinaryReaderError.cantConstructRawRepresentable
+		}
 		self = value
 	}
 }
 
 
-extension Float : BinaryIOType {}
-extension Double : BinaryIOType {}
+// -- Optional support (BinaryIOType) -------------------------------------------
 
-extension Bool : BinaryIOType {
-	func write( to writer: inout BinaryWriter ) throws {
-		writer.writeValue( self )
-	}
-	init( from reader: inout BinaryReader ) throws {
-		var value = false
-		try reader.readValue( &value )
-		self = value
-	}
-}
-
-
-extension String : BinaryIOType {
-	func write( to writer: inout BinaryWriter ) throws {
-		writer.writeString( self )
-	}
-	init( from reader: inout BinaryReader ) throws {
-		self = try reader.readString()
-	}
-}
-
-extension Data : BinaryIOType {
-	func write( to writer: inout BinaryWriter ) throws {
-		writer.writeData( self )
-	}
-	init( from reader: inout BinaryReader ) throws {
-		self = try reader.readData()
-	}
-}
-
-// Questa causa problemi... perché?
-/*
 extension Optional : BinaryIOType where Wrapped : BinaryIOType {
 	func write( to writer: inout BinaryWriter ) throws {
 		switch self {
@@ -142,8 +165,27 @@ extension Optional : BinaryIOType where Wrapped : BinaryIOType {
 	}
 }
 
+// -- Array support (BinaryIOType & FixedSizeIOType ) -------------------------------------------
 
 extension Array : BinaryIOType where Element : BinaryIOType {
+	func write( to writer: inout BinaryWriter ) throws {
+		try count.write(to: &writer)
+		for element in self {
+			try element.write(to: &writer)
+		}
+	}
+	init( from reader: inout BinaryReader ) throws {
+		var array = [Element]()
+		let count = try Int( from: &reader )
+		array.reserveCapacity( count )
+		for _ in 0..<count {
+			array.append( try Element.init(from: &reader) )
+		}
+		self = array
+	}
+}
+
+extension Array : FixedSizeIOType where Element : FixedSizeIOType {
 	func write( to writer: inout BinaryWriter ) throws {
 		writer.writeArray( self )
 	}
@@ -152,27 +194,53 @@ extension Array : BinaryIOType where Element : BinaryIOType {
 	}
 }
 
+// -- Set support (BinaryIOType & FixedSizeIOType ) -------------------------------------------
+
 extension Set : BinaryIOType where Element : BinaryIOType {
 	func write( to writer: inout BinaryWriter ) throws {
-		writer.writeArray( Array( self ) )
+		try Array( self ).write(to: &writer)
 	}
 	init( from reader: inout BinaryReader ) throws {
-		self = Set( try reader.readArray() )
+		self = Set( try Array(from: &reader) )
 	}
 }
 
+extension Set : FixedSizeIOType where Element : FixedSizeIOType {
+	func write( to writer: inout BinaryWriter ) throws {
+		try Array( self ).write(to: &writer)
+	}
+	init( from reader: inout BinaryReader ) throws {
+		self = Set( try Array(from: &reader) )
+	}
+}
+
+// -- Dictionary support (BinaryIOType & FixedSizeIOType ) -------------------------------------------
+
 extension Dictionary : BinaryIOType where Key : BinaryIOType, Value : BinaryIOType {
 	func write( to writer: inout BinaryWriter ) throws {
-		writer.writeArray( Array( self.keys ) )
-		writer.writeArray( Array( self.values ) )
+		try Array( self.keys ).write(to: &writer )
+		try Array( self.values ).write(to: &writer )
 	}
 
 	init( from reader: inout BinaryReader ) throws {
-		let keys	= try reader.readArray() as [Key]
-		let values	= try reader.readArray() as [Value]
+		let keys	= try [Key](from: &reader)
+		let values	= try [Value](from: &reader)
 
 		self.init(uniqueKeysWithValues: zip(keys, values))
 	}
 }
 
-*/
+// Ho molti dubbi su questa!!!!
+extension Dictionary : FixedSizeIOType where Key : FixedSizeIOType, Value : FixedSizeIOType {
+	func write( to writer: inout BinaryWriter ) throws {
+		try Array( self.keys ).write(to: &writer )
+		try Array( self.values ).write(to: &writer )
+	}
+
+	init( from reader: inout BinaryReader ) throws {
+		let keys	= try [Key](from: &reader)
+		let values	= try [Value](from: &reader)
+
+		self.init(uniqueKeysWithValues: zip(keys, values))
+	}
+}

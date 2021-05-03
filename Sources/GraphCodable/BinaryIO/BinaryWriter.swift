@@ -39,7 +39,7 @@ where T:MutableDataProtocol, T:ContiguousBytes
 		}
 	}
 
-	mutating func writeValue<T>( _ v:T ) {
+	mutating func writeValue<T:FixedSizeIOType>( _ v:T ) {
 		withUnsafePointer(to: v) { source in
 			bytes.append(
 				contentsOf: UnsafeBufferPointer(
@@ -50,7 +50,7 @@ where T:MutableDataProtocol, T:ContiguousBytes
 		}
 	}
 	
-	mutating func writeArray<T>( _ v:[T], count:Int ) {
+	mutating func writeArray<T:FixedSizeIOType>( _ v:[T], count:Int ) {
 		v.withUnsafeBufferPointer { source in
 			bytes.append(
 				contentsOf: UnsafeBufferPointer(
@@ -60,6 +60,11 @@ where T:MutableDataProtocol, T:ContiguousBytes
 			)
 		}
 	}
+
+	mutating func writeArray<T:FixedSizeIOType>( _ v:[T] ) {
+		writeValue( v.count )
+		writeArray( v, count:v.count )
+	}
 	
 	mutating func writeData( _ v:Data ) {
 		writeValue( v.count )
@@ -68,10 +73,6 @@ where T:MutableDataProtocol, T:ContiguousBytes
 		}
 	}
 	
-	mutating func writeArray<T>( _ v:[T] ) {
-		writeValue( v.count )
-		writeArray( v, count:v.count )
-	}
 	
 	// write a null terminated utf8 string
 	mutating func writeString( _ v:String ) {

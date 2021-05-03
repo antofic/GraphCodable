@@ -644,7 +644,7 @@ fileprivate final class TypeConstructor {
 			} else { //	if not, construct it:
 				return try T.init(from: decoder)
 			}
-/*		case .binaryType( _ , let bytes ):
+		case .binaryType( _ , let bytes ):
 			if let optType = T.self as? OptionalProtocol.Type {
 				// get the inner non optional type
 				let wrapped	= optType.fullUnwrappedType
@@ -667,7 +667,7 @@ fileprivate final class TypeConstructor {
 				}
 				return value
 			}
-*/		default:
+		default:
 			guard let value = try decodeAnyNode( block:block, from:decoder ) as? T else {
 				throw GCodableError.typeMismatch(dataBlock: block.dataBlock)
 			}
