@@ -51,7 +51,7 @@ keyID = 0 -> unkeyed
 typealias IntID	= UInt32
 
 enum DataBlock {
-	private enum Code : RawRepresentable {
+	private enum Code : RawRepresentable, BinaryIOType {
 		static var header 		: BlockCode { return .header 		}
 		static var typeMap	 	: BlockCode { return .typeMap	  	}
 		static var nilValue	 	: BlockCode { return .nilValue	  	}
@@ -62,7 +62,7 @@ enum DataBlock {
 		static var end	 		: BlockCode { return .end	 		}
 		static var keyMap	 	: BlockCode { return .keyMap	  	}
 		
-		fileprivate enum BlockCode : UInt8 {
+		fileprivate enum BlockCode : UInt8, BinaryIOType {
 			case header	= 0xF0	// start from 240
 			case typeMap
 			case nilValue
@@ -98,7 +98,7 @@ enum DataBlock {
 		}
 	}
 
-	private enum HeaderID : UInt64 {
+	private enum HeaderID : UInt64, BinaryIOType {
 		case gcodable	= 0x67636F6461626C65	// ascii = 'gcodable'
 	}
 
@@ -121,95 +121,95 @@ extension DataBlock {
 	func write( to writer: inout BinaryWriter ) throws {
 		switch self {
 		case .header	( let version, let module, let unused1, let unused2 ):
-			writer.write( Code.header )
-			writer.write( HeaderID.gcodable )
-			writer.write( version )
-			writer.write( module )
-			writer.write( unused1 )
-			writer.write( unused2 )
+			try Code.header.write(to: &writer)
+			try HeaderID.gcodable.write(to: &writer)
+			try version.write(to: &writer)
+			try module.write(to: &writer)
+			try unused1.write(to: &writer)
+			try unused2.write(to: &writer)
 		case .typeMap	( let typeID, let typeVersion, let typeName  ):
-			writer.write( Code.typeMap )
-			writer.write( typeID )
-			writer.write( typeVersion )
-			writer.write( typeName )
+			try Code.typeMap.write(to: &writer)
+			try typeID.write(to: &writer)
+			try typeVersion.write(to: &writer)
+			try typeName.write(to: &writer)
 		case .nilValue	( let keyID ):
-			writer.write( Code.nilValue )
-			writer.write( keyID )
+			try Code.nilValue.write(to: &writer)
+			try keyID.write(to: &writer)
 		case .nativeType( let keyID, let value ):
-			writer.write( Code.native( type(of:value).nativeCode ) )
-			writer.write( keyID )
+			try Code.native( type(of:value).nativeCode ).write(to: &writer)
+			try keyID.write(to: &writer)
 			try value.write(to: &writer)
 		case .valueType	( let keyID ):
-			writer.write( Code.valueType )
-			writer.write( keyID )
+			try Code.valueType.write(to: &writer)
+			try keyID.write(to: &writer)
 		case .objectType( let keyID, let typeID, let objID ):
-			writer.write( Code.objectType )
-			writer.write( keyID )
-			writer.write( typeID )
-			writer.write( objID )
+			try Code.objectType.write(to: &writer)
+			try keyID.write(to: &writer)
+			try typeID.write(to: &writer)
+			try objID.write(to: &writer)
 		case .objectSPtr( let keyID, let objID ):
-			writer.write( Code.objectSPtr )
-			writer.write( keyID )
-			writer.write( objID )
+			try Code.objectSPtr.write(to: &writer)
+			try keyID.write(to: &writer)
+			try objID.write(to: &writer)
 		case .objectWPtr( let keyID, let objID ):
-			writer.write( Code.objectWPtr )
-			writer.write( keyID )
-			writer.write( objID )
+			try Code.objectWPtr.write(to: &writer)
+			try keyID.write(to: &writer)
+			try objID.write(to: &writer)
 		case .end:
-			writer.write( Code.end )
+			try Code.end.write(to: &writer)
 		case .keyMap	( let keyID, let keyName ):
-			writer.write( Code.keyMap )
-			writer.write( keyID )
-			writer.write( keyName )
+			try Code.keyMap.write(to: &writer)
+			try keyID.write(to: &writer)
+			try keyName.write(to: &writer)
 		}
 	}
 
 	static func read( from reader:inout BinaryReader, typeIDtoName:[IntID:TypeNameVersion]  ) throws -> DataBlock {
-		let code : Code	= try reader.read()
+		let code = try Code(from: &reader)
 
 		switch code {
 		case .native( let nativeCode ):
-			let keyID	: IntID		= try reader.read()
-			let nativeValue			= try nativeCode.readNativeType(from: &reader)
+			let keyID		= try IntID( from: &reader )
+			let nativeValue	= try nativeCode.readNativeType(from: &reader)
 			return .nativeType(keyID: keyID, value: nativeValue)
 		case .block( let blockCode ):
 			switch blockCode {
 			case .header:
-				let _		: HeaderID	= try reader.read()
-				let version	: UInt32	= try reader.read()
-				let module	: String	= try reader.read()
-				let unused1	: UInt32	= try reader.read()
-				let unused2	: UInt64	= try reader.read()
+				let _		= try HeaderID	( from: &reader )
+				let version	= try UInt32	( from: &reader )
+				let module	= try String	( from: &reader )
+				let unused1	= try UInt32	( from: &reader )
+				let unused2	= try UInt64	( from: &reader )
 				return .header(version: version, module:module, unused1: unused1, unused2: unused2)
 			case .typeMap:
-				let typeID	: IntID		= try reader.read()
-				let version	: UInt32	= try reader.read()
-				let name	: String	= try reader.read()
+				let typeID	= try IntID		( from: &reader )
+				let version	= try UInt32	( from: &reader )
+				let name	= try String	( from: &reader )
 				return .typeMap(typeID: typeID, typeVersion: version, typeName: name )
 			case .nilValue:
-				let keyID	: IntID		= try reader.read()
+				let keyID	= try IntID		( from: &reader )
 				return .nilValue(keyID: keyID)
 			case .valueType:
-				let keyID	: IntID		= try reader.read()
+				let keyID	= try IntID		( from: &reader )
 				return .valueType(keyID: keyID)
 			case .objectType:
-				let keyID	: IntID		= try reader.read()
-				let typeID	: IntID		= try reader.read()
-				let objID	: IntID		= try reader.read()
+				let keyID	= try IntID		( from: &reader )
+				let typeID	= try IntID		( from: &reader )
+				let objID	= try IntID		( from: &reader )
 				return .objectType(keyID: keyID, typeID: typeID, objID: objID)
 			case .objectSPtr:
-				let keyID	: IntID		= try reader.read()
-				let objID	: IntID		= try reader.read()
+				let keyID	= try IntID		( from: &reader )
+				let objID	= try IntID		( from: &reader )
 				return .objectSPtr(keyID: keyID, objID: objID)
 			case .objectWPtr:
-				let keyID	: IntID		= try reader.read()
-				let objID	: IntID		= try reader.read()
+				let keyID	= try IntID		( from: &reader )
+				let objID	= try IntID		( from: &reader )
 				return .objectWPtr(keyID: keyID, objID: objID)
 			case .end:
 				return .end
 			case .keyMap:
-				let keyID	: IntID		= try reader.read()
-				let keyName	: String	= try reader.read()
+				let keyID	= try IntID		( from: &reader )
+				let keyName	= try String	( from: &reader )
 				return .keyMap(keyID: keyID, keyName: keyName)
 			}
 		}

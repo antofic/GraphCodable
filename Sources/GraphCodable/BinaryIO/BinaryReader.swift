@@ -53,113 +53,6 @@ where T:MutableDataProtocol, T:ContiguousBytes, T.SubSequence:ContiguousBytes {
 		return bytes.count == 0
 	}
 		
-	// ----------------------------------------------------------------------------------------------------------
-	// BinaryInteger
-	// ----------------------------------------------------------------------------------------------------------
-	
-	mutating func read<T>() throws -> T where T : BinaryInteger {
-		var v = T.zero
-		try readValue(&v)
-		return v
-	}
-	
-	mutating func read<T>( count:Int ) throws -> [T] where T : BinaryInteger {
-		return try readArray( count:count )
-	}
-		
-	mutating func read<T>() throws -> [T] where T : BinaryInteger {
-		return try read(count: try read())
-	}
-
-	// ----------------------------------------------------------------------------------------------------------
-	// BinaryFloatingPoint
-	// ----------------------------------------------------------------------------------------------------------
-	
-	mutating func read<T>() throws -> T where T : BinaryFloatingPoint {
-		var v = T.zero
-		try readValue(&v)
-		return v
-	}
-	
-	mutating func read<T>( count:Int ) throws -> [T] where T : BinaryFloatingPoint {
-		return try readArray( count:count )
-	}
-	
-	mutating func read<T>() throws -> [T] where T : BinaryFloatingPoint {
-		return try read(count: try read())
-	}
-
-	// ----------------------------------------------------------------------------------------------------------
-	// Data
-	// ----------------------------------------------------------------------------------------------------------
-
-	mutating func read() throws -> Data {
-		return try readData()
-	}
-	
-	// ----------------------------------------------------------------------------------------------------------
-	// RawRepresentable
-	// ----------------------------------------------------------------------------------------------------------
-
-	mutating func read<T>() throws -> T where T : RawRepresentable, T.RawValue : BinaryInteger {
-		guard let v = T( rawValue: try read() ) else {
-			throw BinaryReaderError.cantConstructRawRepresentable
-		}
-		return v
-	}
-	
-	mutating func read<T>() throws -> T where T : RawRepresentable, T.RawValue : BinaryFloatingPoint {
-		guard let v = T( rawValue: try read() ) else {
-			throw BinaryReaderError.cantConstructRawRepresentable
-		}
-		return v
-	}
-	
-	mutating func read<T>() throws -> T where T : RawRepresentable, T.RawValue == String {
-		guard let v = T( rawValue: try read() ) else {
-			throw BinaryReaderError.cantConstructRawRepresentable
-		}
-		return v
-	}
-
-	mutating func read<T>() throws -> T where T : RawRepresentable, T.RawValue == Bool {
-		guard let v = T( rawValue: try read() ) else {
-			throw BinaryReaderError.cantConstructRawRepresentable
-		}
-		return v
-	}
-
-	// ----------------------------------------------------------------------------------------------------------
-	// Bool
-	// ----------------------------------------------------------------------------------------------------------
-	
-	mutating func read() throws -> Bool {
-		var v = false
-		try readValue(&v)
-		return v
-	}
-	
-	mutating func read( count:Int ) throws -> [Bool] {
-		return try readArray( count:count )
-	}
-	
-	
-	mutating func read() throws -> [Bool] {
-		return try read(count: try read())
-	}
-	
-	// ----------------------------------------------------------------------------------------------------------
-	// String
-	// ----------------------------------------------------------------------------------------------------------
-
-	mutating func read() throws -> String {
-		return try readString()
-	}
-	
-	//	---------------------------------------------------------------------
-	//	-- PRIVATE
-	//	---------------------------------------------------------------------
-	
 	private func checkRemainingSize( size:Int ) throws {
 		if bytes.count < size {
 			throw BinaryReaderError.outOfBounds
@@ -168,7 +61,7 @@ where T:MutableDataProtocol, T:ContiguousBytes, T.SubSequence:ContiguousBytes {
 
 	// usafe section ---------------------------------------------------------
 	
-	private mutating func readValue<T>( _ v : inout T ) throws {
+	mutating func readValue<T>( _ v : inout T ) throws {
 		let inSize	= MemoryLayout<T>.size
 		try checkRemainingSize( size:inSize )
 		defer { bytes.removeFirst( inSize ) }
@@ -180,7 +73,7 @@ where T:MutableDataProtocol, T:ContiguousBytes, T.SubSequence:ContiguousBytes {
 		}
 	}
 	
-	private mutating func readArray<T>( count:Int ) throws -> [T] {
+	mutating func readArray<T>( count:Int ) throws -> [T] {
 		let inSize	= count * MemoryLayout<T>.stride
 		try checkRemainingSize( size:inSize )
 		defer { bytes.removeFirst( inSize ) }
@@ -193,7 +86,13 @@ where T:MutableDataProtocol, T:ContiguousBytes, T.SubSequence:ContiguousBytes {
 		}
 	}
 	
-	private mutating func readData() throws -> Data {
+	mutating func readArray<T>() throws -> [T] {
+		var count = 0
+		try readValue( &count )
+		return try readArray( count:count )
+	}
+	
+	mutating func readData() throws -> Data {
 		var count = 0
 		try readValue( &count )
 
@@ -207,7 +106,7 @@ where T:MutableDataProtocol, T:ContiguousBytes, T.SubSequence:ContiguousBytes {
 	}
 	
 	// read a null terminated utf8 string
-	private mutating func readString() throws -> String {
+	mutating func readString() throws -> String {
 		let availableCount	= bytes.count
 		
 		// ci deve essere almeno un carattere: null

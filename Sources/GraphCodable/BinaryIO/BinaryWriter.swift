@@ -38,53 +38,8 @@ where T:MutableDataProtocol, T:ContiguousBytes
 			return Q( bytes )
 		}
 	}
-	
-	// ----------------------------------------------------------------------------------------------------------
-	// Bool
-	// ----------------------------------------------------------------------------------------------------------
-	mutating func write( _ v:Bool )					{ writeValue(v) }
-	mutating func write( _ v:[Bool], count:Int )	{ writeArray(v) }
-	mutating func write( _ v:[Bool] )				{ writeArray(v) }
-	
-	// ----------------------------------------------------------------------------------------------------------
-	// BinaryInteger
-	// ----------------------------------------------------------------------------------------------------------
-	mutating func write<T>( _ v:T ) where T : BinaryInteger 				{ writeValue(v) }
-	mutating func write<T>( _ v:[T], count:Int ) where T : BinaryInteger	{ writeArray(v) }
-	mutating func write<T>( _ v:[T] ) where T : BinaryInteger				{ writeArray(v) }
-	
-	// ----------------------------------------------------------------------------------------------------------
-	// Data
-	// ----------------------------------------------------------------------------------------------------------
 
-	mutating func write( _ v:Data )				{ writeData(v) }
-	
-	// ----------------------------------------------------------------------------------------------------------
-	// BinaryFloatingPoint
-	// ----------------------------------------------------------------------------------------------------------
-	mutating func write<T>( _ v:T ) where T : BinaryFloatingPoint 				{ writeValue(v) }
-	mutating func write<T>( _ v:[T], count:Int ) where T : BinaryFloatingPoint	{ writeArray(v) }
-	mutating func write<T>( _ v:[T] ) where T : BinaryFloatingPoint				{ writeArray(v) }
-	
-	// ----------------------------------------------------------------------------------------------------------
-	// String
-	// ----------------------------------------------------------------------------------------------------------
-	mutating func write(_ v: String ) 		{ writeString( v ) }
-	
-	// ----------------------------------------------------------------------------------------------------------
-	// RawRepresentable
-	// ----------------------------------------------------------------------------------------------------------
-
-	mutating func write<T>( _ v:T ) where T : RawRepresentable, T.RawValue : BinaryInteger			{ write(v.rawValue) }
-	mutating func write<T>( _ v:T ) where T : RawRepresentable, T.RawValue : BinaryFloatingPoint	{ write(v.rawValue) }
-	mutating func write<T>( _ v:T ) where T : RawRepresentable, T.RawValue == String				{ write(v.rawValue) }
-	mutating func write<T>( _ v:T ) where T : RawRepresentable, T.RawValue == Bool					{ write(v.rawValue) }
-
-	// ----------------------------------------------------------------------------------------------------------
-	// Private / unsafe section
-	// ----------------------------------------------------------------------------------------------------------
-	
-	private mutating func writeValue<T>( _ v:T ) {
+	mutating func writeValue<T>( _ v:T ) {
 		withUnsafePointer(to: v) { source in
 			bytes.append(
 				contentsOf: UnsafeBufferPointer(
@@ -95,7 +50,7 @@ where T:MutableDataProtocol, T:ContiguousBytes
 		}
 	}
 	
-	private mutating func writeArray<T>( _ v:[T], count:Int ) {
+	mutating func writeArray<T>( _ v:[T], count:Int ) {
 		v.withUnsafeBufferPointer { source in
 			bytes.append(
 				contentsOf: UnsafeBufferPointer(
@@ -106,20 +61,20 @@ where T:MutableDataProtocol, T:ContiguousBytes
 		}
 	}
 	
-	private mutating func writeData( _ v:Data ) {
+	mutating func writeData( _ v:Data ) {
 		writeValue( v.count )
 		v.withUnsafeBytes { source in
 			bytes.append(contentsOf: source)
 		}
 	}
 	
-	private mutating func writeArray<T>( _ v:[T] ) {
+	mutating func writeArray<T>( _ v:[T] ) {
 		writeValue( v.count )
 		writeArray( v, count:v.count )
 	}
 	
 	// write a null terminated utf8 string
-	private mutating func writeString( _ v:String ) {
+	mutating func writeString( _ v:String ) {
 		// string saved as null-terminated sequence of utf8
 		v.withCString() { ptr in
 			var endptr = ptr

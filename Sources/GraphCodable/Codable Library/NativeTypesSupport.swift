@@ -22,7 +22,7 @@
 
 import Foundation
 
-enum NativeCode : UInt8 {
+enum NativeCode : UInt8, BinaryIOType {
 	case int = 0,int8,int16,int32,int64
 	case uint = 8,uint8,uint16,uint32,uint64
 	case float = 16,double
@@ -49,32 +49,13 @@ enum NativeCode : UInt8 {
 	}
 }
 
-protocol GNativeCodable : GCodable {
+protocol GNativeCodable : GCodable, BinaryIOType {
 	static var nativeCode	: NativeCode { get }
-	
-	func write( to: inout BinaryWriter ) throws
-	init( from: inout BinaryReader ) throws
 }
 
 extension GNativeCodable {
 	public func encode(to encoder: GEncoder) throws	{ throw GCodableError.nativeEncodeError }
 	public init(from decoder: GDecoder) throws		{ throw GCodableError.nativeDecodeError }
-}
-
-// --------------------------------------------------------------------------------------------------------
-
-extension Bool 		: GNativeCodable {
-	static let nativeCode = NativeCode.bool
-	
-	func write( to writer: inout BinaryWriter ) throws	{ writer.write( self ) }
-	init( from reader: inout BinaryReader ) throws		{ self = try reader.read() }
-}
-
-// --------------------------------------------------------------------------------------------------------
-
-extension BinaryInteger  {
-	func write( to writer: inout BinaryWriter ) throws	{ writer.write( self ) }
-	init( from reader: inout BinaryReader ) throws		{ self = try reader.read() }
 }
 
 extension Int 		: GNativeCodable { static let nativeCode = NativeCode.int }
@@ -87,33 +68,8 @@ extension UInt8 	: GNativeCodable { static let nativeCode = NativeCode.uint8  }
 extension UInt16 	: GNativeCodable { static let nativeCode = NativeCode.uint16 }
 extension UInt32 	: GNativeCodable { static let nativeCode = NativeCode.uint32 }
 extension UInt64 	: GNativeCodable { static let nativeCode = NativeCode.uint64 }
-
-// --------------------------------------------------------------------------------------------------------
-
-extension BinaryFloatingPoint {
-	func write( to writer: inout BinaryWriter ) throws	{ writer.write( self ) }
-	init( from reader: inout BinaryReader ) throws		{ self = try reader.read() }
-}
-
 extension Float 	: GNativeCodable { static let nativeCode = NativeCode.float }
 extension Double 	: GNativeCodable { static let nativeCode = NativeCode.double }
-
-// --------------------------------------------------------------------------------------------------------
-
-extension String 	: GNativeCodable {
-	static let nativeCode = NativeCode.string
-
-	func write( to writer: inout BinaryWriter ) throws	{ writer.write( self ) }
-	init( from reader: inout BinaryReader ) throws		{ self = try reader.read() }
-}
-
-// --------------------------------------------------------------------------------------------------------
-
-extension Data 		: GNativeCodable {
-	static let nativeCode = NativeCode.data
-
-	func write( to writer: inout BinaryWriter ) throws	{ writer.write( self ) }
-	init( from reader: inout BinaryReader ) throws		{ self = try reader.read() }
-}
-
-// --------------------------------------------------------------------------------------------------------
+extension Bool 		: GNativeCodable { static let nativeCode = NativeCode.bool }
+extension String 	: GNativeCodable { static let nativeCode = NativeCode.string }
+extension Data 		: GNativeCodable { static let nativeCode = NativeCode.data }
