@@ -1,3 +1,5 @@
+
+/*
 import XCTest
 @testable import GraphCodable
 
@@ -13,3 +15,4 @@ final class GraphCodableTests: XCTestCase {
         ("testExample", testExample),
     ]
 }
+*/

@@ -67,7 +67,7 @@ I will return to the topic at the end of the document.
 ## Code examples
 
 Keep in mind that in GraphCodable:
-- GEncodable, GDecodable and GCodable have the same roles as Encodable, Decodable and Codable
+- GCodable, GCodable and GCodable have the same roles as Encodable, Decodable and Codable
 - GEncoder, GDecoder have the same roles as Encoder, Decoder
 - GraphEncoder has the same role as JSONEncoder, PropertyListEncoder
 - GraphDecoder has the same role as JSONDecoder, PropertyListDecoder

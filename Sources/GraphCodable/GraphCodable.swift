@@ -22,55 +22,6 @@
 
 import Foundation
 
-/// A type that can encode itself to an external representation.
-public protocol GEncodable {
-	/// Encodes this value into the given encoder.
-	///
-	/// This function throws an error if any values are invalid for the given
-	/// encoder's format.
-	///
-	/// - Parameter encoder: The encoder to write data to.
-	func encode(to encoder: GEncoder) throws
-
-	/// The version of the encoded object.
-	///
-	/// Only for reference types.
-	static var	encodeVersion:	UInt32 { get }
-}
-
-public extension GEncodable {
-	static var encodeVersion: UInt32 {
-		return 0
-	}
-}
-
-/// A type that can decode itself from an external representation.
-public protocol GDecodable {
-	/// Creates a new instance by decoding from the given decoder.
-	///
-	/// This initializer throws an error if reading from the decoder fails, or
-	/// if the data read is corrupted or otherwise invalid.
-	///
-	/// - Parameter decoder: The decoder to read data from.
-	init(from decoder: GDecoder) throws
-}
-
-/// Only reference types needs a repository.
-public extension GDecodable where Self:AnyObject {
-	/// Register a reference type in the types repository.
-	static func register() {
-		GTypesRepository.shared.register( type: self )
-	}
-	/// Remove a reference type from the types repository.
-	static func unregister() {
-		GTypesRepository.shared.unregister(type: self)
-	}
-	/// Replace type with type(of:self) during decoding.
-	static func replace( type:AnyObject.Type ) throws {
-		try GTypesRepository.shared.replace( type, with: self )
-	}
-}
-
 ///	GCodable allows you to store and decode
 ///	value types and arbitrarily complex reference graphs as long
 ///	as the connections do not realize memory strong cycles.
@@ -196,8 +147,53 @@ public extension GDecodable where Self:AnyObject {
 ///
 ///	    try decoder.unkeyedCount()
 ///
+/// * **GCodable**
+///
+/// A type that can encode itself to an external representation.
+///	and decode itself from an external representation.
+public protocol GCodable {
+	/// Creates a new instance by decoding from the given decoder.
+	///
+	/// This initializer throws an error if reading from the decoder fails, or
+	/// if the data read is corrupted or otherwise invalid.
+	///
+	/// - Parameter decoder: The decoder to read data from.
+	init(from decoder: GDecoder) throws
+	/// Encodes this value into the given encoder.
+	///
+	/// This function throws an error if any values are invalid for the given
+	/// encoder's format.
+	///
+	/// - Parameter encoder: The encoder to write data to.
+	func encode(to encoder: GEncoder) throws
 
-public typealias GCodable	= GEncodable & GDecodable
+	/// The version of the encoded object.
+	///
+	/// Only for reference types.
+	static var	encodeVersion:	UInt32 { get }
+}
+
+public extension GCodable {
+	static var encodeVersion: UInt32 {
+		return 0
+	}
+}
+
+/// Only reference types needs a repository.
+public extension GCodable where Self:AnyObject {
+	/// Register a reference type in the types repository.
+	static func register() {
+		GTypesRepository.shared.register( type: self )
+	}
+	/// Remove a reference type from the types repository.
+	static func unregister() {
+		GTypesRepository.shared.unregister(type: self)
+	}
+	/// Replace type with type(of:self) during decoding.
+	static func replace( type:AnyObject.Type ) throws {
+		try GTypesRepository.shared.replace( type, with: self )
+	}
+}
 
 /// A type that can encode values into a native format for external
 /// representation.
@@ -213,7 +209,7 @@ public protocol GEncoder {
 	/// - parameter value: The value to encode.
 	/// - parameter key: The key to associate the value with.
 	func encode<Key,Value>(_ value: Value, for key:Key ) throws where
-		Value : GEncodable, Key:RawRepresentable, Key.RawValue == String
+		Value : GCodable, Key:RawRepresentable, Key.RawValue == String
 	
 	/// Encodes a reference to the given object only if it is encoded
 	/// unconditionally elsewhere in the payload (previously, or in the future).
@@ -224,7 +220,7 @@ public protocol GEncoder {
 	/// - parameter object: The object to encode.
 	/// - parameter key: The key to associate the object with.
 	func encodeConditional<Key,Value>(_ value: Value? , for key:Key ) throws where
-		Value : GEncodable, Value:AnyObject, Key:RawRepresentable, Key.RawValue == String
+		Value : GCodable, Value:AnyObject, Key:RawRepresentable, Key.RawValue == String
 	
 	/// Encodes the given value.
 	///
@@ -233,7 +229,7 @@ public protocol GEncoder {
 	///
 	/// - parameter value: The value to encode.
 	func encode<Value>(_ value: Value ) throws where
-		Value : GEncodable
+		Value : GCodable
 	
 	/// Encodes a reference to the given object only if it is encoded
 	/// unconditionally elsewhere in the payload (previously, or in the future).
@@ -243,7 +239,7 @@ public protocol GEncoder {
 	///
 	/// - parameter object: The object to encode.
 	func encodeConditional<Value>(_ value: Value? ) throws where
-		Value : GEncodable, Value : AnyObject
+		Value : GCodable, Value : AnyObject
 }
 
 /// A type that can decode values from a native format into in-memory
@@ -257,7 +253,7 @@ public protocol GDecoder {
 	/// Corresponds to the value of encodedVersion() when encoding the
 	/// data and can be used to decide on different decoding strategies.
 	/// Only objects can have a version.
-	func encodedVersion<Value>( _ type: Value.Type ) throws -> UInt32  where Value:GDecodable, Value:AnyObject
+	func encodedVersion<Value>( _ type: Value.Type ) throws -> UInt32  where Value:GCodable, Value:AnyObject
 	
 	/// Returns a Boolean value indicating whether the decoder contains a value
 	/// associated with the given key.
@@ -282,7 +278,7 @@ public protocol GDecoder {
 	/// - returns: A value of the requested type, if present for the given key
 	///   and convertible to the requested type.
 	func decode<Key, Value>(for key: Key) throws -> Value where
-		Key : RawRepresentable, Value : GDecodable, Key.RawValue == String
+		Key : RawRepresentable, Value : GCodable, Key.RawValue == String
 
 	/// Decodes a reference of the given type for the given key when it become available.
 	///
@@ -294,7 +290,7 @@ public protocol GDecoder {
 	/// - parameter key: The key that the decoded reference is associated with.
 	/// - parameter setter: A closure to which the required reference is provided.
 	func deferDecode<Key, Value>( for key: Key, _ setter: @escaping (Value?) -> ()) throws where
-		Key : RawRepresentable, Value : AnyObject, Value : GDecodable, Key.RawValue == String
+		Key : RawRepresentable, Value : AnyObject, Value : GCodable, Key.RawValue == String
 
 	/// The number of elements still available for unkeyed decoding.
 	///
@@ -310,7 +306,7 @@ public protocol GDecoder {
 	/// - parameter type: The type of value to decode.
 	/// - returns: A value of the requested type, if present.
 	func decode<Value>() throws -> Value where
-		Value : GDecodable
+		Value : GCodable
 	
 	/// Decodes a reference of the given type when it become available.
 	///
@@ -322,7 +318,7 @@ public protocol GDecoder {
 	/// - parameter key: The key that the decoded reference is associated with.
 	/// - parameter setter: A closure to which the required reference is provided.
 	func deferDecode<Value>( _ setter: @escaping (Value?)->() ) throws where
-		Value : GDecodable, Value : AnyObject
+		Value : GCodable, Value : AnyObject
 }
 
 /*

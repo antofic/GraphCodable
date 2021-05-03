@@ -10,6 +10,8 @@ Value types no longer need to be registered. It never made sense that they were.
 ## Native types management revised
 Revised the management of native types (even if I am not satisfied yet): faster encoding and decoding and smaller files.
 
+## GEncodable and GDecodable removed
+This subdivision is an unnecessary complication: we keep only the GCodable protocol.
 
 ## Be aware
 **The data format may be subject to future changes.**

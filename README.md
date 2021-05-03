@@ -50,7 +50,7 @@ For now, **the data format may be subject to future changes.**
 
 ## Simple interface comparison to Swift Codable
 In GraphCodable:
-- GEncodable, GDecodable and GCodable have the same roles as Encodable, Decodable and Codable
+- GCodable have the same roles as Codable
 - GEncoder, GDecoder have the same roles as Encoder, Decoder
 - GraphEncoder has the same role as JSONEncoder, PropertyListEncoder
 - GraphDecoder has the same role as JSONDecoder, PropertyListDecoder

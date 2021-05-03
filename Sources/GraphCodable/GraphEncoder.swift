@@ -66,11 +66,11 @@ public final class GraphEncoder {
 		set { encoder.userInfo = newValue }
 	}
 
-	public func dump<T>( _ value: T, options: DumpOptions = .readable ) throws -> String where T:GEncodable {
+	public func dump<T>( _ value: T, options: DumpOptions = .readable ) throws -> String where T:GCodable {
 		return try encoder.dumpRoot( value, options:options )
 	}
 	
-	public func encode<T>( _ value: T ) throws -> Data where T:GEncodable {
+	public func encode<T>( _ value: T ) throws -> Data where T:GCodable {
 		return try encoder.encodeRoot( value )
 	}
 
@@ -81,7 +81,7 @@ public final class GraphEncoder {
 	private final class Encoder : GEncoder {
 		var userInfo	= [String:Any]()
 		
-		private func _encodeRoot<T>( _ value: T ) throws -> EncodedData where T:GEncodable {
+		private func _encodeRoot<T>( _ value: T ) throws -> EncodedData where T:GCodable {
 			defer { reset() }
 			reset()
 			try encode( value )
@@ -89,13 +89,13 @@ public final class GraphEncoder {
 			return encodedData
 		}
 		
-		func dumpRoot<T>( _ value: T, options: DumpOptions ) throws -> String where T:GEncodable {
+		func dumpRoot<T>( _ value: T, options: DumpOptions ) throws -> String where T:GCodable {
 			let encodedData = try _encodeRoot( value )
 			
 			return encodedData.readableOutput(options: options)
 		}
 		
-		func encodeRoot<T>( _ value: T ) throws -> Data where T:GEncodable {
+		func encodeRoot<T>( _ value: T ) throws -> Data where T:GCodable {
 			let output	= try _encodeRoot( value )
 			var writer	= BinaryWriter()
 			try output.write(to: &writer)
@@ -104,22 +104,22 @@ public final class GraphEncoder {
 		
 		// --------------------------------------------------------
 	
-		func encode<Value>(_ value: Value) throws where Value:GEncodable {
+		func encode<Value>(_ value: Value) throws where Value:GCodable {
 			try encodeUnwrapping( value, forKey: nil, weak:false )
 		}
 
-		func encodeConditional<Value>(_ value: Value?) throws where Value:GEncodable, Value:AnyObject {
+		func encodeConditional<Value>(_ value: Value?) throws where Value:GCodable, Value:AnyObject {
 			try encodeUnwrapping( value, forKey: nil, weak:true )
 		}
 		
 		func encode<Key, Value>(_ value: Value, for key: Key) throws
-		where Key : RawRepresentable, Value : GEncodable, Key.RawValue == String
+		where Key : RawRepresentable, Value : GCodable, Key.RawValue == String
 		{
 			try encodeUnwrapping( value, forKey: key.rawValue, weak:false )
 		}
 		
 		func encodeConditional<Key, Value>(_ value: Value?, for key: Key) throws
-		where Key : RawRepresentable, Value : AnyObject, Value : GEncodable, Key.RawValue == String
+		where Key : RawRepresentable, Value : AnyObject, Value : GCodable, Key.RawValue == String
 		{
 			try encodeUnwrapping( value, forKey: key.rawValue, weak:true )
 		}
@@ -141,7 +141,7 @@ public final class GraphEncoder {
 		}
 
 		private func encodeAny(_ value: Any?, forKey key: String?, weak:Bool ) throws {
-			func encodeEncodable( encodable:GEncodable, to encoder:GEncoder ) throws {
+			func encodeEncodable( encodable:GCodable, to encoder:GEncoder ) throws {
 				let savedKeys	= currentKeys
 				defer { currentKeys = savedKeys }
 				currentKeys.removeAll()
@@ -167,27 +167,26 @@ public final class GraphEncoder {
 				return
 			}
 			// now value if not nil!
-			
-			guard let encodable = value as? GEncodable else {
-				throw GCodableError.notEncodableType( typeName: "\(type(of:value))" )
-			}
-			// now value is GEncodable
-			
+
 			if let nativeValue = value as? GNativeCodable {
 				encodedData.append( .Native(keyID: keyID, value: nativeValue) )
 			} else if type(of:value) is AnyClass {
-				let typeName	= GTypesRepository.shared.typeName( type: type(of:value) )
-				let typeVersion	= type(of:encodable).encodeVersion
+				guard let object = value as? GCodable & AnyObject else {
+					throw GCodableError.notEncodableType( typeName: "\(type(of:value))" )
+				}
+				
+				let objectType	= type(of:object)
+				let typeName	= GTypesRepository.shared.typeName( type: objectType )
+				let typeVersion	= objectType.encodeVersion
 				let newType		= !encodedData.contains(typeName: typeName)
 				let typeID		= encodedData.createTypeIDIfNeeded( typeName:typeName, version: typeVersion )
 				
-				// registriamo solo le classi
-				if newType, let decodableValue = value as? GDecodable & AnyObject {
+				if newType {
 					// we update ever the register
-					type(of:decodableValue).register()
+					objectType.register()
 				}
 				// siamo sicuri che è un oggetto
-				if let objID = referenceID.strongID( value as AnyObject ) {
+				if let objID = referenceID.strongID( object ) {
 					// l'oggetto è stato già memorizzato, basta un pointer
 					if weak {
 						encodedData.append( .ObjWPtr(keyID: keyID, objID: objID) )
@@ -197,19 +196,22 @@ public final class GraphEncoder {
 				} else if weak {
 					// WeakRef: avrei la descrizione ma non la voglio usare
 					// perché servirà solo se arriverà da uno strongRef
-					let objID	= referenceID.createWeakID( value as AnyObject )
+					let objID	= referenceID.createWeakID( object )
 					encodedData.append( .ObjWPtr(keyID: keyID, objID: objID) )
 				} else {
 					//	memorizzo l'oggetto
-					let objID	= referenceID.createStrongID( value as AnyObject )
+					let objID	= referenceID.createStrongID( object )
 					
 					encodedData.append( .Object(keyID: keyID, typeID: typeID, objID: objID) )
-					try encodeEncodable( encodable:encodable, to:self )
+					try encodeEncodable( encodable:object, to:self )
 					encodedData.append( .End )
 				}
 			} else {	// full value type (struct)
+				guard let value = value as? GCodable else {
+					throw GCodableError.notEncodableType( typeName: "\(type(of:value))" )
+				}
 				encodedData.append( .Struct( keyID: keyID ) )
-				try encodeEncodable( encodable:encodable, to:self )
+				try encodeEncodable( encodable:value, to:self )
 				encodedData.append( .End )
 			}
 		}

@@ -34,7 +34,7 @@ public final class GraphDecoder {
 		set { decoder.userInfo = newValue }
 	}
 
-	public func decode<T>( _ type: T.Type, from data: Data ) throws -> T  where T:GDecodable {
+	public func decode<T>( _ type: T.Type, from data: Data ) throws -> T  where T:GCodable {
 		return try decoder.decodeRoot( type, from: data)
 	}
 
@@ -66,7 +66,7 @@ public final class GraphDecoder {
 			return Array( decodedTypes.typeIDtoName.values )
 		}
 		
-		func decodeRoot<T>( _ type: T.Type, from data: Data ) throws -> T  where T:GDecodable {
+		func decodeRoot<T>( _ type: T.Type, from data: Data ) throws -> T  where T:GCodable {
 			defer { _costructor = nil }
 			
 			var reader		= BinaryReader(data: data)
@@ -78,7 +78,7 @@ public final class GraphDecoder {
 		
 		// ------ keyed support
 		
-		func encodedVersion<T>( _ type: T.Type ) throws -> UInt32  where T:GDecodable, T:AnyObject {
+		func encodedVersion<T>( _ type: T.Type ) throws -> UInt32  where T:GCodable, T:AnyObject {
 			return try constructor.encodedVersion( type )
 		}
 		
@@ -91,7 +91,7 @@ public final class GraphDecoder {
 		}
 		
 		func decode<Key, Value>(for key: Key) throws -> Value
-		where Key : RawRepresentable, Value : GDecodable, Key.RawValue == String
+		where Key : RawRepresentable, Value : GCodable, Key.RawValue == String
 		{
 			let	block = try constructor.popNode( key:key.rawValue )
 			
@@ -99,7 +99,7 @@ public final class GraphDecoder {
 		}
 		
 		func deferDecode<Key, Value>( for key: Key, _ setter: @escaping (Value?) -> ()) throws
-		where Key : RawRepresentable, Value : AnyObject, Value : GDecodable, Key.RawValue == String
+		where Key : RawRepresentable, Value : AnyObject, Value : GCodable, Key.RawValue == String
 		{
 			try constructor.decodeNode( graphBlock:try constructor.popNode( key:key.rawValue ), setter )
 		}
@@ -110,13 +110,13 @@ public final class GraphDecoder {
 			return constructor.currentBlock.unkeyedCount
 		}
 		
-		func decode<Value>() throws -> Value where Value : GDecodable {
+		func decode<Value>() throws -> Value where Value : GCodable {
 			let	block = try constructor.popNode()
 
 			return try constructor.decodeNode( block:block, from: self )
 		}
 		
-		func deferDecode<Value>(_ setter: @escaping (Value?) -> ()) throws where Value : GDecodable, Value : AnyObject {
+		func deferDecode<Value>(_ setter: @escaping (Value?) -> ()) throws where Value : GCodable, Value : AnyObject {
 			try constructor.decodeNode( graphBlock:try constructor.popNode(), setter )
 		}
 
@@ -464,7 +464,7 @@ fileprivate final class TypeConstructor {
 		self.currentBlock	= decodedData.rootBlock
 	}
 	
-	func decodeRoot<T>( _ type: T.Type, from decoder:GDecoder ) throws -> T where T:GDecodable {
+	func decodeRoot<T>( _ type: T.Type, from decoder:GDecoder ) throws -> T where T:GCodable {
 		let rootBlock		= currentBlock
 		let value : T		= try decodeNode( block:rootBlock, from: decoder )
 		try decodeDelayed()
@@ -521,7 +521,7 @@ fileprivate final class TypeConstructor {
 		return typeName
 	}
 	
-	func encodedVersion<T>( _ type: T.Type ) throws -> UInt32  where T:GDecodable, T:AnyObject {
+	func encodedVersion<T>( _ type: T.Type ) throws -> UInt32  where T:GCodable, T:AnyObject {
 		let typeName	= GTypesRepository.shared.typeName(type: type)
 		guard let typeID = typeNameToID[typeName] else {
 			throw GCodableError.decodedDataDontContainsTypeName( typeName:typeName )
@@ -529,7 +529,7 @@ fileprivate final class TypeConstructor {
 		return try typeNameVersion(typeID: typeID).version
 	}
 	
-	func decodeNode<T>( graphBlock:GraphBlock, _ setter: @escaping (T?) -> () ) throws  where T:GDecodable {
+	func decodeNode<T>( graphBlock:GraphBlock, _ setter: @escaping (T?) -> () ) throws  where T:GCodable {
 		let saveCurrent = currentBlock
 		currentBlock	= graphBlock
 		defer { currentBlock = saveCurrent }
@@ -565,7 +565,7 @@ fileprivate final class TypeConstructor {
 		}
 	}
 
-	func decodeNode<T>( block:GraphBlock, from decoder:GDecoder ) throws -> T where T:GDecodable {
+	func decodeNode<T>( block:GraphBlock, from decoder:GDecoder ) throws -> T where T:GCodable {
 		func decodeAnyNode( block:GraphBlock, from decoder:GDecoder ) throws -> Any {
 			func decodeAnyObject( objID:IntID, from decoder:GDecoder ) throws -> AnyObject? {
 				//	tutti gli oggetti (reference types) inizialmente si trovano in decodedData.objBlockMap
@@ -631,10 +631,10 @@ fileprivate final class TypeConstructor {
 				// get the inner non optional type
 				let wrapped	= optType.fullUnwrappedType
 				
-				// check if conforms to GDecodable.Type and
+				// check if conforms to GCodable.Type and
 				// costruct the value and check if is T
 				guard
-					let decodableType = wrapped as? GDecodable.Type,
+					let decodableType = wrapped as? GCodable.Type,
 					let value = try decodableType.init(from: decoder) as? T
 				else {
 					throw GCodableError.typeMismatch(dataBlock: block.dataBlock)

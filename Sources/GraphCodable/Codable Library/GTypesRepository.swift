@@ -98,13 +98,13 @@ public final class GTypesRepository {
 
 	// --------------------------------------------------------------------------------
 
-	private var decodableTypes		= [String : GDecodable.Type]()
+	private var decodableTypes		= [String : GCodable.Type]()
 
-	func decodableType( typeName:String ) -> GDecodable.Type? {
+	func decodableType( typeName:String ) -> GCodable.Type? {
 		return decodableTypes[ typeName ]
 	}
 
-	func register<T>( type:T.Type ) where T:GDecodable, T:AnyObject {
+	func register<T>( type:T.Type ) where T:GCodable, T:AnyObject {
 		let typeName = typeName(type: type)
 		
 		if let oldType = decodableTypes[ typeName ] {
@@ -114,7 +114,7 @@ public final class GTypesRepository {
 		}
 	}
 
-	func unregister<T:GDecodable>( type:T.Type ) {
+	func unregister<T:GCodable>( type:T.Type ) {
 		decodableTypes.removeValue( forKey: typeName(type: type) )
 	}
 
@@ -122,7 +122,7 @@ public final class GTypesRepository {
 
 	private var typeReplacementsTable		= [String : TypeDescriptor]()	// oldTypeName:	newTypeDescriptor
 
-	func replace<T>( _ type:AnyObject.Type, with newType:T.Type ) throws where T:GDecodable, T:AnyObject {
+	func replace<T>( _ type:AnyObject.Type, with newType:T.Type ) throws where T:GCodable, T:AnyObject {
 		let oldTypeName	= typeName(type: type)
 		decodableTypes.removeValue( forKey: oldTypeName )
 		register(type: newType)
@@ -153,7 +153,7 @@ extension GTypesRepository {	// HELP
 	public func help( initializeFuncName name:String = "initializeGraphCodable" ) -> String {
 		let tnvs	= decodableTypes.map {
 			//	non ho la versione a disposizione, perché è una proprietà
-			//	di GEncodable e nel registro sono memorizzati elementi GDecodable
+			//	di GCodable e nel registro sono memorizzati elementi GCodable
 			return TypeNameVersion(typeName: $0.key, version: 0)
 		}
 		return Self.swiftRegisterFunc( typeNameVersions:tnvs, initializeFuncName:name, showVersions:false )
