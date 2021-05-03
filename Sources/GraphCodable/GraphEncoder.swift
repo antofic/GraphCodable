@@ -143,12 +143,12 @@ public final class GraphEncoder {
 		}
 
 		private func encodeAny(_ value: Any?, forKey key: String?, weak:Bool ) throws {
-			func encodeEncodable( encodable:GCodable, to encoder:GEncoder ) throws {
+			func encodeValue( _ value:GCodable, to encoder:GEncoder ) throws {
 				let savedKeys	= currentKeys
 				defer { currentKeys = savedKeys }
 				currentKeys.removeAll()
 				
-				try encodable.encode(to: encoder)
+				try value.encode(to: encoder)
 			}
 			
 			func updateKey( key: String? ) throws -> IntID {
@@ -205,7 +205,7 @@ public final class GraphEncoder {
 					let objID	= referenceID.createStrongID( object )
 					
 					encodedData.append( .objectType(keyID: keyID, typeID: typeID, objID: objID) )
-					try encodeEncodable( encodable:object, to:self )
+					try encodeValue( object, to:self )
 					encodedData.append( .end )
 				}
 			} else {	// full value type (struct)
@@ -213,7 +213,7 @@ public final class GraphEncoder {
 					throw GCodableError.notEncodableType( typeName: "\(type(of:value))" )
 				}
 				encodedData.append( .valueType( keyID: keyID ) )
-				try encodeEncodable( encodable:value, to:self )
+				try encodeValue( value, to:self )
 				encodedData.append( .end )
 			}
 		}
