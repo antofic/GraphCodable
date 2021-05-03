@@ -40,6 +40,9 @@ GraphCodable is written entirely in Swift. The use of 'unsafe' methods is limite
 ## Limitations
 The package limitations related to Swift features are described in the [last paragraph](/Docs/UserGuide.md#Final-thoughts) of the user guide. I recommend reading it after reading the entire [User Guide](/Docs/UserGuide.md) and trying code examples.
 
+## Be aware
+For now, **the data format may be subject to future changes.**
+
 ## Other documents
 - [User Guide](/Docs/UserGuide.md)
 - [Coding Rules](/Docs/CodingRules.md)
@@ -57,6 +60,10 @@ GraphCodable does not use containers.
 ## Supported technologies
 
 - Swift 5.3
+
+## Changelog
+
+Check it [here](/CHANGELOG.md)
 
 ## License
 
