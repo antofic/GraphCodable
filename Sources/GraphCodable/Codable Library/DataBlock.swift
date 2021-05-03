@@ -87,7 +87,7 @@ enum DataBlock {
 			} else if let code = BlockCode(rawValue: rawValue) {
 				self = .block( code )
 			} else {
-				preconditionFailure("Invalid \(#function) rawValue: \(rawValue)")
+				return nil
 			}
 		}
 		var rawValue: UInt8 {
@@ -101,7 +101,6 @@ enum DataBlock {
 	private enum HeaderID : UInt64 {
 		case gcodable	= 0x67636F6461626C65	// ascii = 'gcodable'
 	}
-
 
 	case header		( version:UInt32, module:String, unused1:UInt32, unused2:UInt64 )
 	case typeMap	( typeID:IntID, typeVersion:UInt32, typeName:String )
@@ -121,44 +120,44 @@ enum DataBlock {
 extension DataBlock {
 	func write( to writer: inout BinaryWriter ) throws {
 		switch self {
-		case .header	( let version, let module, let unused1, let unused2 ):	// 5
+		case .header	( let version, let module, let unused1, let unused2 ):
 			writer.write( Code.header )
 			writer.write( HeaderID.gcodable )
 			writer.write( version )
 			writer.write( module )
 			writer.write( unused1 )
 			writer.write( unused2 )
-		case .typeMap	( let typeID, let typeVersion, let typeName  ):	// 4
+		case .typeMap	( let typeID, let typeVersion, let typeName  ):
 			writer.write( Code.typeMap )
 			writer.write( typeID )
 			writer.write( typeVersion )
 			writer.write( typeName )
-		case .nilValue		( let keyID ):	// 2
+		case .nilValue	( let keyID ):
 			writer.write( Code.nilValue )
 			writer.write( keyID )
-		case .nativeType	( let keyID, let value ):	// 4
+		case .nativeType( let keyID, let value ):
 			writer.write( Code.native( type(of:value).nativeCode ) )
 			writer.write( keyID )
 			try value.write(to: &writer)
-		case .valueType	( let keyID ):	// 2
+		case .valueType	( let keyID ):
 			writer.write( Code.valueType )
 			writer.write( keyID )
-		case .objectType	( let keyID, let typeID, let objID ):	// 4
+		case .objectType( let keyID, let typeID, let objID ):
 			writer.write( Code.objectType )
 			writer.write( keyID )
 			writer.write( typeID )
 			writer.write( objID )
-		case .objectSPtr	( let keyID, let objID ):	// 3
+		case .objectSPtr( let keyID, let objID ):
 			writer.write( Code.objectSPtr )
 			writer.write( keyID )
 			writer.write( objID )
-		case .objectWPtr	( let keyID, let objID ):	// 3
+		case .objectWPtr( let keyID, let objID ):
 			writer.write( Code.objectWPtr )
 			writer.write( keyID )
 			writer.write( objID )
 		case .end:
 			writer.write( Code.end )
-		case .keyMap	( let keyID, let keyName ):	// 3
+		case .keyMap	( let keyID, let keyName ):
 			writer.write( Code.keyMap )
 			writer.write( keyID )
 			writer.write( keyName )
@@ -169,46 +168,46 @@ extension DataBlock {
 		let code : Code	= try reader.read()
 
 		switch code {
-		case .native( let nativeCode ):	// 4
+		case .native( let nativeCode ):
 			let keyID	: IntID		= try reader.read()
 			let nativeValue			= try nativeCode.readNativeType(from: &reader)
 			return .nativeType(keyID: keyID, value: nativeValue)
 		case .block( let blockCode ):
 			switch blockCode {
-			case .header:	// 5
-				let _		: HeaderID	= try reader.read()	// aggiornare
+			case .header:
+				let _		: HeaderID	= try reader.read()
 				let version	: UInt32	= try reader.read()
 				let module	: String	= try reader.read()
 				let unused1	: UInt32	= try reader.read()
 				let unused2	: UInt64	= try reader.read()
 				return .header(version: version, module:module, unused1: unused1, unused2: unused2)
-			case .typeMap:	// 4
+			case .typeMap:
 				let typeID	: IntID		= try reader.read()
 				let version	: UInt32	= try reader.read()
 				let name	: String	= try reader.read()
 				return .typeMap(typeID: typeID, typeVersion: version, typeName: name )
-			case .nilValue:	// 2
+			case .nilValue:
 				let keyID	: IntID		= try reader.read()
 				return .nilValue(keyID: keyID)
-			case .valueType:	// 2
+			case .valueType:
 				let keyID	: IntID		= try reader.read()
 				return .valueType(keyID: keyID)
-			case .objectType:	// 4
+			case .objectType:
 				let keyID	: IntID		= try reader.read()
 				let typeID	: IntID		= try reader.read()
 				let objID	: IntID		= try reader.read()
 				return .objectType(keyID: keyID, typeID: typeID, objID: objID)
-			case .objectSPtr:	// 3
+			case .objectSPtr:
 				let keyID	: IntID		= try reader.read()
 				let objID	: IntID		= try reader.read()
 				return .objectSPtr(keyID: keyID, objID: objID)
-			case .objectWPtr:	// 3
+			case .objectWPtr:
 				let keyID	: IntID		= try reader.read()
 				let objID	: IntID		= try reader.read()
 				return .objectWPtr(keyID: keyID, objID: objID)
 			case .end:
 				return .end
-			case .keyMap:	// 3
+			case .keyMap:
 				let keyID	: IntID		= try reader.read()
 				let keyName	: String	= try reader.read()
 				return .keyMap(keyID: keyID, keyName: keyName)
@@ -247,18 +246,18 @@ extension DataBlock {
 		switch self {
 		case .nilValue		( let keyID ):			return	keyID > 0 ? keyID : nil
 		case .nativeType	( let keyID, _ ):		return	keyID > 0 ? keyID : nil
-		case .valueType	( let keyID ):			return	keyID > 0 ? keyID : nil
+		case .valueType		( let keyID ):			return	keyID > 0 ? keyID : nil
 		case .objectType	( let keyID, _, _ ):	return	keyID > 0 ? keyID : nil
 		case .objectSPtr	( let keyID, _ ):		return	keyID > 0 ? keyID : nil
 		case .objectWPtr	( let keyID, _ ):		return	keyID > 0 ? keyID : nil
-		default:								return	nil
+		default:									return	nil
 		}
 	}
 	
 	var typeID : IntID? {
 		switch self {
 		case .objectType	( _, let typeID, _ ):	return	typeID
-		default:								return	nil
+		default:									return	nil
 		}
 	}
 	
@@ -311,24 +310,24 @@ extension DataBlock {
 		}
 		
 		switch self {
-		case .header( let version, let module, let unused1, let unused2 ):
+		case .header	( let version, let module, let unused1, let unused2 ):
 			return "Filetype = \(HeaderID.gcodable) V\(version), * = \(module), U1 = \(unused1), U2 = \(unused2)"
 		case .typeMap	( let typeID, let typeVersion, let typeName ):
 			return	"Type\( typeID ): V\( typeVersion ) \( typeName )"
-		case .nilValue		( let keyID ):
+		case .nilValue	( let keyID ):
 			return format( keyID, info, "nil")
 		case .nativeType	( let keyID, let value ):
 			return format( keyID, info, small( value, info ) )
 		case .valueType	( let keyID ):
 			let string	= "STRUCT"
 			return format( keyID, info, string )
-		case .objectType	( let keyID, let typeID, let objID ):
+		case .objectType( let keyID, let typeID, let objID ):
 			let string	= "CLASS \( typeString( typeID,info ) ) Obj\(objID)"
 			return format( keyID, info, string )
-		case .objectSPtr	( let keyID, let objID ):
+		case .objectSPtr( let keyID, let objID ):
 			let string	= "POINTER Obj\(objID)"
 			return format( keyID, info, string )
-		case .objectWPtr	( let keyID, let objID ):
+		case .objectWPtr( let keyID, let objID ):
 			let string	= "POINTER? Obj\(objID)"
 			return format( keyID, info, string )
 		case .end:
