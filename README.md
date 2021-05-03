@@ -63,7 +63,7 @@ GraphCodable does not use containers.
 
 ## Changelog
 
-Check it [here](/CHANGELOG.md)
+Check it [here](/CHANGELOG.md).
 
 ## License
 
