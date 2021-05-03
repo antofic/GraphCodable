@@ -216,7 +216,7 @@ fileprivate struct BlockDecoder {
 		
 		while let dataBlock	= try peek() {
 			switch dataBlock {
-			case .Header( let version, let module, _ /*unused1*/, _ /*unused2*/ ):
+			case .header( let version, let module, _ /*unused1*/, _ /*unused2*/ ):
 				_encodedMainModule	= module
 				_fileVersion		= version
 			default:
@@ -232,7 +232,7 @@ fileprivate struct BlockDecoder {
 
 		while let dataBlock	= try peek() {
 			switch dataBlock {
-			case .TypeMap( let typeID, let typeVersion, let typeName ):
+			case .typeMap( let typeID, let typeVersion, let typeName ):
 				// ••• PHASE 1 •••
 				guard _typeIDtoName.index(forKey: typeID) == nil else {
 					throw GCodableError.duplicateTypeID( typeID:typeID )
@@ -282,7 +282,7 @@ fileprivate struct BlockDecoder {
 
 		while let dataBlock	= try peek() {
 			switch dataBlock {
-			case .KeyMap( let keyID, let key ):
+			case .keyMap( let keyID, let key ):
 				guard _keyIDToKey.index(forKey: keyID) == nil else {
 					throw GCodableError.duplicateKey( key:key )
 				}
@@ -388,7 +388,7 @@ fileprivate final class GraphBlock {
 		objBlockMap map: inout [IntID : GraphBlock], block:GraphBlock, lineIterator: inout T, keyIDsToKey:[IntID:String], reverse:Bool
 	) throws where T:IteratorProtocol, T.Element == DataBlock {
 		switch block.dataBlock {
-		case .Object( let keyID, let typeID, let objID ):
+		case .objectType( let keyID, let typeID, let objID ):
 			//	l'oggetto non può trovarsi nella map
 			guard map.index(forKey: objID) == nil else {
 				throw GCodableError.objectAlreadyExists( dataBlock: block.dataBlock )
@@ -396,18 +396,18 @@ fileprivate final class GraphBlock {
 			
 			//	trasformo l'oggetto in uno strong pointer
 			//	così la procedura di lettura incontrerà quello al posto dell'oggetto
-			block.dataBlock	= .ObjSPtr( keyID: keyID, objID: objID )
+			block.dataBlock	= .objectSPtr( keyID: keyID, objID: objID )
 			
 			//	e per l'oggetto dovrà andare a vedere nella map, in modo che si possano
 			//	beccare gli oggetti memorizzati dopo!
-			let root		= GraphBlock( dataBlock: .Object(keyID: keyID, typeID: typeID, objID: objID) )
+			let root		= GraphBlock( dataBlock: .objectType(keyID: keyID, typeID: typeID, objID: objID) )
 			map[ objID ]	= root
 			
 			try subFlatten(
 				objBlockMap: &map, parent:root, lineIterator:&lineIterator,
 				keyIDsToKey:keyIDsToKey, reverse:reverse
 			)
-		case .Struct( _ ):
+		case .valueType( _ ):
 			try subFlatten(
 				objBlockMap: &map, parent:block, lineIterator:&lineIterator,
 				keyIDsToKey:keyIDsToKey, reverse:reverse
@@ -426,7 +426,7 @@ fileprivate final class GraphBlock {
 			}
 			let block = GraphBlock( dataBlock: dataBlock )
 			
-			if case .End = dataBlock {
+			if case .end = dataBlock {
 				break
 			} else {
 				block.parent = parent
@@ -535,9 +535,9 @@ fileprivate final class TypeConstructor {
 		defer { currentBlock = saveCurrent }
 		
 		switch graphBlock.dataBlock {
-		case .Nil( _ ):
+		case .nilValue( _ ):
 			setter( nil )
-		case .ObjSPtr( _, let objID ):
+		case .objectSPtr( _, let objID ):
 			//	con questo fallthrough scompare l'obblico di impiegare
 			//	encodeConditional per le variabili weak e tutto funziona,
 			//	ma la cosa non ha logicamente senso perché se non sono
@@ -545,7 +545,7 @@ fileprivate final class TypeConstructor {
 			//	comunque nulle non appena viene completato il decode.
 			NSLog("You should always use encodeConditional() to encode a weak variable (\(graphBlock.dataBlock)).")
 			fallthrough
-		case .ObjWPtr( _, let objID ):
+		case .objectWPtr( _, let objID ):
 			let anySetter : (AnyObject) throws -> () = {
 				anyValue in
 				guard let value = anyValue as? T else {
@@ -580,7 +580,7 @@ fileprivate final class TypeConstructor {
 				} else if let block = decodedData.pop( objID: objID ) {
 					//	gli unici blocchi possibili sono di tipo .Object
 					switch block.dataBlock {
-					case .Object( _, let typeID, let objID ):
+					case .objectType( _, let typeID, let objID ):
 						let saveCurrent = currentBlock
 						currentBlock	= block
 						defer { currentBlock = saveCurrent }
@@ -602,15 +602,15 @@ fileprivate final class TypeConstructor {
 			}
 			
 			switch block.dataBlock {
-			case .Nil( _ ):
+			case .nilValue( _ ):
 				let x : Any? = nil
 				return x as Any
-			case .Native( _, let value ):
+			case .nativeType( _, let value ):
 				return value
-			case .ObjWPtr( _, let objID ):
+			case .objectWPtr( _, let objID ):
 				// nessun controllo: può essere nil!
 				return try decodeAnyObject( objID:objID, from:decoder ) as Any
-			case .ObjSPtr( _, let objID ):
+			case .objectSPtr( _, let objID ):
 				guard let anyObject = try decodeAnyObject( objID:objID, from:decoder ) else {
 					throw GCodableError.pointerNotFound( dataBlock:block.dataBlock )
 				}
@@ -625,7 +625,7 @@ fileprivate final class TypeConstructor {
 		defer { currentBlock = saveCurrent }
 
 		switch block.dataBlock {
-		case .Struct( _ ):
+		case .valueType( _ ):
 			// if T is optional
 			if let optType = T.self as? OptionalProtocol.Type {
 				// get the inner non optional type

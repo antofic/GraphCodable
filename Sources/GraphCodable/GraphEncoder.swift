@@ -163,13 +163,13 @@ public final class GraphEncoder {
 			let keyID	= try updateKey( key: key )
 			
 			guard let value = value else {
-				encodedData.append( .Nil(keyID: keyID) )
+				encodedData.append( .nilValue(keyID: keyID) )
 				return
 			}
 			// now value if not nil!
 
 			if let nativeValue = value as? GNativeCodable {
-				encodedData.append( .Native(keyID: keyID, value: nativeValue) )
+				encodedData.append( .nativeType(keyID: keyID, value: nativeValue) )
 			} else if type(of:value) is AnyClass {
 				guard let object = value as? GCodable & AnyObject else {
 					throw GCodableError.notEncodableType( typeName: "\(type(of:value))" )
@@ -189,30 +189,30 @@ public final class GraphEncoder {
 				if let objID = referenceID.strongID( object ) {
 					// l'oggetto è stato già memorizzato, basta un pointer
 					if weak {
-						encodedData.append( .ObjWPtr(keyID: keyID, objID: objID) )
+						encodedData.append( .objectWPtr(keyID: keyID, objID: objID) )
 					} else {
-						encodedData.append( .ObjSPtr(keyID: keyID, objID: objID) )
+						encodedData.append( .objectSPtr(keyID: keyID, objID: objID) )
 					}
 				} else if weak {
 					// WeakRef: avrei la descrizione ma non la voglio usare
 					// perché servirà solo se arriverà da uno strongRef
 					let objID	= referenceID.createWeakID( object )
-					encodedData.append( .ObjWPtr(keyID: keyID, objID: objID) )
+					encodedData.append( .objectWPtr(keyID: keyID, objID: objID) )
 				} else {
 					//	memorizzo l'oggetto
 					let objID	= referenceID.createStrongID( object )
 					
-					encodedData.append( .Object(keyID: keyID, typeID: typeID, objID: objID) )
+					encodedData.append( .objectType(keyID: keyID, typeID: typeID, objID: objID) )
 					try encodeEncodable( encodable:object, to:self )
-					encodedData.append( .End )
+					encodedData.append( .end )
 				}
 			} else {	// full value type (struct)
 				guard let value = value as? GCodable else {
 					throw GCodableError.notEncodableType( typeName: "\(type(of:value))" )
 				}
-				encodedData.append( .Struct( keyID: keyID ) )
+				encodedData.append( .valueType( keyID: keyID ) )
 				try encodeEncodable( encodable:value, to:self )
-				encodedData.append( .End )
+				encodedData.append( .end )
 			}
 		}
 
@@ -270,7 +270,7 @@ public final class GraphEncoder {
 			private var	typeNameID		= TypeNameVersionMap()
 			private var	keyNameID		= KeyMap()
 			private (set) var blocks	= [DataBlock]()
-			private let header			= DataBlock.Header( // Header Block
+			private let header			= DataBlock.header( // Header Block
 				version: 0,
 				module: GTypesRepository.shared.mainModuleName,
 				unused1: 0,
@@ -327,7 +327,7 @@ public final class GraphEncoder {
 					output = typeNameID.typeIDtoName.reduce( into: output ) {
 						result, tuple in
 						result.append(
-							DataBlock.TypeMap(
+							DataBlock.typeMap(
 								typeID:			tuple.key,
 								typeVersion:	tuple.value.version,
 								typeName:		tuple.value.typeName
@@ -364,7 +364,7 @@ public final class GraphEncoder {
 					output = keyNameID.keyIDtoKey.reduce( into: output ) {
 						result, tuple in
 						result.append(
-							DataBlock.KeyMap(
+							DataBlock.keyMap(
 								keyID:		tuple.key,
 								keyName:	tuple.value
 							).readableOutput(info: info)
@@ -383,7 +383,7 @@ public final class GraphEncoder {
 				try header.write(to: &writer)
 				
 				for (typeID,tnv) in typeNameID.typeIDtoName {
-					try DataBlock.TypeMap( typeID: typeID, typeVersion: tnv.version, typeName: tnv.typeName ).write(to: &writer)
+					try DataBlock.typeMap( typeID: typeID, typeVersion: tnv.version, typeName: tnv.typeName ).write(to: &writer)
 				}
 				
 				for block in blocks {
@@ -391,7 +391,7 @@ public final class GraphEncoder {
 				}
 				
 				for (keyID,key) in keyNameID.keyIDtoKey {
-					try DataBlock.KeyMap(keyID: keyID, keyName: key).write(to: &writer)
+					try DataBlock.keyMap(keyID: keyID, keyName: key).write(to: &writer)
 				}
 			}
 			
