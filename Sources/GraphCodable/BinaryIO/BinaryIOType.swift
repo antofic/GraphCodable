@@ -90,7 +90,6 @@ extension BinaryIOType where Self : BinaryFloatingPoint {
 extension Float : BinaryIOType {}
 extension Double : BinaryIOType {}
 
-
 extension Bool : BinaryIOType {
 	func write( to writer: inout BinaryWriter ) throws {
 		writer.writeValue( self )
@@ -120,7 +119,6 @@ extension Data : BinaryIOType {
 		self = try reader.readData()
 	}
 }
-
 
 extension Array : BinaryIOType where Element : BinaryIOType {
 	func write( to writer: inout BinaryWriter ) throws {

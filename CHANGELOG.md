@@ -1,4 +1,13 @@
 
+# 0.1.2
+
+Now encoder is capable of quickly collapsing any combination of arrays, dictionaries and sets containing ultimately native elements (but not optionals) into a sequence of bytes.
+Thanks to this optimization, encoding and decoding are faster and the size of the generated data reduced.
+This optimization, active by default, can be disabled using: `GraphEncoder().encode( inRoot, encodeOptions: .readable )`.
+
+## Be aware
+**The data format may be subject to future changes.**
+
 # 0.1.1
 
 This minor unstable release mades severale changes. Note that the data format has changed.

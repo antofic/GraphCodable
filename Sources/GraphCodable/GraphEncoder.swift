@@ -65,9 +65,9 @@ public struct EncodeOptions: OptionSet {
 	}
 	
 	//	four data sections:
-	public static let	useBinaryOptimization = Self( rawValue: 1 << 0 )
+	public static let	binaryCollapse = Self( rawValue: 1 << 0 )
 
-	public static let	fastest: Self	= [ .useBinaryOptimization ]
+	public static let	fastest: Self	= [ .binaryCollapse ]
 	public static let	readable: Self	= [  ]
 }
 
@@ -189,7 +189,7 @@ public final class GraphEncoder {
 
 			if let nativeValue = value as? GNativeCodable {
 				encodedData.append( .nativeType(keyID: keyID, value: nativeValue) )
-			} else if encodeOptions.contains( .fastest ), let binaryValue = value as? BinaryIOType {
+			} else if encodeOptions.contains( .binaryCollapse ), let binaryValue = value as? BinaryIOType {
 				let bytes = try binaryValue.bytes()
 				encodedData.append( .binaryType(keyID: keyID, bytes: bytes ) )
 			} else if type(of:value) is AnyClass {
