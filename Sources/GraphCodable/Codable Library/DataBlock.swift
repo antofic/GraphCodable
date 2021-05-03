@@ -285,13 +285,17 @@ extension DataBlock {
 			}
 		}
 		
-		func small( _ value: GNativeCodable ) -> String {
-			let phase1	= String(describing: value)
-			let maxLength	= 48
-			let phase2	= phase1.count > maxLength ?
-				phase1.prefix(maxLength).appending("…") : phase1
-			
-			return value is String ? "\"\(phase2)\"" : phase2
+		func small( _ value: GNativeCodable, _ info:DumpInfo ) -> String {
+			let phase1		= String(describing: value)
+			if info.options.contains( .noTruncation ) {
+				return phase1
+			} else {
+				let maxLength	= 48
+				let phase2	= phase1.count > maxLength ?
+					phase1.prefix(maxLength).appending("…") : phase1
+				
+				return value is String ? "\"\(phase2)\"" : phase2
+			}
 		}
 		
 		func typeString( _ typeID:UInt32, _ info: DumpInfo ) -> String {
@@ -314,7 +318,7 @@ extension DataBlock {
 		case .nilValue		( let keyID ):
 			return format( keyID, info, "nil")
 		case .nativeType	( let keyID, let value ):
-			return format( keyID, info, small(value) )
+			return format( keyID, info, small( value, info ) )
 		case .valueType	( let keyID ):
 			let string	= "STRUCT"
 			return format( keyID, info, string )

@@ -43,12 +43,14 @@ public struct DumpOptions: OptionSet {
 	public static let	showTypeVersion		= DumpOptions( rawValue: 1 << 6 )
 	//	includes '=== SECTION TITLE =========================================='
 	public static let	showSectionTitles	= DumpOptions( rawValue: 1 << 7 )
+	//	disable truncation of too long nativeValues (over 48 characters - String or Data typically)
+	public static let	noTruncation		= DumpOptions( rawValue: 1 << 8 )
 	
 	public static let	readable: DumpOptions = [
 		.showHeader, .showGraph, .indentLevel, .resolveIDs, .showSectionTitles
 	]
 	public static let	fullInfo: DumpOptions = [
-		.showHeader, .showTypeMap, .showGraph, .showKeyMap, .indentLevel, .resolveIDs, .showTypeVersion, .showSectionTitles
+		.showHeader, .showTypeMap, .showGraph, .showKeyMap, .indentLevel, .resolveIDs, .showTypeVersion, .showSectionTitles, .noTruncation
 	]
 	public static let	binaryLike: DumpOptions = [
 		.showHeader, .showTypeMap, .showGraph, .showKeyMap, .indentLevel, .showSectionTitles
