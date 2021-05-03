@@ -30,38 +30,54 @@ public struct DumpOptions: OptionSet {
 	}
 	
 	//	four data sections:
-	public static let	showHeader			= DumpOptions( rawValue: 1 << 0 )
-	public static let	showTypeMap			= DumpOptions( rawValue: 1 << 1 )
-	public static let	showGraph			= DumpOptions( rawValue: 1 << 2 )
-	public static let	showKeyMap			= DumpOptions( rawValue: 1 << 3 )
+	public static let	showHeader			= Self( rawValue: 1 << 0 )
+	public static let	showTypeMap			= Self( rawValue: 1 << 1 )
+	public static let	showGraph			= Self( rawValue: 1 << 2 )
+	public static let	showKeyMap			= Self( rawValue: 1 << 3 )
 	
 	//	indent the data
-	public static let	indentLevel			= DumpOptions( rawValue: 1 << 4 )
+	public static let	indentLevel			= Self( rawValue: 1 << 4 )
 	//	in the Graph section, resolve typeIDs in typeNames, keyIDs in keyNames
-	public static let	resolveIDs			= DumpOptions( rawValue: 1 << 5 )
+	public static let	resolveIDs			= Self( rawValue: 1 << 5 )
 	//	in the Graph section, show type versions (they are in the TypeMap section)
-	public static let	showTypeVersion		= DumpOptions( rawValue: 1 << 6 )
+	public static let	showTypeVersion		= Self( rawValue: 1 << 6 )
 	//	includes '=== SECTION TITLE =========================================='
-	public static let	showSectionTitles	= DumpOptions( rawValue: 1 << 7 )
+	public static let	showSectionTitles	= Self( rawValue: 1 << 7 )
 	//	disable truncation of too long nativeValues (over 48 characters - String or Data typically)
-	public static let	noTruncation		= DumpOptions( rawValue: 1 << 8 )
+	public static let	noTruncation		= Self( rawValue: 1 << 8 )
 	
-	public static let	readable: DumpOptions = [
+	public static let	readable: Self = [
 		.showHeader, .showGraph, .indentLevel, .resolveIDs, .showSectionTitles
 	]
-	public static let	fullInfo: DumpOptions = [
+	public static let	fullInfo: Self = [
 		.showHeader, .showTypeMap, .showGraph, .showKeyMap, .indentLevel, .resolveIDs, .showTypeVersion, .showSectionTitles, .noTruncation
 	]
-	public static let	binaryLike: DumpOptions = [
+	public static let	binaryLike: Self = [
 		.showHeader, .showTypeMap, .showGraph, .showKeyMap, .indentLevel, .showSectionTitles
 	]
 }
 
+public struct EncodeOptions: OptionSet {
+	public let rawValue: UInt
+	
+	public init(rawValue: UInt) {
+		self.rawValue	= rawValue
+	}
+	
+	//	four data sections:
+	public static let	useBinaryOptimization = Self( rawValue: 1 << 0 )
+
+	public static let	fastest: Self	= [ .useBinaryOptimization ]
+	public static let	readable: Self	= [  ]
+}
+
 
 public final class GraphEncoder {
-	private let encoder	= Encoder()
+	private let encoder	: Encoder
 
-	public init() {}
+	public init( options:EncodeOptions = .fastest ) {
+		self.encoder = Encoder( options:options )
+	}
 
 	public var userInfo : [String:Any] {
 		get { return encoder.userInfo }
@@ -81,7 +97,13 @@ public final class GraphEncoder {
 	// -------------------------------------------------
 
 	private final class Encoder : GEncoder {
+		private let	options : EncodeOptions
 		var userInfo	= [String:Any]()
+		
+		init( options:EncodeOptions ) {
+			self.options = options
+		}
+		
 		
 		private func _encodeRoot<T>( _ value: T ) throws -> EncodedData where T:GCodable {
 			defer { reset() }
@@ -172,6 +194,9 @@ public final class GraphEncoder {
 
 			if let nativeValue = value as? GNativeCodable {
 				encodedData.append( .nativeType(keyID: keyID, value: nativeValue) )
+			} else if options.contains( .fastest ), let binaryValue = value as? BinaryIOType {
+				let bytes = try binaryValue.bytes()
+				encodedData.append( .binaryType(keyID: keyID, bytes: bytes ) )
 			} else if type(of:value) is AnyClass {
 				guard let object = value as? GCodable & AnyObject else {
 					throw GCodableError.notEncodableType( typeName: "\(type(of:value))" )

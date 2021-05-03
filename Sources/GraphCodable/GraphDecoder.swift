@@ -202,7 +202,7 @@ fileprivate struct BlockDecoder {
 
 	private mutating func peek() throws -> DataBlock? {
 		if currentBlock == nil {
-			currentBlock	= reader.eof ? nil : try DataBlock.read(from: &reader, typeIDtoName: _typeIDtoName )
+			currentBlock	= reader.eof ? nil : try DataBlock( from: &reader )
 		}
 		return currentBlock
 	}
@@ -643,6 +643,29 @@ fileprivate final class TypeConstructor {
 				return value
 			} else { //	if not, construct it:
 				return try T.init(from: decoder)
+			}
+		case .binaryType( _ , let bytes ):
+			if let optType = T.self as? OptionalProtocol.Type {
+				// get the inner non optional type
+				let wrapped	= optType.fullUnwrappedType
+				
+				// check if conforms to GCodable.Type and
+				// costruct the value and check if is T
+				guard
+					let binaryIOType = wrapped as? BinaryIOType.Type,
+					let value = try binaryIOType.init(bytes: bytes) as? T
+				else {
+					throw GCodableError.typeMismatch(dataBlock: block.dataBlock)
+				}
+				return value
+			} else { //	if not, construct it:
+				guard
+					let binaryIOType = T.self as? BinaryIOType.Type,
+					let value = try binaryIOType.init(bytes: bytes) as? T
+				else {
+					throw GCodableError.typeMismatch(dataBlock: block.dataBlock)
+				}
+				return value
 			}
 		default:
 			guard let value = try decodeAnyNode( block:block, from:decoder ) as? T else {

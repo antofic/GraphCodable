@@ -33,7 +33,8 @@ BINARY FILE FORMAT:
 ···code·|·typeID···|·typeVersion·|·typeName      code = .typeMap
 ••••••PHASE 3: Graphcode =
 ···code·|·keyID                                  code = .nilValue
-···code·|·keyID····|·typeID······|·VALUE         code = .native( _ nativeCode:NativeCode )
+···code·|·keyID····|·VALUE                       code = .native( _ nativeCode:NativeCode )
+···code·|·keyID····|·[UInt8]                     code = .binaryType
 ···code·|·keyID                                  code = .valueType
 ···code·|·keyID····|·typeID······|·objID         code = .objectType
 ···code·|·keyID····|·typeID······|·objID         code = .objectSPtr (STRONG POINTER)
@@ -55,6 +56,7 @@ enum DataBlock {
 		static var header 		: BlockCode { return .header 		}
 		static var typeMap	 	: BlockCode { return .typeMap	  	}
 		static var nilValue	 	: BlockCode { return .nilValue	  	}
+		static var binaryType	: BlockCode { return .binaryType	}
 		static var valueType	: BlockCode { return .valueType		}
 		static var objectType	: BlockCode { return .objectType	}
 		static var objectSPtr	: BlockCode { return .objectSPtr	}
@@ -66,6 +68,7 @@ enum DataBlock {
 			case header	= 0xF0	// start from 240
 			case typeMap
 			case nilValue
+			case binaryType
 			case valueType
 			case objectType
 			case objectSPtr
@@ -106,6 +109,7 @@ enum DataBlock {
 	case typeMap	( typeID:IntID, typeVersion:UInt32, typeName:String )
 	case nilValue	( keyID:IntID )
 	case nativeType	( keyID:IntID, value:GNativeCodable )
+	case binaryType	( keyID:IntID, bytes:[UInt8] )
 	case valueType	( keyID:IntID )
 	case objectType	( keyID:IntID, typeID:IntID, objID:IntID )
 	case objectSPtr	( keyID:IntID, objID:IntID )
@@ -115,9 +119,10 @@ enum DataBlock {
 }
 
 //	-------------------------------------------------
-//	--Binary i/o
+//	--BinaryIOType conformance
 //	-------------------------------------------------
-extension DataBlock {
+
+extension DataBlock : BinaryIOType {
 	func write( to writer: inout BinaryWriter ) throws {
 		switch self {
 		case .header	( let version, let module, let unused1, let unused2 ):
@@ -139,6 +144,10 @@ extension DataBlock {
 			try Code.native( type(of:value).nativeCode ).write(to: &writer)
 			try keyID.write(to: &writer)
 			try value.write(to: &writer)
+		case .binaryType( let keyID, let bytes ):
+			try Code.binaryType.write(to: &writer)
+			try keyID.write(to: &writer)
+			try bytes.write(to: &writer)
 		case .valueType	( let keyID ):
 			try Code.valueType.write(to: &writer)
 			try keyID.write(to: &writer)
@@ -163,15 +172,15 @@ extension DataBlock {
 			try keyName.write(to: &writer)
 		}
 	}
-
-	static func read( from reader:inout BinaryReader, typeIDtoName:[IntID:TypeNameVersion]  ) throws -> DataBlock {
+	
+	init(from reader: inout BinaryReader) throws {
 		let code = try Code(from: &reader)
 
 		switch code {
 		case .native( let nativeCode ):
 			let keyID		= try IntID( from: &reader )
 			let nativeValue	= try nativeCode.readNativeType(from: &reader)
-			return .nativeType(keyID: keyID, value: nativeValue)
+			self = .nativeType(keyID: keyID, value: nativeValue)
 		case .block( let blockCode ):
 			switch blockCode {
 			case .header:
@@ -180,37 +189,41 @@ extension DataBlock {
 				let module	= try String	( from: &reader )
 				let unused1	= try UInt32	( from: &reader )
 				let unused2	= try UInt64	( from: &reader )
-				return .header(version: version, module:module, unused1: unused1, unused2: unused2)
+				self = .header(version: version, module:module, unused1: unused1, unused2: unused2)
 			case .typeMap:
 				let typeID	= try IntID		( from: &reader )
 				let version	= try UInt32	( from: &reader )
 				let name	= try String	( from: &reader )
-				return .typeMap(typeID: typeID, typeVersion: version, typeName: name )
+				self = .typeMap(typeID: typeID, typeVersion: version, typeName: name )
 			case .nilValue:
 				let keyID	= try IntID		( from: &reader )
-				return .nilValue(keyID: keyID)
+				self = .nilValue(keyID: keyID)
+			case .binaryType:
+				let keyID	= try IntID		( from: &reader )
+				let bytes	= try [UInt8]	( from: &reader )
+				self = .binaryType(keyID: keyID, bytes: bytes)
 			case .valueType:
 				let keyID	= try IntID		( from: &reader )
-				return .valueType(keyID: keyID)
+				self = .valueType(keyID: keyID)
 			case .objectType:
 				let keyID	= try IntID		( from: &reader )
 				let typeID	= try IntID		( from: &reader )
 				let objID	= try IntID		( from: &reader )
-				return .objectType(keyID: keyID, typeID: typeID, objID: objID)
+				self = .objectType(keyID: keyID, typeID: typeID, objID: objID)
 			case .objectSPtr:
 				let keyID	= try IntID		( from: &reader )
 				let objID	= try IntID		( from: &reader )
-				return .objectSPtr(keyID: keyID, objID: objID)
+				self = .objectSPtr(keyID: keyID, objID: objID)
 			case .objectWPtr:
 				let keyID	= try IntID		( from: &reader )
 				let objID	= try IntID		( from: &reader )
-				return .objectWPtr(keyID: keyID, objID: objID)
+				self = .objectWPtr(keyID: keyID, objID: objID)
 			case .end:
-				return .end
+				self = .end
 			case .keyMap:
 				let keyID	= try IntID		( from: &reader )
 				let keyName	= try String	( from: &reader )
-				return .keyMap(keyID: keyID, keyName: keyName)
+				self = .keyMap(keyID: keyID, keyName: keyName)
 			}
 		}
 	}
@@ -246,6 +259,7 @@ extension DataBlock {
 		switch self {
 		case .nilValue		( let keyID ):			return	keyID > 0 ? keyID : nil
 		case .nativeType	( let keyID, _ ):		return	keyID > 0 ? keyID : nil
+		case .binaryType	( let keyID, _ ):		return	keyID > 0 ? keyID : nil
 		case .valueType		( let keyID ):			return	keyID > 0 ? keyID : nil
 		case .objectType	( let keyID, _, _ ):	return	keyID > 0 ? keyID : nil
 		case .objectSPtr	( let keyID, _ ):		return	keyID > 0 ? keyID : nil
@@ -318,6 +332,9 @@ extension DataBlock {
 			return format( keyID, info, "nil")
 		case .nativeType	( let keyID, let value ):
 			return format( keyID, info, small( value, info ) )
+		case .binaryType( let keyID, let bytes ):
+			let string	= "BINARY \(bytes.count) bytes"
+			return format( keyID, info, string )
 		case .valueType	( let keyID ):
 			let string	= "STRUCT"
 			return format( keyID, info, string )
