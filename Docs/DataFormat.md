@@ -80,10 +80,10 @@ Filetype = gcodable V0, * = MyGraphCodableApp, U1 = 0, U2 = 0
 				- 3
 			.
 			+ "dict": STRUCT
-				- "4"
-				- 4
 				- "5"
 				- 5
+				- "4"
+				- 4
 			.
 		.
 		+ "aclass": POINTER? Obj1001
@@ -155,7 +155,7 @@ GraphCodable employs some tricks to reduce the size of the data to be stored.
 For example, types and keys are saved only once in special tables and are addressed to them through a unique ID.
 By using the '.binaryLike' option you can see the data saved in a format that more closely resembles the binary format actually used.
 
-`print( try GraphEncoder().dump( inRoot, options: .binaryLike ) )`
+`print( try GraphEncoder().dump( inRoot, dumpOptions: .binaryLike, encodeOptions: .fastest ) )`
 
 ```
 == HEADER ========================================================
@@ -166,17 +166,8 @@ Type100: V0 *.AClass
 - STRUCT
 	- CLASS Type100 Obj1000
 		+ Key100: STRUCT
-			+ Key101: STRUCT
-				- 1
-				- 2
-				- 3
-			.
-			+ Key102: STRUCT
-				- "5"
-				- 5
-				- "4"
-				- 4
-			.
+			+ Key101: BINARY 32 bytes
+			+ Key102: BINARY 64 bytes
 		.
 		+ Key103: POINTER? Obj1001
 	.
@@ -185,28 +176,20 @@ Type100: V0 *.AClass
 	- POINTER Obj1000
 	- CLASS Type100 Obj1001
 		+ Key100: STRUCT
-			+ Key101: STRUCT
-				- 1
-				- 2
-				- 3
-			.
-			+ Key102: STRUCT
-				- "5"
-				- 5
-				- "4"
-				- 4
-			.
+			+ Key101: BINARY 32 bytes
+			+ Key102: BINARY 64 bytes
 		.
 		+ Key103: nil
 	.
 .
 == KEYMAP ========================================================
 Key100: "astruct"
-Key102: "dict"
 Key101: "array"
+Key102: "dict"
 Key103: "aclass"
 ==================================================================
 ```
 We see how the **GRAPH** section uses IDs for types and keys, while the type and key strings are stored once in only two tables, one (**TYPEMAP**) preceding the **GRAPH** section and another (**KEYMAP**) following it. The version of the type (**V...**) is also stored in the type table.
+We also see an optimization in action, by default during encoding but normally disabled during dump, capable of quickly transforming any combination of arrays, dictionaries and sets containing ultimately native elements into a sequence of bytes (you can see **BINARY 64 bytes** replacing the "dict" dictionary) . Thanks to this optimization, encoding and decoding are faster and the size of the generated data reduced.
 
 

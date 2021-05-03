@@ -7,7 +7,6 @@
 
 import Foundation
 
-
 protocol OptionalProtocol {
 	static var wrappedType: Any.Type { get }
 	// nested optional types unwrapping

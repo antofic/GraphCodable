@@ -45,7 +45,7 @@ public struct DumpOptions: OptionSet {
 	public static let	showSectionTitles	= Self( rawValue: 1 << 7 )
 	//	disable truncation of too long nativeValues (over 48 characters - String or Data typically)
 	public static let	noTruncation		= Self( rawValue: 1 << 8 )
-	
+
 	public static let	readable: Self = [
 		.showHeader, .showGraph, .indentLevel, .resolveIDs, .showSectionTitles
 	]
@@ -73,23 +73,21 @@ public struct EncodeOptions: OptionSet {
 
 
 public final class GraphEncoder {
-	private let encoder	: Encoder
+	private let encoder	= Encoder()
 
-	public init( options:EncodeOptions = .fastest ) {
-		self.encoder = Encoder( options:options )
-	}
-
+	public init() {}
+	
 	public var userInfo : [String:Any] {
 		get { return encoder.userInfo }
 		set { encoder.userInfo = newValue }
 	}
 
-	public func dump<T>( _ value: T, options: DumpOptions = .readable ) throws -> String where T:GCodable {
-		return try encoder.dumpRoot( value, options:options )
+	public func dump<T>( _ value: T, dumpOptions: DumpOptions = .readable, encodeOptions: EncodeOptions = .readable ) throws -> String where T:GCodable {
+		return try encoder.dumpRoot( value, dumpOptions:dumpOptions, encodeOptions:encodeOptions )
 	}
 	
-	public func encode<T>( _ value: T ) throws -> Data where T:GCodable {
-		return try encoder.encodeRoot( value )
+	public func encode<T>( _ value: T, encodeOptions: EncodeOptions = .fastest ) throws -> Data where T:GCodable {
+		return try encoder.encodeRoot( value, encodeOptions:encodeOptions )
 	}
 
 	// -------------------------------------------------
@@ -97,30 +95,25 @@ public final class GraphEncoder {
 	// -------------------------------------------------
 
 	private final class Encoder : GEncoder {
-		private let	options : EncodeOptions
-		var userInfo	= [String:Any]()
+		var userInfo		= [String:Any]()
 		
-		init( options:EncodeOptions ) {
-			self.options = options
-		}
-		
-		
-		private func _encodeRoot<T>( _ value: T ) throws -> EncodedData where T:GCodable {
+		private func _encodeRoot<T>( _ value: T,encodeOptions: EncodeOptions ) throws -> EncodedData where T:GCodable {
 			defer { reset() }
-			reset()
+			reset( encodeOptions:encodeOptions )
+			
 			try encode( value )
 			
 			return encodedData
 		}
 		
-		func dumpRoot<T>( _ value: T, options: DumpOptions ) throws -> String where T:GCodable {
-			let encodedData = try _encodeRoot( value )
+		func dumpRoot<T>( _ value: T, dumpOptions: DumpOptions, encodeOptions:EncodeOptions ) throws -> String where T:GCodable {
+			let encodedData = try _encodeRoot( value, encodeOptions: encodeOptions )
 			
-			return encodedData.readableOutput(options: options)
+			return encodedData.readableOutput(options: dumpOptions)
 		}
 		
-		func encodeRoot<T>( _ value: T ) throws -> Data where T:GCodable {
-			let output	= try _encodeRoot( value )
+		func encodeRoot<T>( _ value: T, encodeOptions: EncodeOptions = .fastest ) throws -> Data where T:GCodable {
+			let output	= try _encodeRoot( value, encodeOptions:encodeOptions )
 			var writer	= BinaryWriter()
 			try output.write(to: &writer)
 			return writer.data()
@@ -149,12 +142,14 @@ public final class GraphEncoder {
 		}
 
 		// --------------------------------------------------------
+		private var			encodeOptions	= EncodeOptions.fastest
 		private var 		currentKeys		= Set<String>()
 		private var			referenceID		= ObjectMap()
 		private (set) var	encodedData		= EncodedData()
 		private var			tempNativeValue	: Any?
 
-		private func reset() {
+		private func reset( encodeOptions: EncodeOptions = EncodeOptions.fastest ) {
+			self.encodeOptions	= encodeOptions
 			self.currentKeys	= Set<String>()
 			self.referenceID	= ObjectMap()
 			self.encodedData	= EncodedData()
@@ -194,7 +189,7 @@ public final class GraphEncoder {
 
 			if let nativeValue = value as? GNativeCodable {
 				encodedData.append( .nativeType(keyID: keyID, value: nativeValue) )
-			} else if options.contains( .fastest ), let binaryValue = value as? BinaryIOType {
+			} else if encodeOptions.contains( .fastest ), let binaryValue = value as? BinaryIOType {
 				let bytes = try binaryValue.bytes()
 				encodedData.append( .binaryType(keyID: keyID, bytes: bytes ) )
 			} else if type(of:value) is AnyClass {
