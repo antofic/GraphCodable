@@ -118,9 +118,10 @@ Rows by rows:
 				-	**Int**, **Int8**, **Int16**, **Int32**, **Int64**, **UInt**, **UInt8**, **UInt16**, **UInt32**, **UInt64**
 				-	**Float**, **Double**
 				-	**String**, **Data**
-			-	In addition, GraphCodable conforms the following types to GCodable:
+				-	Each **Optional**, **Array**, **Set**, **Dictionary** containing native types is a native type in turn.
+				Native types are stored as a single block.
+			-	In addition, GraphCodable conforms the following types to GCodable when containing GCodable types:
 				-	**Array**, **Dictionary**, **Set**, **Optional**, **OptionSet**
-				-	 any **enum** whose rawValue is a native type, except **Data**
 		- 	Then you see: ``"aclass": POINTER? Obj1001`` This is because aclass has been conditionally archived.
 			The encoder assigns it an attempt ``ID (POINTER?)`` and waits for it to be stored unconditionally if it happens.
 	-	The second, third and fourth element of the array are always **b**, which has already been stored with ``ID=Obj1000``.
@@ -172,7 +173,3 @@ Key100: "astruct"
 ==================================================================
 ```
 We see how the **GRAPH** section uses IDs for types and keys, while the type and key strings are stored once in only two tables, one (**TYPEMAP**) preceding the **GRAPH** section and another (**KEYMAP**) following it. The version of the type (**V...**) is also stored in the type table.
-
-We also see an optimization in action, by default during encoding but normally disabled during dump, capable of quickly collapsing any combination of arrays, dictionaries and sets containing ultimately native elements (including optionals) into a sequence of bytes (you can see **BINARY 64 bytes** replacing the "dict" dictionary) . Thanks to this optimization, encoding and decoding are faster and the size of the generated data reduced.
-
-
