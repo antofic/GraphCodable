@@ -122,6 +122,7 @@ Rows by rows:
 				Native types are stored as a single block.
 			-	In addition, GraphCodable conforms the following types to GCodable when containing GCodable types:
 				-	**Array**, **Dictionary**, **Set**, **Optional**, **OptionSet**
+				-	To encode and decode enums with native rawValue it is sufficient to declare them GCodable.					
 		- 	Then you see: ``"aclass": POINTER? Obj1001`` This is because aclass has been conditionally archived.
 			The encoder assigns it an attempt ``ID (POINTER?)`` and waits for it to be stored unconditionally if it happens.
 	-	The second, third and fourth element of the array are always **b**, which has already been stored with ``ID=Obj1000``.
