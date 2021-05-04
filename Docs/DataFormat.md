@@ -139,7 +139,7 @@ GraphCodable employs some tricks to reduce the size of the data to be stored.
 For example, types and keys are saved only once in special tables and are addressed to them through a unique ID.
 By using the '.binaryLike' option you can see the data saved in a format that more closely resembles the binary format actually used.
 
-`print( try GraphEncoder().dump( inRoot, dumpOptions: .binaryLike, encodeOptions: .fastest ) )`
+`print( try GraphEncoder().dump( inRoot, options: .binaryLike ) )`
 
 ```
 == HEADER ========================================================
