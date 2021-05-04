@@ -177,9 +177,7 @@ public final class GraphEncoder {
 			}
 			// now value if not nil!
 
-/*			if let nativeValue = value as? GNativeCodable {
-				encodedData.append( .nativeType(keyID: keyID, value: nativeValue) )
-			} else */ if /*encodeOptions.contains( .binaryCollapse ), */ let binaryValue = value as? BinaryIOType {
+			if let binaryValue = value as? BinaryIOType {
 				encodedData.append( .inBinType(keyID: keyID, value: binaryValue ) )
 			} else if type(of:value) is AnyClass {
 				guard let object = value as? GCodable & AnyObject else {

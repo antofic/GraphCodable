@@ -107,7 +107,7 @@ extension DataBlock : BinaryIOType {
 			try keyID.write(to: &writer)
 		case .inBinType( let keyID, let value ):
 			// ••••• SALVO COME outBinType ••••••••••
-			let bytes	= try value.bytes()
+			let bytes	= try value.bytesArray()
 			try Code.outBinType.write(to: &writer)	// <----- ••••••
 			try keyID.write(to: &writer)
 			try bytes.write(to: &writer)

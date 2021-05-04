@@ -33,13 +33,13 @@ extension BinaryIOType {
 	public func encode(to encoder: GEncoder) throws	{ throw GCodableError.nativeEncodeError }
 	public init(from decoder: GDecoder) throws		{ throw GCodableError.nativeDecodeError }
 
-	func bytes() throws -> [UInt8] {
+	func bytesArray() throws -> [UInt8] {
 		var writer = BinaryWriter()
 		try write( to:&writer )
 		return writer.bytes
 	}
-	init( bytes: [UInt8] ) throws {
-		var reader = BinaryReader( data:bytes )
+	init( bytesArray: [UInt8] ) throws {
+		var reader = BinaryReader( data:bytesArray )
 		try self.init( from: &reader )
 	}
 }
