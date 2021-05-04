@@ -175,6 +175,7 @@ extension Array : BinaryIOType where Element : BinaryIOType {
 	}
 }
 
+// Attenzione, questa ottimizzazione solo per Array: Set e Dictionary la sfruttano
 extension Array : FixedSizeIOType where Element : FixedSizeIOType {
 	func write( to writer: inout BinaryWriter ) throws {
 		writer.writeArray( self )
@@ -187,15 +188,6 @@ extension Array : FixedSizeIOType where Element : FixedSizeIOType {
 // -- Set support (BinaryIOType & FixedSizeIOType ) -------------------------------------------
 
 extension Set : BinaryIOType where Element : BinaryIOType {
-	func write( to writer: inout BinaryWriter ) throws {
-		try Array( self ).write(to: &writer)
-	}
-	init( from reader: inout BinaryReader ) throws {
-		self = Set( try Array(from: &reader) )
-	}
-}
-
-extension Set : FixedSizeIOType where Element : FixedSizeIOType {
 	func write( to writer: inout BinaryWriter ) throws {
 		try Array( self ).write(to: &writer)
 	}
@@ -219,19 +211,3 @@ extension Dictionary : BinaryIOType where Key : BinaryIOType, Value : BinaryIOTy
 		self.init(uniqueKeysWithValues: zip(keys, values))
 	}
 }
-
-// Ho molti dubbi su questa!!!!
-extension Dictionary : FixedSizeIOType where Key : FixedSizeIOType, Value : FixedSizeIOType {
-	func write( to writer: inout BinaryWriter ) throws {
-		try Array( self.keys ).write(to: &writer )
-		try Array( self.values ).write(to: &writer )
-	}
-
-	init( from reader: inout BinaryReader ) throws {
-		let keys	= try [Key](from: &reader)
-		let values	= try [Value](from: &reader)
-
-		self.init(uniqueKeysWithValues: zip(keys, values))
-	}
-}
-
