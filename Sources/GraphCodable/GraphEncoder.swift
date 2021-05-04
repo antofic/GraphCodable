@@ -49,11 +49,17 @@ public struct DumpOptions: OptionSet {
 	public static let	readable: Self = [
 		.showHeader, .showGraph, .indentLevel, .resolveIDs, .showSectionTitles
 	]
-	public static let	fullInfo: Self = [
-		.showHeader, .showTypeMap, .showGraph, .showKeyMap, .indentLevel, .resolveIDs, .showTypeVersion, .showSectionTitles, .noTruncation
+	public static let	readableNoTruncation: Self = [
+		.showHeader, .showGraph, .indentLevel, .resolveIDs, .showSectionTitles, .noTruncation
 	]
 	public static let	binaryLike: Self = [
 		.showHeader, .showTypeMap, .showGraph, .showKeyMap, .indentLevel, .showSectionTitles
+	]
+	public static let	binaryLikeNoTruncation: Self = [
+		.showHeader, .showTypeMap, .showGraph, .showKeyMap, .indentLevel, .showSectionTitles, .noTruncation
+	]
+	public static let	fullInfo: Self = [
+		.showHeader, .showTypeMap, .showGraph, .showKeyMap, .indentLevel, .resolveIDs, .showTypeVersion, .showSectionTitles, .noTruncation
 	]
 }
 
