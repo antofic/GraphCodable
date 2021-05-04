@@ -29,13 +29,14 @@ enum GCodableError : Error {
 	case optionalDecodeError
 	case enumDecodeError
 
-	case nativeEncodeError
-	case nativeDecodeError
+	case binaryIOEncodeError
+	case binaryIODecodeError
 
 	// DataBlock
 	case parsingError
 	case readingInBinTypeError	
-	
+	case writingOutBinTypeError
+
 	// KeyedEncoder
 	case notEncodableType( typeName:String )
 

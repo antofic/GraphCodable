@@ -22,16 +22,21 @@
 
 import Foundation
 
-protocol BinaryIOType : GCodable {
+protocol NativeIOType : GCodable {
 	func write( to: inout BinaryWriter ) throws
 	init( from: inout BinaryReader ) throws
 }
 
-protocol FixedSizeIOType : BinaryIOType {}
+protocol FixedSizeIOType : NativeIOType {}
 
-extension BinaryIOType {
-	public func encode(to encoder: GEncoder) throws	{ throw GCodableError.nativeEncodeError }
-	public init(from decoder: GDecoder) throws		{ throw GCodableError.nativeDecodeError }
+extension NativeIOType {
+	public func encode(to encoder: GEncoder) throws	{
+		throw GCodableError.binaryIOEncodeError
+	}
+	
+	public init(from decoder: GDecoder) throws {
+		throw GCodableError.binaryIODecodeError
+	}
 
 	func bytesArray() throws -> [UInt8] {
 		var writer = BinaryWriter()
@@ -46,7 +51,7 @@ extension BinaryIOType {
 
 // -- BinaryInteger support (FixedSizeIOType) -------------------------------------------------------
 
-extension BinaryIOType where Self : FixedSizeIOType, Self : BinaryInteger {
+extension NativeIOType where Self : FixedSizeIOType, Self : BinaryInteger {
 	func write( to writer: inout BinaryWriter ) throws {
 		writer.writeValue( self )
 	}
@@ -70,7 +75,7 @@ extension UInt64	: FixedSizeIOType {}
 
 // -- BinaryFloatingPoint support (FixedSizeIOType) -------------------------------------------------------
 
-extension BinaryIOType where Self : FixedSizeIOType, Self : BinaryFloatingPoint {
+extension NativeIOType where Self : FixedSizeIOType, Self : BinaryFloatingPoint {
 	func write( to writer: inout BinaryWriter ) throws {
 		writer.writeValue( self )
 	}
@@ -86,7 +91,7 @@ extension Double	: FixedSizeIOType {}
 
 // -- Bool support (FixedSizeIOType) -------------------------------------------------------
 
-extension Bool : BinaryIOType, FixedSizeIOType {
+extension Bool : NativeIOType, FixedSizeIOType {
 	func write( to writer: inout BinaryWriter ) throws {
 		writer.writeValue( self )
 	}
@@ -99,7 +104,7 @@ extension Bool : BinaryIOType, FixedSizeIOType {
 
 // -- String support (BinaryIOType) -------------------------------------------------------
 
-extension String : BinaryIOType {
+extension String : NativeIOType {
 	func write( to writer: inout BinaryWriter ) throws {
 		writer.writeString( self )
 	}
@@ -110,7 +115,7 @@ extension String : BinaryIOType {
 
 // -- Data support (BinaryIOType) -------------------------------------------------------
 
-extension Data : BinaryIOType {
+extension Data : NativeIOType {
 	func write( to writer: inout BinaryWriter ) throws {
 		writer.writeData( self )
 	}
@@ -121,7 +126,7 @@ extension Data : BinaryIOType {
 
 // -- RawRepresentable support (BinaryIOType) -------------------------------------------
 
-extension BinaryIOType where Self : RawRepresentable, Self.RawValue : BinaryIOType {
+extension NativeIOType where Self : RawRepresentable, Self.RawValue : NativeIOType {
 	func write( to writer: inout BinaryWriter ) throws {
 		try self.rawValue.write(to: &writer)
 	}
@@ -135,7 +140,7 @@ extension BinaryIOType where Self : RawRepresentable, Self.RawValue : BinaryIOTy
 
 // -- Optional support (BinaryIOType) -------------------------------------------
 
-extension Optional : BinaryIOType where Wrapped : BinaryIOType {
+extension Optional : NativeIOType where Wrapped : NativeIOType {
 	func write( to writer: inout BinaryWriter ) throws {
 		switch self {
 		case .none:
@@ -157,7 +162,7 @@ extension Optional : BinaryIOType where Wrapped : BinaryIOType {
 
 // -- Array support (BinaryIOType & FixedSizeIOType ) -------------------------------------------
 
-extension Array : BinaryIOType where Element : BinaryIOType {
+extension Array : NativeIOType where Element : NativeIOType {
 	func write( to writer: inout BinaryWriter ) throws {
 		try count.write(to: &writer)
 		for element in self {
@@ -175,7 +180,9 @@ extension Array : BinaryIOType where Element : BinaryIOType {
 	}
 }
 
-// Attenzione, questa ottimizzazione solo per Array: Set e Dictionary la sfruttano
+//	Attenzione, questa ottimizzazione solo per Array: Set e Dictionary la sfruttano
+//	se l'array è fatto di FixedSizeIOType posso stamparlo in blocco
+//	e pure l'array diventa un FixedSizeIOType
 extension Array : FixedSizeIOType where Element : FixedSizeIOType {
 	func write( to writer: inout BinaryWriter ) throws {
 		writer.writeArray( self )
@@ -187,7 +194,7 @@ extension Array : FixedSizeIOType where Element : FixedSizeIOType {
 
 // -- Set support (BinaryIOType & FixedSizeIOType ) -------------------------------------------
 
-extension Set : BinaryIOType where Element : BinaryIOType {
+extension Set : NativeIOType where Element : NativeIOType {
 	func write( to writer: inout BinaryWriter ) throws {
 		try Array( self ).write(to: &writer)
 	}
@@ -198,7 +205,7 @@ extension Set : BinaryIOType where Element : BinaryIOType {
 
 // -- Dictionary support (BinaryIOType & FixedSizeIOType ) -------------------------------------------
 
-extension Dictionary : BinaryIOType where Key : BinaryIOType, Value : BinaryIOType {
+extension Dictionary : NativeIOType where Key : NativeIOType, Value : NativeIOType {
 	func write( to writer: inout BinaryWriter ) throws {
 		try Array( self.keys ).write(to: &writer )
 		try Array( self.values ).write(to: &writer )

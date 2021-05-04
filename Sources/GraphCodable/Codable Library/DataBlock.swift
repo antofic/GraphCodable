@@ -22,8 +22,6 @@
 
 import Foundation
 
-//	enum BlockType { case header, typeMap, graph, keyMap }
-
 /*
 BINARY FILE FORMAT:
 ••••••PHASE 1: Header	// only one!
@@ -52,28 +50,28 @@ keyID = 0 -> unkeyed
 typealias IntID	= UInt32
 
 enum DataBlock {
-	private enum Code : UInt8, BinaryIOType {
-		case header	= 0xF0	// start from 240
-		case typeMap
-		case nilValue
-		case inBinType
-		case outBinType
-		case valueType
-		case objectType
-		case objectSPtr
-		case objectWPtr
-		case end
-		case keyMap
+	private enum Code : UInt8, NativeIOType {
+		case header		= 0x5E	// '^'
+		case typeMap	= 0x23	// '#'
+		case nilValue	= 0x30	// '0'
+		case inBinType	= 0x3C	// '<'
+		case outBinType	= 0x3E	// '>'
+		case valueType	= 0x25	// '%'
+		case objectType	= 0x40	// '@'
+		case objectSPtr	= 0x21	// '!'
+		case objectWPtr	= 0x3F	// '?'
+		case end		= 0x2E	// '.'
+		case keyMap		= 0x2A	// '*'
 	}
 	
-	private enum HeaderID : UInt64, BinaryIOType {
+	private enum HeaderID : UInt64, NativeIOType {
 		case gcodable	= 0x67636F6461626C65	// ascii = 'gcodable'
 	}
 
 	case header		( version:UInt32, module:String, unused1:UInt32, unused2:UInt64 )
 	case typeMap	( typeID:IntID, typeVersion:UInt32, typeName:String )
 	case nilValue	( keyID:IntID )
-	case inBinType	( keyID:IntID, value:BinaryIOType )	// input only
+	case inBinType	( keyID:IntID, value:NativeIOType )	// input only
 	case outBinType	( keyID:IntID, bytes:[UInt8] )		// output only
 	case valueType	( keyID:IntID )
 	case objectType	( keyID:IntID, typeID:IntID, objID:IntID )
@@ -87,7 +85,7 @@ enum DataBlock {
 //	--BinaryIOType conformance
 //	-------------------------------------------------
 
-extension DataBlock : BinaryIOType {
+extension DataBlock : NativeIOType {
 	func write( to writer: inout BinaryWriter ) throws {
 		switch self {
 		case .header	( let version, let module, let unused1, let unused2 ):
@@ -111,10 +109,9 @@ extension DataBlock : BinaryIOType {
 			try Code.outBinType.write(to: &writer)	// <----- ••••••
 			try keyID.write(to: &writer)
 			try bytes.write(to: &writer)
-		case .outBinType( let keyID, let bytes ):
-			try Code.outBinType.write(to: &writer)
-			try keyID.write(to: &writer)
-			try bytes.write(to: &writer)
+		case .outBinType( _, _ ):
+			// non deve mai arrivare qui
+			throw( GCodableError.writingOutBinTypeError )
 		case .valueType	( let keyID ):
 			try Code.valueType.write(to: &writer)
 			try keyID.write(to: &writer)
