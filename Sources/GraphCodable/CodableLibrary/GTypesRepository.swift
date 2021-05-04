@@ -344,20 +344,6 @@ fileprivate struct TypeDescriptor : Equatable, Hashable {
 	fileprivate init( type:Any.Type, mainModuleName main:String ) throws {
 		try self.init( typeName: String(reflecting: type), mainModuleName: main )
 	}
-
-	/*
-	fileprivate func update( table:[TypeDescriptor:TypeDescriptor] ) -> TypeDescriptor {
-		if let updated = table[self] {
-			return updated
-		} else {
-			return TypeDescriptor(
-				module:		self.module,
-				parts:		self.parts,
-				subTypes:	self.subTypes.map { $0.update(table: table) }
-			)
-		}
-	}
-	*/
 	
 	// recursively updates types
 	fileprivate func updateToNewType( with typeReplacementsTable:[String:TypeDescriptor] ) -> TypeDescriptor {
@@ -371,17 +357,6 @@ fileprivate struct TypeDescriptor : Equatable, Hashable {
 			)
 		}
 	}
-	/*
-	fileprivate func contains( type:TypeDescriptor ) -> Bool {
-		for subType in subTypes {
-			if type == subType || subType.contains(type: type) {
-				return true
-			}
-		}
-		return false
-	}
-	*/
-	
 	
 	private func typeName( stripMainModule:Bool ) -> String {
 		var string	= ""

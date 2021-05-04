@@ -63,16 +63,3 @@ extension Optional where Wrapped == Any {
 		self = .some( currentValue )
 	}
 }
-
-//	OPTIONAL CONFORMANCE
-
-extension Optional : GCodable where Wrapped : GCodable {
-	public func encode(to encoder: GEncoder) throws {
-		throw GCodableError.optionalEncodeError
-	}
-	
-	public init(from decoder: GDecoder) throws {
-		throw GCodableError.optionalDecodeError
-	}
-}
-
