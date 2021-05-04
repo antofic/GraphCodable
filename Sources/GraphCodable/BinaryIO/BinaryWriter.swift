@@ -83,7 +83,7 @@ where T:MutableDataProtocol, T:ContiguousBytes
 			bytes.append(
 				contentsOf:UnsafeBufferPointer(
 					start: UnsafePointer<UInt8>( OpaquePointer( ptr ) ),
-					count: 1 + endptr - ptr
+					count: endptr - ptr + 1
 				)
 			)
 		}
