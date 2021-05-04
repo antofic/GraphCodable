@@ -1,7 +1,7 @@
 
 # 0.1.2
 
-Now encoder is capable of quickly collapsing any combination of arrays, dictionaries and sets containing ultimately native elements (but not optionals) into a sequence of bytes.
+Now encoder is capable of quickly collapsing any combination of arrays, dictionaries and sets containing ultimately native elements (including optionals) into a sequence of bytes.
 Thanks to this optimization, encoding and decoding are faster and the size of the generated data reduced.
 This optimization, active by default, can be disabled using: `GraphEncoder().encode( inRoot, encodeOptions: .readable )`.
 

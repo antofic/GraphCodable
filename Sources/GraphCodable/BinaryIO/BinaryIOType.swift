@@ -31,12 +31,12 @@ protocol FixedSizeIOType : BinaryIOType {}
 
 extension BinaryIOType {
 	func bytes() throws -> [UInt8] {
-		var writer = BinaryWriterBase<Array<UInt8>>()
+		var writer = BinaryWriter()
 		try write( to:&writer )
 		return writer.bytes
 	}
 	init( bytes: [UInt8] ) throws {
-		var reader = BinaryReaderBase<Array<UInt8>>( bytes:bytes )
+		var reader = BinaryReader( data:bytes )
 		try self.init( from: &reader )
 	}
 }

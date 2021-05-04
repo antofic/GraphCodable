@@ -57,7 +57,6 @@ public struct DumpOptions: OptionSet {
 	]
 }
 
-
 public struct EncodeOptions: OptionSet {
 	public let rawValue: UInt
 	
