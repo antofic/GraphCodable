@@ -605,8 +605,6 @@ fileprivate final class TypeConstructor {
 			case .nilValue( _ ):
 				let x : Any? = nil
 				return x as Any
-			case .nativeType( _, let value ):
-				return value
 			case .objectWPtr( _, let objID ):
 				// nessun controllo: può essere nil!
 				return try decodeAnyObject( objID:objID, from:decoder ) as Any
@@ -644,7 +642,7 @@ fileprivate final class TypeConstructor {
 			} else { //	if not, construct it:
 				return try T.init(from: decoder)
 			}
-		case .binaryType( _ , let bytes ):
+		case .outBinType( _ , let bytes ):
 			if let optType = T.self as? OptionalProtocol.Type {
 				// get the inner non optional type
 				let wrapped	= optType.fullUnwrappedType

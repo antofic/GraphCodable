@@ -22,7 +22,7 @@
 
 import Foundation
 
-protocol BinaryIOType {
+protocol BinaryIOType : GCodable {
 	func write( to: inout BinaryWriter ) throws
 	init( from: inout BinaryReader ) throws
 }
@@ -30,6 +30,9 @@ protocol BinaryIOType {
 protocol FixedSizeIOType : BinaryIOType {}
 
 extension BinaryIOType {
+	public func encode(to encoder: GEncoder) throws	{ throw GCodableError.nativeEncodeError }
+	public init(from decoder: GDecoder) throws		{ throw GCodableError.nativeDecodeError }
+
 	func bytes() throws -> [UInt8] {
 		var writer = BinaryWriter()
 		try write( to:&writer )
@@ -129,19 +132,6 @@ extension BinaryIOType where Self : RawRepresentable, Self.RawValue : BinaryIOTy
 		self = value
 	}
 }
-
-extension FixedSizeIOType where Self : RawRepresentable, Self.RawValue : FixedSizeIOType {
-	func write( to writer: inout BinaryWriter ) throws {
-		try self.rawValue.write(to: &writer)
-	}
-	init( from reader: inout BinaryReader ) throws {
-		guard let value = Self(rawValue: try Self.RawValue(from: &reader) ) else {
-			throw BinaryReaderError.cantConstructRawRepresentable
-		}
-		self = value
-	}
-}
-
 
 // -- Optional support (BinaryIOType) -------------------------------------------
 
@@ -244,3 +234,4 @@ extension Dictionary : FixedSizeIOType where Key : FixedSizeIOType, Value : Fixe
 		self.init(uniqueKeysWithValues: zip(keys, values))
 	}
 }
+

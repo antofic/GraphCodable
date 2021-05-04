@@ -74,17 +74,8 @@ Filetype = gcodable V0, * = MyGraphCodableApp, U1 = 0, U2 = 0
 - STRUCT
 	- CLASS *.AClass Obj1000
 		+ "astruct": STRUCT
-			+ "array": STRUCT
-				- 1
-				- 2
-				- 3
-			.
-			+ "dict": STRUCT
-				- "5"
-				- 5
-				- "4"
-				- 4
-			.
+			+ "array": [1, 2, 3]
+			+ "dict": ["4": 4, "5": 5]
 		.
 		+ "aclass": POINTER? Obj1001
 	.
@@ -93,17 +84,8 @@ Filetype = gcodable V0, * = MyGraphCodableApp, U1 = 0, U2 = 0
 	- POINTER Obj1000
 	- CLASS *.AClass Obj1001
 		+ "astruct": STRUCT
-			+ "array": STRUCT
-				- 1
-				- 2
-				- 3
-			.
-			+ "dict": STRUCT
-				- "4"
-				- 4
-				- "5"
-				- 5
-			.
+			+ "array": [1, 2, 3]
+			+ "dict": ["5": 5, "4": 4]
 		.
 		+ "aclass": nil
 	.
@@ -166,8 +148,8 @@ Type100: V0 *.AClass
 - STRUCT
 	- CLASS Type100 Obj1000
 		+ Key100: STRUCT
-			+ Key101: BINARY 32 bytes
-			+ Key102: BINARY 64 bytes
+			+ Key101: [1, 2, 3]
+			+ Key102: ["4": 4, "5": 5]
 		.
 		+ Key103: POINTER? Obj1001
 	.
@@ -176,17 +158,17 @@ Type100: V0 *.AClass
 	- POINTER Obj1000
 	- CLASS Type100 Obj1001
 		+ Key100: STRUCT
-			+ Key101: BINARY 32 bytes
-			+ Key102: BINARY 64 bytes
+			+ Key101: [1, 2, 3]
+			+ Key102: ["4": 4, "5": 5]
 		.
 		+ Key103: nil
 	.
 .
 == KEYMAP ========================================================
-Key100: "astruct"
 Key101: "array"
-Key102: "dict"
 Key103: "aclass"
+Key102: "dict"
+Key100: "astruct"
 ==================================================================
 ```
 We see how the **GRAPH** section uses IDs for types and keys, while the type and key strings are stored once in only two tables, one (**TYPEMAP**) preceding the **GRAPH** section and another (**KEYMAP**) following it. The version of the type (**V...**) is also stored in the type table.

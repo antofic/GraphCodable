@@ -52,55 +52,20 @@ keyID = 0 -> unkeyed
 typealias IntID	= UInt32
 
 enum DataBlock {
-	private enum Code : RawRepresentable, BinaryIOType {
-		static var header 		: BlockCode { return .header 		}
-		static var typeMap	 	: BlockCode { return .typeMap	  	}
-		static var nilValue	 	: BlockCode { return .nilValue	  	}
-		static var binaryType	: BlockCode { return .binaryType	}
-		static var valueType	: BlockCode { return .valueType		}
-		static var objectType	: BlockCode { return .objectType	}
-		static var objectSPtr	: BlockCode { return .objectSPtr	}
-		static var objectWPtr	: BlockCode { return .objectWPtr	}
-		static var end	 		: BlockCode { return .end	 		}
-		static var keyMap	 	: BlockCode { return .keyMap	  	}
-		
-		fileprivate enum BlockCode : UInt8, BinaryIOType {
-			case header	= 0xF0	// start from 240
-			case typeMap
-			case nilValue
-			case binaryType
-			case valueType
-			case objectType
-			case objectSPtr
-			case objectWPtr
-			case end
-			case keyMap
-		}
-		
-		// be aware: BlockCode.rawValue and NativeCode.rawValue
-		// must not overlap. We use:
-		//		NativeCode.rawValue	< 240
-		//		BlockCode.rawValue	≥ 240
-		case block( _ blockCode:BlockCode )
-		case native( _ nativeCode:NativeCode )
-
-		init?(rawValue: UInt8) {
-			if let code = NativeCode(rawValue: rawValue) {
-				self = .native( code )
-			} else if let code = BlockCode(rawValue: rawValue) {
-				self = .block( code )
-			} else {
-				return nil
-			}
-		}
-		var rawValue: UInt8 {
-			switch self {
-			case .block( let code ):	return code.rawValue
-			case .native( let code ):	return code.rawValue
-			}
-		}
+	private enum Code : UInt8, BinaryIOType {
+		case header	= 0xF0	// start from 240
+		case typeMap
+		case nilValue
+		case inBinType
+		case outBinType
+		case valueType
+		case objectType
+		case objectSPtr
+		case objectWPtr
+		case end
+		case keyMap
 	}
-
+	
 	private enum HeaderID : UInt64, BinaryIOType {
 		case gcodable	= 0x67636F6461626C65	// ascii = 'gcodable'
 	}
@@ -108,8 +73,8 @@ enum DataBlock {
 	case header		( version:UInt32, module:String, unused1:UInt32, unused2:UInt64 )
 	case typeMap	( typeID:IntID, typeVersion:UInt32, typeName:String )
 	case nilValue	( keyID:IntID )
-	case nativeType	( keyID:IntID, value:GNativeCodable )
-	case binaryType	( keyID:IntID, bytes:[UInt8] )
+	case inBinType	( keyID:IntID, value:BinaryIOType )	// input only
+	case outBinType	( keyID:IntID, bytes:[UInt8] )		// output only
 	case valueType	( keyID:IntID )
 	case objectType	( keyID:IntID, typeID:IntID, objID:IntID )
 	case objectSPtr	( keyID:IntID, objID:IntID )
@@ -140,12 +105,14 @@ extension DataBlock : BinaryIOType {
 		case .nilValue	( let keyID ):
 			try Code.nilValue.write(to: &writer)
 			try keyID.write(to: &writer)
-		case .nativeType( let keyID, let value ):
-			try Code.native( type(of:value).nativeCode ).write(to: &writer)
+		case .inBinType( let keyID, let value ):
+			// trasformo in outBinType
+			let bytes	= try value.bytes()
+			try Code.outBinType.write(to: &writer)	// <-----
 			try keyID.write(to: &writer)
-			try value.write(to: &writer)
-		case .binaryType( let keyID, let bytes ):
-			try Code.binaryType.write(to: &writer)
+			try bytes.write(to: &writer)
+		case .outBinType( let keyID, let bytes ):
+			try Code.outBinType.write(to: &writer)
 			try keyID.write(to: &writer)
 			try bytes.write(to: &writer)
 		case .valueType	( let keyID ):
@@ -177,54 +144,50 @@ extension DataBlock : BinaryIOType {
 		let code = try Code(from: &reader)
 
 		switch code {
-		case .native( let nativeCode ):
-			let keyID		= try IntID( from: &reader )
-			let nativeValue	= try nativeCode.readNativeType(from: &reader)
-			self = .nativeType(keyID: keyID, value: nativeValue)
-		case .block( let blockCode ):
-			switch blockCode {
-			case .header:
-				let _		= try HeaderID	( from: &reader )
-				let version	= try UInt32	( from: &reader )
-				let module	= try String	( from: &reader )
-				let unused1	= try UInt32	( from: &reader )
-				let unused2	= try UInt64	( from: &reader )
-				self = .header(version: version, module:module, unused1: unused1, unused2: unused2)
-			case .typeMap:
-				let typeID	= try IntID		( from: &reader )
-				let version	= try UInt32	( from: &reader )
-				let name	= try String	( from: &reader )
-				self = .typeMap(typeID: typeID, typeVersion: version, typeName: name )
-			case .nilValue:
-				let keyID	= try IntID		( from: &reader )
-				self = .nilValue(keyID: keyID)
-			case .binaryType:
-				let keyID	= try IntID		( from: &reader )
-				let bytes	= try [UInt8]	( from: &reader )
-				self = .binaryType(keyID: keyID, bytes: bytes)
-			case .valueType:
-				let keyID	= try IntID		( from: &reader )
-				self = .valueType(keyID: keyID)
-			case .objectType:
-				let keyID	= try IntID		( from: &reader )
-				let typeID	= try IntID		( from: &reader )
-				let objID	= try IntID		( from: &reader )
-				self = .objectType(keyID: keyID, typeID: typeID, objID: objID)
-			case .objectSPtr:
-				let keyID	= try IntID		( from: &reader )
-				let objID	= try IntID		( from: &reader )
-				self = .objectSPtr(keyID: keyID, objID: objID)
-			case .objectWPtr:
-				let keyID	= try IntID		( from: &reader )
-				let objID	= try IntID		( from: &reader )
-				self = .objectWPtr(keyID: keyID, objID: objID)
-			case .end:
-				self = .end
-			case .keyMap:
-				let keyID	= try IntID		( from: &reader )
-				let keyName	= try String	( from: &reader )
-				self = .keyMap(keyID: keyID, keyName: keyName)
-			}
+		case .header:
+			let _		= try HeaderID	( from: &reader )
+			let version	= try UInt32	( from: &reader )
+			let module	= try String	( from: &reader )
+			let unused1	= try UInt32	( from: &reader )
+			let unused2	= try UInt64	( from: &reader )
+			self = .header(version: version, module:module, unused1: unused1, unused2: unused2)
+		case .typeMap:
+			let typeID	= try IntID		( from: &reader )
+			let version	= try UInt32	( from: &reader )
+			let name	= try String	( from: &reader )
+			self = .typeMap(typeID: typeID, typeVersion: version, typeName: name )
+		case .nilValue:
+			let keyID	= try IntID		( from: &reader )
+			self = .nilValue(keyID: keyID)
+		case .inBinType:
+			// non deve mai arrivare qui
+			throw( GCodableError.readingInBinTypeError )
+		case .outBinType:
+			let keyID	= try IntID		( from: &reader )
+			let bytes	= try [UInt8]	( from: &reader )
+			self = .outBinType(keyID: keyID, bytes: bytes)
+		case .valueType:
+			let keyID	= try IntID		( from: &reader )
+			self = .valueType(keyID: keyID)
+		case .objectType:
+			let keyID	= try IntID		( from: &reader )
+			let typeID	= try IntID		( from: &reader )
+			let objID	= try IntID		( from: &reader )
+			self = .objectType(keyID: keyID, typeID: typeID, objID: objID)
+		case .objectSPtr:
+			let keyID	= try IntID		( from: &reader )
+			let objID	= try IntID		( from: &reader )
+			self = .objectSPtr(keyID: keyID, objID: objID)
+		case .objectWPtr:
+			let keyID	= try IntID		( from: &reader )
+			let objID	= try IntID		( from: &reader )
+			self = .objectWPtr(keyID: keyID, objID: objID)
+		case .end:
+			self = .end
+		case .keyMap:
+			let keyID	= try IntID		( from: &reader )
+			let keyName	= try String	( from: &reader )
+			self = .keyMap(keyID: keyID, keyName: keyName)
 		}
 	}
 }
@@ -258,8 +221,8 @@ extension DataBlock {
 	var keyID : IntID? {
 		switch self {
 		case .nilValue		( let keyID ):			return	keyID > 0 ? keyID : nil
-		case .nativeType	( let keyID, _ ):		return	keyID > 0 ? keyID : nil
-		case .binaryType	( let keyID, _ ):		return	keyID > 0 ? keyID : nil
+		case .inBinType		( let keyID, _ ):		return	keyID > 0 ? keyID : nil
+		case .outBinType	( let keyID, _ ):		return	keyID > 0 ? keyID : nil
 		case .valueType		( let keyID ):			return	keyID > 0 ? keyID : nil
 		case .objectType	( let keyID, _, _ ):	return	keyID > 0 ? keyID : nil
 		case .objectSPtr	( let keyID, _ ):		return	keyID > 0 ? keyID : nil
@@ -298,12 +261,12 @@ extension DataBlock {
 			}
 		}
 		
-		func small( _ value: GNativeCodable, _ info:DumpInfo ) -> String {
+		func small( _ value: Any, _ info:DumpInfo ) -> String {
 			let phase1		= String(describing: value)
 			if info.options.contains( .noTruncation ) {
 				return phase1
 			} else {
-				let maxLength	= 48
+				let maxLength	= 64
 				let phase2	= phase1.count > maxLength ?
 					phase1.prefix(maxLength).appending("…") : phase1
 				
@@ -330,9 +293,9 @@ extension DataBlock {
 			return	"Type\( typeID ): V\( typeVersion ) \( typeName )"
 		case .nilValue	( let keyID ):
 			return format( keyID, info, "nil")
-		case .nativeType	( let keyID, let value ):
+		case .inBinType( let keyID, let value ):
 			return format( keyID, info, small( value, info ) )
-		case .binaryType( let keyID, let bytes ):
+		case .outBinType( let keyID, let bytes ):
 			let string	= "BINARY \(bytes.count) bytes"
 			return format( keyID, info, string )
 		case .valueType	( let keyID ):

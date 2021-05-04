@@ -144,7 +144,7 @@ extension List: GCodable where Element:GCodable {
 
 //	testOptionSet
 //	we make 'DumpOptions' (defined in 'GraphEncoder.swift') gcodable!
-extension DumpOptions : GCodable {}
+extension DumpOptions : BinaryIOType {}
 
 // --------------------------------------------------------------------------------
 

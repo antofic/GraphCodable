@@ -34,7 +34,8 @@ enum GCodableError : Error {
 
 	// DataBlock
 	case parsingError
-
+	case readingInBinTypeError	
+	
 	// KeyedEncoder
 	case notEncodableType( typeName:String )
 

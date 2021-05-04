@@ -57,20 +57,6 @@ public struct DumpOptions: OptionSet {
 	]
 }
 
-public struct EncodeOptions: OptionSet {
-	public let rawValue: UInt
-	
-	public init(rawValue: UInt) {
-		self.rawValue	= rawValue
-	}
-	
-	//	four data sections:
-	public static let	binaryCollapse = Self( rawValue: 1 << 0 )
-
-	public static let	fastest: Self	= [ .binaryCollapse ]
-	public static let	readable: Self	= [  ]
-}
-
 
 public final class GraphEncoder {
 	private let encoder	= Encoder()
@@ -82,12 +68,12 @@ public final class GraphEncoder {
 		set { encoder.userInfo = newValue }
 	}
 
-	public func dump<T>( _ value: T, dumpOptions: DumpOptions = .readable, encodeOptions: EncodeOptions = .readable ) throws -> String where T:GCodable {
-		return try encoder.dumpRoot( value, dumpOptions:dumpOptions, encodeOptions:encodeOptions )
+	public func dump<T>( _ value: T, options: DumpOptions = .readable ) throws -> String where T:GCodable {
+		return try encoder.dumpRoot( value, options:options )
 	}
 	
-	public func encode<T>( _ value: T, encodeOptions: EncodeOptions = .fastest ) throws -> Data where T:GCodable {
-		return try encoder.encodeRoot( value , encodeOptions:encodeOptions )
+	public func encode<T>( _ value: T ) throws -> Data where T:GCodable {
+		return try encoder.encodeRoot( value )
 	}
 
 	// -------------------------------------------------
@@ -97,23 +83,23 @@ public final class GraphEncoder {
 	private final class Encoder : GEncoder {
 		var userInfo		= [String:Any]()
 		
-		private func _encodeRoot<T>( _ value: T,encodeOptions: EncodeOptions ) throws -> EncodedData where T:GCodable {
+		private func _encodeRoot<T>( _ value: T ) throws -> EncodedData where T:GCodable {
 			defer { reset() }
-			reset( /* encodeOptions:encodeOptions */ )
+			reset()
 			
 			try encode( value )
 			
 			return encodedData
 		}
 		
-		func dumpRoot<T>( _ value: T, dumpOptions: DumpOptions, encodeOptions:EncodeOptions ) throws -> String where T:GCodable {
-			let encodedData = try _encodeRoot( value, encodeOptions: encodeOptions )
+		func dumpRoot<T>( _ value: T, options: DumpOptions ) throws -> String where T:GCodable {
+			let encodedData = try _encodeRoot( value )
 			
-			return encodedData.readableOutput(options: dumpOptions)
+			return encodedData.readableOutput(options: options)
 		}
 		
-		func encodeRoot<T>( _ value: T, encodeOptions: EncodeOptions = .fastest ) throws -> Data where T:GCodable {
-			let output	= try _encodeRoot( value, encodeOptions:encodeOptions )
+		func encodeRoot<T>( _ value: T ) throws -> Data where T:GCodable {
+			let output	= try _encodeRoot( value )
 			var writer	= BinaryWriter()
 			try output.write(to: &writer)
 			return writer.data()
@@ -142,14 +128,12 @@ public final class GraphEncoder {
 		}
 
 		// --------------------------------------------------------
-		private var			encodeOptions	= EncodeOptions.fastest
 		private var 		currentKeys		= Set<String>()
 		private var			referenceID		= ObjectMap()
 		private (set) var	encodedData		= EncodedData()
 		private var			tempNativeValue	: Any?
 
-		private func reset( encodeOptions: EncodeOptions = EncodeOptions.fastest ) {
-			self.encodeOptions	= encodeOptions
+		private func reset() {
 			self.currentKeys	= Set<String>()
 			self.referenceID	= ObjectMap()
 			self.encodedData	= EncodedData()
@@ -187,11 +171,10 @@ public final class GraphEncoder {
 			}
 			// now value if not nil!
 
-			if let nativeValue = value as? GNativeCodable {
+/*			if let nativeValue = value as? GNativeCodable {
 				encodedData.append( .nativeType(keyID: keyID, value: nativeValue) )
-			} else if encodeOptions.contains( .binaryCollapse ), let binaryValue = value as? BinaryIOType {
-				let bytes = try binaryValue.bytes()
-				encodedData.append( .binaryType(keyID: keyID, bytes: bytes ) )
+			} else */ if /*encodeOptions.contains( .binaryCollapse ), */ let binaryValue = value as? BinaryIOType {
+				encodedData.append( .inBinType(keyID: keyID, value: binaryValue ) )
 			} else if type(of:value) is AnyClass {
 				guard let object = value as? GCodable & AnyObject else {
 					throw GCodableError.notEncodableType( typeName: "\(type(of:value))" )
