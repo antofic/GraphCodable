@@ -1,7 +1,7 @@
 
 # 0.1.3
 
-Previous native types have been dropped en masse, replaced by binary types. Binary types are also better readable in dumps. As a result the encodeOptions have been eliminated and the dump interface returned as in version 0.1.1.
+Previous native types have been dropped en masse, replaced by binary types that act as new native types. Binary types are also better readable in dumps. As a result the encodeOptions have been eliminated and the dump interface returned as in version 0.1.1.
 
 ## Be aware
 **The data format may be subject to future changes.**
