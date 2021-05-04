@@ -119,7 +119,7 @@ Rows by rows:
 				-	**Float**, **Double**
 				-	**String**, **Data**
 				-	Each **Optional**, **Array**, **Set**, **Dictionary** containing native types is a native type in turn.
-				Native types are stored as a single block.
+				Native types are stored as a single block of data.
 			-	In addition, GraphCodable conforms the following types to GCodable when containing GCodable types:
 				-	**Array**, **Dictionary**, **Set**, **Optional**, **OptionSet**
 				-	To encode and decode enums with native rawValue it is sufficient to declare them GCodable.					
