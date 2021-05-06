@@ -33,3 +33,15 @@ extension GCodable where Self : RawRepresentable, Self.RawValue : GCodable {
 		self = value
 	}
 }
+
+extension NativeIOType where Self : RawRepresentable, Self.RawValue : NativeIOType {
+	func write( to writer: inout BinaryWriter ) throws {
+		try self.rawValue.write(to: &writer)
+	}
+	init( from reader: inout BinaryReader ) throws {
+		guard let value = Self(rawValue: try Self.RawValue(from: &reader) ) else {
+			throw BinaryReaderError.cantConstructRawRepresentable
+		}
+		self = value
+	}
+}

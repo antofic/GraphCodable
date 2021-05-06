@@ -22,7 +22,7 @@
 
 import Foundation
 
-//	ARRAY SUPPORT
+//	Array SUPPORT ------------------------------------------------------
 extension Array: GCodable where Element:GCodable {
 	public func encode(to encoder: GEncoder) throws {
 		for element in self {
@@ -39,7 +39,85 @@ extension Array: GCodable where Element:GCodable {
 	}
 }
 
-//	SET SUPPORT
+extension Array : NativeIOType where Element : NativeIOType {
+	func write( to writer: inout BinaryWriter ) throws {
+		try count.write(to: &writer)
+		for element in self {
+			try element.write(to: &writer)
+		}
+	}
+	init( from reader: inout BinaryReader ) throws {
+		var array = [Element]()
+		let count = try Int( from: &reader )
+		array.reserveCapacity( count )
+		for _ in 0..<count {
+			array.append( try Element.init(from: &reader) )
+		}
+		self = array
+	}
+}
+
+//	Attenzione, questa ottimizzazione solo per Array: Set e Dictionary la sfruttano
+//	se l'array è fatto di FixedSizeIOType posso stamparlo in blocco
+//	e pure l'array diventa un FixedSizeIOType
+extension Array : FixedSizeIOType where Element : FixedSizeIOType {
+	func write( to writer: inout BinaryWriter ) throws {
+		writer.writeArray( self )
+	}
+	init( from reader: inout BinaryReader ) throws {
+		self = try reader.readArray()
+	}
+}
+
+//	ContiguousArray SUPPORT ------------------------------------------------------
+
+extension ContiguousArray: GCodable where Element:GCodable {
+	public func encode(to encoder: GEncoder) throws {
+		for element in self {
+			try encoder.encode( element )
+		}
+	}
+	public init(from decoder: GDecoder) throws {
+		self.init()
+		
+		self.reserveCapacity( try decoder.unkeyedCount() )
+		while try decoder.unkeyedCount() > 0 {
+			self.append( try decoder.decode() )
+		}
+	}
+}
+
+extension ContiguousArray : NativeIOType where Element : NativeIOType {
+	func write( to writer: inout BinaryWriter ) throws {
+		try count.write(to: &writer)
+		for element in self {
+			try element.write(to: &writer)
+		}
+	}
+	init( from reader: inout BinaryReader ) throws {
+		var array = ContiguousArray<Element>()
+		let count = try Int( from: &reader )
+		array.reserveCapacity( count )
+		for _ in 0..<count {
+			array.append( try Element.init(from: &reader) )
+		}
+		self = array
+	}
+}
+
+
+extension ContiguousArray : FixedSizeIOType where Element : FixedSizeIOType {
+	func write( to writer: inout BinaryWriter ) throws {
+		writer.writeContiguousArray( self )
+	}
+	init( from reader: inout BinaryReader ) throws {
+		self = try reader.readContiguousArray()
+	}
+}
+
+
+
+//	Set SUPPORT ------------------------------------------------------
 extension Set: GCodable where Element:GCodable {
 	public func encode(to encoder: GEncoder) throws {
 		for element in self {
@@ -56,7 +134,18 @@ extension Set: GCodable where Element:GCodable {
 	}
 }
 
-//	DICTIONARY SUPPORT
+extension Set : NativeIOType where Element : NativeIOType {
+	func write( to writer: inout BinaryWriter ) throws {
+		try Array( self ).write(to: &writer)
+	}
+	init( from reader: inout BinaryReader ) throws {
+		self = Set( try Array(from: &reader) )
+	}
+}
+
+
+//	Dictionary SUPPORT ------------------------------------------------------
+
 extension Dictionary: GCodable where Key:GCodable, Value:GCodable {
 	public func encode(to encoder: GEncoder) throws {
 		for (key,value) in self {
@@ -77,3 +166,16 @@ extension Dictionary: GCodable where Key:GCodable, Value:GCodable {
 	}
 }
 
+extension Dictionary : NativeIOType where Key : NativeIOType, Value : NativeIOType {
+	func write( to writer: inout BinaryWriter ) throws {
+		try Array( self.keys ).write(to: &writer )
+		try Array( self.values ).write(to: &writer )
+	}
+
+	init( from reader: inout BinaryReader ) throws {
+		let keys	= try [Key](from: &reader)
+		let values	= try [Value](from: &reader)
+
+		self.init(uniqueKeysWithValues: zip(keys, values))
+	}
+}

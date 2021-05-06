@@ -29,6 +29,7 @@ import XCTest
 struct Model : GCodable {
 	//	Swift cant have an array of weak references, so we create a generic box
 	//	to hold one:
+	
 	final class WeakBox<T> : GCodable where T:AnyObject, T:GCodable {
 		private (set) weak var boxed : T?
 		
@@ -47,6 +48,29 @@ struct Model : GCodable {
 			try decoder.deferDecode { self.boxed = $0 }
 		}
 	}
+
+	/*
+	struct WeakBox<T> : GCodable where T:AnyObject, T:GCodable {
+		private (set) weak var boxed : T?
+		
+		private init() {
+		}
+		
+		init( _ boxed:T ) {
+			self.boxed	= boxed
+		}
+		
+		func encode(to encoder: GEncoder) throws {
+			//	weak variables must be encoded conditionally!!!
+			try encoder.encodeConditional( boxed )
+		}
+		
+		init(from decoder: GDecoder) throws {
+			var value = WeakBox()
+			try decoder.deferDecode { value.boxed = $0 }
+		}
+	}
+	*/
 	//	Now we create a node class that hold an array of boxed weak references:
 
 	class Node : GCodable {
