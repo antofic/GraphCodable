@@ -4,7 +4,7 @@ Firstly, I apologize for my poor English. I hope the content remains understanda
 
 GraphCodable is an **experimental** Swift encode/decode package (similar to Codable at interface level) that does not treat reference types as second-class citizens.
 
-With version **0.2.0**, the package has been completely revised. It now relies on `NSStringFromClass(...)` to generate the "type name" and on  `NSClassFromString(...)` to retrieve the class type fro it. At least on Apple systems this procedure should now be stable.
+With version **0.2.0**, the package has been completely revised. It now relies on `NSStringFromClass(...)` to generate the "type name" and on  `NSClassFromString(...)` to retrieve the class type from it. At least on Apple systems this procedure should now be stable.
 
 Thanks to this change **it is no longer necessary to register the classes (the repository is gone)** or even set the main module name.
 
