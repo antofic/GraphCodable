@@ -55,9 +55,6 @@ fileprivate class Node : Codable, GCodable {
 // --------------------------------------------------------------------------------
 
 final class DirectedAcyclicGraphTests: XCTestCase {
-	override func setUp() {
-		GTypesRepository.initialize()
-	}
 
 	func testDAG() throws {
 		//	A directed acyclic graph (DAG) from wikipedia

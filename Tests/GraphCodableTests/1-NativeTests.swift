@@ -25,9 +25,6 @@ import XCTest
 
 
 final class NativeTests: XCTestCase {
-	override func setUp() {
-		GTypesRepository.initialize()
-	}
 	
 	func testString() throws {
 		let inRoot	= "Pippo"

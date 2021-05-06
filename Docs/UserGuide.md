@@ -1,7 +1,6 @@
 #  User Guide
 
-- [Initialization](#Initialization)
-- [Introduction to reference type registration](#Introduction-to-reference-type-registration)
+- [Premise](#Premise)
 - [Code examples](#Code-examples)
 	- [Native types and collection support](#Native-types-and-collection-support)
 	- [Value types](#Value-types)
@@ -18,51 +17,18 @@
 		- [UserInfo dictionary](#UserInfo-dictionary)
 		- [Reference type version system](#Reference-type-version-system)
 		- [Reference type replacement system](#Reference-type-replacement-system)
-- [Reference type registration](#Reference-type-registration)
-	- [Types repository](#Types-repository)
-	- [Type names](#Type-names)
-- [Final thoughts](#Final-thoughts)
 	
-## Initialization
-GraphCodable must be initialized before using it by calling the function from the main module.
-```swift
-import GraphCodable
+## Premise
+GraphCodable has been completely revised. It now relies on `NSStringFromClass(...)` to generate the "type name" and on  `NSClassFromString(...)` to retrieve the class type.
+At least on Apple systems this procedure should be stable.
 
-GTypesRepository.initialize()
-```
-When called with no arguments, GraphCodable uses this function to know the name of the swift main module and remove it from the type name (replacing it with an *asterisk*) so that decoding a file does not depend on this name.
-```swift
+Thanks to this change **it is no longer necessary to register the classes (the repository is gone)** or even set the main module name.
 
-public final class GTypesRepository {
-	public static func initialize( fromFileID fileID:String = #fileID )
-	public static func initialize( mainModuleName name:String )
-	...
-}
-```
-Swift doesn't provide a way to get this name, not even at runtime. And so it is taken from `#fileID`.
+All the previous features are maintained, except for the reference type replacement system which is no longer available at this point in the redesign phase.
 
-## Introduction to reference type registration
-Typically, the initialization is carried out simultaneously with the registration of all the **reference types** that can be decoded by defining a specific function as in the following example and calling it from your main module when your software starts.
-```swift
-import GraphCodable
+Sometimes `NSStringFromClass (...)` generates mangled type names. GraphCodable therefore depends on the [CwlDemangle](https://github.com/mattgallagher/CwlDemangle) package for the sole purpose of presenting more readable class names. For encoding/decoding CwlDemangle is not necessary.
 
-func initializeGraphCodable() {
-	GTypesRepository.initialize()	
-
-	Boy.register()
-	Girl.register()
-	Men.register()
-	Woman.register()
-	// etc...
-}
-
-// call after startup:
-initializeGraphCodable()
-```
-**Registration of reference types is required to support inheritance. Value types do not need to be registered.**
-
-The encoder automatically registers all reference types it encounters, and so there is no need to register any types if you are decoding a file after encoding it for testing purposes. The next examples will take advantage of this feature and so they just call `GTypesRepository.initialize()`.
-I will return to the topic at the end of the document.
+Use `myClass.isGCodable` to check if a class is actually decodable.
 
 ## Code examples
 
@@ -85,8 +51,6 @@ GraphCodable make Optional, Array, Set, Dictionary codable if the hold codable t
 import Foundation
 import GraphCodable
 
-GTypesRepository.initialize()
-
 let inRoot	= [["a":1.5,"b":2.0],nil,["c":2.5,"d":3.0,"e":nil]]
 
 // encode inRoot in data
@@ -106,8 +70,6 @@ GraphCodable uses enums with string rawValue as keys.
 ```swift
 import Foundation
 import GraphCodable
-
-GTypesRepository.initialize()
 
 struct Example : GCodable, Equatable {
 	private(set) var name		: String
@@ -146,7 +108,7 @@ let outRoot	= try GraphDecoder().decode( type(of:inRoot), from: data )
 
 print( outRoot == inRoot )	// prints: true
 ```
-You can check if a keyed value is present in the archive with ``try decoder.contains(...)`` before decoding it.
+You can check if a keyed value is present in the archive with `try decoder.contains(...)` before decoding it.
 **Values are removed from the decoder as they are decoded**.
 
 #### Unkeyed coding
@@ -155,8 +117,6 @@ The same example using unkeyed coding. With unkeyed coding you must decode value
 ```swift
 import Foundation
 import GraphCodable
-
-GTypesRepository.initialize()
 
 struct Example : GCodable, Equatable {
 	private(set) var name		: String
@@ -228,8 +188,6 @@ The same example with a reference type will show how GraphCodable don't duplicat
 import Foundation
 import GraphCodable
 
-GTypesRepository.initialize()
-
 final class Example : GCodable, Equatable, Codable {
 	private(set) var name		: String
 	private(set) var examples	: [Example]
@@ -290,8 +248,6 @@ GraphCodable **supports inheritance**: in other words, the type of decoded objec
 import Foundation
 import GraphCodable
 
-GTypesRepository.initialize()
-
 class View : CustomStringConvertible, GCodable, Codable {
 	init() {
 	}
@@ -337,8 +293,6 @@ GraphCodable supports conditional encoding:  `encodeConditional(...)` encodes a 
 ```swift
 import Foundation
 import GraphCodable
-
-GTypesRepository.initialize()
 
 class ConditionalList : GCodable {
 	private (set) var next : ConditionalList?
@@ -420,8 +374,6 @@ The next example shows how GraphCodable encode and decode this [DAG](https://en.
 ```swift
 import Foundation
 import GraphCodable
-
-GTypesRepository.initialize()
 
 class Node : Codable, GCodable {
 	private (set) var connections = [String:Node]()
@@ -582,8 +534,6 @@ Similarly, this pattern requires to 'deferDecode' the weak variable (parent) bec
 import Foundation
 import GraphCodable
 
-GTypesRepository.initialize()
-
 extension Hashable where Self: AnyObject {
 	func hash(into hasher: inout Hasher) {
 		hasher.combine( ObjectIdentifier(self) )
@@ -731,343 +681,115 @@ The use is identical to that of Codable.
 
 #### Reference type version system
 
-GraphCodable implements a reference type version system:
+GraphCodable implements a reference type version system.
+
+Suppose our program saves its data in the "Documents/MyFile.graph" file:
+```swift
+import Foundation
+import GraphCodable
+
+class MyData :GCodable, CustomStringConvertible {
+	let number : Int
+	
+	init( number: Int ) {
+		self.number	= number
+	}
+	
+	private enum Key : String {
+		case number
+	}
+	
+	required init(from decoder: GDecoder) throws {
+		self.number	= try decoder.decode(for: Key.number)
+		}
+
+	func encode(to encoder: GEncoder) throws {
+		try encoder.encode( number, for:Key.number )
+	}
+
+	var description: String {
+		return "\(type(of:self))(number: \(number))"
+	}
+}
+
+let inRoot	= MyData(number: 3)
+print( inRoot )
+// print: MyData(number: 3)
+
+let data = try GraphEncoder().encode( inRoot )
+
+let path = FileManager.default.urls(
+	for: .documentDirectory, in: .userDomainMask
+)[0].appendingPathComponent("MyFile.graph")
+
+try data.write(to: path)
+```
+The new version of the program uses a different implementation of the MyData class. It is therefore necessary to be able to read the data saved by both versions of MyData. That's how:
 
 ```swift
 import Foundation
 import GraphCodable
 
-GTypesRepository.initialize()
-
-let data : Data
-
-do {
-	class MyData :GCodable {
-		let number : Int
-		
-		init( number: Int ) {
-			self.number	= number
-		}
-		
-		private enum Key : String {
-			case number
-		}
-		
-		required init(from decoder: GDecoder) throws {
-			self.number	= try decoder.decode(for: Key.number)
-			}
+class MyData :GCodable, CustomStringConvertible {
+	let string : String
 	
-		func encode(to encoder: GEncoder) throws {
-			try encoder.encode( number, for:Key.number )
-		}
+	init( string: String ) {
+		self.string	= string
 	}
-
-	let inRoot	= MyData(number: 3)
-
-	data = try GraphEncoder().encode( inRoot )
-}
-
-//	Now suppose we want to change MyData to use a more general
-//	string instead of a simple integer in a new version of our app
-GTypesRepository.initialize()
-
-do {
-	class MyData :GCodable {
-		let string : String
+	
+	private enum OldKey : String {
+		case number
+	}
+	
+	private enum Key : String {
+		case string
+	}
+	
+	//	Let's make a new version of MyData...
+	static var	encodeVersion: UInt32 { return 1 }
+	
+	// ...so that during the dearchive it can be distinguished from the old one:
+	required init(from decoder: GDecoder) throws {
+		let version = try decoder.encodedVersion( type(of:self) )
 		
-		init( string: String ) {
-			self.string	= string
-		}
-		
-		private enum OldKey : String {
-			case number
-		}
-		
-		private enum Key : String {
-			case string
-		}
-		
-		//	Let's make a new version of MyData...
-		static var	encodeVersion: UInt32 { return 1 }
-		
-		// ...so that during the dearchive it can be distinguished from the old one:
-		required init(from decoder: GDecoder) throws {
-			let version = try decoder.encodedVersion( type(of:self) )
-			
-			switch version {
-			case 0:
-				print( "decoding \(MyData.self) version 0 and updating to \(Self.encodeVersion)..." )
-				self.string	=  String( try decoder.decode( for: OldKey.number ) as Int )
-			case Self.encodeVersion:
-				print( "decoding the actual (\(Self.encodeVersion)) version of \(MyData.self)..." )
-				self.string	=  try decoder.decode( for: Key.string )
-			default:
-				preconditionFailure( "unknown version \(version) for type \( MyData.self )" )
-			}
-		}
-		
-		func encode(to encoder: GEncoder) throws {
-			try encoder.encode( string, for:Key.string )
+		switch version {
+		case 0:
+			print( "decoding \(MyData.self) version 0 and updating to \(Self.encodeVersion)..." )
+			self.string	=  String( try decoder.decode( for: OldKey.number ) as Int )
+		case Self.encodeVersion:
+			print( "decoding the actual (\(Self.encodeVersion)) version of \(MyData.self)..." )
+			self.string	=  try decoder.decode( for: Key.string )
+		default:
+			preconditionFailure( "unknown version \(version) for type \( MyData.self )" )
 		}
 	}
 	
-	//	we need to register MyData.
-	MyData.register()
+	func encode(to encoder: GEncoder) throws {
+		try encoder.encode( string, for:Key.string )
+	}
 	
-	var outRoot : MyData
-	
-	outRoot	= try GraphDecoder().decode( MyData.self, from: data )
-	// print: decoding MyData version 0 and updating to 1...
-	
-	print( outRoot )
-	// print: MyData(string: "3")
-	
-	outRoot	= try GraphDecoder().decode( MyData.self, from: try GraphEncoder().encode( outRoot ) )
-	// print: decoding the actual (1) version of MyData...
-
-	print( outRoot )
-	// print: MyData(string: "3")
+	var description: String {
+		return "\(type(of:self))(string: \(string))"
+	}
 }
+
+let path = FileManager.default.urls(
+	for: .documentDirectory, in: .userDomainMask
+)[0].appendingPathComponent("MyFile.graph")
+
+let data	= try Data(contentsOf: path)
+
+let outRoot	= try GraphDecoder().decode( MyData.self, from: data )
+// print: decoding MyData version 0 and updating to 1...
+print( outRoot )
+// print: MyData(string: "3")
+
+let outRoot2	= try GraphDecoder().decode( MyData.self, from: GraphEncoder().encode( outRoot ) )
+// print: decoding the actual (1) version of MyData...
+print( outRoot2 )
+// print: MyData(string: "3")
 ```
+
 #### Reference type replacement system
 
-The type name of value types is not encoded, so it is always possible to change the name of a "struct" without affecting the decoding. The same thing doesn't happen for reference types. Therefore GraphCodable implements a reference type replacements system.
-
-```swift
-import Foundation
-import GraphCodable
-
-GTypesRepository.initialize()
-
-let data : Data
-
-do {
-	class MyData :GCodable, CustomStringConvertible {
-		let number : Int
-		
-		init( number: Int ) {
-			self.number	= number
-		}
-		
-		private enum Key : String {
-			case number
-		}
-		
-		required init(from decoder: GDecoder) throws {
-			self.number	= try decoder.decode(for: Key.number)
-		}
-		
-		func encode(to encoder: GEncoder) throws {
-			try encoder.encode( number, for:Key.number )
-		}
-		
-		var description: String {
-			return "\(type(of:self))(number: \(number))"
-		}
-	}
-	
-	class Container<T:GCodable> :GCodable, CustomStringConvertible {
-		let value : T
-
-		init( value: T ) {
-			self.value	= value
-		}
-
-		private enum Key : String {
-			case value
-		}
-
-		required init(from decoder: GDecoder) throws {
-			self.value	= try decoder.decode(for: Key.value)
-		}
-		
-		func encode(to encoder: GEncoder) throws {
-			try encoder.encode( value, for:Key.value )
-		}
-
-		var description: String {
-			return "\(type(of:self))(value: \(value))"
-		}
-	}
-	
-	let inRoot	= [Container(value: MyData(number: 3))]
-	
-	data = try GraphEncoder().encode( inRoot )
-	print( inRoot )	// print [Container<MyData>(value: MyData(number: 3))]
-}
-
-GTypesRepository.initialize()
-
-do {
-	//	Now suppose we want to change the type of MyData to MyNewData
-
-	class MyNewData :GCodable, CustomStringConvertible {
-		let number : Int
-	
-		init( number: Int ) {
-			self.number	= number
-		}
-		
-		private enum Key : String {
-			case number
-		}
-		
-		required init(from decoder: GDecoder) throws {
-			self.number	= try decoder.decode(for: Key.number)
-		}
-		
-		func encode(to encoder: GEncoder) throws {
-			try encoder.encode( number, for:Key.number )
-		}
-
-		var description: String {
-			return "\(type(of:self))(number: \(number))"
-		}
-	}
-
-	//	and the type of Container<...> to NewContainer<...>
-
-	class NewContainer<T:GCodable> :GCodable, CustomStringConvertible {
-		let value : T
-
-		init( value: T ) {
-			self.value	= value
-		}
-
-		private enum Key : String {
-			case value
-		}
-
-		required init(from decoder: GDecoder) throws {
-			self.value	= try decoder.decode(for: Key.value)
-		}
-		
-		func encode(to encoder: GEncoder) throws {
-			try encoder.encode( value, for:Key.value )
-		}
-
-		var description: String {
-			return "\(type(of:self))(value: \(value))"
-		}
-	}
-
-	//	... and therefore every time the MyData and Container<...>
-	//	types are encountered during the decode, the new MyNewData
-	//	and NewContainer<...> types must be created in their place.
-	
-	//	We need dummy classes with the names that we want replace:
-	class MyData {}
-	class Container<T> {}
-
-	//	unregister MyData if needed, register MyNewData and teach
-	//	the TypesRepository to replace MyData with MyNewData:
-	try MyNewData.replace(type: MyData.self)
-	
-	//	unregister Container<...> if needed, register NewContainer<...>
-	//	and teach the TypesRepository to replace Container<MyData> with
-	//	NewContainer<MyNewData>:
-	try NewContainer<MyNewData>.replace(type: Container<MyData>.self)
-	
-	//	notice how substitution also occurs for types nested in other types
-	let outRoot	= try GraphDecoder().decode( [NewContainer<MyNewData>].self, from: data )
-	print( outRoot )	// print [NewContainer<MyNewData>(value: MyNewData(number: 3))]
-}
-```
-## Reference type registration
-
-Registration of reference types is required to support inheritance. Value types do not need to be registered.
-
-To register a decodable **reference** type ``myType`` in the types repository, you simply call ``myType.register()``.
-
-I suggest creating a function like the following **in your app main module**:
-```swift
-
-func initializeGraphCodable() {
-	GTypesRepository.initialize()	
-
-	Boy.register()
-	Girl.register()
-	Men.register()
-	Woman.register()
-	// etc...
-}
-```
-and call it after startup. It is important to call it from the main module because GraphCodable needs this name and gets it from the default ``#fileID`` 'hidden' parameter in the ``GTypesRepository.initialize( fromFileID fileID:String = #fileID )`` function. Swift should really offer a function to get the main module name to avoid such tricks.
-
-### Types repository
-
-You can see the contents of the GTypesRepository with ``print( GTypesRepository.shared )``. With the previous example it will print (with some additional indentation for clarity):
-
-**This example needes to be updated.**
-```
-GTypesRepository(
-	* = "MyGraphCodableApp",
-	registeredTypes = [
-		"*.MyNewData",
-		"*.NewContainer<*.MyNewData>"
-	],
-	typeReplacementsTable = [
-		"*.MyData": "*.MyNewData",
-		"*.Container<*.MyData>": "*.NewContainer<*.MyNewData>"
-	]
-)
-```
-The types repository is a sigleton object that contain a dictionary of string / reference type pairs, where the string is a "stabilized" form of type name. The encoder encode the name of every reference type it encounters. The decoder decode the type name and consults the type repository to get the corresponding type with which to instantiate the value.
-And so **you have to register in the repository all possible reference types that may be encountered during decode** otherwise the decoder can't costruct values from their type. In this case, GraphCodable throws an exception showing which types are missing from the repository.
-
-Maintaining a consistent repository of all types that can be decoded during application development can be a tedious and error prone task.
-I can't do much to alleviate this problem, but I have equipped GraphCodable with two functions:
-
-- ``GTypesRepository.shared.help()``
--  ``GraphDecoder().help( from data: Data )``
-
-The first provides in a string the Swift code that contains the function necessary to register all the reference types currently present in the repository. In other words, the result of all the registrations made automatically by the encoder from the opening of the program or the last call to `GTypesRepository.initialize()`.
-
-The second provides in a string the Swift code that contains the function necessary to register all reference types present in the data file that is passed to it. That is, the types that must be registered to be able to dearchive that data file.
-
-To clear the content of the repository, simply reinizialize it with `GTypesRepository.initialize()`.
-
-### Type names
-By design, GraphCodable **never exposes type names as strings**. Even in the case of type replacements, GraphCodable forces you to define an empty type with the name of the reference type to replace (as showed in [Type replacement system](#Type-replacement-system)) instead of using the string of its name.
-
-But, as described, encoding / decoding requires the internal use of type names. Swift does not offer a function to obtain a string that can uniquely and stably identify each type. ``String(describing:)`` does not provide enough information, so I must necessarily use ``String(reflecting:)`` to get a suitable string. The aforementioned string is not used as it is; it is recursively decomposed into all component types, context information in the form ``.(____).(____).`` is eliminated where present, and a stable (*within the limits of the possible*) type name is reconstructed. The type name thus obtained is then cached so that this rather expensive operation occurs only once for each type.
-
-## Final thoughts
-
-So why did I call this package "**experimental**"?
-
-Apart from all the possible internal improvements to the package, there are some unsolvable iussues (as far as I know) related to some current Swift features.
-
-- ``String(reflecting:)`` used to obtain type names might change the format to make decoding impossible without a package update. That said, as long as context information is kept inside round brackets, this shouldn't happen.
-- An unfortunate, albeit minor, circumstance is that Swift doesn't have a function to get the main module name. A ``#mainModule`` would be greatly appreciated and would remove the need to call `GTypesRepository.initialize()` right after startup (but not the need to register types).
-- There is nothing I can do to avoid duplication of the internal object used as storage by collection types like Arrays. Ideally, it should be made GCodable compliant to avoid duplicating it during decode, but I don't have access to it. Therefore, if 10 arrays sharing a single storage object containing 100 integers are encoded, 10 arrays each with its own distinct storage object containing 100 integers are decoded, effectively tenfolding their memory footprint exactly as it happens with Codable. Conversely, I emphasize that GraphCodable, unlike Codable, does not duplicate objects stored as elements of collections, as already demonstrated by the examples in this document. 
-- The need to use ``deferDecode(...)`` for weak variables used to break ARC strong memory cycles is not a big problem, in my opinion, because you know exactly what and where they are. Just stick to the [rules](/Docs/CodingRules.md). If anything, the limitation is that these variables must necessarily be owned by a reference type because ``deferDecode(...)`` cannot be called in the ``init(from: ...)`` method of a value type. The ``WeakBox<T>`` used in ``testDGC()`` (see [DirectedCyclicGraphTests](/Tests/GraphCodableTests/5-DirectedCyclicGraphTests.swift)) must be a class.
-- The main difficulty, in my opinion, is that you have to keep the types repository updated during the development of an application. The absence of a single 'GCodable' reference type from the types repository makes it impossible to decode a data file containing it.
- 
-  Ideally, Swift should make two functions available for transforming types (reference types, at least) into some form of archivable data and vice versa.
-  For example, like these:
-  
-  ``func serializeType( type:Any.Type ) -> [UInt8]``
-  
-  ``func deserializeType( from bytes:[UInt8] ) throws -> Any.Type``
-  
-  With this functionality **the need to keep a repository of the decoding reference types vanishes** because the bytes describing the type can be stored during encoding and retrieved during decoding. Then you can:
-  
-	```swift
-	// 1) construct the type from its bytes description
-	let type = try deserializeType( from: bytes )
-  
-	// 2) check that it conforms the desired protocol
-	guard let decodableType = type as? GCodable.Type else {
-		throw ...	 
-	}
-	// 3) istantiate the value
-	let decodedValue = try decodableType(from: ...)
-	 ```
-  Furthermore, the need to manage the type names inside the package also disappears, because types suffices.
-  
-  Beyond the real possibility of offering functions such as ``serializeType( type:Any.Type ) -> [UInt8]`` and ``deserializeType( from:[UInt8] ) throws -> Any.Type``, which I do not discuss because I do not have the skills, I do not understand what problem such a feature can pose to security.
-  There is nothing I can do with the decoded ``Any.type`` if I don't check for conformance to a predefined protocol first. Only after I have done this can I use the type to build instances.
-  
-  Another possibility is to automate the generation of the repository, which however requires the use of some compiler magic (as far as I know): the compiler must keep track of all GCodable reference types encountered during compilation and automatically generate the code to register them. I don't know if this is possible either, given the presence of generic types.
-
+I'm redesigning it.

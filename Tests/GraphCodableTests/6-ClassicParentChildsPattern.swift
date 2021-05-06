@@ -87,9 +87,6 @@ fileprivate class Node : Hashable, GCodable, CustomStringConvertible {
 // --------------------------------------------------------------------------------
 
 final class ClassicParentChildsPattern: XCTestCase {
-	override func setUp() {
-		GTypesRepository.initialize()
-	}
 
 	func testClassicParentChildsPattern() throws {
 		class View		: Node {}

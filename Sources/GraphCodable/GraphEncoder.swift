@@ -47,7 +47,7 @@ public struct DumpOptions: OptionSet {
 	public static let	noTruncation		= Self( rawValue: 1 << 8 )
 
 	public static let	readable: Self = [
-		.showHeader, .showGraph, .indentLevel, .resolveIDs, .showSectionTitles
+		.showGraph, .indentLevel, .resolveIDs, .showSectionTitles
 	]
 	public static let	readableNoTruncation: Self = [
 		.showHeader, .showGraph, .indentLevel, .resolveIDs, .showSectionTitles, .noTruncation
@@ -63,11 +63,17 @@ public struct DumpOptions: OptionSet {
 	]
 }
 
+enum MainModuleUti {
+	static func mainModuleName( fromFileID fileID: String ) -> String {
+		return String( fileID.prefix() { $0 != "/" } )
+	}
+}
 
 public final class GraphEncoder {
 	private let encoder	= Encoder()
 
-	public init() {}
+	public init() {
+	}
 	
 	public var userInfo : [String:Any] {
 		get { return encoder.userInfo }
@@ -88,6 +94,9 @@ public final class GraphEncoder {
 
 	private final class Encoder : GEncoder {
 		var userInfo		= [String:Any]()
+		
+		init() {
+		}
 		
 		private func _encodeRoot<T>( _ value: T ) throws -> EncodedData where T:GCodable {
 			defer { reset() }
@@ -183,17 +192,10 @@ public final class GraphEncoder {
 				guard let object = value as? GCodable & AnyObject else {
 					throw GCodableError.notEncodableType( typeName: "\(type(of:value))" )
 				}
-				
-				let objectType	= type(of:object)
-				let typeName	= GTypesRepository.shared.typeName( type: objectType )
-				let typeVersion	= objectType.encodeVersion
-				let newType		= !encodedData.contains(typeName: typeName)
-				let typeID		= encodedData.createTypeIDIfNeeded( typeName:typeName, version: typeVersion )
-				
-				if newType {
-					// we update ever the register
-					objectType.register()
-				}
+
+				let classInfo	= try ClassInfo(aClass: type(of:object))
+				let typeID		= encodedData.createTypeIDIfNeeded(classInfo: classInfo)
+
 				// siamo sicuri che è un oggetto
 				if let objID = referenceID.strongID( object ) {
 					// l'oggetto è stato già memorizzato, basta un pointer
@@ -275,29 +277,28 @@ public final class GraphEncoder {
 		// -------------------------------------------------
 		
 		fileprivate struct EncodedData : CustomStringConvertible, CustomDebugStringConvertible {
-			
-			private var	typeNameID		= TypeNameVersionMap()
+			private var	codableClassID	= CodableClassMap()
 			private var	keyNameID		= KeyMap()
 			private (set) var blocks	= [DataBlock]()
 			private let header			= DataBlock.header( // Header Block
 				version: 0,
-				module: GTypesRepository.shared.mainModuleName,
+				unused0: "",
 				unused1: 0,
 				unused2: 0
 			)
 			
 			func contains( typeID:IntID ) -> Bool {
-				return typeNameID.contains( typeID:typeID )
+				return codableClassID.contains( typeID:typeID )
+			}
+
+			func contains( codableClass:(GCodable & AnyObject).Type ) -> Bool {
+				return codableClassID.contains( codableClass:codableClass )
+			}
+
+			mutating func createTypeIDIfNeeded( classInfo:ClassInfo ) -> IntID {
+				return codableClassID.createIDIfNeeded( classInfo:classInfo )
 			}
 			
-			func contains( typeName:String ) -> Bool {
-				return typeNameID.contains( typeName:typeName )
-			}
-
-			mutating func createTypeIDIfNeeded( typeName:String, version:UInt32 ) -> IntID {
-				return typeNameID.createIDIfNeeded( typeNameVersion:TypeNameVersion(typeName: typeName, version: version) )
-			}
-
 			mutating func createKeyIDIfNeeded( key:String ) -> IntID {
 				return keyNameID.createIDIfNeeded( key:key )
 			}
@@ -317,7 +318,7 @@ public final class GraphEncoder {
 			func readableOutput( options:DumpOptions ) -> String {
 				let info = DumpInfo(
 					options:		options,
-					typeIDtoName:	options.contains( .resolveIDs ) ? typeNameID.typeIDtoName : nil,
+					classInfoMap:	options.contains( .resolveIDs ) ? codableClassID.typeIDtoName : nil,
 					keyIDtoKey:		options.contains( .resolveIDs ) ? keyNameID.keyIDtoKey : nil
 				)
 
@@ -333,13 +334,11 @@ public final class GraphEncoder {
 					if options.contains( .showSectionTitles ) {
 						output.append( "== TYPEMAP =======================================================\n" )
 					}
-					output = typeNameID.typeIDtoName.reduce( into: output ) {
+					output = codableClassID.typeIDtoName.reduce( into: output ) {
 						result, tuple in
 						result.append(
-							DataBlock.typeMap(
-								typeID:			tuple.key,
-								typeVersion:	tuple.value.version,
-								typeName:		tuple.value.typeName
+							DataBlock.inTypeMap(
+								typeID: tuple.key, classInfo: tuple.value
 							).readableOutput(info: info)
 						)
 						result.append( "\n" )
@@ -391,8 +390,8 @@ public final class GraphEncoder {
 			func write( to writer: inout BinaryWriter ) throws {
 				try header.write(to: &writer)
 				
-				for (typeID,tnv) in typeNameID.typeIDtoName {
-					try DataBlock.typeMap( typeID: typeID, typeVersion: tnv.version, typeName: tnv.typeName ).write(to: &writer)
+				for (typeID,classInfo) in codableClassID.typeIDtoName {
+					try DataBlock.inTypeMap( typeID: typeID, classInfo: classInfo ).write(to: &writer)
 				}
 				
 				for block in blocks {
@@ -405,34 +404,69 @@ public final class GraphEncoder {
 			}
 			
 			// -------------------------------------------------
-			// ----- TypeNameMap
+			// ----- CodableClassMap
 			// -------------------------------------------------
 			
-			private struct TypeNameVersionMap  {
+			private struct CodableClassMap  {
 				private	var			actualId : IntID	= 100	// <100 reserved for future use
-				private (set) var	typeIDtoName		= [IntID:TypeNameVersion]()
-				private var			typeNameToID		= [String:IntID]()
+				private (set) var	typeIDtoName		= [ IntID:ClassInfo ]()
+				private var			aClassToID			= [ ObjectIdentifier: IntID ]()
 
 				func contains( typeID:IntID ) -> Bool {
 					return typeIDtoName.index(forKey: typeID) != nil
 				}
 
-				func contains( typeName:String ) -> Bool {
-					return typeNameToID.index(forKey: typeName) != nil
+				func contains( codableClass:(GCodable & AnyObject).Type ) -> Bool {
+					return aClassToID.index(forKey: ObjectIdentifier(codableClass) ) != nil
 				}
 
-				mutating func createIDIfNeeded( typeNameVersion:TypeNameVersion ) -> IntID {
-					if let typeID = typeNameToID[ typeNameVersion.typeName ] {
+				mutating func createIDIfNeeded( classInfo: ClassInfo ) -> IntID {
+					if let typeID = aClassToID[ ObjectIdentifier( classInfo.aClass ) ] {
 						return typeID
 					} else {
-						let typeID = actualId
 						defer { actualId += 1 }
-						typeNameToID[ typeNameVersion.typeName ] = typeID
-						typeIDtoName[ typeID ] = typeNameVersion
+
+						let typeID = actualId
+						typeIDtoName[ typeID ]	= classInfo
+						aClassToID[ ObjectIdentifier( classInfo.aClass ) ] = typeID
 						return typeID
 					}
 				}
 			}
+
+			
+			
+			/*
+			private struct CodableClassMap  {
+				private	var			actualId : IntID	= 100	// <100 reserved for future use
+				private (set) var	typeIDtoName		= [ IntID:ClassInfo ]()
+				private var			aClassToID			= [ ObjectIdentifier: IntID ]()
+
+				func contains( typeID:IntID ) -> Bool {
+					return typeIDtoName.index(forKey: typeID) != nil
+				}
+
+				func contains( codableClass:(GCodable & AnyObject).Type ) -> Bool {
+					return aClassToID.index(forKey: ObjectIdentifier(codableClass) ) != nil
+				}
+
+				mutating func createIDIfNeeded( codableClass: (GCodable & AnyObject).Type ) -> IntID {
+					if let typeID = aClassToID[ ObjectIdentifier(codableClass) ] {
+						return typeID
+					} else {
+						defer { actualId += 1 }
+
+						let typeID = actualId
+						typeIDtoName[ typeID ]	= ClassInfo(
+							mangledName:	NSStringFromClass( codableClass ),
+							version: 		codableClass.encodeVersion
+						)
+						aClassToID[ ObjectIdentifier( codableClass ) ] = typeID
+						return typeID
+					}
+				}
+			}
+			*/
 
 			// -------------------------------------------------
 			// ----- KeyMap

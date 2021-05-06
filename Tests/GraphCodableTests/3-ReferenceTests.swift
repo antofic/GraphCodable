@@ -65,9 +65,6 @@ class Dummy : GCodable {
 // --------------------------------------------------------------------------------
 
 final class ReferenceTests: XCTestCase {
-	override func setUp() {
-		GTypesRepository.initialize()
-	}
 	
 	func testInheritance() throws {
 		let inRoot	: SuperClass = SubClass()

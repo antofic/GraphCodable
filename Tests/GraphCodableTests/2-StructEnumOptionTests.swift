@@ -150,9 +150,6 @@ extension DumpOptions : NativeIOType {}
 
 
 final class StructEnumOptionTests: XCTestCase {
-	override func setUp() {
-		GTypesRepository.initialize()
-	}
 
 	func testStruct() throws {
 		let inRoot	= Person(name: "Pippo", body: Body(height: 1.80, weight: 80.0))

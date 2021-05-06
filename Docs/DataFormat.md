@@ -10,8 +10,6 @@ Let's consider this example:
 import Foundation
 import GraphCodable
 
-GTypesRepository.initialize()
-
 struct AStruct : Equatable, GCodable {
 	var array	= [1,2,3]
 	var dict	= ["4":4,"5":5]
@@ -68,21 +66,19 @@ print( try GraphEncoder().dump( inRoot ) )
 The result:
 
 ```
-== HEADER ========================================================
-Filetype = gcodable V0, * = MyGraphCodableApp, U1 = 0, U2 = 0
 == GRAPH =========================================================
 - STRUCT
-	- CLASS *.AClass Obj1000
+	- CLASS MyGraphCodableApp.AClass Obj1000
 		+ "astruct": STRUCT
 			+ "array": [1, 2, 3]
-			+ "dict": ["4": 4, "5": 5]
+			+ "dict": ["5": 5, "4": 4]
 		.
 		+ "aclass": POINTER? Obj1001
 	.
 	- POINTER Obj1000
 	- POINTER Obj1000
 	- POINTER Obj1000
-	- CLASS *.AClass Obj1001
+	- CLASS MyGraphCodableApp.AClass Obj1001
 		+ "astruct": STRUCT
 			+ "array": [1, 2, 3]
 			+ "dict": ["5": 5, "4": 4]
@@ -92,14 +88,9 @@ Filetype = gcodable V0, * = MyGraphCodableApp, U1 = 0, U2 = 0
 .
 ==================================================================
 ```
- You can see:
+By default `dump()` prints only the **GRAPH** section of the data.
 
-The **HEADER**, with the file format name (gcodable), its version, a the placeholder ``* = MainModuleName`` and some unused fields.
-The main module name purposely has no effect when unarchiving and for this reason is replaced by an asterisk in the following type definitions.
-This way you can open the same file from an app with a different main module name.
-GraphCodable does not currently allow access to the data contained in the header.
-
-The **GRAPH** that contains the structured data, organized in:
+The **GRAPH** section contains the structured data, organized in:
 - *Sequences*: a list of items preceded by the **-** symbol.
 - *Dictionaries*: a list of items (in the form "key": value) preceded by the **+** symbol.
 
@@ -109,8 +100,8 @@ The root is always the only item of the first sequence.
 
 Rows by rows:
 -	``STRUCT``, a value type, is the root.
--	It contains 5 elements corresponding to ``[b, b, b, b, a]``:
-	-	The first element ``CLASS *.AClass Obj1000`` is a reference (``CLASS``) type.
+-	It contains 5 elements corresponding to `[b, b, b, b, a]`:
+	-	The first element ``CLASS MyGraphCodableApp.AClass Obj1000`` is a reference (``CLASS``) type.
 		GraphCodable assigns a unique numeric ``ID (ObjXXXX)`` to each object it encounters.
 		This object in turn contains a structure corresponding to the key 'astruct' and an object corresponding to the key 'aclass'
 		-	First, you see the complete definition of the struct, with its array and its dictionary. They contain native types.
@@ -143,9 +134,9 @@ By using the '.binaryLike' option you can see the data saved in a format that mo
 
 ```
 == HEADER ========================================================
-Filetype = gcodable V0, * = MyGraphCodableApp, U1 = 0, U2 = 0
+Filetype = gcodable V0, U0 = "", U1 = 0, U2 = 0
 == TYPEMAP =======================================================
-Type100: V0 *.AClass
+Type100: "MyGraphCodableApp.AClass" V0 
 == GRAPH =========================================================
 - STRUCT
 	- CLASS Type100 Obj1000
@@ -167,10 +158,15 @@ Type100: V0 *.AClass
 	.
 .
 == KEYMAP ========================================================
-Key101: "array"
 Key103: "aclass"
 Key102: "dict"
 Key100: "astruct"
+Key101: "array"
 ==================================================================
 ```
-We see how the **GRAPH** section uses IDs for types and keys, while the type and key strings are stored once in only two tables, one (**TYPEMAP**) preceding the **GRAPH** section and another (**KEYMAP**) following it. The version of the type (**V...**) is also stored in the type table.
+
+You can see:
+- The **HEADER** section, with the file format name (gcodable), its global version, and some unused fields;
+- The **TYPEMAP** section, in which an **TypeID** is associated with each class with its version;
+- The **GRAPH** section, which uses typeIDs and keyIDs;
+- The **TYPEMAP** section, in which an **KeyID** is associated with each key used in keyed coding;

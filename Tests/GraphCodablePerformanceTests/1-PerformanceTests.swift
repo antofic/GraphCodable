@@ -58,9 +58,6 @@ struct RecursiveData : Codable, GCodable {
 // --------------------------------------------------------------------------------
 
 final class PerformanceTests: XCTestCase {
-	override func setUp() {
-		GTypesRepository.initialize()
-	}
 	
 	let input	= RecursiveData( count:7 )
 	

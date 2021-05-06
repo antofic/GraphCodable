@@ -23,50 +23,45 @@
 import Foundation
 
 enum GCodableError : Error {
-	case typeDescriptorError(Int)
-
-	case optionalEncodeError
-	case optionalDecodeError
+	// RawRepresentableSupport
 	case enumDecodeError
 
+	// NativeIOType
+	case optionalEncodeError
+	case optionalDecodeError
 	case binaryIOEncodeError
 	case binaryIODecodeError
 
-	// DataBlock
-	case parsingError
-	case readingInBinTypeError	
-	case writingOutBinTypeError
+	// ClassInfo
+	case nilClassFromString( typeName:String )
+	case nilClassFromStringFromClass( aClass:AnyClass )
 
-	// KeyedEncoder
+	// DataBlock
+	case readingInBinTypeError
+	case writingOutBinTypeError
+	case readingInTypeMapError
+	case writingOutTypeMapError
+
+	// GraphEncoder
 	case notEncodableType( typeName:String )
 
-	// KeyedEncoder and NodeData
+	// GraphDecoder
 	case duplicateTypeID( typeID:IntID )
-	case duplicateKey( key:String )
 	case keyNotFound( keyID:IntID )
-
-	// NodeData
-	case invalidRootLevel
-	case unespectedDataBlockInThisPhase
-
-	// Register
-	case typeNotFoundInRegister( typeName:String )
-
-	// KeyedDecoder
 	case rootNotFound
-	case cantDecodeRoot( dataBlock:DataBlock )
 	case keyedChildNotFound( parentDataBlock:DataBlock )
 	case unkeyedChildNotFound( parentDataBlock:DataBlock )
-	case pointerAlreadyExists( dataBlock:DataBlock )
 	case objectAlreadyExists( dataBlock:DataBlock )
 	case pointerNotFound( dataBlock:DataBlock )
+	case invalidRootLevel
+	case unespectedDataBlockInThisPhase
 	case typeMismatch( dataBlock:DataBlock )
-	case inappropriateDataBlock( dataBlock:DataBlock )
 	case deferredTypeMismatch( dataBlock:DataBlock )
-	case typeNameNotFound( typeID:IntID )
-	
-	case unregisteredTypes( typeNames:[String] )
-	
-	case decodedDataDontContainsTypeName( typeName:String )
+	case inappropriateDataBlock( dataBlock:DataBlock )
+	case classTypeNotFound( typeID:IntID )
+	case decodedDataDontContainsType( type:(AnyObject & GCodable).Type )
+
+	// GraphDecoder & GraphEncoder
+	case duplicateKey( key:String )
 }
 

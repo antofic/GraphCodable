@@ -22,11 +22,26 @@
 
 import Foundation
 
+
 // -------------------------------------------------
 // ----- GraphDecoder
 // -------------------------------------------------
 
 public final class GraphDecoder {
+	public struct ClassNamesOptions: OptionSet {
+		public let rawValue: UInt
+		
+		public init(rawValue: UInt) {
+			self.rawValue	= rawValue
+		}
+		
+		//	four data sections:
+		public static let	decodable			= Self( rawValue: 1 << 0 )
+		public static let	undecodable			= Self( rawValue: 1 << 1 )
+		public static let	demangle			= Self( rawValue: 1 << 2 )
+		public static let	all: Self 			= [ .decodable, .undecodable, .demangle ]
+	}
+	
 	public init() {}
 
 	public var userInfo : [String:Any] {
@@ -38,18 +53,26 @@ public final class GraphDecoder {
 		return try decoder.decodeRoot( type, from: data)
 	}
 
-	public func encodedTypeNames( from data: Data ) throws -> [String] {
-		return try decoder.storedTypesAndVersions( from:data ).map { $0.typeName }
-	}
-
-	public func help( from data: Data, initializeFuncName:String = "initializeGraphCodable" ) throws -> String {
-		return GTypesRepository.swiftRegisterFunc(
-			typeNameVersions:	try decoder.storedTypesAndVersions(from: data),
-			initializeFuncName:	initializeFuncName,
-			showVersions: 		true
-		)
+	public func decodableClasses( from data: Data ) throws -> [(AnyObject & GCodable).Type] {
+		return try decoder.allClassData( from: data ).compactMap { $0.aClass }
 	}
 	
+	public func classNames( from data: Data, options:ClassNamesOptions ) throws -> [String] {
+		func name( _ classData:ClassData, _ demangled:Bool ) -> String {
+			return demangled ? classData.demangledName ?? classData.mangledName : classData.mangledName
+		}
+
+		let data	= try decoder.allClassData( from: data )
+		let dema	= options.contains( .demangle )
+		
+		switch (options.contains( .decodable ), options.contains( .undecodable )) {
+			case (true,true):	return data.map { name( $0,dema ) }
+			case (true,false):	return data.compactMap { $0.decodable ? name( $0,dema ) : nil }
+			case (false,true):	return data.compactMap { $0.decodable ? nil : name( $0,dema ) }
+			case (false,false):	return [String]()
+		}
+	}
+
 	private let decoder = Decoder()
 	
 	// -------------------------------------------------
@@ -58,12 +81,12 @@ public final class GraphDecoder {
 	
 	private final class Decoder : GDecoder {
 		var	userInfo			= [String:Any]()
-		
-		func storedTypesAndVersions( from: Data ) throws -> [TypeNameVersion] {
-			var reader				= BinaryReader(data: from)
-			let decodedTypes		= try DecodedTypes(from: &reader)
 
-			return Array( decodedTypes.typeIDtoName.values )
+		func allClassData( from data: Data ) throws -> [ClassData] {
+			var reader				= BinaryReader(data: data)
+			let decodedNames		= try DecodedNames(from: &reader)
+			
+			return Array( decodedNames.classDataMap.values )
 		}
 		
 		func decodeRoot<T>( _ type: T.Type, from data: Data ) throws -> T  where T:GCodable {
@@ -138,6 +161,7 @@ public final class GraphDecoder {
 	}
 }
 
+
 // -------------------------------------------------
 // ----- DecodedData
 // -------------------------------------------------
@@ -145,7 +169,7 @@ public final class GraphDecoder {
 fileprivate struct DecodedData {
 	let fileVersion				: UInt32
 	let encodedMainModule		: String
-	let	typeIDtoName			: [IntID:TypeNameVersion]
+	let	classInfoMap			: [IntID:ClassInfo]
 	let rootBlock 				: GraphBlock
 	private var	objBlockMap		: [IntID : GraphBlock]
 	
@@ -153,7 +177,7 @@ fileprivate struct DecodedData {
 		var blockDecoder = BlockDecoder( from: &reader )
 		
 		(fileVersion,encodedMainModule)	= try blockDecoder.fileVersionAndMainModule()
-		typeIDtoName					= try blockDecoder.typeIDtoName()
+		classInfoMap					= try blockDecoder.classInfoMap()
 		(rootBlock,objBlockMap)			= try blockDecoder.rootBlock()
 	}
 	
@@ -163,22 +187,21 @@ fileprivate struct DecodedData {
 }
 
 // -------------------------------------------------
-// ----- DecodedTypes
+// ----- DecodedNames
 // -------------------------------------------------
 
-fileprivate struct DecodedTypes {
+fileprivate struct DecodedNames {
 	let fileVersion				: UInt32
 	let encodedMainModule		: String
-	let	typeIDtoName			: [IntID:TypeNameVersion]
+	let	classDataMap			: [IntID:ClassData]
 	
 	init( from reader:inout BinaryReader ) throws {
 		var blockDecoder = BlockDecoder( from: &reader )
 		
 		(fileVersion,encodedMainModule)	= try blockDecoder.fileVersionAndMainModule()
-		typeIDtoName					= try blockDecoder.typeIDtoName()
+		classDataMap					= try blockDecoder.classDataMap()
 	}
 }
-
 
 // -------------------------------------------------
 // ----- BlockDecoder
@@ -189,9 +212,10 @@ fileprivate struct BlockDecoder {
 	private var currentBlock		: DataBlock?
 	private var phase				: DataBlock.BlockType
 	
-	private var _fileVersion		= UInt32(0)
 	private var _encodedMainModule	= ""
-	private var _typeIDtoName		= [IntID : TypeNameVersion]()
+
+	private var _fileVersion		= UInt32(0)
+	private var _classDataMap		= [IntID : ClassData]()
 	private var _graphDataBlocks	= [DataBlock]()
 	private var _keyIDToKey			= [IntID:String]()
 	
@@ -232,16 +256,12 @@ fileprivate struct BlockDecoder {
 
 		while let dataBlock	= try peek() {
 			switch dataBlock {
-			case .typeMap( let typeID, let typeVersion, let typeName ):
+			case .outTypeMap( let typeID, let classData ):
 				// ••• PHASE 1 •••
-				guard _typeIDtoName.index(forKey: typeID) == nil else {
+				guard _classDataMap.index(forKey: typeID) == nil else {
 					throw GCodableError.duplicateTypeID( typeID:typeID )
 				}
-				// Qui interroghiamo il register!
-				_typeIDtoName[typeID]	= TypeNameVersion(
-					typeName:	try GTypesRepository.shared.replaceEncodedTypenameIfNeeded(typeName: typeName),
-					version:	typeVersion
-				)
+				_classDataMap[typeID]	= classData
 			default:
 				self.phase	= .graph
 				return
@@ -253,24 +273,10 @@ fileprivate struct BlockDecoder {
 	private mutating func parseGraph() throws {
 		guard phase == .graph else { return }
 
-		var firstBlock = true
 		while let dataBlock	= try peek() {
 			guard dataBlock.blockType == .graph else {
 				self.phase	= .keyMap
 				return
-			}
-			if firstBlock {
-				firstBlock = false
-
-				// controllo che tutti i typeNames siano nel registro
-				let shared				= GTypesRepository.shared
-				let unregisteredTypes	= _typeIDtoName.values.filter() {
-					shared.decodableType(typeName: $0.typeName) == nil
-				}
-				
-				if unregisteredTypes.isEmpty == false {
-					throw GCodableError.unregisteredTypes( typeNames:unregisteredTypes.map { $0.swiftTypeString } )
-				}
 			}
 			_graphDataBlocks.append( dataBlock )
 			step()
@@ -299,12 +305,16 @@ fileprivate struct BlockDecoder {
 		return (_fileVersion,_encodedMainModule)
 	}
 
-	mutating func typeIDtoName() throws -> [IntID : TypeNameVersion] {
+	mutating func classDataMap() throws -> [IntID : ClassData] {
 		try parseHeader()
 		try parseTypeIDs()
-		return _typeIDtoName
+		return _classDataMap
 	}
 
+	mutating func classInfoMap() throws -> [IntID : ClassInfo] {
+		return try classDataMap().mapValues {  try ClassInfo(classData: $0)  }
+	}
+	
 	mutating func rootBlock() throws -> ( root:GraphBlock, objBlockMap:[IntID : GraphBlock] ) {
 		try parseHeader()
 		try parseTypeIDs()
@@ -476,14 +486,14 @@ fileprivate final class TypeConstructor {
 	private (set) var 	currentBlock 		: GraphBlock
 	private var			objectRepository 	= [IntID:AnyObject]()
 	private var			deferredRepository 	= [IntID:[(AnyObject) throws -> ()]]()
-	private lazy var	typeNameToID	 	: [String:IntID] = {
-		var tnToID = [String:IntID]()
-		for (id,typeNameVersion) in decodedData.typeIDtoName {
-			tnToID[ typeNameVersion.typeName ] = id
+	private lazy var	classToID	 		: [ObjectIdentifier:IntID] = {
+		var cToID = [ObjectIdentifier:IntID]()
+		for (id,classInfo) in decodedData.classInfoMap {
+			cToID[ ObjectIdentifier( classInfo.aClass ) ] = id
 		}
-		return tnToID
+		return cToID
 	}()
-	
+
 	func decodeDelayed() throws {
 		for (objID,setters) in deferredRepository {
 			// solo se sono stati salvati!
@@ -514,21 +524,20 @@ fileprivate final class TypeConstructor {
 		}
 	}
 	
-	private func typeNameVersion( typeID:IntID ) throws -> TypeNameVersion {
-		guard let typeName = decodedData.typeIDtoName[ typeID ] else {
-			throw GCodableError.typeNameNotFound( typeID:typeID )
+	private func classInfo( typeID:IntID ) throws -> ClassInfo {
+		guard let classInfo = decodedData.classInfoMap[ typeID ] else {
+			throw GCodableError.classTypeNotFound( typeID:typeID )
 		}
-		return typeName
+		return classInfo
 	}
-	
+
 	func encodedVersion<T>( _ type: T.Type ) throws -> UInt32  where T:GCodable, T:AnyObject {
-		let typeName	= GTypesRepository.shared.typeName(type: type)
-		guard let typeID = typeNameToID[typeName] else {
-			throw GCodableError.decodedDataDontContainsTypeName( typeName:typeName )
+		guard let typeID = classToID[ ObjectIdentifier(type) ] else {
+			throw GCodableError.decodedDataDontContainsType( type:type )
 		}
-		return try typeNameVersion(typeID: typeID).version
+		return try classInfo( typeID:typeID ).classData.encodeVersion
 	}
-	
+
 	func decodeNode<T>( graphBlock:GraphBlock, _ setter: @escaping (T?) -> () ) throws  where T:GCodable {
 		let saveCurrent = currentBlock
 		currentBlock	= graphBlock
@@ -584,12 +593,9 @@ fileprivate final class TypeConstructor {
 						let saveCurrent = currentBlock
 						currentBlock	= block
 						defer { currentBlock = saveCurrent }
-						
-						let	typeName	= try typeNameVersion( typeID:typeID ).typeName
-						guard let type	= GTypesRepository.shared.decodableType( typeName:typeName ) else {
-							throw GCodableError.typeNotFoundInRegister( typeName: typeName )
-						}
-						let value		= try type.init(from: decoder)
+
+						let classInfo	= try classInfo( typeID:typeID )
+						let value		= try classInfo.aClass.init(from: decoder)
 						
 						objectRepository[ objID ]	= value as AnyObject
 						return value as AnyObject
@@ -674,3 +680,4 @@ fileprivate final class TypeConstructor {
 		}
 	}
 }
+

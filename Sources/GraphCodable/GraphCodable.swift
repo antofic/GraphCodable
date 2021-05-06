@@ -179,19 +179,12 @@ public extension GCodable {
 	}
 }
 
-/// Only reference types needs a repository.
 public extension GCodable where Self:AnyObject {
-	/// Register a reference type in the types repository.
-	static func register() {
-		GTypesRepository.shared.register( type: self )
-	}
-	/// Remove a reference type from the types repository.
-	static func unregister() {
-		GTypesRepository.shared.unregister(type: self)
-	}
-	/// Replace type with type(of:self) during decoding.
-	static func replace( type:AnyObject.Type ) throws {
-		try GTypesRepository.shared.replace( type, with: self )
+	/// Check if a class is really GCodable.
+	///
+	/// It depends on the ability to be created from its name.
+	static var isGCodable: Bool {
+		return NSClassFromString( NSStringFromClass( self ) ) == self
 	}
 }
 

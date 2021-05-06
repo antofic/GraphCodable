@@ -1,4 +1,16 @@
 
+# 0.2.0
+
+The package has been completely revised. It now relies on `NSStringFromClass(...)` to generate the "type name" and on  `NSClassFromString(...)` to retrieve the class type fro it. At least on Apple systems this procedure should now be stable.
+
+Use `myClass.isGCodable` to check if a class is actually decodable.
+
+At least on Apple systems this procedure should now be stable.
+
+Thanks to this change **it is no longer necessary to register the classes (the repository is gone)** or even set the main module name.
+
+All the previous features are maintained, except for the reference type replacement system which is no longer available at this point in the redesign phase.
+
 # 0.1.3
 
 Previous native types have been dropped en masse, replaced by binary types that act as new native types. Binary types are also better readable in dumps. As a result the encodeOptions have been eliminated and the dump interface returned as in version 0.1.1.

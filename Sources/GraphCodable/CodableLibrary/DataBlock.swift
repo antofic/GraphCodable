@@ -25,7 +25,7 @@ import Foundation
 /*
 BINARY FILE FORMAT:
 ••••••PHASE 1: Header	// only one!
-···code·|·HeaderID·|·Version·|·Module·|·Unused1|·Unused2      code = .header
+···code·|·HeaderID·|·Version·|·Unused0·|·Unused1|·Unused2      code = .header
 ······0·|·1········|·2···········|·3······|·4······
 ••••••PHASE 2: Types table
 ···code·|·typeID···|·typeVersion·|·typeName      code = .typeMap
@@ -52,7 +52,8 @@ typealias IntID	= UInt32
 enum DataBlock {
 	private enum Code : UInt8, NativeIOType {
 		case header		= 0x5E	// '^'
-		case typeMap	= 0x23	// '#'
+		case inTypeMap	= 0x23	// '#'
+		case outTypeMap	= 0x24	// '$'
 		case nilValue	= 0x30	// '0'
 		case inBinType	= 0x3C	// '<'
 		case outBinType	= 0x3E	// '>'
@@ -68,8 +69,9 @@ enum DataBlock {
 		case gcodable	= 0x67636F6461626C65	// ascii = 'gcodable'
 	}
 
-	case header		( version:UInt32, module:String, unused1:UInt32, unused2:UInt64 )
-	case typeMap	( typeID:IntID, typeVersion:UInt32, typeName:String )
+	case header		( version:UInt32, unused0:String, unused1:UInt32, unused2:UInt64 )
+	case inTypeMap	( typeID:IntID, classInfo:ClassInfo )
+	case outTypeMap	( typeID:IntID, classData:ClassData )
 	case nilValue	( keyID:IntID )
 	case inBinType	( keyID:IntID, value:NativeIOType )	// input only
 	case outBinType	( keyID:IntID, bytes:[UInt8] )		// output only
@@ -88,21 +90,27 @@ enum DataBlock {
 extension DataBlock : NativeIOType {
 	func write( to writer: inout BinaryWriter ) throws {
 		switch self {
-		case .header	( let version, let module, let unused1, let unused2 ):
+		case .header	( let version, let unused0, let unused1, let unused2 ):
 			try Code.header.write(to: &writer)
 			try HeaderID.gcodable.write(to: &writer)
 			try version.write(to: &writer)
-			try module.write(to: &writer)
+			try unused0.write(to: &writer)
 			try unused1.write(to: &writer)
 			try unused2.write(to: &writer)
-		case .typeMap	( let typeID, let typeVersion, let typeName  ):
-			try Code.typeMap.write(to: &writer)
+
+		case .inTypeMap	( let typeID, let classInfo ):
+			// ••••• SALVO COME outTypeMap ••••••••••
+			try Code.outTypeMap.write(to: &writer)
 			try typeID.write(to: &writer)
-			try typeVersion.write(to: &writer)
-			try typeName.write(to: &writer)
+			try classInfo.classData.write(to: &writer)
+		case .outTypeMap( _, _ ):
+			// non deve mai arrivare qui
+			throw( GCodableError.writingOutTypeMapError )
+
 		case .nilValue	( let keyID ):
 			try Code.nilValue.write(to: &writer)
 			try keyID.write(to: &writer)
+
 		case .inBinType( let keyID, let value ):
 			// ••••• SALVO COME outBinType ••••••••••
 			let bytes	= try value.bytesArray()
@@ -112,6 +120,7 @@ extension DataBlock : NativeIOType {
 		case .outBinType( _, _ ):
 			// non deve mai arrivare qui
 			throw( GCodableError.writingOutBinTypeError )
+
 		case .valueType	( let keyID ):
 			try Code.valueType.write(to: &writer)
 			try keyID.write(to: &writer)
@@ -144,18 +153,23 @@ extension DataBlock : NativeIOType {
 		case .header:
 			let _		= try HeaderID	( from: &reader )
 			let version	= try UInt32	( from: &reader )
-			let module	= try String	( from: &reader )
+			let unused0	= try String	( from: &reader )
 			let unused1	= try UInt32	( from: &reader )
 			let unused2	= try UInt64	( from: &reader )
-			self = .header(version: version, module:module, unused1: unused1, unused2: unused2)
-		case .typeMap:
+			self = .header(version: version, unused0:unused0, unused1: unused1, unused2: unused2)
+
+		case .inTypeMap:
+			// non deve mai arrivare qui
+			throw( GCodableError.readingInTypeMapError )
+		case .outTypeMap:
 			let typeID	= try IntID		( from: &reader )
-			let version	= try UInt32	( from: &reader )
-			let name	= try String	( from: &reader )
-			self = .typeMap(typeID: typeID, typeVersion: version, typeName: name )
+			let data	= try ClassData	( from: &reader )
+			self = .outTypeMap(typeID: typeID, classData: data )
+
 		case .nilValue:
 			let keyID	= try IntID		( from: &reader )
 			self = .nilValue(keyID: keyID)
+
 		case .inBinType:
 			// non deve mai arrivare qui
 			throw( GCodableError.readingInBinTypeError )
@@ -163,6 +177,7 @@ extension DataBlock : NativeIOType {
 			let keyID	= try IntID		( from: &reader )
 			let bytes	= try [UInt8]	( from: &reader )
 			self = .outBinType(keyID: keyID, bytes: bytes)
+
 		case .valueType:
 			let keyID	= try IntID		( from: &reader )
 			self = .valueType(keyID: keyID)
@@ -197,8 +212,8 @@ extension DataBlock {
 	
 	var level : Level {
 		switch self {
-		case .valueType:		return .enter
-		case .objectType:		return .enter
+		case .valueType:	return .enter
+		case .objectType:	return .enter
 		case .end:			return .exit
 		default:			return .same
 		}
@@ -209,7 +224,8 @@ extension DataBlock {
 	var blockType : BlockType {
 		switch self {
 		case .header:		return .header
-		case .typeMap:		return .typeMap
+		case .inTypeMap:	return .typeMap
+		case .outTypeMap:	return .typeMap
 		case .keyMap:		return .keyMap
 		default:			return .graph
 		}
@@ -239,7 +255,7 @@ extension DataBlock {
 
 struct DumpInfo {
 	let 	options: 		DumpOptions
-	let		typeIDtoName:	[IntID:TypeNameVersion]?
+	let		classInfoMap:	[IntID:ClassInfo]?
 	let		keyIDtoKey:		[IntID:String]?
 }
 
@@ -272,11 +288,11 @@ extension DataBlock {
 		}
 		
 		func typeString( _ typeID:UInt32, _ info: DumpInfo ) -> String {
-			if let tnv	= info.typeIDtoName?[typeID] {
+			if let classInfo	= info.classInfoMap?[typeID] {
 				if info.options.contains( .showTypeVersion ) {
-					return "\(tnv.typeName) V\(tnv.version)"
+					return "\(classInfo.className) V\(classInfo.classData.encodeVersion)"
 				} else {
-					return tnv.typeName
+					return classInfo.className
 				}
 			} else {
 				return "Type\(typeID)"
@@ -285,9 +301,11 @@ extension DataBlock {
 		
 		switch self {
 		case .header	( let version, let module, let unused1, let unused2 ):
-			return "Filetype = \(HeaderID.gcodable) V\(version), * = \(module), U1 = \(unused1), U2 = \(unused2)"
-		case .typeMap	( let typeID, let typeVersion, let typeName ):
-			return	"Type\( typeID ): V\( typeVersion ) \( typeName )"
+			return "Filetype = \(HeaderID.gcodable) V\(version), U0 = \"\(module)\", U1 = \(unused1), U2 = \(unused2)"
+		case .inTypeMap	( let typeID, let classInfo ):
+			return	"Type\( typeID ): \( classInfo )"
+		case .outTypeMap	( let typeID, let classData ):
+			return	"Type\( typeID ): \( classData )"
 		case .nilValue	( let keyID ):
 			return format( keyID, info, "nil")
 		case .inBinType( let keyID, let value ):
@@ -318,7 +336,7 @@ extension DataBlock {
 extension DataBlock : CustomStringConvertible {
 	var description: String {
 		return readableOutput(
-			info: DumpInfo(options: .readable, typeIDtoName: nil, keyIDtoKey: nil)
+			info: DumpInfo(options: .readable, classInfoMap: nil, keyIDtoKey: nil)
 		)
 	}
 }

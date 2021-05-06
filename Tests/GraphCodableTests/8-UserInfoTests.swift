@@ -60,9 +60,6 @@ struct Name : GCodable, CustomStringConvertible {
 
 
 final class UserInfoTests: XCTestCase {
-	override func setUp() {
-		GTypesRepository.initialize()
-	}
 
 	func testEncodeUserInfo() throws {
 		let pippo	= Name(name: "Pippo")

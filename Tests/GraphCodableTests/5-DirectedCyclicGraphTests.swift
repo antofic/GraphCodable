@@ -25,90 +25,65 @@ import XCTest
 
 //	testDirectedCyclicGraph types
 
-//	Swift cant have an array of weak references, so we create a generic box
-//	to hold one:
-fileprivate final class WeakBox<T> : GCodable where T:AnyObject, T:GCodable {
-	private (set) weak var boxed : T?
-	
-	init( _ boxed:T ) {
-		self.boxed	= boxed
-	}
-	
-	func encode(to encoder: GEncoder) throws {
-		//	weak variables must be encoded conditionally!!!
-		try encoder.encodeConditional( boxed )
-	}
-	
-	required init(from decoder: GDecoder) throws {
-		//	and then we use the deferred decoding
-		//	to avoid strong cycles
-		try decoder.deferDecode { self.boxed = $0 }
-	}
-}
 
+struct Model : GCodable {
+	//	Swift cant have an array of weak references, so we create a generic box
+	//	to hold one:
+	final class WeakBox<T> : GCodable where T:AnyObject, T:GCodable {
+		private (set) weak var boxed : T?
+		
+		init( _ boxed:T ) {
+			self.boxed	= boxed
+		}
+		
+		func encode(to encoder: GEncoder) throws {
+			//	weak variables must be encoded conditionally!!!
+			try encoder.encodeConditional( boxed )
+		}
+		
+		required init(from decoder: GDecoder) throws {
+			//	and then we use the deferred decoding
+			//	to avoid strong cycles
+			try decoder.deferDecode { self.boxed = $0 }
+		}
+	}
+	//	Now we create a node class that hold an array of boxed weak references:
 
-/*
-//	Note: we cannot put a weak variable in a struct because
-//	it is not possible to call an escaping closure that
-//	captures mutating self parameter from its initializers.
-//	This is the only truerestriction that GraphCodable imposes.
+	class Node : GCodable {
+		private var boxes = [WeakBox<Node>]()
+		let name : String
 
-fileprivate struct StructWeakBox<T> : GCodable where T:AnyObject, T:GCodable {
-	private (set) weak var boxed : T?
-	
-	init( _ boxed:T ) {
-		self.boxed	= boxed
+		func connect( to nodes: Node... ) {
+			boxes.append( contentsOf: nodes.map { WeakBox( $0 ) } )
+		}
+		
+		var connections : [Node] {
+			return boxes.compactMap { $0.boxed }
+		}
+		
+		init( _ name:String ) {
+			self.name	= name
+		}
+		
+		private enum Key : String {
+			case name, boxes
+		}
+		
+		required init(from decoder: GDecoder) throws {
+			name	= try decoder.decode( for: Key.name  )
+			boxes	= try decoder.decode( for: Key.boxes )
+		}
+		
+		func encode(to encoder: GEncoder) throws {
+			try encoder.encode(name,  for: Key.name  )
+			try encoder.encode(boxes, for: Key.boxes )
+		}
 	}
-	
-	func encode(to encoder: GEncoder) throws {
-		try encoder.encodeConditional( boxed )
-	}
-	
-	init(from decoder: GDecoder) throws {
-		try decoder.deferDecode { boxed = $0 }	// Escaping closure captures mutating 'self' parameter!
-	}
-}
-*/
-
-
-//	Now we create a node class that hold an array of boxed weak references:
-
-fileprivate class Node : GCodable {
-	private var boxes = [WeakBox<Node>]()
-	let name : String
-
-	func connect( to nodes: Node... ) {
-		boxes.append( contentsOf: nodes.map { WeakBox( $0 ) } )
-	}
-	
-	var connections : [Node] {
-		return boxes.compactMap { $0.boxed }
-	}
-	
-	init( _ name:String ) {
-		self.name	= name
-	}
-	
-	private enum Key : String {
-		case name, boxes
-	}
-	
-	required init(from decoder: GDecoder) throws {
-		name	= try decoder.decode( for: Key.name  )
-		boxes	= try decoder.decode( for: Key.boxes )
-	}
-	
-	func encode(to encoder: GEncoder) throws {
-		try encoder.encode(name,  for: Key.name  )
-		try encoder.encode(boxes, for: Key.boxes )
-	}
-}
 
 //	However, it is necessary to keep the nodes alive through
 //	strong references. The Model struct serves precisely for this:
 //	we hold all nodes in a dictionary
 
-fileprivate struct Model : GCodable {
 	private (set) var nodes = [String:Node]()
 	
 	init() {}
@@ -143,9 +118,6 @@ fileprivate struct Model : GCodable {
 // --------------------------------------------------------------------------------
 
 final class DirectedCyclicGraphTests: XCTestCase {
-	override func setUp() {
-		GTypesRepository.initialize()
-	}
 	
 	func testDGC() throws {
 		var model	= Model()
