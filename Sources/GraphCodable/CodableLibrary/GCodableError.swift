@@ -33,7 +33,7 @@ enum GCodableError : Error {
 	case binaryIODecodeError
 
 	// ClassInfo
-	case nilClassFromString( typeName:String )
+	case nilClassFromString( nsClassName:String )
 	case nilClassFromStringFromClass( aClass:AnyClass )
 
 	// DataBlock
@@ -43,7 +43,7 @@ enum GCodableError : Error {
 	case writingOutTypeMapError
 
 	// GraphEncoder
-	case notEncodableType( typeName:String )
+	case notEncodableType( type:Any.Type )
 
 	// GraphDecoder
 	case duplicateTypeID( typeID:IntID )

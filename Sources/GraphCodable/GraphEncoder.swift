@@ -30,22 +30,27 @@ public struct DumpOptions: OptionSet {
 	}
 	
 	//	four data sections:
-	public static let	showHeader			= Self( rawValue: 1 << 0 )
-	public static let	showTypeMap			= Self( rawValue: 1 << 1 )
-	public static let	showGraph			= Self( rawValue: 1 << 2 )
-	public static let	showKeyMap			= Self( rawValue: 1 << 3 )
+	public static let	showHeader						= Self( rawValue: 1 << 0 )
+	public static let	showTypeMap						= Self( rawValue: 1 << 1 )
+	public static let	showGraph						= Self( rawValue: 1 << 2 )
+	public static let	showKeyMap						= Self( rawValue: 1 << 3 )
 	
 	//	indent the data
-	public static let	indentLevel			= Self( rawValue: 1 << 4 )
+	public static let	indentLevel						= Self( rawValue: 1 << 4 )
 	//	in the Graph section, resolve typeIDs in typeNames, keyIDs in keyNames
-	public static let	resolveIDs			= Self( rawValue: 1 << 5 )
+	public static let	resolveIDs						= Self( rawValue: 1 << 5 )
 	//	in the Graph section, show type versions (they are in the TypeMap section)
-	public static let	showTypeVersion		= Self( rawValue: 1 << 6 )
+	public static let	showTypeVersion					= Self( rawValue: 1 << 6 )
 	//	includes '=== SECTION TITLE =========================================='
-	public static let	showSectionTitles	= Self( rawValue: 1 << 7 )
+	public static let	showSectionTitles				= Self( rawValue: 1 << 7 )
 	//	disable truncation of too long nativeValues (over 48 characters - String or Data typically)
-	public static let	noTruncation		= Self( rawValue: 1 << 8 )
+	public static let	noTruncation					= Self( rawValue: 1 << 8 )
+	//	show NSStringFromClass name in TypeMap section
+	public static let	showMangledClassNames			= Self( rawValue: 1 << 9 )
 
+	public static let	displayNSStringFromClassNames: Self = [
+		.showTypeMap, .showMangledClassNames, .showSectionTitles
+	]
 	public static let	readable: Self = [
 		.showGraph, .indentLevel, .resolveIDs, .showSectionTitles
 	]
@@ -190,7 +195,7 @@ public final class GraphEncoder {
 				encodedData.append( .inBinType(keyID: keyID, value: binaryValue ) )
 			} else if type(of:value) is AnyClass {
 				guard let object = value as? GCodable & AnyObject else {
-					throw GCodableError.notEncodableType( typeName: "\(type(of:value))" )
+					throw GCodableError.notEncodableType( type: type(of:value) )
 				}
 
 				let classInfo	= try ClassInfo(aClass: type(of:object))
@@ -219,7 +224,7 @@ public final class GraphEncoder {
 				}
 			} else {	// full value type (struct)
 				guard let value = value as? GCodable else {
-					throw GCodableError.notEncodableType( typeName: "\(type(of:value))" )
+					throw GCodableError.notEncodableType( type: type(of:value) )
 				}
 				encodedData.append( .valueType( keyID: keyID ) )
 				try encodeValue( value, to:self )

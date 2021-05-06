@@ -38,8 +38,8 @@ public final class GraphDecoder {
 		//	four data sections:
 		public static let	decodable			= Self( rawValue: 1 << 0 )
 		public static let	undecodable			= Self( rawValue: 1 << 1 )
-		public static let	demangle			= Self( rawValue: 1 << 2 )
-		public static let	all: Self 			= [ .decodable, .undecodable, .demangle ]
+		public static let	demangleIfNeeded	= Self( rawValue: 1 << 2 )
+		public static let	all: Self 			= [ .decodable, .undecodable, .demangleIfNeeded ]
 	}
 	
 	public init() {}
@@ -59,11 +59,11 @@ public final class GraphDecoder {
 	
 	public func classNames( from data: Data, options:ClassNamesOptions ) throws -> [String] {
 		func name( _ classData:ClassData, _ demangled:Bool ) -> String {
-			return demangled ? classData.demangledName ?? classData.mangledName : classData.mangledName
+			return demangled ? classData.demangledName ?? classData.nsClassName : classData.nsClassName
 		}
 
 		let data	= try decoder.allClassData( from: data )
-		let dema	= options.contains( .demangle )
+		let dema	= options.contains( .demangleIfNeeded )
 		
 		switch (options.contains( .decodable ), options.contains( .undecodable )) {
 			case (true,true):	return data.map { name( $0,dema ) }

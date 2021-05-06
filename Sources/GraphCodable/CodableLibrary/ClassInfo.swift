@@ -25,26 +25,27 @@ import CwlDemangle
 
 
 struct ClassData : NativeIOType, CustomStringConvertible {
-	let	mangledName:	String
+	let	nsClassName:	String	// the TypeName Generated fro NSStringFromClass
 	let	encodeVersion:	UInt32
 
+	// only ClassInfo can initialize it
 	fileprivate init( mangledName:String, encodeVersion:UInt32 ) {
-		self.mangledName	= mangledName
+		self.nsClassName	= mangledName
 		self.encodeVersion	= encodeVersion
 	}
 	
 	func write(to writer: inout BinaryWriter) throws {
-		try mangledName.write(to: &writer)
+		try nsClassName.write(to: &writer)
 		try encodeVersion.write(to: &writer)
 	}
 
 	init(from reader: inout BinaryReader) throws {
-		self.mangledName	= try String( from: &reader )
+		self.nsClassName	= try String( from: &reader )
 		self.encodeVersion	= try UInt32( from: &reader )
 	}
 		
 	var aClass	: (AnyObject & GCodable).Type? {
-		return NSClassFromString( mangledName ) as? (AnyObject & GCodable).Type
+		return NSClassFromString( nsClassName ) as? (AnyObject & GCodable).Type
 	}
 	
 	var decodable : Bool {
@@ -53,7 +54,7 @@ struct ClassData : NativeIOType, CustomStringConvertible {
 	
 	var swiftSymbol: SwiftSymbol? {
 		do {
-			let symbol = try parseMangledSwiftSymbol( mangledName )
+			let symbol = try parseMangledSwiftSymbol( nsClassName )
 			return symbol
 		} catch {
 			return nil
@@ -63,9 +64,13 @@ struct ClassData : NativeIOType, CustomStringConvertible {
 	var demangledName: String? {
 		return swiftSymbol?.print(using: [.simplified, .displayModuleNames])
 	}
-	
+
+	var readableClassName : String {
+		return demangledName ?? nsClassName
+	}
+
 	var description: String {
-		return "\"\(demangledName ?? mangledName)\" V\(encodeVersion) "
+		return "\"\(readableClassName)\" V\(encodeVersion) "
 	}
 }
 
@@ -85,15 +90,11 @@ struct ClassInfo : CustomStringConvertible {
 	
 	init( classData:ClassData ) throws {
 		guard let aClass = classData.aClass else {
-			throw GCodableError.nilClassFromString( typeName: classData.mangledName )
+			throw GCodableError.nilClassFromString( nsClassName: classData.nsClassName )
 		}
 		
 		self.aClass		= aClass
 		self.classData	= classData
-	}
-
-	var className : String {
-		return classData.demangledName ?? classData.mangledName
 	}
 
 	var description: String {

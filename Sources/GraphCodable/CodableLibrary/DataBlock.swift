@@ -28,7 +28,7 @@ BINARY FILE FORMAT:
 ···code·|·HeaderID·|·Version·|·Unused0·|·Unused1|·Unused2      code = .header
 ······0·|·1········|·2···········|·3······|·4······
 ••••••PHASE 2: Types table
-···code·|·typeID···|·typeVersion·|·typeName      code = .typeMap
+···code·|·typeID···|·classData                   code = .typeMap
 ••••••PHASE 3: Graphcode =
 ···code·|·keyID                                  code = .nilValue
 ···code·|·keyID····|·VALUE                       code = .native( _ nativeCode:NativeCode )
@@ -287,15 +287,29 @@ extension DataBlock {
 			}
 		}
 		
-		func typeString( _ typeID:UInt32, _ info: DumpInfo ) -> String {
-			if let classInfo	= info.classInfoMap?[typeID] {
+		func objectString( _ typeID:UInt32, _ info: DumpInfo ) -> String {
+			if let classData	= info.classInfoMap?[typeID]?.classData {
 				if info.options.contains( .showTypeVersion ) {
-					return "\(classInfo.className) V\(classInfo.classData.encodeVersion)"
+					return "\(classData.readableClassName) V\(classData.encodeVersion)"
 				} else {
-					return classInfo.className
+					return classData.readableClassName
 				}
 			} else {
 				return "Type\(typeID)"
+			}
+		}
+		
+		func typeString( _ info: DumpInfo, _ classData:ClassData ) -> String {
+			// 		return "\"\(demangledName ?? mangledName)\" V\(encodeVersion) "
+			if let demangledName = classData.demangledName {
+				var string	= "\"\(demangledName)\" V\(classData.encodeVersion) "
+				if info.options.contains( .showMangledClassNames ) {
+					string.append( "\n\t\t\t\"\(classData.nsClassName)\"" )
+				}
+				return string
+			} else {
+				return "\"\(classData.nsClassName)\" V\(classData.encodeVersion) "
+				
 			}
 		}
 		
@@ -303,9 +317,9 @@ extension DataBlock {
 		case .header	( let version, let module, let unused1, let unused2 ):
 			return "Filetype = \(HeaderID.gcodable) V\(version), U0 = \"\(module)\", U1 = \(unused1), U2 = \(unused2)"
 		case .inTypeMap	( let typeID, let classInfo ):
-			return	"Type\( typeID ): \( classInfo )"
+			return	"Type\( typeID ): \( typeString( info, classInfo.classData ) )"
 		case .outTypeMap	( let typeID, let classData ):
-			return	"Type\( typeID ): \( classData )"
+			return	"Type\( typeID ): \( typeString( info, classData ) )"
 		case .nilValue	( let keyID ):
 			return format( keyID, info, "nil")
 		case .inBinType( let keyID, let value ):
@@ -317,7 +331,7 @@ extension DataBlock {
 			let string	= "STRUCT"
 			return format( keyID, info, string )
 		case .objectType( let keyID, let typeID, let objID ):
-			let string	= "CLASS \( typeString( typeID,info ) ) Obj\(objID)"
+			let string	= "CLASS \( objectString( typeID,info ) ) Obj\(objID)"
 			return format( keyID, info, string )
 		case .objectSPtr( let keyID, let objID ):
 			let string	= "POINTER Obj\(objID)"
