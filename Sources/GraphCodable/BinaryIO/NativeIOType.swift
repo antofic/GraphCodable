@@ -102,6 +102,19 @@ extension Bool : NativeIOType, FixedSizeIOType {
 	}
 }
 
+// -- Decimal support (FixedSizeIOType) -------------------------------------------------------
+
+extension Decimal : NativeIOType, FixedSizeIOType {
+	func write( to writer: inout BinaryWriter ) throws {
+		writer.writeValue( self )
+	}
+	init( from reader: inout BinaryReader ) throws {
+		var value = Decimal()
+		try reader.readValue( &value )
+		self = value
+	}
+}
+
 // -- String & Character support (BinaryIOType) --------------------------------------------
 
 extension String : NativeIOType {
@@ -168,3 +181,9 @@ extension Optional : NativeIOType where Wrapped : NativeIOType {
 		}
 	}
 }
+
+// -- Decimal support (FixedSizeIOType) -------------------------------------------
+
+typealias DecimalMantissa	= (UInt16, UInt16, UInt16, UInt16, UInt16, UInt16, UInt16, UInt16)
+typealias DecimalNumber		= (exponent:Int32, length:UInt32, isNegative:Bool, isCompact:Bool, mantissa:DecimalMantissa)
+

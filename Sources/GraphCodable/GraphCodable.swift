@@ -257,7 +257,7 @@ public protocol GDecoder {
 	///
 	/// - parameter key: The key to search for.
 	/// - returns: Whether the `Decoder` has an entry for the given key.
-	func contains<Key>( _ key:Key ) throws -> Bool where
+	func contains<Key>( _ key:Key ) -> Bool where
 		Key:RawRepresentable, Key.RawValue == String
 
 	/// Decodes a value of the given type for the given key.
@@ -285,10 +285,24 @@ public protocol GDecoder {
 	func deferDecode<Key, Value>( for key: Key, _ setter: @escaping (Value?) -> ()) throws where
 		Key : RawRepresentable, Value : AnyObject, Value : GCodable, Key.RawValue == String
 
+	/// Decodes a value of the given type for the given key if it exists.
+	///
+	/// It must be used with values or **strong** reference, optional or not.
+	/// It should be used with **weak** references **not** used in order
+	/// to avoid strong memory cycles with ARC.
+	///
+	/// - parameter type: The type of value to decode.
+	/// - parameter key: The key that the decoded value is associated with.
+	/// - returns: A value of the requested type, if present for the given key
+	///   and convertible to the requested type.
+	func decodeIfPresent<Key, Value>(for key: Key) throws -> Value? where
+		Key : RawRepresentable, Value : GCodable, Key.RawValue == String
+
+
 	/// The number of elements still available for unkeyed decoding.
 	///
 	/// The decoding of an element removes it from the decoder.
-	func unkeyedCount() throws -> Int
+	func unkeyedCount() -> Int
 	
 	/// Decodes a value of the given type.
 	///
@@ -313,6 +327,15 @@ public protocol GDecoder {
 	func deferDecode<Value>( _ setter: @escaping (Value?)->() ) throws where
 		Value : GCodable, Value : AnyObject
 }
+
+extension GDecoder {
+	func decodeIfPresent<Key, Value>(for key: Key) throws -> Value? where
+		Key : RawRepresentable, Value : GCodable, Key.RawValue == String
+	{
+		return contains(key) ? try decode(for: key) : nil
+	}
+}
+
 
 /*
 ┌───────────────────────────────────────────────────────────────────────────────┐

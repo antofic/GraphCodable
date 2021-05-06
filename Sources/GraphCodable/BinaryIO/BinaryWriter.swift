@@ -50,6 +50,7 @@ where T:MutableDataProtocol, T:ContiguousBytes
 		}
 	}
 	
+
 	mutating func writeArray<T:FixedSizeIOType>( _ v:[T], count:Int ) {
 		v.withUnsafeBufferPointer { source in
 			bytes.append(
@@ -83,7 +84,7 @@ where T:MutableDataProtocol, T:ContiguousBytes
 		writeValue( v.count )
 		writeContiguousArray( v, count:v.count )
 	}
-	
+
 	mutating func writeData( _ v:Data ) {
 		writeValue( v.count )
 		v.withUnsafeBytes { source in

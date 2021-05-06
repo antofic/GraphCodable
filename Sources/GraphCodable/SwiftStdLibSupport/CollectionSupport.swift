@@ -32,8 +32,8 @@ extension Array: GCodable where Element:GCodable {
 	public init(from decoder: GDecoder) throws {
 		self.init()
 		
-		self.reserveCapacity( try decoder.unkeyedCount() )
-		while try decoder.unkeyedCount() > 0 {
+		self.reserveCapacity( decoder.unkeyedCount() )
+		while decoder.unkeyedCount() > 0 {
 			self.append( try decoder.decode() )
 		}
 	}
@@ -60,6 +60,7 @@ extension Array : NativeIOType where Element : NativeIOType {
 //	Attenzione, questa ottimizzazione solo per Array: Set e Dictionary la sfruttano
 //	se l'array è fatto di FixedSizeIOType posso stamparlo in blocco
 //	e pure l'array diventa un FixedSizeIOType
+
 extension Array : FixedSizeIOType where Element : FixedSizeIOType {
 	func write( to writer: inout BinaryWriter ) throws {
 		writer.writeArray( self )
@@ -80,8 +81,8 @@ extension ContiguousArray: GCodable where Element:GCodable {
 	public init(from decoder: GDecoder) throws {
 		self.init()
 		
-		self.reserveCapacity( try decoder.unkeyedCount() )
-		while try decoder.unkeyedCount() > 0 {
+		self.reserveCapacity( decoder.unkeyedCount() )
+		while decoder.unkeyedCount() > 0 {
 			self.append( try decoder.decode() )
 		}
 	}
@@ -105,7 +106,6 @@ extension ContiguousArray : NativeIOType where Element : NativeIOType {
 	}
 }
 
-
 extension ContiguousArray : FixedSizeIOType where Element : FixedSizeIOType {
 	func write( to writer: inout BinaryWriter ) throws {
 		writer.writeContiguousArray( self )
@@ -114,8 +114,6 @@ extension ContiguousArray : FixedSizeIOType where Element : FixedSizeIOType {
 		self = try reader.readContiguousArray()
 	}
 }
-
-
 
 //	Set SUPPORT ------------------------------------------------------
 extension Set: GCodable where Element:GCodable {
@@ -127,8 +125,8 @@ extension Set: GCodable where Element:GCodable {
 	public init(from decoder: GDecoder) throws {
 		self.init()
 		
-		self.reserveCapacity( try decoder.unkeyedCount() )
-		while try decoder.unkeyedCount() > 0 {
+		self.reserveCapacity( decoder.unkeyedCount() )
+		while decoder.unkeyedCount() > 0 {
 			self.insert( try decoder.decode() )
 		}
 	}
@@ -157,8 +155,8 @@ extension Dictionary: GCodable where Key:GCodable, Value:GCodable {
 	public init(from decoder: GDecoder) throws {
 		self.init()
 		
-		self.reserveCapacity( try decoder.unkeyedCount() )
-		while try decoder.unkeyedCount() > 0 {
+		self.reserveCapacity( decoder.unkeyedCount() )
+		while decoder.unkeyedCount() > 0 {
 			let key		: Key	= try decoder.decode()
 			let value	: Value	= try decoder.decode()
 			self[ key ]	= value

@@ -107,10 +107,10 @@ public final class GraphDecoder {
 		
 		// ------ keyed support
 		
-		func contains<Key>(_ key: Key) throws -> Bool
+		func contains<Key>(_ key: Key) -> Bool
 		where Key : RawRepresentable, Key.RawValue == String
 		{
-			return try constructor.contains(key: key.rawValue)
+			return constructor.contains(key: key.rawValue)
 		}
 		
 		func decode<Key, Value>(for key: Key) throws -> Value
@@ -129,7 +129,7 @@ public final class GraphDecoder {
 
 		// ------ unkeyed support
 		
-		func unkeyedCount() throws -> Int {
+		func unkeyedCount() -> Int {
 			return constructor.currentBlock.unkeyedCount
 		}
 		
@@ -505,7 +505,7 @@ fileprivate final class TypeConstructor {
 		}
 	}
 	
-	func contains(key: String) throws -> Bool {
+	func contains(key: String) -> Bool {
 		return currentBlock.contains(key: key)
 	}
 	

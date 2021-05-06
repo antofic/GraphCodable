@@ -26,6 +26,9 @@ enum GCodableError : Error {
 	// RawRepresentableSupport
 	case enumDecodeError
 
+	case urlDecodeError
+
+	
 	// NativeIOType
 	case optionalEncodeError
 	case optionalDecodeError

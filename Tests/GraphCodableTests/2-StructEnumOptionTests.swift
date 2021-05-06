@@ -132,7 +132,7 @@ extension List: GCodable where Element:GCodable {
 	}
 	
 	init(from decoder: GDecoder) throws {
-		if try decoder.unkeyedCount() == 0 {
+		if decoder.unkeyedCount() == 0 {
 			self		= .end
 		} else {
 			let value	= try decoder.decode() as Element
