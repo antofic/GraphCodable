@@ -8,7 +8,7 @@
 	*note:* Int is always encoded as Int64
 -	UInt, UInt8, UInt16, UInt32, UInt64
 
-	*note:* UInt is always encoded as Int64
+	*note:* UInt is always encoded as UInt64
 -	Float, Double
 -	Bool
 -	String, Character
