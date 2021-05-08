@@ -21,20 +21,43 @@
 //	SOFTWARE.
 
 import Foundation
-
+/*
 extension GCodable where Self : RawRepresentable, Self.RawValue : GCodable {
 	public func encode(to encoder: GEncoder) throws	{
 		try encoder.encode( self.rawValue )
 	}
 	public init(from decoder: GDecoder) throws {
-		guard let value = Self.init(rawValue: try decoder.decode() ) else {
-			throw GCodableError.enumDecodeError
+		let rawValue = try decoder.decode() as RawValue
+		guard let value = Self.init(rawValue:rawValue ) else {
+			throw GCodableError.initGCodableError(
+				Self.self, GCodableError.Context(
+					debugDescription: "Invalid rawValue = \(rawValue) for \(Self.self)"
+				)
+			)
+		}
+		self = value
+	}
+}
+*/
+
+extension RawRepresentable where Self.RawValue : GCodable {
+	public func encode(to encoder: GEncoder) throws	{
+		try encoder.encode( self.rawValue )
+	}
+	public init(from decoder: GDecoder) throws {
+		let rawValue = try decoder.decode() as RawValue
+		guard let value = Self.init(rawValue:rawValue ) else {
+			throw GCodableError.initGCodableError(
+				Self.self, GCodableError.Context(
+					debugDescription: "Invalid rawValue = \(rawValue) for \(Self.self)"
+				)
+			)
 		}
 		self = value
 	}
 }
 
-extension NativeIOType where Self : RawRepresentable, Self.RawValue : NativeIOType {
+extension RawRepresentable where Self.RawValue : NativeIOType {
 	func write( to writer: inout BinaryWriter ) throws {
 		try self.rawValue.write(to: &writer)
 	}

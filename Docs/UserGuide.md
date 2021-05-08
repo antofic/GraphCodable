@@ -26,8 +26,6 @@ Thanks to this change **it is no longer necessary to register the classes (the r
 
 All the previous features are maintained, except for the reference type replacement system which is no longer available at this point in the redesign phase.
 
-Sometimes `NSStringFromClass (...)` generates mangled type names. GraphCodable therefore depends on the [CwlDemangle](https://github.com/mattgallagher/CwlDemangle) package for the sole purpose of presenting more readable class names. For encoding/decoding CwlDemangle is not necessary.
-
 Use `myClass.isGCodable` to check if a class is actually decodable.
 
 ## Code examples
@@ -176,7 +174,7 @@ extension Array: GCodable where Element:GCodable {
 	}
 }
 ```
-The ``init( from:... )`` method clearly shows that **values are removed from the decoder as they are decoded**.
+The `init( from:... )` method clearly shows that **values are removed from the decoder as they are decoded**.
 
 ### Reference types
 #### No duplication of the same object
@@ -519,16 +517,16 @@ Just like ARC cannot release **e**, **b** and **d** because each retain the othe
 Swift does not allow to exit from an init method without inizializing all variables. So, when GraphCodable during decode encounters a cycle that it cannot resolve, it throws an exception.
 
 ARC has a specific solution for these cases: the use of weak variables.
-Similarly, GraphCodable uses a slightly different way to decode weak variables used to break strong memory cycles: it postpones, calling a closure with the ``deferDecode(...)`` method, the setting of these variables (remember: they are optional, so they are auto-inizializated to nil) until the objects they point to have been initialized.
+Similarly, GraphCodable uses a slightly different way to decode weak variables used to break strong memory cycles: it postpones, calling a closure with the `deferDecode(...)` method, the setting of these variables (remember: they are optional, so they are auto-inizializated to nil) until the objects they point to have been initialized.
 
-There is therefore a **one-to-one** correspondence between using weak variables to break strong memory cycles in ARC and using ``deferDecode(...)`` to allow initialization of such variables. ``deferDecode(...)`` **should not be used in any other case**.
+There is therefore a **one-to-one** correspondence between using weak variables to break strong memory cycles in ARC and using `deferDecode(...)` to allow initialization of such variables. `deferDecode(...)` **should not be used in any other case**.
 
 Let's see how with a classic example: the **parent-childs pattern**. In this pattern the parent variable is weak to break the strong cycles (self.parent.child === self) that would otherwise form with his childs.
 Similarly, this pattern requires to 'deferDecode' the weak variable (parent) because the initialization of parent depends on that of its childs and vice versa.
 
-*Note:* You should **always** use ``encodeConditional(...)`` to encode a weak variable. Otherwise you run the risk of unnecessarily encode and decode objects that will be immediately released  after decoding.
+*Note:* You should **always** use `encodeConditional(...)` to encode a weak variable. Otherwise you run the risk of unnecessarily encode and decode objects that will be immediately released  after decoding.
 
-*Note:* Swift does not allow to call ``deferDecode(...)`` from the init of a value type, but only from that of a reference type and forces to call it **after** super class initialization.
+*Note:* Swift does not allow to call `deferDecode(...)` from the init of a value type, but only from that of a reference type and forces to call it **after** super class initialization.
 
 ```swift
 import Foundation
@@ -632,7 +630,7 @@ print( outRoot )	// print 'Screen [Window [View [], View [View []]], Window [Vie
 print( outRoot === outRoot.childs.first?.childs.first?.parent?.parent! )	// print true
 ```
 
-For another example of DCG, see ``testDGC()`` in the tests section (DirectedCyclicGraphTests).
+For another example of DCG, see `testDGC()` in the tests section (DirectedCyclicGraphTests).
 
 ### Coding rules
 

@@ -54,12 +54,12 @@ public final class GraphDecoder {
 	}
 
 	public func decodableClasses( from data: Data ) throws -> [(AnyObject & GCodable).Type] {
-		return try decoder.allClassData( from: data ).compactMap { $0.aClass }
+		return try decoder.allClassData( from: data ).compactMap { $0.codableType }
 	}
 	
 	public func classNames( from data: Data, options:ClassNamesOptions ) throws -> [String] {
 		func name( _ classData:ClassData, _ demangled:Bool ) -> String {
-			return demangled ? classData.demangledName ?? classData.nsClassName : classData.nsClassName
+			return demangled ? classData.readableTypeName : classData.mangledTypeName ?? classData.objcTypeName
 		}
 
 		let data	= try decoder.allClassData( from: data )
@@ -67,8 +67,8 @@ public final class GraphDecoder {
 		
 		switch (options.contains( .decodable ), options.contains( .undecodable )) {
 			case (true,true):	return data.map { name( $0,dema ) }
-			case (true,false):	return data.compactMap { $0.decodable ? name( $0,dema ) : nil }
-			case (false,true):	return data.compactMap { $0.decodable ? nil : name( $0,dema ) }
+			case (true,false):	return data.compactMap { $0.isDecodable ? name( $0,dema ) : nil }
+			case (false,true):	return data.compactMap { $0.isDecodable ? nil : name( $0,dema ) }
 			case (false,false):	return [String]()
 		}
 	}
@@ -124,7 +124,7 @@ public final class GraphDecoder {
 		func deferDecode<Key, Value>( for key: Key, _ setter: @escaping (Value?) -> ()) throws
 		where Key : RawRepresentable, Value : AnyObject, Value : GCodable, Key.RawValue == String
 		{
-			try constructor.decodeNode( graphBlock:try constructor.popNode( key:key.rawValue ), setter )
+			try constructor.decodeNode( block:try constructor.popNode( key:key.rawValue ), setter )
 		}
 
 		// ------ unkeyed support
@@ -140,7 +140,7 @@ public final class GraphDecoder {
 		}
 		
 		func deferDecode<Value>(_ setter: @escaping (Value?) -> ()) throws where Value : GCodable, Value : AnyObject {
-			try constructor.decodeNode( graphBlock:try constructor.popNode(), setter )
+			try constructor.decodeNode( block:try constructor.popNode(), setter )
 		}
 
 		// ------ Private
@@ -259,7 +259,11 @@ fileprivate struct BlockDecoder {
 			case .outTypeMap( let typeID, let classData ):
 				// ••• PHASE 1 •••
 				guard _classDataMap.index(forKey: typeID) == nil else {
-					throw GCodableError.duplicateTypeID( typeID:typeID )
+					throw GCodableError.duplicateTypeID(
+						Self.self, GCodableError.Context(
+							debugDescription: "TypeID -\(typeID)- already used."
+						)
+					)
 				}
 				_classDataMap[typeID]	= classData
 			default:
@@ -290,7 +294,11 @@ fileprivate struct BlockDecoder {
 			switch dataBlock {
 			case .keyMap( let keyID, let key ):
 				guard _keyIDToKey.index(forKey: keyID) == nil else {
-					throw GCodableError.duplicateKey( key:key )
+					throw GCodableError.duplicateKey(
+						Self.self, GCodableError.Context(
+							debugDescription: "Key -\(key)- already used."
+						)
+					)
 				}
 				_keyIDToKey[keyID]	= key
 			default:
@@ -325,7 +333,11 @@ fileprivate struct BlockDecoder {
 		guard let root = try GraphBlock(
 				blocks: _graphDataBlocks, objBlockMap:&map, keyIDsToKey:_keyIDToKey, reverse: true
 		) else {
-			throw GCodableError.rootNotFound
+			throw GCodableError.decodingError(
+				Self.self, GCodableError.Context(
+					debugDescription: "Root not found."
+				)
+			)
 		}
 		return (root, map)
 	}
@@ -341,7 +353,13 @@ fileprivate final class GraphBlock {
 		var lineIterator = blocks.makeIterator()
 		
 		if let dataBlock = lineIterator.next() {
-			guard dataBlock.level != .exit else { throw GCodableError.invalidRootLevel }
+			guard dataBlock.level != .exit else {
+				throw GCodableError.decodingError(
+					Self.self, GCodableError.Context(
+						debugDescription: "The archive begins with an end block."
+					)
+				)
+			}
 			self.dataBlock	= dataBlock
 			
 			try Self.flatten( objBlockMap: &map, block: self, lineIterator: &lineIterator, keyIDsToKey:keyIDsToKey, reverse: reverse )
@@ -401,7 +419,11 @@ fileprivate final class GraphBlock {
 		case .objectType( let keyID, let typeID, let objID ):
 			//	l'oggetto non può trovarsi nella map
 			guard map.index(forKey: objID) == nil else {
-				throw GCodableError.objectAlreadyExists( dataBlock: block.dataBlock )
+				throw GCodableError.internalInconsistency(
+					Self.self, GCodableError.Context(
+						debugDescription: "Object -\(block.dataBlock)- already exists."
+					)
+				)
 			}
 			
 			//	trasformo l'oggetto in uno strong pointer
@@ -432,7 +454,11 @@ fileprivate final class GraphBlock {
 	) throws where T:IteratorProtocol, T.Element == DataBlock {
 		while let dataBlock = lineIterator.next() {
 			guard dataBlock.blockType == .graph else {
-				throw GCodableError.unespectedDataBlockInThisPhase
+				throw GCodableError.internalInconsistency(
+					Self.self, GCodableError.Context(
+						debugDescription: "Unespected graph -\(dataBlock)-."
+					)
+				)
 			}
 			let block = GraphBlock( dataBlock: dataBlock )
 			
@@ -443,12 +469,20 @@ fileprivate final class GraphBlock {
 				
 				if let keyID = dataBlock.keyID {
 					guard let key = keyIDsToKey[keyID] else {
-						throw GCodableError.keyNotFound( keyID:keyID )
+						throw GCodableError.keyNotFound(
+							Self.self, GCodableError.Context(
+								debugDescription: "Key for keyID-\(keyID)- not found."
+							)
+						)
 					}
 					if parent.keyedValues.index(forKey: key) == nil {
 						parent.keyedValues[ key ] = block
 					} else {
-						throw GCodableError.duplicateKey( key:key )
+						throw GCodableError.duplicateKey(
+							Self.self, GCodableError.Context(
+								debugDescription: "Key -\(key)- already used."
+							)
+						)
 					}
 				} else {
 					parent.unkeyedValues.append( block )
@@ -489,7 +523,7 @@ fileprivate final class TypeConstructor {
 	private lazy var	classToID	 		: [ObjectIdentifier:IntID] = {
 		var cToID = [ObjectIdentifier:IntID]()
 		for (id,classInfo) in decodedData.classInfoMap {
-			cToID[ ObjectIdentifier( classInfo.aClass ) ] = id
+			cToID[ ObjectIdentifier( classInfo.codableType ) ] = id
 		}
 		return cToID
 	}()
@@ -513,12 +547,20 @@ fileprivate final class TypeConstructor {
 		if let key = key {
 			// keyed case
 			guard let	block = currentBlock.pop(key: key) else {
-				throw GCodableError.keyedChildNotFound( parentDataBlock: currentBlock.dataBlock )
+				throw GCodableError.childNotFound(
+					Self.self, GCodableError.Context(
+						debugDescription: "Keyed child for key-\(key)- not found in \(currentBlock.dataBlock)."
+					)
+				)
 			}
 			return block
 		} else {
 			guard let	block = currentBlock.pop(key: nil) else {
-				throw GCodableError.unkeyedChildNotFound( parentDataBlock: currentBlock.dataBlock )
+				throw GCodableError.childNotFound(
+					Self.self, GCodableError.Context(
+						debugDescription: "Unkeyed child not found in \(currentBlock.dataBlock)."
+					)
+				)
 			}
 			return block
 		}
@@ -526,24 +568,32 @@ fileprivate final class TypeConstructor {
 	
 	private func classInfo( typeID:IntID ) throws -> ClassInfo {
 		guard let classInfo = decodedData.classInfoMap[ typeID ] else {
-			throw GCodableError.classTypeNotFound( typeID:typeID )
+			throw GCodableError.internalInconsistency(
+				Self.self, GCodableError.Context(
+					debugDescription: "ClassInfo not found for typeID -\(typeID)-."
+				)
+			)
 		}
 		return classInfo
 	}
 
 	func encodedVersion<T>( _ type: T.Type ) throws -> UInt32  where T:GCodable, T:AnyObject {
 		guard let typeID = classToID[ ObjectIdentifier(type) ] else {
-			throw GCodableError.decodedDataDontContainsType( type:type )
+			throw GCodableError.decodedDataDontContainsType(
+				Self.self, GCodableError.Context(
+					debugDescription: "The dearchived data does not contain any objects of the class -\(type)-."
+				)
+			)
 		}
 		return try classInfo( typeID:typeID ).classData.encodeVersion
 	}
 
-	func decodeNode<T>( graphBlock:GraphBlock, _ setter: @escaping (T?) -> () ) throws  where T:GCodable {
+	func decodeNode<T>( block:GraphBlock, _ setter: @escaping (T?) -> () ) throws  where T:GCodable {
 		let saveCurrent = currentBlock
-		currentBlock	= graphBlock
+		currentBlock	= block
 		defer { currentBlock = saveCurrent }
 		
-		switch graphBlock.dataBlock {
+		switch block.dataBlock {
 		case .nilValue( _ ):
 			setter( nil )
 		case .objectSPtr( _, let objID ):
@@ -552,13 +602,17 @@ fileprivate final class TypeConstructor {
 			//	ma la cosa non ha logicamente senso perché se non sono
 			//	tenute in vita da qualche strong path, diventerebbero
 			//	comunque nulle non appena viene completato il decode.
-			NSLog("You should always use encodeConditional() to encode a weak variable (\(graphBlock.dataBlock)).")
+			NSLog("You should always use encodeConditional() to encode a weak variable (\(block.dataBlock)).")
 			fallthrough
 		case .objectWPtr( _, let objID ):
 			let anySetter : (AnyObject) throws -> () = {
 				anyValue in
 				guard let value = anyValue as? T else {
-					throw GCodableError.deferredTypeMismatch( dataBlock:graphBlock.dataBlock )
+					throw GCodableError.typeMismatch(
+						Self.self, GCodableError.Context(
+							debugDescription: "Block \(block.dataBlock) doesn't contains -\(T.self)-."
+						)
+					)
 				}
 				setter( value )
 			}
@@ -570,7 +624,11 @@ fileprivate final class TypeConstructor {
 				deferredRepository[ objID ] = [ anySetter ]
 			}
 		default:
-			throw GCodableError.inappropriateDataBlock( dataBlock:graphBlock.dataBlock )
+			throw GCodableError.internalInconsistency(
+				Self.self, GCodableError.Context(
+					debugDescription: "Inappropriate block \(block.dataBlock) here."
+				)
+			)
 		}
 	}
 
@@ -595,12 +653,16 @@ fileprivate final class TypeConstructor {
 						defer { currentBlock = saveCurrent }
 
 						let classInfo	= try classInfo( typeID:typeID )
-						let value		= try classInfo.aClass.init(from: decoder)
+						let value		= try classInfo.codableType.init(from: decoder)
 						
 						objectRepository[ objID ]	= value as AnyObject
 						return value as AnyObject
 					default:
-						throw GCodableError.inappropriateDataBlock( dataBlock:block.dataBlock )
+						throw GCodableError.internalInconsistency(
+							Self.self, GCodableError.Context(
+								debugDescription: "Inappropriate block \(block.dataBlock) here."
+							)
+						)
 					}
 				} else {
 					return nil
@@ -616,11 +678,21 @@ fileprivate final class TypeConstructor {
 				return try decodeAnyObject( objID:objID, from:decoder ) as Any
 			case .objectSPtr( _, let objID ):
 				guard let anyObject = try decodeAnyObject( objID:objID, from:decoder ) else {
-					throw GCodableError.pointerNotFound( dataBlock:block.dataBlock )
+					throw GCodableError.internalInconsistency(
+						Self.self, GCodableError.Context(
+							debugDescription:
+								"Object pointed from -\(block.dataBlock)- not found." +
+								"Check if it is a weak variable that requires deferDecode."
+						)
+					)
 				}
 				return anyObject
 			default:	// .Struct & .Object are inappropriate here!
-				throw GCodableError.inappropriateDataBlock( dataBlock:block.dataBlock )
+				throw GCodableError.internalInconsistency(
+					Self.self, GCodableError.Context(
+						debugDescription: "Inappropriate block \(block.dataBlock) here."
+					)
+				)
 			}
 		}
 		
@@ -641,7 +713,11 @@ fileprivate final class TypeConstructor {
 					let decodableType = wrapped as? GCodable.Type,
 					let value = try decodableType.init(from: decoder) as? T
 				else {
-					throw GCodableError.typeMismatch(dataBlock: block.dataBlock)
+					throw GCodableError.typeMismatch(
+						Self.self, GCodableError.Context(
+							debugDescription: "Block \(block) wrapped type -\(wrapped)- not GCodable."
+						)
+					)
 				}
 				
 				return value
@@ -659,7 +735,11 @@ fileprivate final class TypeConstructor {
 					let binaryIOType = wrapped as? NativeIOType.Type,
 					let value = try binaryIOType.init(bytesArray: bytes) as? T
 				else {
-					throw GCodableError.typeMismatch(dataBlock: block.dataBlock)
+					throw GCodableError.typeMismatch(
+						Self.self, GCodableError.Context(
+							debugDescription: "Block \(block) wrapped type -\(wrapped)- not NativeIOType."
+						)
+					)
 				}
 				return value
 			} else { //	if not, construct it:
@@ -667,13 +747,21 @@ fileprivate final class TypeConstructor {
 					let binaryIOType = T.self as? NativeIOType.Type,
 					let value = try binaryIOType.init(bytesArray: bytes) as? T
 				else {
-					throw GCodableError.typeMismatch(dataBlock: block.dataBlock)
+					throw GCodableError.typeMismatch(
+						Self.self, GCodableError.Context(
+							debugDescription: "Block \(block) type -\(T.self)- not NativeIOType."
+						)
+					)
 				}
 				return value
 			}
 		default:
 			guard let value = try decodeAnyNode( block:block, from:decoder ) as? T else {
-				throw GCodableError.typeMismatch(dataBlock: block.dataBlock)
+				throw GCodableError.typeMismatch(
+					Self.self, GCodableError.Context(
+						debugDescription: "Block \(block) doesn't contains a -\(T.self)- type."
+					)
+				)
 			}
 			
 			return value

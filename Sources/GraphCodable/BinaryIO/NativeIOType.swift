@@ -23,19 +23,25 @@
 import Foundation
 
 protocol NativeIOType : GCodable {
-	func write( to: inout BinaryWriter ) throws
-	init( from: inout BinaryReader ) throws
+	func write( to writer: inout BinaryWriter ) throws
+	init( from reader: inout BinaryReader ) throws
 }
-
-protocol FixedSizeIOType : NativeIOType {}
 
 extension NativeIOType {
 	public func encode(to encoder: GEncoder) throws	{
-		throw GCodableError.binaryIOEncodeError
+		throw GCodableError.internalInconsistency(
+			Self.self, GCodableError.Context(
+				debugDescription: "Program must not reach this point."
+			)
+		)
 	}
 	
 	public init(from decoder: GDecoder) throws {
-		throw GCodableError.binaryIODecodeError
+		throw GCodableError.internalInconsistency(
+			Self.self, GCodableError.Context(
+				debugDescription: "Program must not reach this point."
+			)
+		)
 	}
 
 	func bytesArray() throws -> [UInt8] {
@@ -49,69 +55,27 @@ extension NativeIOType {
 	}
 }
 
-// -- BinaryInteger support (FixedSizeIOType) -------------------------------------------------------
+// -- Int & UInt support (NativeIOType) --------------------------------------------
+//	Su alcune piattaforme Int e UInt hanno 32 bit.
+//	Salviamo sempre a 64bit
 
-extension NativeIOType where Self : FixedSizeIOType, Self : BinaryInteger {
-	func write( to writer: inout BinaryWriter ) throws {
-		writer.writeValue( self )
+extension Int : NativeIOType {
+	init(from reader: inout BinaryReader) throws {
+		self.init( try Int64( from: &reader ) )
 	}
-	init( from reader: inout BinaryReader ) throws {
-		var value = Self.zero
-		try reader.readValue( &value )
-		self = value
-	}
-}
-
-extension Int		: FixedSizeIOType {}
-extension Int8		: FixedSizeIOType {}
-extension Int16		: FixedSizeIOType {}
-extension Int32		: FixedSizeIOType {}
-extension Int64		: FixedSizeIOType {}
-extension UInt		: FixedSizeIOType {}
-extension UInt8		: FixedSizeIOType {}
-extension UInt16	: FixedSizeIOType {}
-extension UInt32	: FixedSizeIOType {}
-extension UInt64	: FixedSizeIOType {}
-
-// -- BinaryFloatingPoint support (FixedSizeIOType) -------------------------------------------------------
-
-extension NativeIOType where Self : FixedSizeIOType, Self : BinaryFloatingPoint {
-	func write( to writer: inout BinaryWriter ) throws {
-		writer.writeValue( self )
-	}
-	init( from reader: inout BinaryReader ) throws {
-		var value = Self.zero
-		try reader.readValue( &value )
-		self = value
+	
+	func write(to writer: inout BinaryWriter) throws {
+		try Int64( self ).write(to: &writer)
 	}
 }
 
-extension Float		: FixedSizeIOType {}
-extension Double	: FixedSizeIOType {}
-
-// -- Bool support (FixedSizeIOType) -------------------------------------------------------
-
-extension Bool : NativeIOType, FixedSizeIOType {
-	func write( to writer: inout BinaryWriter ) throws {
-		writer.writeValue( self )
+extension UInt : NativeIOType {
+	init(from reader: inout BinaryReader) throws {
+		self.init( try UInt64( from: &reader ) )
 	}
-	init( from reader: inout BinaryReader ) throws {
-		var value = false
-		try reader.readValue( &value )
-		self = value
-	}
-}
-
-// -- Decimal support (FixedSizeIOType) -------------------------------------------------------
-
-extension Decimal : NativeIOType, FixedSizeIOType {
-	func write( to writer: inout BinaryWriter ) throws {
-		writer.writeValue( self )
-	}
-	init( from reader: inout BinaryReader ) throws {
-		var value = Decimal()
-		try reader.readValue( &value )
-		self = value
+	
+	func write(to writer: inout BinaryWriter) throws {
+		try UInt64( self ).write(to: &writer)
 	}
 }
 
@@ -131,8 +95,13 @@ extension Character : NativeIOType {
 		writer.writeString( String(self) )
 	}
 	init( from reader: inout BinaryReader ) throws {
-		guard let character = try reader.readString().first else {
-			throw GCodableError.binaryIODecodeError
+		let string	= try reader.readString()
+		guard let character = string.first else {
+			throw GCodableError.initGCodableError(
+				Self.self, GCodableError.Context(
+					debugDescription: "Invalida character string \(string) for \(Self.self)"
+				)
+			)
 		}
 		self = character
 	}
@@ -153,12 +122,21 @@ extension Data : NativeIOType {
 // -- Optional support (BinaryIOType) -------------------------------------------
 
 extension Optional : GCodable where Wrapped : GCodable {
+	// queste due perché i decoder unwrappano gli optional
 	public func encode(to encoder: GEncoder) throws {
-		throw GCodableError.optionalEncodeError
+		throw GCodableError.internalInconsistency(
+			Self.self, GCodableError.Context(
+				debugDescription: "Program must not reach this point."
+			)
+		)
 	}
 	
 	public init(from decoder: GDecoder) throws {
-		throw GCodableError.optionalDecodeError
+		throw GCodableError.internalInconsistency(
+			Self.self, GCodableError.Context(
+				debugDescription: "Program must not reach this point."
+			)
+		)
 	}
 }
 
@@ -181,9 +159,4 @@ extension Optional : NativeIOType where Wrapped : NativeIOType {
 		}
 	}
 }
-
-// -- Decimal support (FixedSizeIOType) -------------------------------------------
-
-typealias DecimalMantissa	= (UInt16, UInt16, UInt16, UInt16, UInt16, UInt16, UInt16, UInt16)
-typealias DecimalNumber		= (exponent:Int32, length:UInt32, isNegative:Bool, isCompact:Bool, mantissa:DecimalMantissa)
 

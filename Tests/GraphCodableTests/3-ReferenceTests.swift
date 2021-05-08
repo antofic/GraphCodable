@@ -23,48 +23,51 @@
 import XCTest
 @testable import GraphCodable
 
-//	testInheritance types
-fileprivate class SuperClass : GCodable {
-	init() {}
-	required init(from decoder: GDecoder) throws {}
-	func encode(to encoder: GEncoder) throws {}
-}
-
-//	testInheritance classes
-fileprivate class SubClass : SuperClass {
-}
-
-//	testConditionalEncoding types
-class ConditionalList : GCodable {
-	private (set) var next : ConditionalList?
-	
-	init( _ a: ConditionalList? = nil ) {
-		self.next = a
-	}
-
-	private enum Key : String {
-		case next
-	}
-
-	func encode(to encoder: GEncoder) throws {
-		try encoder.encodeConditional( next, for: Key.next )
-	}
-	
-	required init(from decoder: GDecoder) throws {
-		next	= try decoder.decode( for: Key.next )
-	}
-}
-
-//	testDontDuplicateReferences types
-class Dummy : GCodable {
-	init() {}
-	required init(from decoder: GDecoder) throws {}
-	func encode(to encoder: GEncoder) throws {}
-}
 
 // --------------------------------------------------------------------------------
 
 final class ReferenceTests: XCTestCase {
+	//	testInheritance types
+	class SuperClass : GCodable {
+		init() {}
+		required init(from decoder: GDecoder) throws {}
+		func encode(to encoder: GEncoder) throws {}
+	}
+
+	//	testInheritance classes
+	class SubClass : SuperClass {
+	}
+
+	//	testConditionalEncoding types
+	class ConditionalList : GCodable {
+		private (set) var next : ConditionalList?
+		
+		init( _ a: ConditionalList? = nil ) {
+			self.next = a
+		}
+
+		private enum Key : String {
+			case next
+		}
+
+		func encode(to encoder: GEncoder) throws {
+			try encoder.encodeConditional( next, for: Key.next )
+		}
+		
+		required init(from decoder: GDecoder) throws {
+			next	= try decoder.decode( for: Key.next )
+		}
+	}
+
+	//	testDontDuplicateReferences types
+	class Dummy : GCodable {
+		init() {}
+		required init(from decoder: GDecoder) throws {}
+		func encode(to encoder: GEncoder) throws {}
+	}
+
+	
+	
 	
 	func testInheritance() throws {
 		let inRoot	: SuperClass = SubClass()

@@ -184,7 +184,7 @@ public extension GCodable where Self:AnyObject {
 	///
 	/// It depends on the ability to be created from its name.
 	static var isGCodable: Bool {
-		return NSClassFromString( NSStringFromClass( self ) ) == self
+		return ClassData.isEncodable( self )
 	}
 }
 

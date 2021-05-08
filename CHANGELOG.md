@@ -1,4 +1,13 @@
 
+# 0.2.1
+
+The type construction now relies on `_mangledTypeName(...)` (when available) and on  `_typeByName(...)`, too. On systems where `_mangledTypeName(...)` is available it should always be possible to dearchive the classes that are archived.
+
+**Most Swift Standard Library and Foundation types are supported now.** The list is [here](/Docs/GraphCodableTypes.md).
+
+## Be aware
+**The data format may be subject to future changes.**
+
 # 0.2.0
 
 The package has been completely revised. It now relies on `NSStringFromClass(...)` to generate the "type name" and on  `NSClassFromString(...)` to retrieve the class type fro it. At least on Apple systems this procedure should now be stable.
@@ -10,6 +19,10 @@ At least on Apple systems this procedure should now be stable.
 Thanks to this change **it is no longer necessary to register the classes (the repository is gone)** or even set the main module name.
 
 All the previous features are maintained, except for the reference type replacement system which is no longer available at this point in the redesign phase.
+
+## Be aware
+**The data format may be subject to future changes.**
+
 
 # 0.1.3
 

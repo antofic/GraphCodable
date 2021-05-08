@@ -176,7 +176,11 @@ public final class GraphEncoder {
 				if let key = key {
 					defer { currentKeys.insert( key ) }
 					if currentKeys.contains( key ) {
-						throw GCodableError.duplicateKey(key: key)
+						throw GCodableError.duplicateKey(
+							Self.self, GCodableError.Context(
+								debugDescription: "Key -\(key)- already used."
+							)
+						)
 					}
 					return encodedData.createKeyIDIfNeeded(key: key)
 				} else {
@@ -195,10 +199,14 @@ public final class GraphEncoder {
 				encodedData.append( .inBinType(keyID: keyID, value: binaryValue ) )
 			} else if type(of:value) is AnyClass {
 				guard let object = value as? GCodable & AnyObject else {
-					throw GCodableError.notEncodableType( type: type(of:value) )
+					throw GCodableError.internalInconsistency(
+						Self.self, GCodableError.Context(
+							debugDescription: "Not GCodable object \(value)."
+						)
+					)
 				}
 
-				let classInfo	= try ClassInfo(aClass: type(of:object))
+				let classInfo	= try ClassInfo(codableType: type(of:object))
 				let typeID		= encodedData.createTypeIDIfNeeded(classInfo: classInfo)
 
 				// siamo sicuri che è un oggetto
@@ -224,7 +232,11 @@ public final class GraphEncoder {
 				}
 			} else {	// full value type (struct)
 				guard let value = value as? GCodable else {
-					throw GCodableError.notEncodableType( type: type(of:value) )
+					throw GCodableError.internalInconsistency(
+						Self.self, GCodableError.Context(
+							debugDescription: "Not GCodable value \(value)."
+						)
+					)
 				}
 				encodedData.append( .valueType( keyID: keyID ) )
 				try encodeValue( value, to:self )
@@ -426,14 +438,14 @@ public final class GraphEncoder {
 				}
 
 				mutating func createIDIfNeeded( classInfo: ClassInfo ) -> IntID {
-					if let typeID = aClassToID[ ObjectIdentifier( classInfo.aClass ) ] {
+					if let typeID = aClassToID[ ObjectIdentifier( classInfo.codableType ) ] {
 						return typeID
 					} else {
 						defer { actualId += 1 }
 
 						let typeID = actualId
 						typeIDtoName[ typeID ]	= classInfo
-						aClassToID[ ObjectIdentifier( classInfo.aClass ) ] = typeID
+						aClassToID[ ObjectIdentifier( classInfo.codableType ) ] = typeID
 						return typeID
 					}
 				}

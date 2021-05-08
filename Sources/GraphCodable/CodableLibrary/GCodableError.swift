@@ -21,50 +21,55 @@
 //	SOFTWARE.
 
 import Foundation
+/*
+throw GCodableError.programMustNotReachThisPoint(
+	Self.self, GCodableError.Context(
+		debugDescription: "Program must not reach this point \(#function)"
+	)
+)
+*/
+
+
 
 enum GCodableError : Error {
-	// RawRepresentableSupport
-	case enumDecodeError
+	struct Context {
+		let debugDescription:	String
+		let underlyingError:	Error?
+		let function:			String
+		let file:				String
 
-	case urlDecodeError
-
+		init(
+			debugDescription: String,
+			underlyingError: Error? = nil,
+			function: String = #function,
+			file: String = #fileID
+		) {
+			self.debugDescription	= debugDescription
+			self.underlyingError	= underlyingError
+			self.function			= function
+			self.file				= file
+		}
+	}
 	
-	// NativeIOType
-	case optionalEncodeError
-	case optionalDecodeError
-	case binaryIOEncodeError
-	case binaryIODecodeError
+	// RawRepresentableSupport
+	case initGCodableError( Any.Type, GCodableError.Context )
+	case initNativeIOTypeError( Any.Type, GCodableError.Context )
+	
+	case internalInconsistency( Any.Type, GCodableError.Context )
+	case cantConstructClass( Any.Type, GCodableError.Context )
 
-	// ClassInfo
-	case nilClassFromString( nsClassName:String )
-	case nilClassFromStringFromClass( aClass:AnyClass )
+	case duplicateKey( Any.Type, GCodableError.Context )
+	case duplicateTypeID( Any.Type, GCodableError.Context )
+	case keyNotFound( Any.Type, GCodableError.Context )
+	case childNotFound( Any.Type, GCodableError.Context )
+	case pointerNotFound( Any.Type, GCodableError.Context )
 
-	// DataBlock
-	case readingInBinTypeError
-	case writingOutBinTypeError
-	case readingInTypeMapError
-	case writingOutTypeMapError
-
-	// GraphEncoder
-	case notEncodableType( type:Any.Type )
+	case decodingError( Any.Type, GCodableError.Context )
+	case typeMismatch( Any.Type, GCodableError.Context )
 
 	// GraphDecoder
-	case duplicateTypeID( typeID:IntID )
-	case keyNotFound( keyID:IntID )
-	case rootNotFound
-	case keyedChildNotFound( parentDataBlock:DataBlock )
-	case unkeyedChildNotFound( parentDataBlock:DataBlock )
-	case objectAlreadyExists( dataBlock:DataBlock )
-	case pointerNotFound( dataBlock:DataBlock )
-	case invalidRootLevel
-	case unespectedDataBlockInThisPhase
-	case typeMismatch( dataBlock:DataBlock )
-	case deferredTypeMismatch( dataBlock:DataBlock )
-	case inappropriateDataBlock( dataBlock:DataBlock )
-	case classTypeNotFound( typeID:IntID )
-	case decodedDataDontContainsType( type:(AnyObject & GCodable).Type )
+	case decodedDataDontContainsType( Any.Type, GCodableError.Context )
 
 	// GraphDecoder & GraphEncoder
-	case duplicateKey( key:String )
 }
 

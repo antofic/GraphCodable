@@ -57,18 +57,6 @@ extension Array : NativeIOType where Element : NativeIOType {
 	}
 }
 
-//	Attenzione, questa ottimizzazione solo per Array: Set e Dictionary la sfruttano
-//	se l'array è fatto di FixedSizeIOType posso stamparlo in blocco
-//	e pure l'array diventa un FixedSizeIOType
-
-extension Array : FixedSizeIOType where Element : FixedSizeIOType {
-	func write( to writer: inout BinaryWriter ) throws {
-		writer.writeArray( self )
-	}
-	init( from reader: inout BinaryReader ) throws {
-		self = try reader.readArray()
-	}
-}
 
 //	ContiguousArray SUPPORT ------------------------------------------------------
 
@@ -103,15 +91,6 @@ extension ContiguousArray : NativeIOType where Element : NativeIOType {
 			array.append( try Element.init(from: &reader) )
 		}
 		self = array
-	}
-}
-
-extension ContiguousArray : FixedSizeIOType where Element : FixedSizeIOType {
-	func write( to writer: inout BinaryWriter ) throws {
-		writer.writeContiguousArray( self )
-	}
-	init( from reader: inout BinaryReader ) throws {
-		self = try reader.readContiguousArray()
 	}
 }
 

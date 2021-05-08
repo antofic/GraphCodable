@@ -4,7 +4,7 @@ Firstly, I apologize for my poor English. I hope the content remains understanda
 
 GraphCodable is an **experimental** Swift encode/decode package (similar to Codable at interface level) that does not treat reference types as second-class citizens.
 
-With version **0.2.0**, the package has been completely revised. It now relies on `NSStringFromClass(...)` to generate the "type name" and on  `NSClassFromString(...)` to retrieve the class type from it. At least on Apple systems this procedure should now be stable.
+With version **0.2.0** and later versions, the package has been completely revised. It now relies on `_mangledTypeName(...)` (when available) and  `NSStringFromClass(...)` to generate the "type name" and on  `_typeByName(...)` and `NSClassFromString(...)` to retrieve the class type from it. At least on Apple systems this procedure should now be stable.
 
 Thanks to this change **it is no longer necessary to register the classes (the repository is gone)** or even set the main module name.
 
@@ -28,8 +28,7 @@ Check code examples in the [User Guide](/Docs/UserGuide.md). Check the tests sec
 (*) Fully type checking at compile time is mutually exclusive with the ability to encode/decode heterogeneous collections (i.e. `[Any]`) containing 'codable' elements. I chose to support the first feature while giving up the second.
 
 ## Other information
-GraphCodable natively supports the following types: Int, Int8, Int16, Int32, Int64, UInt, UInt8, UInt16, UInt32, UInt64, Float, Double, String, Data
-GraphCodable make Optional, Array, Set, Dictionary codable if they hold codable types. OptionSet and Enum with rawValue of native type (except Data) are codable, too.
+**Most Swift Standard Library and Foundation types are supported now.** The list is [here](/Docs/GraphCodableTypes.md).
 
 GraphCodable can encode and decode any 'ARC compatible' Swift object graph, regardless of how complex it is, reconstructing its [original structure](/Docs/UserGuide.md#Directed-acyclic-graphs) with its original types without duplicating objects.
 Only weak variables used in the object graph in order to avoid strong memory cycles in ARC require [special treatment](/Docs/UserGuide.md#Directed-cyclic-graphs) during initialization within the `init (from: GDecoder)` method.
@@ -48,6 +47,7 @@ For now, **the data format may be subject to future changes.**
 - [User Guide](/Docs/UserGuide.md)
 - [Coding Rules](/Docs/CodingRules.md)
 - [Data Format](/Docs/DataFormat.md)
+- [GraphCodable Types](/Docs/GraphCodableTypes.md)
 
 ## Simple interface comparison to Swift Codable
 In GraphCodable:
@@ -65,9 +65,6 @@ GraphCodable does not use containers.
 ## Changelog
 
 Check it [here](/CHANGELOG.md).
-
-## Dependencies
-GraphCodable depends on the [CwlDemangle](https://github.com/mattgallagher/CwlDemangle) package for the sole purpose of presenting more readable class names. For encoding/decoding CwlDemangle is not necessary.
 
 ## License
 

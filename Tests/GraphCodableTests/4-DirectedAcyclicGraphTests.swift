@@ -25,36 +25,36 @@ import XCTest
 
 //	testDirectedAcyclicGraph types
 
-fileprivate class Node : Codable, GCodable {
-	private (set) var connections = [Node]()
-	let name : String
-
-	func connect( to nodes: Node... ) {
-		connections.append( contentsOf: nodes)
-	}
-	
-	init( _ name:String ) {
-		self.name	= name
-	}
-
-	private enum Key : String {
-		case name, connections
-	}
-
-	required init(from decoder: GDecoder) throws {
-		name		= try decoder.decode( for: Key.name )
-		connections	= try decoder.decode( for: Key.connections )
-	}
-	
-	func encode(to encoder: GEncoder) throws {
-		try encoder.encode(name, 		for: Key.name )
-		try encoder.encode(connections, for: Key.connections )
-	}
-}
 
 // --------------------------------------------------------------------------------
 
 final class DirectedAcyclicGraphTests: XCTestCase {
+	class Node : Codable, GCodable {
+		private (set) var connections = [Node]()
+		let name : String
+
+		func connect( to nodes: Node... ) {
+			connections.append( contentsOf: nodes)
+		}
+		
+		init( _ name:String ) {
+			self.name	= name
+		}
+
+		private enum Key : String {
+			case name, connections
+		}
+
+		required init(from decoder: GDecoder) throws {
+			name		= try decoder.decode( for: Key.name )
+			connections	= try decoder.decode( for: Key.connections )
+		}
+		
+		func encode(to encoder: GEncoder) throws {
+			try encoder.encode(name, 		for: Key.name )
+			try encoder.encode(connections, for: Key.connections )
+		}
+	}
 
 	func testDAG() throws {
 		//	A directed acyclic graph (DAG) from wikipedia

@@ -67,21 +67,21 @@ The result:
 
 ```
 == GRAPH =========================================================
-- STRUCT
-	- CLASS MyGraphCodableApp.AClass Obj1000
-		+ "astruct": STRUCT
+- Struct
+	- Obj_1000 MyGraphCodableApp.AClass
+		+ "astruct": Struct
 			+ "array": [1, 2, 3]
 			+ "dict": ["5": 5, "4": 4]
 		.
-		+ "aclass": POINTER? Obj1001
+		+ "aclass": Ptr_1001?
 	.
-	- POINTER Obj1000
-	- POINTER Obj1000
-	- POINTER Obj1000
-	- CLASS MyGraphCodableApp.AClass Obj1001
-		+ "astruct": STRUCT
+	- Ptr_1000
+	- Ptr_1000
+	- Ptr_1000
+	- Obj_1001 MyGraphCodableApp.AClass
+		+ "astruct": Struct
 			+ "array": [1, 2, 3]
-			+ "dict": ["5": 5, "4": 4]
+			+ "dict": ["4": 4, "5": 5]
 		.
 		+ "aclass": nil
 	.
@@ -99,30 +99,22 @@ Both lists end when the symbol **.** is encountered.
 The root is always the only item of the first sequence.
 
 Rows by rows:
--	``STRUCT``, a value type, is the root.
+-	`STRUCT`, a value type, is the root.
 -	It contains 5 elements corresponding to `[b, b, b, b, a]`:
-	-	The first element ``CLASS MyGraphCodableApp.AClass Obj1000`` is a reference (``CLASS``) type.
-		GraphCodable assigns a unique numeric ``ID (ObjXXXX)`` to each object it encounters.
+	-	The first element `Obj_1000 MyGraphCodableApp.AClass` is a reference (`Obj`) type.
+		GraphCodable assigns a unique numeric `Obj_number` to each object it encounters.
 		This object in turn contains a structure corresponding to the key 'astruct' and an object corresponding to the key 'aclass'
 		-	First, you see the complete definition of the struct, with its array and its dictionary. They contain native types.
-			-	GraphCodable treats the following types as "native" (knows how to save them):
-				-	**Int**, **Int8**, **Int16**, **Int32**, **Int64**, **UInt**, **UInt8**, **UInt16**, **UInt32**, **UInt64**
-				-	**Float**, **Double**
-				-	**String**, **Data**
-				-	Each **Optional**, **Array**, **Set**, **Dictionary** containing native types is a native type in turn.
-				Native types are stored as a single block of data.
-			-	In addition, GraphCodable conforms the following types to GCodable when containing GCodable types:
-				-	**Array**, **Dictionary**, **Set**, **Optional**, **OptionSet**
-				-	To encode and decode enums with native rawValue it is sufficient to declare them GCodable.					
-		- 	Then you see: ``"aclass": POINTER? Obj1001`` This is because aclass has been conditionally archived.
-			The encoder assigns it an attempt ``ID (POINTER?)`` and waits for it to be stored unconditionally if it happens.
-	-	The second, third and fourth element of the array are always **b**, which has already been stored with ``ID=Obj1000``.
-		Therefore the encoder only stores the ``ID``, which this time is certain (``POINTER``without question mark).
-	-	The fifth element is ``a`` which was not archived previously and is therefore archived now.
+			The list of all GCodable supported types of Swift Standard Library and Foundation is [here](/Docs/GraphCodableTypes.md).
+		- 	Then you see: `"aclass": Ptr_1001?` This is because aclass has been conditionally archived.
+			The encoder assigns it an attempt `Ptr_number?` and waits for it to be stored unconditionally if it happens.
+	-	The second, third and fourth element of the array are pointers `Ptr_1000` to **b**, which has already been stored as `Obj_1000`.
+		Therefore the encoder only stores the `Ptr_number`, which this time is certain (`Ptr_number` without question mark).
+	-	The fifth element is `a` which was not archived previously and is therefore archived now.
 
-*As an exercise*: see what happens when you delete ``a`` from the array.
+*As an exercise*: see what happens when you delete `a` from the array.
 
-*As an exercise*: try to see what happens by encoding ``"aclass"`` *not-conditionally*.
+*As an exercise*: try to see what happens by encoding `"aclass"` *not-conditionally*.
 
 ## Binary like output of the encoded data
 
@@ -136,32 +128,32 @@ By using the '.binaryLike' option you can see the data saved in a format that mo
 == HEADER ========================================================
 Filetype = gcodable V0, U0 = "", U1 = 0, U2 = 0
 == TYPEMAP =======================================================
-Type100: "MyGraphCodableApp.AClass" V0 
+Type100:	MyGraphCodableApp.AClass V0
 == GRAPH =========================================================
-- STRUCT
-	- CLASS Type100 Obj1000
-		+ Key100: STRUCT
+- Struct
+	- Obj_1000 Type100
+		+ Key100: Struct
 			+ Key101: [1, 2, 3]
 			+ Key102: ["4": 4, "5": 5]
 		.
-		+ Key103: POINTER? Obj1001
+		+ Key103: Ptr_1001?
 	.
-	- POINTER Obj1000
-	- POINTER Obj1000
-	- POINTER Obj1000
-	- CLASS Type100 Obj1001
-		+ Key100: STRUCT
+	- Ptr_1000
+	- Ptr_1000
+	- Ptr_1000
+	- Obj_1001 Type100
+		+ Key100: Struct
 			+ Key101: [1, 2, 3]
-			+ Key102: ["4": 4, "5": 5]
+			+ Key102: ["5": 5, "4": 4]
 		.
 		+ Key103: nil
 	.
 .
 == KEYMAP ========================================================
-Key103: "aclass"
-Key102: "dict"
-Key100: "astruct"
-Key101: "array"
+Key100:	"astruct"
+Key101:	"array"
+Key102:	"dict"
+Key103:	"aclass"
 ==================================================================
 ```
 
