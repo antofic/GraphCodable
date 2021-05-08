@@ -2,7 +2,7 @@
 
 - [Premise](#Premise)
 - [Code examples](#Code-examples)
-	- [Native types and collection support](#Native-types-and-collection-support)
+	- [Native types](#Native-types)
 	- [Value types](#Value-types)
 		- [Keyed coding](#Keyed-coding)
 		- [Unkeyed coding](#Unkeyed-coding)
@@ -40,9 +40,10 @@ GraphCodable does not use containers.
 
 To check examples, copy and paste in your file main.swift.
 
-### Native types and collection support
-GraphCodable natively supports the following types: Int, Int8, Int16, Int32, Int64, UInt, UInt8, UInt16, UInt32, UInt64, Float, Double, String, Data
-GraphCodable make Optional, Array, Set, Dictionary codable if the hold codable types. OptionSet and Enum with rawValue of native type (except Data) are codable, too.
+### Native types
+
+GraphCodable natively supports most  types of Swift Standard Library and Foundation. The full list is [here](/Docs/GraphCodableTypes.md).
+Just one example:
 
 ```swift
 
