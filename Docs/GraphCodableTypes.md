@@ -62,6 +62,7 @@ Almost all "Apple Codable" foundation types are GCodable, too.
 
 ### Unsupported
 -	IndexPath
+
 	*reason:* inaccessible underlying storage.
 
 
