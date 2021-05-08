@@ -4,8 +4,10 @@
 
 ### GCodable as NativeIOTypes
 -	Int, Int8, Int16, Int32, Int64
+
 	*note:* Int is always encoded as Int64
 -	UInt, UInt8, UInt16, UInt32, UInt64
+
 	*note:* UInt is always encoded as Int64
 -	Float, Double
 -	Bool
@@ -34,6 +36,7 @@ Almost all "Apple Codable" foundation types are GCodable, too.
 
 ### GCodable as NativeIOTypes
 -	CGFloat
+
 	*note:* CGFloat is always encoded as Double
 -	CharacterSet
 -	AffineTransform
