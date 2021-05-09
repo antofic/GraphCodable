@@ -70,8 +70,8 @@ enum DataBlock {
 	}
 
 	case header		( version:UInt32, unused0:String, unused1:UInt32, unused2:UInt64 )
-	case inTypeMap	( typeID:IntID, classInfo:ClassInfo )
-	case outTypeMap	( typeID:IntID, classData:ClassData )
+	case inTypeMap	( typeID:IntID, classInfo:ClassInfo )	// input only
+	case outTypeMap	( typeID:IntID, classData:ClassData )	// output only
 	case nilValue	( keyID:IntID )
 	case inBinType	( keyID:IntID, value:NativeIOType )	// input only
 	case outBinType	( keyID:IntID, bytes:[UInt8] )		// output only

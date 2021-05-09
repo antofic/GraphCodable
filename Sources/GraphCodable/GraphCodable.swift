@@ -203,7 +203,17 @@ public protocol GEncoder {
 	/// - parameter key: The key to associate the value with.
 	func encode<Key,Value>(_ value: Value, for key:Key ) throws where
 		Value : GCodable, Key:RawRepresentable, Key.RawValue == String
-	
+
+	/// Encodes the given value for the given key if it is not `nil`.
+	///
+	/// It can be used with optional values or optional **strong** reference.
+	/// It should not be used with **weak** references.
+	///
+	/// - parameter value: The value to encode.
+	/// - parameter key: The key to associate the value with.
+	func encodeIfPresent<Key,Value>(_ value: Value?, for key:Key ) throws where
+		Value : GCodable, Key:RawRepresentable, Key.RawValue == String
+
 	/// Encodes a reference to the given object only if it is encoded
 	/// unconditionally elsewhere in the payload (previously, or in the future).
 	///
@@ -235,6 +245,16 @@ public protocol GEncoder {
 		Value : GCodable, Value : AnyObject
 }
 
+extension GEncoder {
+	func encodeIfPresent<Key,Value>(_ value: Value?, for key:Key ) throws where
+		Value : GCodable, Key:RawRepresentable, Key.RawValue == String
+	{
+		if let value = value {
+			try encode( value, for: key )
+		}
+	}
+}
+
 /// A type that can decode values from a native format into in-memory
 /// representations.
 public protocol GDecoder {
@@ -263,7 +283,7 @@ public protocol GDecoder {
 	/// Decodes a value of the given type for the given key.
 	///
 	/// It must be used with values or **strong** reference, optional or not.
-	/// It should be used with **weak** references **not** used in order
+	/// It can be used with **weak** references **not** used in order
 	/// to avoid strong memory cycles with ARC.
 	///
 	/// - parameter type: The type of value to decode.
@@ -271,6 +291,24 @@ public protocol GDecoder {
 	/// - returns: A value of the requested type, if present for the given key
 	///   and convertible to the requested type.
 	func decode<Key, Value>(for key: Key) throws -> Value where
+		Key : RawRepresentable, Value : GCodable, Key.RawValue == String
+
+	/// Decodes a value of the given type for the given key, if present.
+	///
+	/// This method returns `nil` if the container does not have a value
+	/// associated with `key`, or if the value is null. The difference between
+	/// these states can be distinguished with a `contains(_:)` call.
+	///
+	/// It must be used with optional values or optional **strong** reference.
+	/// It can be used with **weak** references **not** used in order
+	/// to avoid strong memory cycles with ARC.
+	///
+	/// - parameter type: The type of value to decode.
+	/// - parameter key: The key that the decoded value is associated with.
+	/// - returns: A decoded value of the requested type, or `nil` if the
+	///   `Decoder` does not have an entry associated with the given key, or if
+	///   the value is a null value.
+	func decodeIfPresent<Key, Value>(for key: Key) throws -> Value? where
 		Key : RawRepresentable, Value : GCodable, Key.RawValue == String
 
 	/// Decodes a reference of the given type for the given key when it become available.
@@ -284,20 +322,6 @@ public protocol GDecoder {
 	/// - parameter setter: A closure to which the required reference is provided.
 	func deferDecode<Key, Value>( for key: Key, _ setter: @escaping (Value?) -> ()) throws where
 		Key : RawRepresentable, Value : AnyObject, Value : GCodable, Key.RawValue == String
-
-	/// Decodes a value of the given type for the given key if it exists.
-	///
-	/// It must be used with values or **strong** reference, optional or not.
-	/// It should be used with **weak** references **not** used in order
-	/// to avoid strong memory cycles with ARC.
-	///
-	/// - parameter type: The type of value to decode.
-	/// - parameter key: The key that the decoded value is associated with.
-	/// - returns: A value of the requested type, if present for the given key
-	///   and convertible to the requested type.
-	func decodeIfPresent<Key, Value>(for key: Key) throws -> Value? where
-		Key : RawRepresentable, Value : GCodable, Key.RawValue == String
-
 
 	/// The number of elements still available for unkeyed decoding.
 	///
@@ -347,9 +371,13 @@ extension GDecoder {
 ╞═══════════════════╪═════════╪═════════╪═════════╪═════════╪═════════╪═════════╡
 │ encode            │  █████  │  █████  │  █████  │  █████  │⁵        │⁵        │
 ├───────────────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────┤
+│⁶encodeIfPresent   │¹        │  █████  │¹        │  █████  │⁵        │⁵        │
+├───────────────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────┤
 │ encodeConditional │¹        │¹        │¹        │  █████  │  █████  │  █████  │
 ╞═══════════════════╪═════════╪═════════╪═════════╪═════════╪═════════╪═════════╡
 │ decode            │  █████  │  █████  │  █████  │  █████  │  █████  │⁴        │
+├───────────────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────┤
+│⁶decodeIfPresent   │¹        │  █████  │¹        │  █████  │  █████  │⁴        │
 ├───────────────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────┤
 │ deferDecode       │¹        │¹        │¹        │³        │³        │² █████  │
 ╞═══════════════════╧═════════╧═════════╧═════════╧═════════╧═════════╧═════════╡
@@ -361,7 +389,7 @@ extension GDecoder {
 │    O    = any other use of a weak reference                                   │
 ├───────────────────────────────────────────────────────────────────────────────┤
 │  █████  = mandatory or highly recommended                                     │
-│ ¹       = not allowed by Swift                                                │
+│ ¹       = not allowed                                                         │
 │ ²       = allowed by Swift only in the init method of a reference type        │
 │           Swift forces to call it after super class initialization            │
 │ ³       = you don't need deferDecode: use decode(...) instead                 │
@@ -369,5 +397,11 @@ extension GDecoder {
 │ ⁵       = allowed but not recommendend: you run the risk of unnecessarily     │
 │           encode and decode objects that will be immediately released after   │
 │           decoding. Use encodeConditional(...) instead.                       │
+│ ⁶       = keyed coding only.                                                  │
+│         - encodeIfPresent(...) encode the value only if value != nil          │
+│           encode(...) encode nil in the same situation                        │
+│         - decodeIfPresent(...) decode the value for the given key if it       │
+│           exists ( i.e. contains(key) == true ) and do not generate an        │
+│           exception if the key doesn't exists.                                │
 └───────────────────────────────────────────────────────────────────────────────┘
 */

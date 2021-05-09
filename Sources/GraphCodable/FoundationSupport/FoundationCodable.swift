@@ -35,7 +35,7 @@ extension Calendar : GCodable {
 				)
 			)
 		}
-		calendar.locale					= try decoder.decode(for: Key.locale)
+		calendar.locale					= try decoder.decodeIfPresent(for: Key.locale)
 		calendar.timeZone				= try decoder.decode(for: Key.timeZone)
 		calendar.firstWeekday			= try decoder.decode(for: Key.firstWeekday)
 		calendar.minimumDaysInFirstWeek	= try decoder.decode(for: Key.minimumDaysInFirstWeek)
@@ -106,22 +106,22 @@ extension DateComponents : GCodable {
 	}
 	
 	public func encode(to encoder: GEncoder) throws {
-		try encoder.encode( calendar, 			for: Key.calendar)
-		try encoder.encode( timeZone, 			for: Key.timeZone)
-		try encoder.encode( era, 				for: Key.era)
-		try encoder.encode( year, 				for: Key.year)
-		try encoder.encode( month, 				for: Key.month)
-		try encoder.encode( day,				for: Key.day)
-		try encoder.encode( hour,				for: Key.hour)
-		try encoder.encode( minute,				for: Key.minute)
-		try encoder.encode( second,				for: Key.second)
-		try encoder.encode( nanosecond,			for: Key.nanosecond)
-		try encoder.encode( weekday,			for: Key.weekday)
-		try encoder.encode( weekdayOrdinal,		for: Key.weekdayOrdinal)
-		try encoder.encode( quarter,			for: Key.quarter)
-		try encoder.encode( weekOfMonth,		for: Key.weekOfMonth)
-		try encoder.encode( weekOfYear,			for: Key.weekOfYear)
-		try encoder.encode( yearForWeekOfYear,	for: Key.yearForWeekOfYear)
+		try encoder.encodeIfPresent( calendar, 			for: Key.calendar)
+		try encoder.encodeIfPresent( timeZone, 			for: Key.timeZone)
+		try encoder.encodeIfPresent( era, 				for: Key.era)
+		try encoder.encodeIfPresent( year, 				for: Key.year)
+		try encoder.encodeIfPresent( month, 				for: Key.month)
+		try encoder.encodeIfPresent( day,				for: Key.day)
+		try encoder.encodeIfPresent( hour,				for: Key.hour)
+		try encoder.encodeIfPresent( minute,				for: Key.minute)
+		try encoder.encodeIfPresent( second,				for: Key.second)
+		try encoder.encodeIfPresent( nanosecond,			for: Key.nanosecond)
+		try encoder.encodeIfPresent( weekday,			for: Key.weekday)
+		try encoder.encodeIfPresent( weekdayOrdinal,		for: Key.weekdayOrdinal)
+		try encoder.encodeIfPresent( quarter,			for: Key.quarter)
+		try encoder.encodeIfPresent( weekOfMonth,		for: Key.weekOfMonth)
+		try encoder.encodeIfPresent( weekOfYear,			for: Key.weekOfYear)
+		try encoder.encodeIfPresent( yearForWeekOfYear,	for: Key.yearForWeekOfYear)
 	}
 }
 
@@ -171,12 +171,12 @@ extension PersonNameComponents : GCodable {
 	}
 	
 	public func encode(to encoder: GEncoder) throws {
-		try encoder.encode( namePrefix, for: Key.namePrefix)
-		try encoder.encode( givenName, 	for: Key.givenName)
-		try encoder.encode( middleName, for: Key.middleName)
-		try encoder.encode( familyName, for: Key.familyName)
-		try encoder.encode( nameSuffix, for: Key.nameSuffix)
-		try encoder.encode( nickname, 	for: Key.nickname)
+		try encoder.encodeIfPresent( namePrefix, for: Key.namePrefix)
+		try encoder.encodeIfPresent( givenName, 	for: Key.givenName)
+		try encoder.encodeIfPresent( middleName, for: Key.middleName)
+		try encoder.encodeIfPresent( familyName, for: Key.familyName)
+		try encoder.encodeIfPresent( nameSuffix, for: Key.nameSuffix)
+		try encoder.encodeIfPresent( nickname, 	for: Key.nickname)
 	}
 }
 
@@ -200,10 +200,8 @@ extension URL : GCodable {
 	}
 	
 	public func encode(to encoder: GEncoder) throws {
-		try encoder.encode( self.relativeString, for: Key.relative )
-		if let base = self.baseURL {
-			try encoder.encode(base, for: Key.base)
-		}
+		try encoder.encode( relativeString, for: Key.relative )
+		try encoder.encodeIfPresent( baseURL, for: Key.base )
 	}
 }
 
@@ -224,14 +222,14 @@ extension URLComponents : GCodable {
 
 	
 	public func encode(to encoder: GEncoder) throws {
-		try encoder.encode( scheme,		for: Key.scheme )
-		try encoder.encode( user,	 	for: Key.user )
-		try encoder.encode( password,	for: Key.password )
-		try encoder.encode( host,	 	for: Key.host )
-		try encoder.encode( port,		for: Key.port )
+		try encoder.encodeIfPresent( scheme,		for: Key.scheme )
+		try encoder.encodeIfPresent( user,	 	for: Key.user )
+		try encoder.encodeIfPresent( password,	for: Key.password )
+		try encoder.encodeIfPresent( host,	 	for: Key.host )
+		try encoder.encodeIfPresent( port,		for: Key.port )
 		try encoder.encode( path,	 	for: Key.path )
-		try encoder.encode( query,		for: Key.query )
-		try encoder.encode( fragment,	 for: Key.fragment )
+		try encoder.encodeIfPresent( query,		for: Key.query )
+		try encoder.encodeIfPresent( fragment,	 for: Key.fragment )
 	}
 
 	public init(from decoder: GDecoder) throws {

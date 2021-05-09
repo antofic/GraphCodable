@@ -12,9 +12,13 @@ This table summarizes the methods to be used in your `func encode(to encoder: GE
 ╞═══════════════════╪═════════╪═════════╪═════════╪═════════╪═════════╪═════════╡
 │ encode            │  █████  │  █████  │  █████  │  █████  │⁵        │⁵        │
 ├───────────────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────┤
+│⁶encodeIfPresent   │¹        │  █████  │¹        │  █████  │⁵        │⁵        │
+├───────────────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────┤
 │ encodeConditional │¹        │¹        │¹        │  █████  │  █████  │  █████  │
 ╞═══════════════════╪═════════╪═════════╪═════════╪═════════╪═════════╪═════════╡
 │ decode            │  █████  │  █████  │  █████  │  █████  │  █████  │⁴        │
+├───────────────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────┤
+│⁶decodeIfPresent   │¹        │  █████  │¹        │  █████  │  █████  │⁴        │
 ├───────────────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────┤
 │ deferDecode       │¹        │¹        │¹        │³        │³        │² █████  │
 ╞═══════════════════╧═════════╧═════════╧═════════╧═════════╧═════════╧═════════╡
@@ -26,7 +30,7 @@ This table summarizes the methods to be used in your `func encode(to encoder: GE
 │    O    = any other use of a weak reference                                   │
 ├───────────────────────────────────────────────────────────────────────────────┤
 │  █████  = mandatory or highly recommended                                     │
-│ ¹       = not allowed by Swift                                                │
+│ ¹       = not allowed                                                         │
 │ ²       = allowed by Swift only in the init method of a reference type        │
 │           Swift forces to call it after super class initialization            │
 │ ³       = you don't need deferDecode: use decode(...) instead                 │
@@ -34,6 +38,12 @@ This table summarizes the methods to be used in your `func encode(to encoder: GE
 │ ⁵       = allowed but not recommendend: you run the risk of unnecessarily     │
 │           encode and decode objects that will be immediately released after   │
 │           decoding. Use encodeConditional(...) instead.                       │
+│ ⁶       = keyed coding only.                                                  │
+│         - encodeIfPresent(...) encode the value only if value != nil          │
+│           encode(...) encode nil in the same situation                        │
+│         - decodeIfPresent(...) decode the value for the given key if it       │
+│           exists ( i.e. contains(key) == true ) and do not generate an        │
+│           exception if the key doesn't exists.                                │
 └───────────────────────────────────────────────────────────────────────────────┘
 ```
 All GraphCodable protocols are defined [here](/Sources/GraphCodable/GraphCodable.swift)
