@@ -22,6 +22,7 @@
 
 import Foundation
 
+
 //	Array SUPPORT ------------------------------------------------------
 extension Array: GCodable where Element:GCodable {
 	public func encode(to encoder: GEncoder) throws {
@@ -36,24 +37,6 @@ extension Array: GCodable where Element:GCodable {
 		while decoder.unkeyedCount() > 0 {
 			self.append( try decoder.decode() )
 		}
-	}
-}
-
-extension Array : NativeIOType where Element : NativeIOType {
-	func write( to writer: inout BinaryWriter ) throws {
-		try count.write(to: &writer)
-		for element in self {
-			try element.write(to: &writer)
-		}
-	}
-	init( from reader: inout BinaryReader ) throws {
-		var array = [Element]()
-		let count = try Int( from: &reader )
-		array.reserveCapacity( count )
-		for _ in 0..<count {
-			array.append( try Element.init(from: &reader) )
-		}
-		self = array
 	}
 }
 
@@ -76,23 +59,6 @@ extension ContiguousArray: GCodable where Element:GCodable {
 	}
 }
 
-extension ContiguousArray : NativeIOType where Element : NativeIOType {
-	func write( to writer: inout BinaryWriter ) throws {
-		try count.write(to: &writer)
-		for element in self {
-			try element.write(to: &writer)
-		}
-	}
-	init( from reader: inout BinaryReader ) throws {
-		var array = ContiguousArray<Element>()
-		let count = try Int( from: &reader )
-		array.reserveCapacity( count )
-		for _ in 0..<count {
-			array.append( try Element.init(from: &reader) )
-		}
-		self = array
-	}
-}
 
 //	Set SUPPORT ------------------------------------------------------
 extension Set: GCodable where Element:GCodable {
@@ -110,16 +76,6 @@ extension Set: GCodable where Element:GCodable {
 		}
 	}
 }
-
-extension Set : NativeIOType where Element : NativeIOType {
-	func write( to writer: inout BinaryWriter ) throws {
-		try Array( self ).write(to: &writer)
-	}
-	init( from reader: inout BinaryReader ) throws {
-		self = Set( try Array(from: &reader) )
-	}
-}
-
 
 //	Dictionary SUPPORT ------------------------------------------------------
 
@@ -143,16 +99,4 @@ extension Dictionary: GCodable where Key:GCodable, Value:GCodable {
 	}
 }
 
-extension Dictionary : NativeIOType where Key : NativeIOType, Value : NativeIOType {
-	func write( to writer: inout BinaryWriter ) throws {
-		try Array( self.keys ).write(to: &writer )
-		try Array( self.values ).write(to: &writer )
-	}
 
-	init( from reader: inout BinaryReader ) throws {
-		let keys	= try [Key](from: &reader)
-		let values	= try [Value](from: &reader)
-
-		self.init(uniqueKeysWithValues: zip(keys, values))
-	}
-}

@@ -73,7 +73,7 @@ enum DataBlock {
 	case inTypeMap	( typeID:IntID, classInfo:ClassInfo )	// input only
 	case outTypeMap	( typeID:IntID, classData:ClassData )	// output only
 	case nilValue	( keyID:IntID )
-	case inBinType	( keyID:IntID, value:NativeIOType )	// input only
+	case inBinType	( keyID:IntID, value:BinaryIOType )	// input only
 	case outBinType	( keyID:IntID, bytes:[UInt8] )		// output only
 	case valueType	( keyID:IntID )
 	case objectType	( keyID:IntID, typeID:IntID, objID:IntID )
@@ -87,7 +87,7 @@ enum DataBlock {
 //	--BinaryIOType conformance
 //	-------------------------------------------------
 
-extension DataBlock : NativeIOType {
+extension DataBlock : BinaryIOType {
 	func write( to writer: inout BinaryWriter ) throws {
 		switch self {
 		case .header	( let version, let unused0, let unused1, let unused2 ):
@@ -116,10 +116,10 @@ extension DataBlock : NativeIOType {
 
 		case .inBinType( let keyID, let value ):
 			// ••••• SALVO COME outBinType ••••••••••
-			let bytes	= try value.bytesArray()
+			let bytes	= try value.data() as [UInt8]
 			try Code.outBinType.write(to: &writer)	// <----- ••••••
 			try keyID.write(to: &writer)
-			try bytes.write(to: &writer)
+			writer.writeData( bytes )
 		case .outBinType( _, _ ):
 			// non deve mai arrivare qui
 			throw GCodableError.internalInconsistency(
@@ -189,7 +189,7 @@ extension DataBlock : NativeIOType {
 			)
 		case .outBinType:
 			let keyID	= try IntID		( from: &reader )
-			let bytes	= try [UInt8]	( from: &reader )
+			let bytes	= try reader.readData() as [UInt8]
 			self = .outBinType(keyID: keyID, bytes: bytes)
 		case .valueType:
 			let keyID	= try IntID		( from: &reader )

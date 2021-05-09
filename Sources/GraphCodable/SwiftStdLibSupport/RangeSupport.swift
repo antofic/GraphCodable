@@ -37,19 +37,6 @@ extension Range: GCodable where Bound: GCodable {
 	}
 }
 
-extension Range: NativeIOType where Bound: NativeIOType {
-	init( from reader: inout BinaryReader ) throws {
-		let lowerBound	= try Bound(from: &reader)
-		let upperBound	= try Bound(from: &reader)
-		self.init(uncheckedBounds: (lowerBound,upperBound) )
-	}
-
-	func write( to writer: inout BinaryWriter ) throws {
-		try lowerBound.write(to: &writer )
-		try upperBound.write(to: &writer )
-	}
-}
-
 // ClosedRange ------------------------------------------------------
 
 extension ClosedRange: GCodable where Bound: GCodable {
@@ -65,18 +52,6 @@ extension ClosedRange: GCodable where Bound: GCodable {
 	}
 }
 
-extension ClosedRange: NativeIOType where Bound: NativeIOType {
-	init( from reader: inout BinaryReader ) throws {
-		let lowerBound	= try Bound(from: &reader)
-		let upperBound	= try Bound(from: &reader)
-		self.init(uncheckedBounds: (lowerBound,upperBound) )
-	}
-
-	func write( to writer: inout BinaryWriter ) throws {
-		try lowerBound.write(to: &writer )
-		try upperBound.write(to: &writer )
-	}
-}
 
 // PartialRangeFrom ------------------------------------------------------
 
@@ -90,15 +65,6 @@ extension PartialRangeFrom: GCodable where Bound: GCodable {
 	}
 }
 
-extension PartialRangeFrom: NativeIOType where Bound: NativeIOType {
-	init( from reader: inout BinaryReader ) throws {
-		self.init( try Bound(from: &reader) )
-	}
-
-	func write( to writer: inout BinaryWriter ) throws {
-		try lowerBound.write(to: &writer )
-	}
-}
 
 // PartialRangeUpTo ------------------------------------------------------
 
@@ -112,15 +78,6 @@ extension PartialRangeUpTo: GCodable where Bound: GCodable {
 	}
 }
 
-extension PartialRangeUpTo: NativeIOType where Bound: NativeIOType {
-	init( from reader: inout BinaryReader ) throws {
-		self.init( try Bound(from: &reader) )
-	}
-
-	func write( to writer: inout BinaryWriter ) throws {
-		try upperBound.write(to: &writer )
-	}
-}
 
 // PartialRangeFrom ------------------------------------------------------
 
@@ -134,13 +91,5 @@ extension PartialRangeThrough: GCodable where Bound: GCodable {
 	}
 }
 
-extension PartialRangeThrough: NativeIOType where Bound: NativeIOType {
-	init( from reader: inout BinaryReader ) throws {
-		self.init( try Bound(from: &reader) )
-	}
 
-	func write( to writer: inout BinaryWriter ) throws {
-		try upperBound.write(to: &writer )
-	}
-}
 

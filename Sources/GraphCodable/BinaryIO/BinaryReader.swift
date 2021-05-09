@@ -22,16 +22,18 @@
 
 import Foundation
 
+
+
 // faster than BinaryReaderBase<Data> even if bytes originally comes from Data
-typealias BinaryReader = BinaryReaderBase<Array<UInt8>>
-//	typealias BinaryReader = BinaryReaderBase<Data>
+public typealias BinaryReader = BinaryReaderBase<Array<UInt8>>
+//	public typealias BinaryReader = BinaryReaderBase<Data>
 
 enum BinaryReaderError : Error {
 	case outOfBounds
 	case cantConstructRawRepresentable
 }
 
-struct BinaryReaderBase<T>
+public struct BinaryReaderBase<T>
 where T:MutableDataProtocol, T:ContiguousBytes, T.SubSequence:ContiguousBytes {
 	private let base:	T
 	private var bytes:	T.SubSequence
@@ -40,7 +42,7 @@ where T:MutableDataProtocol, T:ContiguousBytes, T.SubSequence:ContiguousBytes {
 		self.base	= bytes
 		self.bytes	= bytes[ ... ]
 	}
-	
+
 	init<Q>( data: Q ) where Q:Sequence, Q.Element==UInt8 {
 		if let bytes = data as? T {
 			self.init( bytes: bytes )
@@ -48,20 +50,48 @@ where T:MutableDataProtocol, T:ContiguousBytes, T.SubSequence:ContiguousBytes {
 			self.init( bytes: T(data) )
 		}
 	}
-	
+
 	var eof : Bool {
 		return bytes.count == 0
 	}
-		
+
+	mutating func readBool() throws -> Bool {
+		var value = false
+		try readValue( &value )
+		return value
+	}
+	
+	mutating func readInt8 () throws -> Int8 	{ return try Int8 ( littleEndian: readInteger() ) }
+	mutating func readInt16() throws -> Int16	{ return try Int16( littleEndian: readInteger() ) }
+	mutating func readInt32() throws -> Int32	{ return try Int32( littleEndian: readInteger() ) }
+	mutating func readInt64() throws -> Int64	{ return try Int64( littleEndian: readInteger() ) }
+	mutating func readInt() throws -> Int		{ return try Int( readInt64() ) }
+
+	mutating func readUInt8 () throws -> UInt8  { return try UInt8 ( littleEndian: readInteger() ) }
+	mutating func readUInt16() throws -> UInt16 { return try UInt16( littleEndian: readInteger() ) }
+	mutating func readUInt32() throws -> UInt32 { return try UInt32( littleEndian: readInteger() ) }
+	mutating func readUInt64() throws -> UInt64 { return try UInt64( littleEndian: readInteger() ) }
+	mutating func readUInt() throws -> UInt		{ return try UInt( readUInt64() ) }
+
+	mutating func readFloat() throws -> Float	{ return try Float(bitPattern: readUInt32()) }
+	mutating func readDouble() throws -> Double	{ return try Double(bitPattern: readUInt64()) }
+
+	// private section ---------------------------------------------------------
+
 	private func checkRemainingSize( size:Int ) throws {
 		if bytes.count < size {
 			throw BinaryReaderError.outOfBounds
 		}
 	}
 
+	private mutating func readInteger<T:BinaryInteger>() throws -> T {
+		var value = T()
+		try readValue( &value )
+		return value
+	}
+
 	// usafe section ---------------------------------------------------------
-	
-	mutating func readValue<T:FixedSizeIOType>( _ v : inout T ) throws {
+	private mutating func readValue<T>( _ v : inout T ) throws {
 		let inSize	= MemoryLayout<T>.size
 		try checkRemainingSize( size:inSize )
 		defer { bytes.removeFirst( inSize ) }
@@ -73,57 +103,18 @@ where T:MutableDataProtocol, T:ContiguousBytes, T.SubSequence:ContiguousBytes {
 		}
 	}
 
-	mutating func readArray<T:FixedSizeIOType>( count:Int ) throws -> [T] {
-		let inSize	= count * MemoryLayout<T>.stride
-		try checkRemainingSize( size:inSize )
-		defer { bytes.removeFirst( inSize ) }
-
-		return bytes.withUnsafeBytes { source in
-			Array<T>(unsafeUninitializedCapacity: count) { (target, outCount) in
-				_ = memcpy( target.baseAddress, source.baseAddress, inSize )
-				outCount	= count
-			}
-		}
-	}
-	
-	mutating func readArray<T:FixedSizeIOType>() throws -> [T] {
-		var count = Int64(0)
-		try readValue( &count )
-		return try readArray( count:Int(count) )
-	}
-
-	mutating func readContiguousArray<T:FixedSizeIOType>( count:Int ) throws -> ContiguousArray<T> {
-		let inSize	= count * MemoryLayout<T>.stride
-		try checkRemainingSize( size:inSize )
-		defer { bytes.removeFirst( inSize ) }
-
-		return bytes.withUnsafeBytes { source in
-			ContiguousArray<T>(unsafeUninitializedCapacity: count) { (target, outCount) in
-				_ = memcpy( target.baseAddress, source.baseAddress, inSize )
-				outCount	= count
-			}
-		}
-	}
-	
-	mutating func readContiguousArray<T:FixedSizeIOType>() throws -> ContiguousArray<T> {
-		var count = Int64(0)
-		try readValue( &count )
-		return try readContiguousArray( count:Int(count) )
-	}
-
-	mutating func readData() throws -> Data {
-		var count = Int64(0)
-		try readValue( &count )
+	mutating func readData<T>() throws -> T where T:MutableDataProtocol, T:ContiguousBytes {
+		let count = try readInt64()
 
 		let inSize	= Int(count) * MemoryLayout<UInt8>.stride
 		try checkRemainingSize( size: inSize )
 		defer { bytes.removeFirst( inSize ) }
 
 		return bytes.withUnsafeBytes { source in
-			return Data( source.prefix( inSize ) )
+			return T( source.prefix( inSize ) )
 		}
 	}
-	
+
 	// read a null terminated utf8 string
 	mutating func readString() throws -> String {
 		let availableCount	= bytes.count
@@ -151,6 +142,5 @@ where T:MutableDataProtocol, T:ContiguousBytes, T.SubSequence:ContiguousBytes {
 		}
 		bytes.removeFirst( inSize )
 		return string
-	}	
+	}
 }
-

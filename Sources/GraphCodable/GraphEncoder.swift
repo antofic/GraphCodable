@@ -75,9 +75,10 @@ enum MainModuleUti {
 }
 
 public final class GraphEncoder {
-	private let encoder	= Encoder()
+	private let encoder	: Encoder
 
-	public init() {
+	public init( fullBinaryEncode:Bool = true ) {
+		encoder	= Encoder( fullBinaryEncode:fullBinaryEncode )
 	}
 	
 	public var userInfo : [String:Any] {
@@ -98,9 +99,10 @@ public final class GraphEncoder {
 	// -------------------------------------------------
 
 	private final class Encoder : GEncoder {
-		var userInfo		= [String:Any]()
+		var userInfo			= [String:Any]()
 		
-		init() {
+		init( fullBinaryEncode:Bool ) {
+			self.fullBinaryEncode	= fullBinaryEncode
 		}
 		
 		private func _encodeRoot<T>( _ value: T ) throws -> EncodedData where T:GCodable {
@@ -120,7 +122,7 @@ public final class GraphEncoder {
 		
 		func encodeRoot<T>( _ value: T ) throws -> Data where T:GCodable {
 			let output	= try _encodeRoot( value )
-			var writer	= BinaryWriter()
+			var writer	: BinaryWriter = BinaryWriter()
 			try output.write(to: &writer)
 			return writer.data()
 		}
@@ -148,10 +150,11 @@ public final class GraphEncoder {
 		}
 
 		// --------------------------------------------------------
-		private var 		currentKeys		= Set<String>()
-		private var			referenceID		= ObjectMap()
-		private (set) var	encodedData		= EncodedData()
-		private var			tempNativeValue	: Any?
+		private let 		fullBinaryEncode	: Bool
+		private var 		currentKeys			= Set<String>()
+		private var			referenceID			= ObjectMap()
+		private (set) var	encodedData			= EncodedData()
+		private var			tempNativeValue		: Any?
 
 		private func reset() {
 			self.currentKeys	= Set<String>()
@@ -195,7 +198,9 @@ public final class GraphEncoder {
 			}
 			// now value if not nil!
 
-			if let binaryValue = value as? NativeIOType {
+			if let binaryValue = value as? NativeType {
+				encodedData.append( .inBinType(keyID: keyID, value: binaryValue ) )
+			} else if fullBinaryEncode, let binaryValue = value as? BinaryIOType {
 				encodedData.append( .inBinType(keyID: keyID, value: binaryValue ) )
 			} else if type(of:value) is AnyClass {
 				guard let object = value as? GCodable & AnyObject else {
@@ -205,7 +210,6 @@ public final class GraphEncoder {
 						)
 					)
 				}
-
 				let classInfo	= try ClassInfo(codableType: type(of:object))
 				let typeID		= encodedData.createTypeIDIfNeeded(classInfo: classInfo)
 

@@ -7,6 +7,272 @@
 
 import Foundation
 
+//	CharacterSet SUPPORT ------------------------------------------------------
+
+extension CharacterSet : GCodable {
+	public init(from decoder: GDecoder) throws {
+		self.init( bitmapRepresentation: try decoder.decode() )
+	}
+
+	public func encode(to encoder: GEncoder) throws {
+		try encoder.encode( bitmapRepresentation )
+	}
+}
+
+//	AffineTransform SUPPORT ------------------------------------------------------
+
+extension AffineTransform : GCodable {
+	public init(from decoder: GDecoder) throws {
+		let m11	= try decoder.decode() as CGFloat
+		let m12	= try decoder.decode() as CGFloat
+		let m21	= try decoder.decode() as CGFloat
+		let m22	= try decoder.decode() as CGFloat
+		let tX	= try decoder.decode() as CGFloat
+		let tY	= try decoder.decode() as CGFloat
+		self.init(m11: m11, m12: m12, m21: m21, m22: m22, tX: tX, tY: tY)
+	}
+	
+	public func encode(to encoder: GEncoder) throws {
+		try encoder.encode( m11 )
+		try encoder.encode( m12 )
+		try encoder.encode( m21 )
+		try encoder.encode( m22 )
+		try encoder.encode( tX )
+		try encoder.encode( tY )
+	}
+}
+
+//	Locale SUPPORT ------------------------------------------------------
+
+extension Locale : GCodable {
+	public init(from decoder: GDecoder) throws {
+		self.init( identifier: try decoder.decode() )
+	}
+	
+	public func encode(to encoder: GEncoder) throws {
+		try encoder.encode( identifier )
+	}
+}
+
+//	TimeZone SUPPORT ------------------------------------------------------
+
+extension TimeZone : GCodable {
+	public init(from decoder: GDecoder) throws {
+		let identifier = try decoder.decode() as String
+		guard let timeZone = TimeZone( identifier: identifier ) else {
+			throw GCodableError.initGCodableError(
+				Self.self, GCodableError.Context(
+					debugDescription: "Invalid timezone identifier -\(identifier)-"
+				)
+			)
+		}
+		self = timeZone
+	}
+	
+	public func encode(to encoder: GEncoder) throws {
+		try encoder.encode( identifier )
+	}
+}
+
+// -- UUID support  -------------------------------------------------------
+
+extension UUID : GCodable  {
+	public init(from decoder: GDecoder) throws {
+		let uuidString	= try decoder.decode() as String
+		
+		guard let uuid = UUID(uuidString: uuidString) else {
+			throw GCodableError.initGCodableError(
+				Self.self, GCodableError.Context(
+					debugDescription: "Attempted to decode UUID from invalid UUID string -\(uuidString)-."
+				)
+			)
+		}
+		self = uuid
+	}
+	
+	public func encode(to encoder: GEncoder) throws {
+		try encoder.encode( uuidString )
+	}
+	
+}
+
+//	Date SUPPORT ------------------------------------------------------
+
+extension Date : GCodable {
+	public init(from decoder: GDecoder) throws {
+		self.init( timeIntervalSince1970: try decoder.decode() )
+	}
+	
+	public func encode(to encoder: GEncoder) throws {
+		try encoder.encode( timeIntervalSince1970 )
+	}
+	
+}
+
+//	IndexSet SUPPORT ------------------------------------------------------
+
+extension IndexSet : GCodable {
+	public init(from decoder: GDecoder) throws {
+		self.init()
+		while decoder.unkeyedCount() > 0 {
+			self.insert(integersIn: try decoder.decode() )
+		}
+	}
+	
+	public func encode(to encoder: GEncoder) throws {
+		for range in rangeView {
+			try encoder.encode( range )
+		}
+	}
+}
+
+// -- IndexPath support  -------------------------------------------------------
+/* inaccessible underlying storage
+extension IndexPath : BinaryIOType {
+}
+*/
+
+//	CGSize SUPPORT ------------------------------------------------------
+
+extension CGSize : GCodable {
+	private enum Key:String {
+		case width, height
+	}
+	
+	public init(from decoder: GDecoder) throws {
+		let width	= try decoder.decode(for: Key.width) as CGFloat
+		let height	= try decoder.decode(for: Key.height) as CGFloat
+		self.init(width: width, height: height)
+	}
+	
+	public func encode(to encoder: GEncoder) throws {
+		try encoder.encode( width,for: Key.width )
+		try encoder.encode( height,for: Key.height )
+	}
+}
+
+//	CGPoint SUPPORT ------------------------------------------------------
+
+extension CGPoint : GCodable {
+	private enum Key:String {
+		case x, y
+	}
+
+	public init(from decoder: GDecoder) throws {
+		let x	= try decoder.decode(for: Key.x) as CGFloat
+		let y	= try decoder.decode(for: Key.y) as CGFloat
+		self.init(x: x, y: y)
+	}
+	
+	public func encode(to encoder: GEncoder) throws {
+		try encoder.encode( x,for: Key.x )
+		try encoder.encode( y,for: Key.y )
+	}
+}
+
+//	CGVector SUPPORT ------------------------------------------------------
+
+extension CGVector : GCodable {
+	private enum Key:String {
+		case dx, dy
+	}
+
+	public init(from decoder: GDecoder) throws {
+		let dx	= try decoder.decode(for: Key.dx) as CGFloat
+		let dy	= try decoder.decode(for: Key.dy) as CGFloat
+		self.init(dx: dx, dy: dy)
+	}
+	
+	public func encode(to encoder: GEncoder) throws {
+		try encoder.encode( dx,for: Key.dx )
+		try encoder.encode( dy,for: Key.dy )
+	}
+}
+
+//	CGRect SUPPORT ------------------------------------------------------
+
+extension CGRect : GCodable {
+	private enum Key:String {
+		case origin, size
+	}
+
+	public init(from decoder: GDecoder) throws {
+		let origin	= try decoder.decode(for: Key.origin) as CGPoint
+		let size	= try decoder.decode(for: Key.size) as CGSize
+		self.init(origin: origin, size: size)
+	}
+
+	public func encode(to encoder: GEncoder) throws {
+		try encoder.encode( origin,for: Key.origin )
+		try encoder.encode( size,for: Key.size )
+	}
+}
+
+//	NSRange SUPPORT ------------------------------------------------------
+
+extension NSRange : GCodable {
+	private enum Key:String {
+		case location, length
+	}
+
+	public init(from decoder: GDecoder) throws {
+		let location	= try decoder.decode(for: Key.location) as Int
+		let length		= try decoder.decode(for: Key.length) as Int
+		self.init(location: location, length: length)
+	}
+
+	public func encode(to encoder: GEncoder) throws {
+		try encoder.encode( location,for: Key.location )
+		try encoder.encode( length,for: Key.length )
+	}
+}
+
+// -- Decimal support  -------------------------------------------------------
+
+extension Decimal : GCodable {
+	private enum Key:String {
+		case _exponent, _length, _isNegative, _isCompact
+	}
+
+	public init(from decoder: GDecoder) throws {
+		let exponent	= try decoder.decode(for: Key._exponent) as Int32
+		let length		= try decoder.decode(for: Key._length) as UInt32
+		let isNegative	= (try decoder.decode(for: Key._isNegative) as Bool) == false ? UInt32(0) : UInt32(1)
+		let isCompact	= (try decoder.decode(for: Key._isCompact) as Bool) == false ? UInt32(0) : UInt32(1)
+		let mantissa0	= try decoder.decode() as UInt16
+		let mantissa1	= try decoder.decode() as UInt16
+		let mantissa2	= try decoder.decode() as UInt16
+		let mantissa3	= try decoder.decode() as UInt16
+		let mantissa4	= try decoder.decode() as UInt16
+		let mantissa5	= try decoder.decode() as UInt16
+		let mantissa6	= try decoder.decode() as UInt16
+		let mantissa7	= try decoder.decode() as UInt16
+
+		self.init(
+			_exponent: exponent, _length: length, _isNegative: isNegative, _isCompact: isCompact, _reserved: 0,
+			_mantissa: (mantissa0, mantissa1, mantissa2, mantissa3, mantissa4, mantissa5, mantissa6, mantissa7)
+		)
+	}
+	
+	
+	public func encode(to encoder: GEncoder) throws {
+		try encoder.encode( _exponent,for: Key._exponent )
+		try encoder.encode( _length,for: Key._length )
+		try encoder.encode( _isNegative == 0,for: Key._isNegative )
+		try encoder.encode( _isCompact == 0,for: Key._isCompact )
+		try encoder.encode( _mantissa.0 )
+		try encoder.encode( _mantissa.1 )
+		try encoder.encode( _mantissa.2 )
+		try encoder.encode( _mantissa.3 )
+		try encoder.encode( _mantissa.4 )
+		try encoder.encode( _mantissa.5 )
+		try encoder.encode( _mantissa.6 )
+		try encoder.encode( _mantissa.7 )
+	}
+	
+}
+
+
 //	Calendar SUPPORT ------------------------------------------------------
 
 extension NSCalendar.Identifier : GCodable {}
@@ -183,11 +449,11 @@ extension PersonNameComponents : GCodable {
 //	URL SUPPORT ------------------------------------------------------
 
 extension URL : GCodable {
-	private enum Key : String { case base, relative }
+	private enum Key : String { case baseURL, relativeString }
 
 	public init(from decoder: GDecoder) throws {
-		let relative	= try decoder.decode( for: Key.relative ) as String
-		let base		= try decoder.decodeIfPresent( for: Key.base ) as URL?
+		let relative	= try decoder.decode( for: Key.relativeString ) as String
+		let base		= try decoder.decodeIfPresent( for: Key.baseURL ) as URL?
 		
 		guard let url = URL(string: relative, relativeTo: base) else {
 			throw GCodableError.initGCodableError(
@@ -200,13 +466,12 @@ extension URL : GCodable {
 	}
 	
 	public func encode(to encoder: GEncoder) throws {
-		try encoder.encode( relativeString, for: Key.relative )
-		try encoder.encodeIfPresent( baseURL, for: Key.base )
+		try encoder.encode( relativeString, for: Key.relativeString )
+		try encoder.encodeIfPresent( baseURL, for: Key.baseURL )
 	}
 }
 
 //	URLComponents SUPPORT ------------------------------------------------------
-
 
 extension URLComponents : GCodable {
 	private enum Key : String {
@@ -222,14 +487,14 @@ extension URLComponents : GCodable {
 
 	
 	public func encode(to encoder: GEncoder) throws {
-		try encoder.encodeIfPresent( scheme,		for: Key.scheme )
-		try encoder.encodeIfPresent( user,	 	for: Key.user )
-		try encoder.encodeIfPresent( password,	for: Key.password )
-		try encoder.encodeIfPresent( host,	 	for: Key.host )
-		try encoder.encodeIfPresent( port,		for: Key.port )
-		try encoder.encode( path,	 	for: Key.path )
-		try encoder.encodeIfPresent( query,		for: Key.query )
-		try encoder.encodeIfPresent( fragment,	 for: Key.fragment )
+		try encoder.encodeIfPresent	( scheme,	for: Key.scheme )
+		try encoder.encodeIfPresent	( user,	 	for: Key.user )
+		try encoder.encodeIfPresent	( password,	for: Key.password )
+		try encoder.encodeIfPresent	( host,	 	for: Key.host )
+		try encoder.encodeIfPresent	( port,		for: Key.port )
+		try encoder.encode			( path,	 	for: Key.path )
+		try encoder.encodeIfPresent	( query,	for: Key.query )
+		try encoder.encodeIfPresent	( fragment,	for: Key.fragment )
 	}
 
 	public init(from decoder: GDecoder) throws {
@@ -244,6 +509,5 @@ extension URLComponents : GCodable {
 		query		= try decoder.decodeIfPresent( for: Key.query )
 		fragment	= try decoder.decodeIfPresent( for: Key.fragment )
 	}
-	
 }
 

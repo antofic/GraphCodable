@@ -23,10 +23,10 @@
 import Foundation
 
 //	faster than BinaryWriterBase<Data> even if you must generate a Data result
-typealias BinaryWriter = BinaryWriterBase<Array<UInt8>>
+public typealias BinaryWriter = BinaryWriterBase<Array<UInt8>>
 //	typealias BinaryWriter = BinaryWriterBase<Data>
 
-struct BinaryWriterBase<T>
+public struct BinaryWriterBase<T>
 where T:MutableDataProtocol, T:ContiguousBytes
 {
 	private (set) var bytes = T()
@@ -39,7 +39,25 @@ where T:MutableDataProtocol, T:ContiguousBytes
 		}
 	}
 
-	mutating func writeValue<T:FixedSizeIOType>( _ v:T ) {
+	mutating func writeBool( _ v:Bool )			{ writeValue( v ) }
+
+	mutating func writeInt8( _ v:Int8 )			{ writeValue( v.littleEndian ) }
+	mutating func writeInt16( _ v:Int16 )		{ writeValue( v.littleEndian ) }
+	mutating func writeInt32( _ v:Int32 )		{ writeValue( v.littleEndian ) }
+	mutating func writeInt64( _ v:Int64 )		{ writeValue( v.littleEndian ) }
+	mutating func writeInt( _ v:Int )			{ writeInt64( Int64(v) ) }
+
+	
+	mutating func writeUInt8(  _ v:UInt8 )		{ writeValue( v.littleEndian ) }
+	mutating func writeUInt16( _ v:UInt16 )		{ writeValue( v.littleEndian ) }
+	mutating func writeUInt32( _ v:UInt32 )		{ writeValue( v.littleEndian ) }
+	mutating func writeUInt64( _ v:UInt64 )		{ writeValue( v.littleEndian ) }
+	mutating func writeUInt( _ v:UInt )			{ writeUInt64( UInt64(v) ) }
+
+	mutating func writeFloat( _ v:Float )		{ writeUInt32( v.bitPattern ) }
+	mutating func writeDouble( _ v:Double )		{ writeUInt64( v.bitPattern ) }
+
+	private mutating func writeValue<T>( _ v:T ) {
 		withUnsafePointer(to: v) { source in
 			bytes.append(
 				contentsOf: UnsafeBufferPointer(
@@ -50,48 +68,13 @@ where T:MutableDataProtocol, T:ContiguousBytes
 		}
 	}
 	
-
-	mutating func writeArray<T:FixedSizeIOType>( _ v:[T], count:Int ) {
-		v.withUnsafeBufferPointer { source in
-			bytes.append(
-				contentsOf: UnsafeBufferPointer(
-					start: UnsafePointer<UInt8>( OpaquePointer( source.baseAddress ) ),
-					count: count * MemoryLayout<T>.stride
-				)
-			)
-		}
-	}
-
-	mutating func writeArray<T:FixedSizeIOType>( _ v:[T] ) {
-		writeValue( Int64(v.count) )
-		writeArray( v, count:v.count )
-	}
-	
-	// ContiguousArray
-	
-	mutating func writeContiguousArray<T:FixedSizeIOType>( _ v:ContiguousArray<T>, count:Int ) {
-		v.withUnsafeBufferPointer { source in
-			bytes.append(
-				contentsOf: UnsafeBufferPointer(
-					start: UnsafePointer<UInt8>( OpaquePointer( source.baseAddress ) ),
-					count: count * MemoryLayout<T>.stride
-				)
-			)
-		}
-	}
-
-	mutating func writeContiguousArray<T:FixedSizeIOType>( _ v:ContiguousArray<T> ) {
-		writeValue( Int64(v.count) )
-		writeContiguousArray( v, count:v.count )
-	}
-
-	mutating func writeData( _ v:Data ) {
-		writeValue( Int64(v.count) )
+	mutating func writeData<T>( _ v:T ) where T:MutableDataProtocol, T:ContiguousBytes {
+		writeInt64( Int64(v.count) )
 		v.withUnsafeBytes { source in
 			bytes.append(contentsOf: source)
 		}
 	}
-		
+
 	// write a null terminated utf8 string
 	mutating func writeString( _ v:String ) {
 		// string saved as null-terminated sequence of utf8

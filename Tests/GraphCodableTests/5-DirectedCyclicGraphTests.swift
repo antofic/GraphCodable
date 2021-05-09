@@ -66,8 +66,7 @@ struct Model : GCodable {
 		}
 		
 		init(from decoder: GDecoder) throws {
-			var value = WeakBox()
-			try decoder.deferDecode { value.boxed = $0 }
+			try decoder.deferDecode { self.boxed = $0 }
 		}
 	}
 	*/

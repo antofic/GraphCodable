@@ -732,24 +732,24 @@ fileprivate final class TypeConstructor {
 				// check if conforms to GCodable.Type and
 				// costruct the value and check if is T
 				guard
-					let binaryIOType = wrapped as? NativeIOType.Type,
-					let value = try binaryIOType.init(bytesArray: bytes) as? T
+					let binaryIOType = wrapped as? BinaryIOType.Type,
+					let value = try binaryIOType.init(data: bytes) as? T
 				else {
 					throw GCodableError.typeMismatch(
 						Self.self, GCodableError.Context(
-							debugDescription: "Block \(block) wrapped type -\(wrapped)- not NativeIOType."
+							debugDescription: "Block \(block) wrapped type -\(wrapped)- not BinaryIOType."
 						)
 					)
 				}
 				return value
 			} else { //	if not, construct it:
 				guard
-					let binaryIOType = T.self as? NativeIOType.Type,
-					let value = try binaryIOType.init(bytesArray: bytes) as? T
+					let binaryIOType = T.self as? BinaryIOType.Type,
+					let value = try binaryIOType.init(data: bytes) as? T
 				else {
 					throw GCodableError.typeMismatch(
 						Self.self, GCodableError.Context(
-							debugDescription: "Block \(block) type -\(T.self)- not NativeIOType."
+							debugDescription: "Block \(block) type -\(T.self)- not BinaryIOType."
 						)
 					)
 				}

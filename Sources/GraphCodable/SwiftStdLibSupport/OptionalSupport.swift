@@ -7,6 +7,25 @@
 
 import Foundation
 
+extension Optional : GCodable where Wrapped : GCodable {
+	// queste due perché i decoder unwrappano gli optional
+	public func encode(to encoder: GEncoder) throws {
+		throw GCodableError.internalInconsistency(
+			Self.self, GCodableError.Context(
+				debugDescription: "Program must not reach this point."
+			)
+		)
+	}
+	
+	public init(from decoder: GDecoder) throws {
+		throw GCodableError.internalInconsistency(
+			Self.self, GCodableError.Context(
+				debugDescription: "Program must not reach this point."
+			)
+		)
+	}
+}
+
 protocol OptionalProtocol {
 	static var wrappedType: Any.Type { get }
 	// nested optional types unwrapping
