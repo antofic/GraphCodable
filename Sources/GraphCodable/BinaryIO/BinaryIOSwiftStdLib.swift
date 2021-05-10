@@ -299,4 +299,63 @@ extension PartialRangeThrough: BinaryIOType where Bound: BinaryIOType {
 	}
 }
 
+// CollectionDifference ------------------------------------------------------
+@available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
+extension CollectionDifference.Change : BinaryIOType where ChangeElement : BinaryIOType {
+	private enum ChangeType : UInt8, BinaryIOType { case insert, remove }
 
+	public init( from reader: inout BinaryReader ) throws {
+		let changeType		= try ChangeType( from:&reader )
+		let offset			= try Int( from:&reader )
+		let element			= try ChangeElement( from:&reader )
+		let associatedWith	= try Int?( from:&reader )
+		
+		switch changeType {
+		case .insert:	self = .insert(offset: offset, element: element, associatedWith: associatedWith)
+		case .remove:	self = .remove(offset: offset, element: element, associatedWith: associatedWith)
+		}
+	}
+	
+	public func write( to writer: inout BinaryWriter ) throws {
+		switch self {
+		case .insert(let offset, let element, let associatedWith ):
+			try ChangeType.insert.write(to: &writer)
+			try offset.write(to: &writer)
+			try element.write(to: &writer)
+			try associatedWith.write(to: &writer)
+		case .remove(let offset, let element, let associatedWith ):
+			try ChangeType.remove.write(to: &writer)
+			try offset.write(to: &writer)
+			try element.write(to: &writer)
+			try associatedWith.write(to: &writer)
+		}
+	}
+}
+
+@available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
+extension CollectionDifference : BinaryIOType where ChangeElement:BinaryIOType {
+	public init( from reader: inout BinaryReader ) throws {
+		var changes	= [CollectionDifference<ChangeElement>.Change]()
+		
+		let count	= try Int( from:&reader )
+		for _ in 0..<count {
+			changes.append( try CollectionDifference.Change(from: &reader) )
+		}
+		guard let value = Self(changes) else {
+			throw BinaryIOError.initBinaryIOTypeError(
+				Self.self, BinaryIOError.Context(
+					debugDescription: "Can't initialize \(Self.self) with \(changes)"
+				)
+			)
+		}
+		
+		self = value
+	}
+	
+	public func write( to writer: inout BinaryWriter ) throws {
+		try self.count.write(to: &writer)
+		for element in self {
+			try element.write(to: &writer)
+		}
+	}
+}

@@ -186,5 +186,65 @@ extension PartialRangeThrough: GCodable where Bound: GCodable {
 	}
 }
 
+// CollectionDifference ------------------------------------------------------
+
+@available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
+extension CollectionDifference.Change : GCodable where ChangeElement : GCodable {
+	private enum ChangeType : UInt8, GCodable { case insert, remove }
+	private enum Key : String { case changeType, offset, element, associatedWith }
+	
+	public init(from decoder: GDecoder) throws {
+		let changeType		= try decoder.decode(for: Key.changeType) as ChangeType
+		let offset			= try decoder.decode(for: Key.offset) as Int
+		let element			= try decoder.decode(for: Key.element) as ChangeElement
+		let associatedWith	= try decoder.decodeIfPresent(for: Key.associatedWith ) as Int?
+		
+		switch changeType {
+		case .insert:	self = .insert(offset: offset, element: element, associatedWith: associatedWith)
+		case .remove:	self = .remove(offset: offset, element: element, associatedWith: associatedWith)
+		}
+	}
+	
+	public func encode(to encoder: GEncoder) throws {
+		switch self {
+		case .insert(let offset, let element, let associatedWith ):
+			try encoder.encode( ChangeType.insert, for: Key.changeType )
+			try encoder.encode( offset, for: Key.offset )
+			try encoder.encode( element, for: Key.element )
+			try encoder.encodeIfPresent( associatedWith, for: Key.associatedWith )
+		case .remove(let offset, let element, let associatedWith ):
+			try encoder.encode( ChangeType.remove, for: Key.changeType )
+			try encoder.encode( offset, for: Key.offset )
+			try encoder.encode( element, for: Key.element )
+			try encoder.encodeIfPresent( associatedWith, for: Key.associatedWith )
+		}
+
+	}
+}
+
+@available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
+extension CollectionDifference : GCodable where ChangeElement:GCodable {
+	public init(from decoder: GDecoder) throws {
+		var changes	= [CollectionDifference<ChangeElement>.Change]()
+		while decoder.unkeyedCount() > 0 {
+			changes.append( try decoder.decode() )
+		}
+		guard let value = Self(changes) else {
+			throw GCodableError.initGCodableError(
+				Self.self, GCodableError.Context(
+					debugDescription: "Can't initialize \(Self.self) with \(changes)"
+				)
+			)
+		}
+		
+		self = value
+	}
+	
+	public func encode(to encoder: GEncoder) throws {
+		for element in self {
+			try encoder.encode( element )
+		}
+	}
+}
 
 
