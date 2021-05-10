@@ -22,6 +22,18 @@
 
 import Foundation
 
+// -- Data support (BinaryIOType) -------------------------------------------------------
+
+extension Data : BinaryIOType {
+	public func write( to writer: inout BinaryWriter ) throws {
+		writer.writeData( self )
+	}
+	public init( from reader: inout BinaryReader ) throws {
+		self = try reader.readData()
+	}
+}
+
+
 // -- CGFloat (BinaryIOType) --------------------------------------------
 //	Su alcune piattaforme CGFloat == Float (32 bit).
 //	Salviamo sempre come Double 64bit

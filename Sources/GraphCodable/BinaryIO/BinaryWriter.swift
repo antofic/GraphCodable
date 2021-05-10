@@ -22,6 +22,12 @@
 
 import Foundation
 
+/*
+BinaryWriter data format uses always:
+	• little-endian
+	• store Int, UInt as Int64, UInt64
+*/
+
 //	faster than BinaryWriterBase<Data> even if you must generate a Data result
 public typealias BinaryWriter = BinaryWriterBase<Array<UInt8>>
 //	typealias BinaryWriter = BinaryWriterBase<Data>
@@ -45,7 +51,6 @@ where T:MutableDataProtocol, T:ContiguousBytes
 	mutating func writeInt16( _ v:Int16 )		{ writeValue( v.littleEndian ) }
 	mutating func writeInt32( _ v:Int32 )		{ writeValue( v.littleEndian ) }
 	mutating func writeInt64( _ v:Int64 )		{ writeValue( v.littleEndian ) }
-
 	
 	mutating func writeUInt8(  _ v:UInt8 )		{ writeValue( v.littleEndian ) }
 	mutating func writeUInt16( _ v:UInt16 )		{ writeValue( v.littleEndian ) }

@@ -22,6 +22,14 @@
 
 import Foundation
 
+/*
+BinaryReader:
+	• convert from file little-endian format to the machine format
+	• convert Int, UInt stored as Int64, UInt64 to Int, UInt in machine size
+		(throws an error if it is not possible)
+*/
+
+
 // faster than BinaryReaderBase<Data> even if bytes originally comes from Data
 public typealias BinaryReader = BinaryReaderBase<Array<UInt8>>
 //	public typealias BinaryReader = BinaryReaderBase<Data>

@@ -22,6 +22,92 @@
 
 import Foundation
 
+
+// Int ------------------------------------------------------
+
+extension Int : BinaryIOType {
+	public init(from reader: inout BinaryReader) throws			{ self.init( try reader.readInt() ) }
+	public func write(to writer: inout BinaryWriter) throws		{ try writer.writeInt( self ) }
+}
+
+extension Int8 : BinaryIOType {
+	public init(from reader: inout BinaryReader) throws			{ self.init( try reader.readInt8() ) }
+	public func write(to writer: inout BinaryWriter) throws		{ writer.writeInt8( self ) }
+}
+
+extension Int16 : BinaryIOType {
+	public init(from reader: inout BinaryReader) throws			{ self.init( try reader.readInt16() ) }
+	public func write(to writer: inout BinaryWriter) throws		{ writer.writeInt16( self ) }
+}
+
+extension Int32 : BinaryIOType {
+	public init(from reader: inout BinaryReader) throws			{ self.init( try reader.readInt32() ) }
+	public func write(to writer: inout BinaryWriter) throws		{ writer.writeInt32( self ) }
+}
+
+extension Int64 : BinaryIOType {
+	public init(from reader: inout BinaryReader) throws			{ self.init( try reader.readInt64() ) }
+	public func write(to writer: inout BinaryWriter) throws		{ writer.writeInt64( self ) }
+}
+
+// UInt ------------------------------------------------------
+
+extension UInt : BinaryIOType {
+	public init(from reader: inout BinaryReader) throws			{ self.init( try reader.readUInt() ) }
+	public func write(to writer: inout BinaryWriter) throws		{ try writer.writeUInt( self ) }
+}
+
+extension UInt8 : BinaryIOType {
+	public init(from reader: inout BinaryReader) throws			{ self.init( try reader.readUInt8() ) }
+	public func write(to writer: inout BinaryWriter) throws		{ writer.writeUInt8( self ) }
+}
+
+extension UInt16 : BinaryIOType {
+	public init(from reader: inout BinaryReader) throws			{ self.init( try reader.readUInt16() ) }
+	public func write(to writer: inout BinaryWriter) throws		{ writer.writeUInt16( self ) }
+}
+
+extension UInt32 : BinaryIOType {
+	public init(from reader: inout BinaryReader) throws			{ self.init( try reader.readUInt32() ) }
+	public func write(to writer: inout BinaryWriter) throws		{ writer.writeUInt32( self ) }
+}
+
+extension UInt64 : BinaryIOType {
+	public init(from reader: inout BinaryReader) throws			{ self.init( try reader.readUInt64() ) }
+	public func write(to writer: inout BinaryWriter) throws		{ writer.writeUInt64( self ) }
+}
+
+// Float & Double ------------------------------------------------------
+
+extension Float : BinaryIOType {
+	public init(from reader: inout BinaryReader) throws			{ self.init( try reader.readFloat() ) }
+	public func write(to writer: inout BinaryWriter) throws		{ writer.writeFloat( self ) }
+}
+
+extension Double : BinaryIOType {
+	public init(from reader: inout BinaryReader) throws			{ self.init( try reader.readDouble() ) }
+	public func write(to writer: inout BinaryWriter) throws		{ writer.writeDouble( self ) }
+}
+
+// Bool ------------------------------------------------------
+
+extension Bool : BinaryIOType {
+	public init(from reader: inout BinaryReader) throws			{ self.init( try reader.readBool() ) }
+	public func write(to writer: inout BinaryWriter) throws		{ writer.writeBool( self ) }
+}
+
+
+// String ------------------------------------------------------
+
+extension String : BinaryIOType {
+	public func write( to writer: inout BinaryWriter ) throws {
+		writer.writeString( self )
+	}
+	public init( from reader: inout BinaryReader ) throws {
+		self = try reader.readString()
+	}
+}
+
 // Optional ------------------------------------------------------
 
 extension Optional : BinaryIOType where Wrapped : BinaryIOType {
