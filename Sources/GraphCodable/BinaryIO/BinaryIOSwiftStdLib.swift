@@ -22,6 +22,46 @@
 
 import Foundation
 
+// Optional ------------------------------------------------------
+
+extension Optional : BinaryIOType where Wrapped : BinaryIOType {
+	public func write( to writer: inout BinaryWriter ) throws {
+		switch self {
+		case .none:
+			try false.write(to: &writer)
+		case .some( let wrapped ):
+			try true.write(to: &writer)
+			try wrapped.write(to: &writer)
+		}
+	}
+	public init( from reader: inout BinaryReader ) throws {
+		switch try Bool(from: &reader) {
+		case false:
+			self = .none
+		case true:
+			self = .some( try Wrapped(from: &reader)  )
+		}
+	}
+}
+
+// RawRepresentable ------------------------------------------------------
+extension RawRepresentable where Self.RawValue : BinaryIOType {
+	public func write( to writer: inout BinaryWriter ) throws {
+		try self.rawValue.write(to: &writer)
+	}
+	public init( from reader: inout BinaryReader ) throws {
+		let rawValue	= try Self.RawValue(from: &reader)
+		guard let value = Self(rawValue: rawValue ) else {
+			throw BinaryIOError.initBinaryIOTypeError(
+				Self.self, BinaryIOError.Context(
+					debugDescription: "Invalid rawValue = \(rawValue) for \(Self.self)"
+				)
+			)
+		}
+		self = value
+	}
+}
+
 // Character ------------------------------------------------------
 extension Character : BinaryIOType {
 	public func write( to writer: inout BinaryWriter ) throws {

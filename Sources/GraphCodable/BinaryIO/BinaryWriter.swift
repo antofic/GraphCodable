@@ -45,18 +45,38 @@ where T:MutableDataProtocol, T:ContiguousBytes
 	mutating func writeInt16( _ v:Int16 )		{ writeValue( v.littleEndian ) }
 	mutating func writeInt32( _ v:Int32 )		{ writeValue( v.littleEndian ) }
 	mutating func writeInt64( _ v:Int64 )		{ writeValue( v.littleEndian ) }
-	mutating func writeInt( _ v:Int )			{ writeInt64( Int64(v) ) }
 
 	
 	mutating func writeUInt8(  _ v:UInt8 )		{ writeValue( v.littleEndian ) }
 	mutating func writeUInt16( _ v:UInt16 )		{ writeValue( v.littleEndian ) }
 	mutating func writeUInt32( _ v:UInt32 )		{ writeValue( v.littleEndian ) }
 	mutating func writeUInt64( _ v:UInt64 )		{ writeValue( v.littleEndian ) }
-	mutating func writeUInt( _ v:UInt )			{ writeUInt64( UInt64(v) ) }
 
 	mutating func writeFloat( _ v:Float )		{ writeUInt32( v.bitPattern ) }
 	mutating func writeDouble( _ v:Double )		{ writeUInt64( v.bitPattern ) }
 
+	mutating func writeInt( _ v:Int ) throws {
+		guard let value64 = Int64( exactly: v ) else {
+			throw BinaryIOError.initBinaryIOTypeError(
+				Self.self, BinaryIOError.Context(
+					debugDescription: "Int \(v) can't be converted to Int64."
+				)
+			)
+		}
+		writeInt64( value64 )
+	}
+
+	mutating func writeUInt( _ v:UInt ) throws {
+		guard let value64 = UInt64( exactly: v ) else {
+			throw BinaryIOError.initBinaryIOTypeError(
+				Self.self, BinaryIOError.Context(
+					debugDescription: "UInt \(v) can't be converted to UInt64."
+				)
+			)
+		}
+		writeUInt64( value64 )
+	}
+	
 	private mutating func writeValue<T>( _ v:T ) {
 		withUnsafePointer(to: v) { source in
 			bytes.append(

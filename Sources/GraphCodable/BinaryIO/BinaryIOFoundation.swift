@@ -22,7 +22,6 @@
 
 import Foundation
 
-
 // -- CGFloat (BinaryIOType) --------------------------------------------
 //	Su alcune piattaforme CGFloat == Float (32 bit).
 //	Salviamo sempre come Double 64bit
@@ -96,8 +95,8 @@ extension TimeZone : BinaryIOType {
 	public init( from reader: inout BinaryReader ) throws {
 		let identifier = try String( from: &reader)
 		guard let timeZone = TimeZone( identifier: identifier ) else {
-			throw GCodableError.initGCodableError(
-				Self.self, GCodableError.Context(
+			throw BinaryIOError.initBinaryIOTypeError(
+				Self.self, BinaryIOError.Context(
 					debugDescription: "Invalid timezone identifier -\(identifier)-"
 				)
 			)
@@ -117,8 +116,8 @@ extension UUID : BinaryIOType  {
 		let uuidString	= try String( from: &reader)
 		
 		guard let uuid = UUID(uuidString: uuidString) else {
-			throw GCodableError.initGCodableError(
-				Self.self, GCodableError.Context(
+			throw BinaryIOError.initBinaryIOTypeError(
+				Self.self, BinaryIOError.Context(
 					debugDescription: "Attempted to decode UUID from invalid UUID string -\(uuidString)-."
 				)
 			)
@@ -296,8 +295,8 @@ extension Calendar : BinaryIOType {
 	public init(from reader: inout BinaryReader) throws {
 		let nsIdentifier = try NSCalendar.Identifier(from: &reader)
 		guard var calendar = NSCalendar(calendarIdentifier: nsIdentifier) as Calendar? else {
-			throw GCodableError.initGCodableError(
-				Self.self, GCodableError.Context(
+			throw BinaryIOError.initBinaryIOTypeError(
+				Self.self, BinaryIOError.Context(
 					debugDescription: "Invalid calendar identifier -\(nsIdentifier)-"
 				)
 			)
@@ -426,8 +425,8 @@ extension URL : BinaryIOType {
 		let base		= try URL?(from: &reader)
 
 		guard let url = URL(string: relative, relativeTo: base) else {
-			throw GCodableError.initGCodableError(
-				Self.self, GCodableError.Context(
+			throw BinaryIOError.initBinaryIOTypeError(
+				Self.self, BinaryIOError.Context(
 					debugDescription: "Invalid relative -\(relative)- and base -\(base as Any)-"
 				)
 			)

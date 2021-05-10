@@ -22,16 +22,10 @@
 
 import Foundation
 
-
-
 // faster than BinaryReaderBase<Data> even if bytes originally comes from Data
 public typealias BinaryReader = BinaryReaderBase<Array<UInt8>>
 //	public typealias BinaryReader = BinaryReaderBase<Data>
 
-enum BinaryReaderError : Error {
-	case outOfBounds
-	case cantConstructRawRepresentable
-}
 
 public struct BinaryReaderBase<T>
 where T:MutableDataProtocol, T:ContiguousBytes, T.SubSequence:ContiguousBytes {
@@ -65,22 +59,48 @@ where T:MutableDataProtocol, T:ContiguousBytes, T.SubSequence:ContiguousBytes {
 	mutating func readInt16() throws -> Int16	{ return try Int16( littleEndian: readInteger() ) }
 	mutating func readInt32() throws -> Int32	{ return try Int32( littleEndian: readInteger() ) }
 	mutating func readInt64() throws -> Int64	{ return try Int64( littleEndian: readInteger() ) }
-	mutating func readInt() throws -> Int		{ return try Int( readInt64() ) }
 
 	mutating func readUInt8 () throws -> UInt8  { return try UInt8 ( littleEndian: readInteger() ) }
 	mutating func readUInt16() throws -> UInt16 { return try UInt16( littleEndian: readInteger() ) }
 	mutating func readUInt32() throws -> UInt32 { return try UInt32( littleEndian: readInteger() ) }
 	mutating func readUInt64() throws -> UInt64 { return try UInt64( littleEndian: readInteger() ) }
-	mutating func readUInt() throws -> UInt		{ return try UInt( readUInt64() ) }
 
 	mutating func readFloat() throws -> Float	{ return try Float(bitPattern: readUInt32()) }
 	mutating func readDouble() throws -> Double	{ return try Double(bitPattern: readUInt64()) }
 
+	mutating func readInt() throws -> Int		{
+		let value64 = try readInt64()
+		guard let value = Int( exactly: value64 ) else {
+			throw BinaryIOError.initBinaryIOTypeError(
+				Self.self, BinaryIOError.Context(
+					debugDescription: "Int64 \(value64) can't be converted to Int."
+				)
+			)
+		}
+		return value
+	}
+	
+	mutating func readUInt() throws -> UInt		{
+		let value64 = try readUInt64()
+		guard let value = UInt( exactly: value64 ) else {
+			throw BinaryIOError.initBinaryIOTypeError(
+				Self.self, BinaryIOError.Context(
+					debugDescription: "UInt64 \(value64) can't be converted to UInt."
+				)
+			)
+		}
+		return value
+	}
+	
 	// private section ---------------------------------------------------------
 
 	private func checkRemainingSize( size:Int ) throws {
 		if bytes.count < size {
-			throw BinaryReaderError.outOfBounds
+			throw BinaryIOError.outOfBounds(
+				Self.self, BinaryIOError.Context(
+					debugDescription: "\(size) bytes requested; \(bytes.count) bytes remaining."
+				)
+			)
 		}
 	}
 
@@ -121,13 +141,21 @@ where T:MutableDataProtocol, T:ContiguousBytes, T.SubSequence:ContiguousBytes {
 		
 		// ci deve essere almeno un carattere: null
 		guard availableCount > 0 else {
-			throw BinaryReaderError.outOfBounds
+			throw BinaryIOError.outOfBounds(
+				Self.self, BinaryIOError.Context(
+					debugDescription: "No more bytes available for a null terminated string."
+				)
+			)
 		}
 		
 		var inSize = 0
 		let string = try bytes.withUnsafeBytes { source -> String in
 			guard let baseAddress = source.baseAddress else {
-				throw BinaryReaderError.outOfBounds
+				throw BinaryIOError.outOfBounds(
+					Self.self, BinaryIOError.Context(
+						debugDescription: "This should never happen."
+					)
+				)
 			}
 			let ptr	= UnsafePointer<UInt8>( OpaquePointer( baseAddress ) )
 			// non posso superare bytesCount
@@ -138,7 +166,11 @@ where T:MutableDataProtocol, T:ContiguousBytes, T.SubSequence:ContiguousBytes {
 				}
 			}
 			// ho superato bytesCount!
-			throw BinaryReaderError.outOfBounds
+			throw BinaryIOError.outOfBounds(
+				Self.self, BinaryIOError.Context(
+					debugDescription: "No more bytes available for a null terminated string."
+				)
+			)
 		}
 		bytes.removeFirst( inSize )
 		return string

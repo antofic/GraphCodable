@@ -45,7 +45,7 @@ extension BinaryIOType {
 
 extension Int : BinaryIOType {
 	public init(from reader: inout BinaryReader) throws			{ self.init( try reader.readInt() ) }
-	public func write(to writer: inout BinaryWriter) throws		{ writer.writeInt( self ) }
+	public func write(to writer: inout BinaryWriter) throws		{ try writer.writeInt( self ) }
 }
 
 extension Int8 : BinaryIOType {
@@ -72,7 +72,7 @@ extension Int64 : BinaryIOType {
 
 extension UInt : BinaryIOType {
 	public init(from reader: inout BinaryReader) throws			{ self.init( try reader.readUInt() ) }
-	public func write(to writer: inout BinaryWriter) throws		{ writer.writeUInt( self ) }
+	public func write(to writer: inout BinaryWriter) throws		{ try writer.writeUInt( self ) }
 }
 
 extension UInt8 : BinaryIOType {
@@ -135,42 +135,6 @@ extension Data : BinaryIOType {
 	}
 	public init( from reader: inout BinaryReader ) throws {
 		self = try reader.readData()
-	}
-}
-
-
-// Optional ------------------------------------------------------
-
-extension Optional : BinaryIOType where Wrapped : BinaryIOType {
-	public func write( to writer: inout BinaryWriter ) throws {
-		switch self {
-		case .none:
-			try false.write(to: &writer)
-		case .some( let wrapped ):
-			try true.write(to: &writer)
-			try wrapped.write(to: &writer)
-		}
-	}
-	public init( from reader: inout BinaryReader ) throws {
-		switch try Bool(from: &reader) {
-		case false:
-			self = .none
-		case true:
-			self = .some( try Wrapped(from: &reader)  )
-		}
-	}
-}
-
-// RawRepresentable ------------------------------------------------------
-extension RawRepresentable where Self.RawValue : BinaryIOType {
-	public func write( to writer: inout BinaryWriter ) throws {
-		try self.rawValue.write(to: &writer)
-	}
-	public init( from reader: inout BinaryReader ) throws {
-		guard let value = Self(rawValue: try Self.RawValue(from: &reader) ) else {
-			throw BinaryReaderError.cantConstructRawRepresentable
-		}
-		self = value
 	}
 }
 

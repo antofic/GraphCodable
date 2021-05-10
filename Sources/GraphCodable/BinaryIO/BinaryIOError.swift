@@ -22,21 +22,27 @@
 
 import Foundation
 
-extension RawRepresentable where Self.RawValue : GCodable {
-	public func encode(to encoder: GEncoder) throws	{
-		try encoder.encode( self.rawValue )
-	}
-	public init(from decoder: GDecoder) throws {
-		let rawValue = try decoder.decode() as RawValue
-		guard let value = Self.init(rawValue:rawValue ) else {
-			throw GCodableError.initGCodableError(
-				Self.self, GCodableError.Context(
-					debugDescription: "Invalid rawValue = \(rawValue) for \(Self.self)"
-				)
-			)
-		}
-		self = value
-	}
-}
+enum BinaryIOError : Error {
+	struct Context {
+		let debugDescription:	String
+		let underlyingError:	Error?
+		let function:			String
+		let file:				String
 
+		init(
+			debugDescription: String,
+			underlyingError: Error? = nil,
+			function: String = #function,
+			file: String = #fileID
+		) {
+			self.debugDescription	= debugDescription
+			self.underlyingError	= underlyingError
+			self.function			= function
+			self.file				= file
+		}
+	}
+
+	case outOfBounds( Any.Type, BinaryIOError.Context )
+	case initBinaryIOTypeError( Any.Type, BinaryIOError.Context )
+}
 

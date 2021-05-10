@@ -22,6 +22,24 @@
 
 import Foundation
 
+//	RawRepresentable SUPPORT ------------------------------------------------------
+
+extension RawRepresentable where Self.RawValue : GCodable {
+	public func encode(to encoder: GEncoder) throws	{
+		try encoder.encode( self.rawValue )
+	}
+	public init(from decoder: GDecoder) throws {
+		let rawValue = try decoder.decode() as RawValue
+		guard let value = Self.init(rawValue:rawValue ) else {
+			throw GCodableError.initGCodableError(
+				Self.self, GCodableError.Context(
+					debugDescription: "Invalid rawValue = \(rawValue) for \(Self.self)"
+				)
+			)
+		}
+		self = value
+	}
+}
 
 //	Array SUPPORT ------------------------------------------------------
 extension Array: GCodable where Element:GCodable {
@@ -98,5 +116,75 @@ extension Dictionary: GCodable where Key:GCodable, Value:GCodable {
 		}
 	}
 }
+
+// Range ------------------------------------------------------
+
+extension Range: GCodable where Bound: GCodable {
+	public init(from decoder: GDecoder) throws {
+		let lowerBound	= try decoder.decode() as Bound
+		let upperBound	= try decoder.decode() as Bound
+		self.init(uncheckedBounds: (lowerBound,upperBound) )
+	}
+	
+	public func encode(to encoder: GEncoder) throws {
+		try encoder.encode( lowerBound )
+		try encoder.encode( upperBound )
+	}
+}
+
+// ClosedRange ------------------------------------------------------
+
+extension ClosedRange: GCodable where Bound: GCodable {
+	public init(from decoder: GDecoder) throws {
+		let lowerBound	= try decoder.decode() as Bound
+		let upperBound	= try decoder.decode() as Bound
+		self.init(uncheckedBounds: (lowerBound,upperBound) )
+	}
+	
+	public func encode(to encoder: GEncoder) throws {
+		try encoder.encode( lowerBound )
+		try encoder.encode( upperBound )
+	}
+}
+
+
+// PartialRangeFrom ------------------------------------------------------
+
+extension PartialRangeFrom: GCodable where Bound: GCodable {
+	public init(from decoder: GDecoder) throws {
+		self.init( try decoder.decode() as Bound )
+	}
+	
+	public func encode(to encoder: GEncoder) throws {
+		try encoder.encode( lowerBound )
+	}
+}
+
+
+// PartialRangeUpTo ------------------------------------------------------
+
+extension PartialRangeUpTo: GCodable where Bound: GCodable {
+	public init(from decoder: GDecoder) throws {
+		self.init( try decoder.decode() as Bound )
+	}
+	
+	public func encode(to encoder: GEncoder) throws {
+		try encoder.encode( upperBound )
+	}
+}
+
+
+// PartialRangeFrom ------------------------------------------------------
+
+extension PartialRangeThrough: GCodable where Bound: GCodable {
+	public init(from decoder: GDecoder) throws {
+		self.init( try decoder.decode() as Bound )
+	}
+	
+	public func encode(to encoder: GEncoder) throws {
+		try encoder.encode( upperBound )
+	}
+}
+
 
 
