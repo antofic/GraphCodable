@@ -733,7 +733,7 @@ fileprivate final class TypeConstructor {
 				// costruct the value and check if is T
 				guard
 					let binaryIOType = wrapped as? BinaryIOType.Type,
-					let value = try binaryIOType.init(data: bytes) as? T
+					let value = try binaryIOType.init(binaryData: bytes) as? T
 				else {
 					throw GCodableError.typeMismatch(
 						Self.self, GCodableError.Context(
@@ -745,7 +745,7 @@ fileprivate final class TypeConstructor {
 			} else { //	if not, construct it:
 				guard
 					let binaryIOType = T.self as? BinaryIOType.Type,
-					let value = try binaryIOType.init(data: bytes) as? T
+					let value = try binaryIOType.init(binaryData: bytes) as? T
 				else {
 					throw GCodableError.typeMismatch(
 						Self.self, GCodableError.Context(

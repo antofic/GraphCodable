@@ -28,14 +28,14 @@ public protocol BinaryIOType {
 }
 
 extension BinaryIOType {
-	public func data<Q>() throws -> Q where Q:MutableDataProtocol {
+	public func binaryData<Q>() throws -> Q where Q:MutableDataProtocol {
 		var writer = BinaryWriter()
 		try write( to:&writer )
 		return writer.data()
 	}
 
-	public init<Q>( data: Q ) throws where Q:Sequence, Q.Element==UInt8 {
-		var reader = BinaryReader( data:data )
+	public init<Q>( binaryData: Q ) throws where Q:Sequence, Q.Element==UInt8 {
+		var reader = BinaryReader( data:binaryData )
 		try self.init( from: &reader )
 	}
 }
