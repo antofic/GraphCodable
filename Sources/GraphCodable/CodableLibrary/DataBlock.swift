@@ -97,12 +97,11 @@ extension DataBlock : BinaryIOType {
 			try unused0.write(to: &writer)
 			try unused1.write(to: &writer)
 			try unused2.write(to: &writer)
-
 		case .inTypeMap	( let typeID, let classInfo ):
 			// ••••• SALVO COME outTypeMap ••••••••••
 			try Code.outTypeMap.write(to: &writer)
 			try typeID.write(to: &writer)
-			try classInfo.classData.write(to: &writer)
+			try classInfo.classData.write(to: &writer)	// <----- ••••••
 		case .outTypeMap( _, _ ):
 			// non deve mai arrivare qui
 			throw GCodableError.internalInconsistency(
@@ -113,7 +112,6 @@ extension DataBlock : BinaryIOType {
 		case .nilValue	( let keyID ):
 			try Code.nilValue.write(to: &writer)
 			try keyID.write(to: &writer)
-
 		case .inBinType( let keyID, let value ):
 			// ••••• SALVO COME outBinType ••••••••••
 			let bytes	= try value.binaryData() as [UInt8]
