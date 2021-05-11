@@ -52,7 +52,7 @@ enum GCodableError : Error {
 	}
 	
 	// RawRepresentableSupport
-	case initGCodableError( Any.Type, GCodableError.Context )
+	case initTypeError( Any.Type, GCodableError.Context )
 	
 	case internalInconsistency( Any.Type, GCodableError.Context )
 	case cantConstructClass( Any.Type, GCodableError.Context )

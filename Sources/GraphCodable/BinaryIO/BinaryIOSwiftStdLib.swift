@@ -24,6 +24,7 @@ import Foundation
 
 
 // Int ------------------------------------------------------
+//	Uses Version: NO
 
 extension Int : BinaryIOType {
 	public init(from reader: inout BinaryReader) throws			{ self.init( try reader.readInt() ) }
@@ -51,6 +52,7 @@ extension Int64 : BinaryIOType {
 }
 
 // UInt ------------------------------------------------------
+//	Uses Version: NO
 
 extension UInt : BinaryIOType {
 	public init(from reader: inout BinaryReader) throws			{ self.init( try reader.readUInt() ) }
@@ -78,6 +80,7 @@ extension UInt64 : BinaryIOType {
 }
 
 // Float & Double ------------------------------------------------------
+//	Uses Version: NO
 
 extension Float : BinaryIOType {
 	public init(from reader: inout BinaryReader) throws			{ self.init( try reader.readFloat() ) }
@@ -90,6 +93,7 @@ extension Double : BinaryIOType {
 }
 
 // Bool ------------------------------------------------------
+//	Uses Version: NO
 
 extension Bool : BinaryIOType {
 	public init(from reader: inout BinaryReader) throws			{ self.init( try reader.readBool() ) }
@@ -98,6 +102,7 @@ extension Bool : BinaryIOType {
 
 
 // String ------------------------------------------------------
+//	Uses Version: NO
 
 extension String : BinaryIOType {
 	public func write( to writer: inout BinaryWriter ) throws {
@@ -109,6 +114,7 @@ extension String : BinaryIOType {
 }
 
 // Optional ------------------------------------------------------
+//	Uses Version: NO
 
 extension Optional : BinaryIOType where Wrapped : BinaryIOType {
 	public func write( to writer: inout BinaryWriter ) throws {
@@ -131,6 +137,8 @@ extension Optional : BinaryIOType where Wrapped : BinaryIOType {
 }
 
 // RawRepresentable ------------------------------------------------------
+//	Uses Version: NO
+
 extension RawRepresentable where Self.RawValue : BinaryIOType {
 	public func write( to writer: inout BinaryWriter ) throws {
 		try self.rawValue.write(to: &writer)
@@ -138,7 +146,7 @@ extension RawRepresentable where Self.RawValue : BinaryIOType {
 	public init( from reader: inout BinaryReader ) throws {
 		let rawValue	= try Self.RawValue(from: &reader)
 		guard let value = Self(rawValue: rawValue ) else {
-			throw BinaryIOError.initBinaryIOTypeError(
+			throw BinaryIOError.initTypeError(
 				Self.self, BinaryIOError.Context(
 					debugDescription: "Invalid rawValue = \(rawValue) for \(Self.self)"
 				)
@@ -149,6 +157,7 @@ extension RawRepresentable where Self.RawValue : BinaryIOType {
 }
 
 // Character ------------------------------------------------------
+//	Uses Version: NO
 extension Character : BinaryIOType {
 	public func write( to writer: inout BinaryWriter ) throws {
 		writer.writeString( String(self) )
@@ -156,8 +165,8 @@ extension Character : BinaryIOType {
 	public init( from reader: inout BinaryReader ) throws {
 		let string	= try reader.readString()
 		guard let character = string.first else {
-			throw GCodableError.initGCodableError(
-				Self.self, GCodableError.Context(
+			throw BinaryIOError.initTypeError(
+				Self.self, BinaryIOError.Context(
 					debugDescription: "Invalida character string \(string) for \(Self.self)"
 				)
 			)
@@ -167,6 +176,7 @@ extension Character : BinaryIOType {
 }
 
 // Array ------------------------------------------------------
+//	Uses Version: NO
 
 extension Array : BinaryIOType where Element : BinaryIOType {
 	public func write( to writer: inout BinaryWriter ) throws {
@@ -187,6 +197,7 @@ extension Array : BinaryIOType where Element : BinaryIOType {
 }
 
 // ContiguousArray ------------------------------------------------------
+//	Uses Version: NO
 
 extension ContiguousArray : BinaryIOType where Element : BinaryIOType {
 	public func write( to writer: inout BinaryWriter ) throws {
@@ -207,6 +218,7 @@ extension ContiguousArray : BinaryIOType where Element : BinaryIOType {
 }
 
 // Set ------------------------------------------------------
+//	Uses Version: NO
 
 extension Set : BinaryIOType where Element : BinaryIOType {
 	public func write( to writer: inout BinaryWriter ) throws {
@@ -218,6 +230,7 @@ extension Set : BinaryIOType where Element : BinaryIOType {
 }
 
 // Dictionary ------------------------------------------------------
+//	Uses Version: NO
 
 extension Dictionary : BinaryIOType where Key : BinaryIOType, Value : BinaryIOType {
 	public func write( to writer: inout BinaryWriter ) throws {
@@ -234,6 +247,7 @@ extension Dictionary : BinaryIOType where Key : BinaryIOType, Value : BinaryIOTy
 }
 
 // Range ------------------------------------------------------
+//	Uses Version: NO
 
 extension Range: BinaryIOType where Bound: BinaryIOType {
 	public init( from reader: inout BinaryReader ) throws {
@@ -249,6 +263,7 @@ extension Range: BinaryIOType where Bound: BinaryIOType {
 }
 
 // ClosedRange ------------------------------------------------------
+//	Uses Version: NO
 
 extension ClosedRange: BinaryIOType where Bound: BinaryIOType {
 	public init( from reader: inout BinaryReader ) throws {
@@ -264,6 +279,7 @@ extension ClosedRange: BinaryIOType where Bound: BinaryIOType {
 }
 
 // PartialRangeFrom ------------------------------------------------------
+//	Uses Version: NO
 
 extension PartialRangeFrom: BinaryIOType where Bound: BinaryIOType {
 	public init( from reader: inout BinaryReader ) throws {
@@ -276,6 +292,7 @@ extension PartialRangeFrom: BinaryIOType where Bound: BinaryIOType {
 }
 
 // PartialRangeUpTo ------------------------------------------------------
+//	Uses Version: NO
 
 extension PartialRangeUpTo: BinaryIOType where Bound: BinaryIOType {
 	public init( from reader: inout BinaryReader ) throws {
@@ -288,6 +305,7 @@ extension PartialRangeUpTo: BinaryIOType where Bound: BinaryIOType {
 }
 
 // PartialRangeFrom ------------------------------------------------------
+//	Uses Version: NO
 
 extension PartialRangeThrough: BinaryIOType where Bound: BinaryIOType {
 	public init( from reader: inout BinaryReader ) throws {
@@ -299,7 +317,9 @@ extension PartialRangeThrough: BinaryIOType where Bound: BinaryIOType {
 	}
 }
 
-// CollectionDifference ------------------------------------------------------
+// CollectionDifference.Change ------------------------------------------------------
+//	Uses Version: NO (is frozen)
+
 @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
 extension CollectionDifference.Change : BinaryIOType where ChangeElement : BinaryIOType {
 	private enum ChangeType : UInt8, BinaryIOType { case insert, remove }
@@ -332,6 +352,9 @@ extension CollectionDifference.Change : BinaryIOType where ChangeElement : Binar
 	}
 }
 
+// CollectionDifference ------------------------------------------------------
+//	Uses Version: NO
+
 @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
 extension CollectionDifference : BinaryIOType where ChangeElement:BinaryIOType {
 	public init( from reader: inout BinaryReader ) throws {
@@ -342,7 +365,7 @@ extension CollectionDifference : BinaryIOType where ChangeElement:BinaryIOType {
 			changes.append( try CollectionDifference.Change(from: &reader) )
 		}
 		guard let value = Self(changes) else {
-			throw BinaryIOError.initBinaryIOTypeError(
+			throw BinaryIOError.initTypeError(
 				Self.self, BinaryIOError.Context(
 					debugDescription: "Can't initialize \(Self.self) with \(changes)"
 				)

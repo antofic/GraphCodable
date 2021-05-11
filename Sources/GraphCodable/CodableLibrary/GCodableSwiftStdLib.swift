@@ -31,7 +31,7 @@ extension RawRepresentable where Self.RawValue : GCodable {
 	public init(from decoder: GDecoder) throws {
 		let rawValue = try decoder.decode() as RawValue
 		guard let value = Self.init(rawValue:rawValue ) else {
-			throw GCodableError.initGCodableError(
+			throw GCodableError.initTypeError(
 				Self.self, GCodableError.Context(
 					debugDescription: "Invalid rawValue = \(rawValue) for \(Self.self)"
 				)
@@ -230,7 +230,7 @@ extension CollectionDifference : GCodable where ChangeElement:GCodable {
 			changes.append( try decoder.decode() )
 		}
 		guard let value = Self(changes) else {
-			throw GCodableError.initGCodableError(
+			throw GCodableError.initTypeError(
 				Self.self, GCodableError.Context(
 					debugDescription: "Can't initialize \(Self.self) with \(changes)"
 				)

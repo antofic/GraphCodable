@@ -62,7 +62,7 @@ where T:MutableDataProtocol, T:ContiguousBytes
 
 	mutating func writeInt( _ v:Int ) throws {
 		guard let value64 = Int64( exactly: v ) else {
-			throw BinaryIOError.initBinaryIOTypeError(
+			throw BinaryIOError.initTypeError(
 				Self.self, BinaryIOError.Context(
 					debugDescription: "Int \(v) can't be converted to Int64."
 				)
@@ -73,7 +73,7 @@ where T:MutableDataProtocol, T:ContiguousBytes
 
 	mutating func writeUInt( _ v:UInt ) throws {
 		guard let value64 = UInt64( exactly: v ) else {
-			throw BinaryIOError.initBinaryIOTypeError(
+			throw BinaryIOError.initTypeError(
 				Self.self, BinaryIOError.Context(
 					debugDescription: "UInt \(v) can't be converted to UInt64."
 				)

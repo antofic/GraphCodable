@@ -78,7 +78,7 @@ where T:MutableDataProtocol, T:ContiguousBytes, T.SubSequence:ContiguousBytes {
 	mutating func readInt() throws -> Int		{
 		let value64 = try readInt64()
 		guard let value = Int( exactly: value64 ) else {
-			throw BinaryIOError.initBinaryIOTypeError(
+			throw BinaryIOError.initTypeError(
 				Self.self, BinaryIOError.Context(
 					debugDescription: "Int64 \(value64) can't be converted to Int."
 				)
@@ -90,7 +90,7 @@ where T:MutableDataProtocol, T:ContiguousBytes, T.SubSequence:ContiguousBytes {
 	mutating func readUInt() throws -> UInt		{
 		let value64 = try readUInt64()
 		guard let value = UInt( exactly: value64 ) else {
-			throw BinaryIOError.initBinaryIOTypeError(
+			throw BinaryIOError.initTypeError(
 				Self.self, BinaryIOError.Context(
 					debugDescription: "UInt64 \(value64) can't be converted to UInt."
 				)

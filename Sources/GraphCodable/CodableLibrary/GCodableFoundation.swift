@@ -60,7 +60,7 @@ extension TimeZone : GCodable {
 	public init(from decoder: GDecoder) throws {
 		let identifier = try decoder.decode() as String
 		guard let timeZone = TimeZone( identifier: identifier ) else {
-			throw GCodableError.initGCodableError(
+			throw GCodableError.initTypeError(
 				Self.self, GCodableError.Context(
 					debugDescription: "Invalid timezone identifier -\(identifier)-"
 				)
@@ -81,7 +81,7 @@ extension UUID : GCodable  {
 		let uuidString	= try decoder.decode() as String
 		
 		guard let uuid = UUID(uuidString: uuidString) else {
-			throw GCodableError.initGCodableError(
+			throw GCodableError.initTypeError(
 				Self.self, GCodableError.Context(
 					debugDescription: "Attempted to decode UUID from invalid UUID string -\(uuidString)-."
 				)
@@ -127,10 +127,21 @@ extension IndexSet : GCodable {
 }
 
 // -- IndexPath support  -------------------------------------------------------
-/* inaccessible underlying storage
-extension IndexPath : BinaryIOType {
+
+extension IndexPath : GCodable {
+	public init(from decoder: GDecoder) throws {
+		self.init()
+		while decoder.unkeyedCount() > 0 {
+			self.append( try decoder.decode() as Element )
+		}
+	}
+	
+	public func encode(to encoder: GEncoder) throws {
+		for element in self {
+			try encoder.encode( element )
+		}
+	}
 }
-*/
 
 //	CGSize SUPPORT ------------------------------------------------------
 
@@ -295,7 +306,7 @@ extension Calendar : GCodable {
 	public init(from decoder: GDecoder) throws {
 		let nsIdentifier	= try decoder.decode(for: Key.nsIdentifier) as NSCalendar.Identifier
 		guard var calendar = NSCalendar(calendarIdentifier: nsIdentifier) as Calendar? else {
-			throw GCodableError.initGCodableError(
+			throw GCodableError.initTypeError(
 				Self.self, GCodableError.Context(
 					debugDescription: "Invalid calendar identifier -\(nsIdentifier)-"
 				)
@@ -456,7 +467,7 @@ extension URL : GCodable {
 		let base		= try decoder.decodeIfPresent( for: Key.baseURL ) as URL?
 		
 		guard let url = URL(string: relative, relativeTo: base) else {
-			throw GCodableError.initGCodableError(
+			throw GCodableError.initTypeError(
 				Self.self, GCodableError.Context(
 					debugDescription: "Invalid relative -\(relative)- and base -\(base as Any)-"
 				)

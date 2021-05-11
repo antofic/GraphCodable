@@ -43,6 +43,7 @@ enum BinaryIOError : Error {
 	}
 
 	case outOfBounds( Any.Type, BinaryIOError.Context )
-	case initBinaryIOTypeError( Any.Type, BinaryIOError.Context )
+	case initTypeError( Any.Type, BinaryIOError.Context )
+	case versionError( Any.Type, BinaryIOError.Context )
 }
 
