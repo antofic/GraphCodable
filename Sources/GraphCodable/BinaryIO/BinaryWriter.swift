@@ -32,10 +32,16 @@ BinaryWriter data format uses always:
 public typealias BinaryWriter = BinaryWriterBase<Array<UInt8>>
 //	typealias BinaryWriter = BinaryWriterBase<Data>
 
-public struct BinaryWriterBase<T>
-where T:MutableDataProtocol, T:ContiguousBytes
+public struct BinaryWriterBase<Buffer>
+where Buffer:MutableDataProtocol, Buffer:ContiguousBytes
 {
-	private (set) var bytes = T()
+	public static func write<T>( _ v:T ) throws -> Buffer where T:BinaryIOType {
+		var writer = BinaryWriter() 	// è orrendo
+		try v.write(to: &writer)
+		return writer.data()
+	}
+
+	private (set) var bytes = Buffer()
 
 	func data<Q>() -> Q where Q:MutableDataProtocol {
 		if let data = bytes as? Q {
