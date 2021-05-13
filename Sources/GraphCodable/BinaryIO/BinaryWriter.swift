@@ -42,23 +42,30 @@ public struct BinaryWriter{
 			return Q( bytes )
 		}
 	}
+/*
+	public mutating func write<T>( _ v:T ) throws where T:BinaryIOType {
+		try v.write( to: &self )
+	}
 
-	mutating func writeBool( _ v:Bool )			{ writeValue( v ) }
-
-	mutating func writeInt8( _ v:Int8 )			{ writeValue( v.littleEndian ) }
-	mutating func writeInt16( _ v:Int16 )		{ writeValue( v.littleEndian ) }
-	mutating func writeInt32( _ v:Int32 )		{ writeValue( v.littleEndian ) }
-	mutating func writeInt64( _ v:Int64 )		{ writeValue( v.littleEndian ) }
+*/
 	
-	mutating func writeUInt8(  _ v:UInt8 )		{ writeValue( v.littleEndian ) }
-	mutating func writeUInt16( _ v:UInt16 )		{ writeValue( v.littleEndian ) }
-	mutating func writeUInt32( _ v:UInt32 )		{ writeValue( v.littleEndian ) }
-	mutating func writeUInt64( _ v:UInt64 )		{ writeValue( v.littleEndian ) }
+	public mutating func write( _ v:BinaryIOType ) throws {
+		try v.write( to: &self )
+	}
 
-	mutating func writeFloat( _ v:Float )		{ writeUInt32( v.bitPattern ) }
-	mutating func writeDouble( _ v:Double )		{ writeUInt64( v.bitPattern ) }
+	mutating func write( _ v:Bool ) throws		{ writeValue( v ) }
+	mutating func write( _ v:Int8 ) throws		{ writeValue( v.littleEndian ) }
+	mutating func write( _ v:Int16 ) throws		{ writeValue( v.littleEndian ) }
+	mutating func write( _ v:Int32 ) throws		{ writeValue( v.littleEndian ) }
+	mutating func write( _ v:Int64 ) throws		{ writeValue( v.littleEndian ) }
+	mutating func write(  _ v:UInt8 ) throws	{ writeValue( v.littleEndian ) }
+	mutating func write( _ v:UInt16 ) throws	{ writeValue( v.littleEndian ) }
+	mutating func write( _ v:UInt32 ) throws	{ writeValue( v.littleEndian ) }
+	mutating func write( _ v:UInt64 ) throws	{ writeValue( v.littleEndian ) }
+	mutating func write( _ v:Float ) throws		{ try write( v.bitPattern ) }
+	mutating func write( _ v:Double ) throws	{ try write( v.bitPattern ) }
 
-	mutating func writeInt( _ v:Int ) throws {
+	mutating func write( _ v:Int ) throws {
 		guard let value64 = Int64( exactly: v ) else {
 			throw BinaryIOError.initTypeError(
 				Self.self, BinaryIOError.Context(
@@ -66,10 +73,10 @@ public struct BinaryWriter{
 				)
 			)
 		}
-		writeInt64( value64 )
+		try write( value64 )
 	}
 
-	mutating func writeUInt( _ v:UInt ) throws {
+	mutating func write( _ v:UInt ) throws {
 		guard let value64 = UInt64( exactly: v ) else {
 			throw BinaryIOError.initTypeError(
 				Self.self, BinaryIOError.Context(
@@ -77,29 +84,18 @@ public struct BinaryWriter{
 				)
 			)
 		}
-		writeUInt64( value64 )
+		try write( value64 )
 	}
 	
-	private mutating func writeValue<T>( _ v:T ) {
-		withUnsafePointer(to: v) { source in
-			bytes.append(
-				contentsOf: UnsafeBufferPointer(
-					start: UnsafePointer<UInt8>( OpaquePointer( source ) ),
-					count: MemoryLayout<T>.size
-				)
-			)
-		}
-	}
-	
-	mutating func writeData<T>( _ v:T ) where T:MutableDataProtocol, T:ContiguousBytes {
-		writeInt64( Int64(v.count) )
+	mutating func write<T>( _ v:T ) throws where T:MutableDataProtocol, T:ContiguousBytes {
+		try write( Int64(v.count) )
 		v.withUnsafeBytes { source in
 			bytes.append(contentsOf: source)
 		}
 	}
 
 	// write a null terminated utf8 string
-	mutating func writeString( _ v:String ) {
+	mutating func write( _ v:String )  throws {
 		// string saved as null-terminated sequence of utf8
 		v.withCString() { ptr in
 			var endptr = ptr
@@ -108,6 +104,18 @@ public struct BinaryWriter{
 				contentsOf:UnsafeBufferPointer(
 					start: UnsafePointer<UInt8>( OpaquePointer( ptr ) ),
 					count: endptr - ptr + 1
+				)
+			)
+		}
+	}
+
+	// ------------- private
+	private mutating func writeValue<T>( _ v:T ) {
+		withUnsafePointer(to: v) { source in
+			bytes.append(
+				contentsOf: UnsafeBufferPointer(
+					start: UnsafePointer<UInt8>( OpaquePointer( source ) ),
+					count: MemoryLayout<T>.size
 				)
 			)
 		}

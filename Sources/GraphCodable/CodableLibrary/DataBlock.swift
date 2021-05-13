@@ -50,7 +50,7 @@ keyID = 0 -> unkeyed
 typealias IntID	= UInt32
 
 enum DataBlock {
-	private enum Code : UInt8 {
+	private enum Code : UInt8, BinaryIOType {
 		case header		= 0x5E	// '^'
 		case inTypeMap	= 0x23	// '#'
 		case outTypeMap	= 0x24	// '$'
@@ -65,7 +65,7 @@ enum DataBlock {
 		case keyMap		= 0x2A	// '*'
 	}
 	
-	private enum HeaderID : UInt64 {
+	private enum HeaderID : UInt64, BinaryIOType {
 		case gcodable	= 0x67636F6461626C65	// ascii = 'gcodable'
 	}
 
@@ -91,17 +91,17 @@ extension DataBlock : BinaryIOType {
 	func write( to writer: inout BinaryWriter ) throws {
 		switch self {
 		case .header	( let version, let unused0, let unused1, let unused2 ):
-			try Code.header.write(to: &writer)
-			try HeaderID.gcodable.write(to: &writer)
-			try version.write(to: &writer)
-			try unused0.write(to: &writer)
-			try unused1.write(to: &writer)
-			try unused2.write(to: &writer)
+			try writer.write( Code.header )
+			try writer.write( HeaderID.gcodable )
+			try writer.write( version )
+			try writer.write( unused0 )
+			try writer.write( unused1 )
+			try writer.write( unused2 )
 		case .inTypeMap	( let typeID, let classInfo ):
 			// ••••• SALVO COME outTypeMap ••••••••••
-			try Code.outTypeMap.write(to: &writer)
-			try typeID.write(to: &writer)
-			try classInfo.classData.write(to: &writer)	// <----- ••••••
+			try writer.write( Code.outTypeMap )
+			try writer.write( typeID )
+			try writer.write( classInfo.classData )	// <----- ••••••
 		case .outTypeMap( _, _ ):
 			// non deve mai arrivare qui
 			throw GCodableError.internalInconsistency(
@@ -110,14 +110,16 @@ extension DataBlock : BinaryIOType {
 				)
 			)
 		case .nilValue	( let keyID ):
-			try Code.nilValue.write(to: &writer)
-			try keyID.write(to: &writer)
+			try writer.write( Code.nilValue )
+			try writer.write( keyID )
 		case .inBinType( let keyID, let value ):
 			// ••••• SALVO COME outBinType ••••••••••
 			let bytes	= try value.binaryData() as [UInt8]
-			try Code.outBinType.write(to: &writer)	// <----- ••••••
-			try keyID.write(to: &writer)
-			writer.writeData( bytes )
+			try writer.write( Code.outBinType )	// <----- ••••••
+			try writer.write( keyID )
+			//	try bytes.write( to: &writer )
+			try writer.write( bytes )
+
 		case .outBinType( _, _ ):
 			// non deve mai arrivare qui
 			throw GCodableError.internalInconsistency(
@@ -129,24 +131,24 @@ extension DataBlock : BinaryIOType {
 			try Code.valueType.write(to: &writer)
 			try keyID.write(to: &writer)
 		case .objectType( let keyID, let typeID, let objID ):
-			try Code.objectType.write(to: &writer)
-			try keyID.write(to: &writer)
-			try typeID.write(to: &writer)
-			try objID.write(to: &writer)
+			try writer.write( Code.objectType )
+			try writer.write( keyID )
+			try writer.write( typeID )
+			try writer.write( objID )
 		case .objectSPtr( let keyID, let objID ):
-			try Code.objectSPtr.write(to: &writer)
-			try keyID.write(to: &writer)
-			try objID.write(to: &writer)
+			try writer.write( Code.objectSPtr )
+			try writer.write( keyID )
+			try writer.write( objID )
 		case .objectWPtr( let keyID, let objID ):
-			try Code.objectWPtr.write(to: &writer)
-			try keyID.write(to: &writer)
-			try objID.write(to: &writer)
+			try writer.write( Code.objectWPtr )
+			try writer.write( keyID )
+			try writer.write( objID )
 		case .end:
-			try Code.end.write(to: &writer)
+			try writer.write( Code.end )
 		case .keyMap	( let keyID, let keyName ):
-			try Code.keyMap.write(to: &writer)
-			try keyID.write(to: &writer)
-			try keyName.write(to: &writer)
+			try writer.write( Code.keyMap )
+			try writer.write( keyID )
+			try writer.write( keyName )
 		}
 	}
 	
@@ -155,11 +157,11 @@ extension DataBlock : BinaryIOType {
 
 		switch code {
 		case .header:
-			let _		= try HeaderID	( from: &reader )
-			let version	= try UInt32	( from: &reader )
-			let unused0	= try String	( from: &reader )
-			let unused1	= try UInt32	( from: &reader )
-			let unused2	= try UInt64	( from: &reader )
+			let _		= try reader.read() as HeaderID
+			let version	= try reader.read() as UInt32
+			let unused0	= try reader.read() as String
+			let unused1	= try reader.read() as UInt32
+			let unused2	= try reader.read() as UInt64
 			self = .header(version: version, unused0:unused0, unused1: unused1, unused2: unused2)
 
 		case .inTypeMap:
@@ -170,12 +172,12 @@ extension DataBlock : BinaryIOType {
 				)
 			)
 		case .outTypeMap:
-			let typeID	= try IntID		( from: &reader )
-			let data	= try ClassData	( from: &reader )
+			let typeID	= try reader.read() as IntID
+			let data	= try reader.read() as ClassData
 			self = .outTypeMap(typeID: typeID, classData: data )
 
 		case .nilValue:
-			let keyID	= try IntID		( from: &reader )
+			let keyID	= try reader.read() as IntID
 			self = .nilValue(keyID: keyID)
 
 		case .inBinType:
@@ -186,30 +188,30 @@ extension DataBlock : BinaryIOType {
 				)
 			)
 		case .outBinType:
-			let keyID	= try IntID		( from: &reader )
-			let bytes	= try reader.readData() as [UInt8]
+			let keyID	= try reader.read() as IntID
+			let bytes	= try reader.read() as [UInt8]
 			self = .outBinType(keyID: keyID, bytes: bytes)
 		case .valueType:
-			let keyID	= try IntID		( from: &reader )
+			let keyID	= try reader.read() as IntID
 			self = .valueType(keyID: keyID)
 		case .objectType:
-			let keyID	= try IntID		( from: &reader )
-			let typeID	= try IntID		( from: &reader )
-			let objID	= try IntID		( from: &reader )
+			let keyID	= try reader.read() as IntID
+			let typeID	= try reader.read() as IntID
+			let objID	= try reader.read() as IntID
 			self = .objectType(keyID: keyID, typeID: typeID, objID: objID)
 		case .objectSPtr:
-			let keyID	= try IntID		( from: &reader )
-			let objID	= try IntID		( from: &reader )
+			let keyID	= try reader.read() as IntID
+			let objID	= try reader.read() as IntID
 			self = .objectSPtr(keyID: keyID, objID: objID)
 		case .objectWPtr:
-			let keyID	= try IntID		( from: &reader )
-			let objID	= try IntID		( from: &reader )
+			let keyID	= try reader.read() as IntID
+			let objID	= try reader.read() as IntID
 			self = .objectWPtr(keyID: keyID, objID: objID)
 		case .end:
 			self = .end
 		case .keyMap:
-			let keyID	= try IntID		( from: &reader )
-			let keyName	= try String	( from: &reader )
+			let keyID	= try reader.read() as IntID
+			let keyName	= try reader.read() as String
 			self = .keyMap(keyID: keyID, keyName: keyName)
 		}
 	}

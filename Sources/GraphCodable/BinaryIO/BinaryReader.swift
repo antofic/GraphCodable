@@ -49,28 +49,32 @@ public struct BinaryReader {
 	var eof : Bool {
 		return bytes.count == 0
 	}
-
-	mutating func readBool() throws -> Bool {
+	
+	public mutating func read<T>() throws -> T where T:BinaryIOType {
+		return try T.init(from: &self)
+	}
+	
+	mutating func read() throws -> Bool {
 		var value = false
 		try readValue( &value )
 		return value
 	}
 	
-	mutating func readInt8 () throws -> Int8 	{ return try Int8 ( littleEndian: readInteger() ) }
-	mutating func readInt16() throws -> Int16	{ return try Int16( littleEndian: readInteger() ) }
-	mutating func readInt32() throws -> Int32	{ return try Int32( littleEndian: readInteger() ) }
-	mutating func readInt64() throws -> Int64	{ return try Int64( littleEndian: readInteger() ) }
+	mutating func read() throws -> Int8 	{ return try Int8 ( littleEndian: readInteger() ) }
+	mutating func read() throws -> Int16	{ return try Int16( littleEndian: readInteger() ) }
+	mutating func read() throws -> Int32	{ return try Int32( littleEndian: readInteger() ) }
+	mutating func read() throws -> Int64	{ return try Int64( littleEndian: readInteger() ) }
 
-	mutating func readUInt8 () throws -> UInt8  { return try UInt8 ( littleEndian: readInteger() ) }
-	mutating func readUInt16() throws -> UInt16 { return try UInt16( littleEndian: readInteger() ) }
-	mutating func readUInt32() throws -> UInt32 { return try UInt32( littleEndian: readInteger() ) }
-	mutating func readUInt64() throws -> UInt64 { return try UInt64( littleEndian: readInteger() ) }
+	mutating func read() throws -> UInt8  { return try UInt8 ( littleEndian: readInteger() ) }
+	mutating func read() throws -> UInt16 { return try UInt16( littleEndian: readInteger() ) }
+	mutating func read() throws -> UInt32 { return try UInt32( littleEndian: readInteger() ) }
+	mutating func read() throws -> UInt64 { return try UInt64( littleEndian: readInteger() ) }
 
-	mutating func readFloat() throws -> Float	{ return try Float(bitPattern: readUInt32()) }
-	mutating func readDouble() throws -> Double	{ return try Double(bitPattern: readUInt64()) }
+	mutating func read() throws -> Float	{ return try Float(bitPattern: read()) }
+	mutating func read() throws -> Double	{ return try Double(bitPattern: read()) }
 
-	mutating func readInt() throws -> Int		{
-		let value64 = try readInt64()
+	mutating func read() throws -> Int		{
+		let value64 = try read() as Int64
 		guard let value = Int( exactly: value64 ) else {
 			throw BinaryIOError.initTypeError(
 				Self.self, BinaryIOError.Context(
@@ -81,8 +85,8 @@ public struct BinaryReader {
 		return value
 	}
 	
-	mutating func readUInt() throws -> UInt		{
-		let value64 = try readUInt64()
+	mutating func read() throws -> UInt		{
+		let value64 = try read() as UInt64
 		guard let value = UInt( exactly: value64 ) else {
 			throw BinaryIOError.initTypeError(
 				Self.self, BinaryIOError.Context(
@@ -124,10 +128,10 @@ public struct BinaryReader {
 		}
 	}
 
-	mutating func readData<T>() throws -> T where T:MutableDataProtocol, T:ContiguousBytes {
-		let count = try readInt64()
+	mutating func read<T>() throws -> T where T:MutableDataProtocol, T:ContiguousBytes {
+		let count = try read() as Int
 
-		let inSize	= Int(count) * MemoryLayout<UInt8>.stride
+		let inSize	=  count * MemoryLayout<UInt8>.stride
 		try checkRemainingSize( size: inSize )
 		defer { bytes.removeFirst( inSize ) }
 
@@ -137,7 +141,7 @@ public struct BinaryReader {
 	}
 
 	// read a null terminated utf8 string
-	mutating func readString() throws -> String {
+	mutating func read() throws -> String {
 		let availableCount	= bytes.count
 		
 		// ci deve essere almeno un carattere: null
