@@ -25,3 +25,32 @@ import System
 
 @available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 extension Errno : GCodable {}
+
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+extension FileDescriptor : GCodable {}
+
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+extension FileDescriptor.AccessMode : GCodable {}
+
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+extension FileDescriptor.OpenOptions : GCodable {}
+
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+extension FileDescriptor.SeekOrigin : GCodable {}
+
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+extension FilePath : GCodable {
+	private enum Key : String { case path }
+
+	public func encode(to encoder: GEncoder) throws {
+		try encoder.encode(description, for: Key.path)
+	}
+	
+
+	public init(from decoder: GDecoder) throws {
+		self.init( try decoder.decode(for: Key.path) as String )
+	}
+}
+
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+extension FilePermissions : GCodable {}

@@ -24,3 +24,42 @@ import System
 
 @available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 extension Errno : BinaryIOType {}
+
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+extension FileDescriptor : BinaryIOType {}
+
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+extension FileDescriptor.AccessMode : BinaryIOType {}
+
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+extension FileDescriptor.OpenOptions : BinaryIOType {}
+
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+extension FileDescriptor.SeekOrigin : BinaryIOType {}
+
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+extension FilePath : BinaryIOType {
+	private enum Version : UInt8 { case v0 }
+	public func write(to writer: inout BinaryWriter) throws {
+		try Version.v0.rawValue.write(to: &writer)
+		try description.write(to: &writer)
+	}
+	
+	public init(from reader: inout BinaryReader) throws {
+		let versionRaw	= try Version.RawValue(from: &reader)
+
+		switch versionRaw {
+		case Version.v0.rawValue:
+			self.init( try String( from: &reader ) )
+		default:
+			throw BinaryIOError.versionError(
+				Self.self, BinaryIOError.Context(
+					debugDescription: "\(Self.self) data in a new unknown version -\(versionRaw)-."
+				)
+			)
+		}
+	}
+}
+
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+extension FilePermissions : BinaryIOType {}
