@@ -522,3 +522,29 @@ extension URLComponents : GCodable {
 	}
 }
 
+//	----------------------------------------------------------------------------
+//	----------------------------------------------------------------------------
+//	----------------------------------------------------------------------------
+//	----------------------------------------------------------------------------
+//	----------------------------------------------------------------------------
+//	Measurement SUPPORT ------------------------------------------------------
+
+
+@available(macOS 10.12, iOS 10.0, watchOS 3.0, tvOS 10.0, *)
+extension Measurement : GCodable {
+	private enum Key : String {
+		case value
+		case symbol
+	}
+	
+	public func encode(to encoder: GEncoder) throws {
+		try encoder.encode ( value,	 for: Key.value )
+		try encoder.encode ( unit.symbol, for: Key.symbol )
+	}
+
+	public init(from decoder: GDecoder) throws {
+		let value = try decoder.decode( for:Key.value ) as Double
+		let symbol = try decoder.decode( for:Key.symbol ) as String
+		self.init( value: value, unit: UnitType(symbol: symbol) )
+	}
+}

@@ -617,3 +617,40 @@ extension URLComponents : BinaryIOType {
 	}
 }
 
+//	----------------------------------------------------------------------------
+//	----------------------------------------------------------------------------
+//	----------------------------------------------------------------------------
+//	----------------------------------------------------------------------------
+//	----------------------------------------------------------------------------
+//	Measurement SUPPORT ------------------------------------------------------
+
+
+@available(macOS 10.12, iOS 10.0, watchOS 3.0, tvOS 10.0, *)
+extension Measurement : BinaryIOType {
+	private enum Version : UInt8 { case v0 }
+
+	public func write(to writer: inout BinaryWriter) throws {
+		try Version.v0.rawValue.write(to: &writer)
+
+		try value		.write(to: &writer)
+		try unit.symbol	.write(to: &writer)
+	}
+
+	public init(from reader: inout BinaryReader) throws {
+		let versionRaw	= try Version.RawValue(from: &reader)
+
+		switch versionRaw {
+		case Version.v0.rawValue:
+			let value	= try Double(from: &reader)
+			let symbol	= try String(from: &reader)
+			self.init( value: value, unit: UnitType(symbol: symbol) )
+		default:
+			throw BinaryIOError.versionError(
+				Self.self, BinaryIOError.Context(
+					debugDescription: "\(Self.self) data in a new unknown version -\(versionRaw)-."
+				)
+			)
+		}
+	}
+}
+
