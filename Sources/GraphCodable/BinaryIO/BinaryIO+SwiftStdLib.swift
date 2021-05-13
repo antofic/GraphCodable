@@ -156,25 +156,6 @@ extension RawRepresentable where Self.RawValue : BinaryIOType {
 	}
 }
 
-// Character ------------------------------------------------------
-//	Uses Version: NO
-extension Character : BinaryIOType {
-	public func write( to writer: inout BinaryWriter ) throws {
-		writer.writeString( String(self) )
-	}
-	public init( from reader: inout BinaryReader ) throws {
-		let string	= try reader.readString()
-		guard let character = string.first else {
-			throw BinaryIOError.initTypeError(
-				Self.self, BinaryIOError.Context(
-					debugDescription: "Invalida character string \(string) for \(Self.self)"
-				)
-			)
-		}
-		self = character
-	}
-}
-
 // Array ------------------------------------------------------
 //	Uses Version: NO
 

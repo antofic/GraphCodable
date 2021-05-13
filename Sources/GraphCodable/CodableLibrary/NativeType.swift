@@ -64,9 +64,8 @@ extension CGFloat	: NativeType {}
 // -- Bool support -------------------------------------------------------
 extension Bool 		: NativeType {}
 
-// -- String & Character support --------------------------------------------
+// -- String support --------------------------------------------
 extension String 	: NativeType {}
-extension Character : NativeType {}
 
 // -- Data support ----------------------------------------------------------
 extension Data 		: NativeType {}

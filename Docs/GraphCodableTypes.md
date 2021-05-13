@@ -11,7 +11,7 @@
 	*note:* UInt is always encoded as UInt64
 -	Float, Double
 -	Bool
--	String, Character
+-	String
 -	Data
 -	Optional (*)
 -	Array, ContiguousArray, Set, Dictionary (*)
