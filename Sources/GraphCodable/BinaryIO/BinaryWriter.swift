@@ -45,12 +45,12 @@ public struct BinaryWriter{
 
 	mutating func writeBool( _ v:Bool )			{ writeValue( v ) }
 
-	mutating func writeInt8( _ v:Int8 )			{ writeValue( v.littleEndian ) }
+	mutating func writeInt8( _ v:Int8 )			{ writeValue( v ) }
 	mutating func writeInt16( _ v:Int16 )		{ writeValue( v.littleEndian ) }
 	mutating func writeInt32( _ v:Int32 )		{ writeValue( v.littleEndian ) }
 	mutating func writeInt64( _ v:Int64 )		{ writeValue( v.littleEndian ) }
 	
-	mutating func writeUInt8(  _ v:UInt8 )		{ writeValue( v.littleEndian ) }
+	mutating func writeUInt8(  _ v:UInt8 )		{ writeValue( v ) }
 	mutating func writeUInt16( _ v:UInt16 )		{ writeValue( v.littleEndian ) }
 	mutating func writeUInt32( _ v:UInt32 )		{ writeValue( v.littleEndian ) }
 	mutating func writeUInt64( _ v:UInt64 )		{ writeValue( v.littleEndian ) }
