@@ -29,26 +29,20 @@ BinaryReader:
 		(throws an error if it is not possible)
 */
 
-// faster than BinaryReaderBase<Data> even if bytes originally comes from Data
-public typealias BinaryReader = BinaryReaderBase<Array<UInt8>>
-//	public typealias BinaryReader = BinaryReaderBase<Data>
-
-
-public struct BinaryReaderBase<Buffer>
-where Buffer:MutableDataProtocol, Buffer:ContiguousBytes, Buffer.SubSequence:ContiguousBytes {
-	private let base:	Buffer
-	private var bytes:	Buffer.SubSequence
+public struct BinaryReader {
+	private let base:	Array<UInt8>
+	private var bytes:	Array<UInt8>.SubSequence
 	
-	init( bytes: Buffer ) {
+	init( bytes: Array<UInt8> ) {
 		self.base	= bytes
 		self.bytes	= bytes[ ... ]
 	}
 
 	init<Q>( data: Q ) where Q:Sequence, Q.Element==UInt8 {
-		if let bytes = data as? Buffer {
+		if let bytes = data as? Array<UInt8> {
 			self.init( bytes: bytes )
 		} else {
-			self.init( bytes: Buffer(data) )
+			self.init( bytes: Array<UInt8>(data) )
 		}
 	}
 

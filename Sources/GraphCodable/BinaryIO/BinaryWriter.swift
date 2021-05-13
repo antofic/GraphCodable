@@ -29,13 +29,11 @@ BinaryWriter data format uses always:
 */
 
 //	faster than BinaryWriterBase<Data> even if you must generate a Data result
-public typealias BinaryWriter = BinaryWriterBase<Array<UInt8>>
+//	public typealias BinaryWriter = BinaryWriterBase<Array<UInt8>>
 //	typealias BinaryWriter = BinaryWriterBase<Data>
 
-public struct BinaryWriterBase<Buffer>
-where Buffer:MutableDataProtocol, Buffer:ContiguousBytes
-{
-	private (set) var bytes = Buffer()
+public struct BinaryWriter{
+	private (set) var bytes = Array<UInt8>()
 
 	func data<Q>() -> Q where Q:MutableDataProtocol {
 		if let data = bytes as? Q {
