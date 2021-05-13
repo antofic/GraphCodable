@@ -36,11 +36,6 @@ public typealias BinaryReader = BinaryReaderBase<Array<UInt8>>
 
 public struct BinaryReaderBase<Buffer>
 where Buffer:MutableDataProtocol, Buffer:ContiguousBytes, Buffer.SubSequence:ContiguousBytes {
-	public static func read<T>( _ type: T.Type, from bytes: Buffer ) throws -> T  where T:BinaryIOType {
-		var reader = BinaryReader(data: bytes)	// è orrendo
-		return try T(from: &reader)
-	}
-
 	private let base:	Buffer
 	private var bytes:	Buffer.SubSequence
 	

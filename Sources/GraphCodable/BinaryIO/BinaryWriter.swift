@@ -35,11 +35,6 @@ public typealias BinaryWriter = BinaryWriterBase<Array<UInt8>>
 public struct BinaryWriterBase<Buffer>
 where Buffer:MutableDataProtocol, Buffer:ContiguousBytes
 {
-	public static func write( _ v:BinaryIOType ) throws -> Buffer {
-		var writer = BinaryWriter() 	// è orrendo
-		try v.write(to: &writer)
-		return writer.data()
-	}
 	private (set) var bytes = Buffer()
 
 	func data<Q>() -> Q where Q:MutableDataProtocol {
