@@ -654,3 +654,47 @@ extension Measurement : BinaryIOType {
 	}
 }
 
+@available(macOS 10.15, iOS 7.0, watchOS 2.0, tvOS 9.0, *)
+extension OperationQueue.SchedulerTimeType : BinaryIOType {
+	public func write(to writer: inout BinaryWriter) throws {
+		try date.write(to: &writer)
+	}
+	
+	public init(from reader: inout BinaryReader) throws {
+		self.init( try Date(from: &reader) )
+	}
+}
+
+@available(macOS 10.15, iOS 7.0, watchOS 2.0, tvOS 9.0, *)
+extension OperationQueue.SchedulerTimeType.Stride : BinaryIOType {
+	public func write(to writer: inout BinaryWriter) throws {
+		try timeInterval.write(to: &writer)
+	}
+	
+	public init(from reader: inout BinaryReader) throws {
+		self.init( try TimeInterval(from: &reader) )
+	}
+}
+
+@available(macOS 10.15, iOS 7.0, watchOS 2.0, tvOS 9.0, *)
+extension RunLoop.SchedulerTimeType : BinaryIOType {
+	public func write(to writer: inout BinaryWriter) throws {
+		try date.write(to: &writer)
+	}
+	
+	public init(from reader: inout BinaryReader) throws {
+		self.init( try Date(from: &reader) )
+	}
+}
+
+@available(macOS 10.15, iOS 7.0, watchOS 2.0, tvOS 9.0, *)
+extension RunLoop.SchedulerTimeType.Stride : BinaryIOType {
+	public func write(to writer: inout BinaryWriter) throws {
+		try timeInterval.write(to: &writer)
+	}
+	
+	public init(from reader: inout BinaryReader) throws {
+		self.init( try TimeInterval(from: &reader) )
+	}
+}
+
