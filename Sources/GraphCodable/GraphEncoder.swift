@@ -235,7 +235,7 @@ public final class GraphEncoder {
 					encodedData.append( .end )
 				}
 			} else {	// full value type (struct)
-				guard let value = value as? GCodable else {
+				guard let val = value as? GCodable else {
 					throw GCodableError.internalInconsistency(
 						Self.self, GCodableError.Context(
 							debugDescription: "Not GCodable value \(value)."
@@ -243,7 +243,7 @@ public final class GraphEncoder {
 					)
 				}
 				encodedData.append( .valueType( keyID: keyID ) )
-				try encodeValue( value, to:self )
+				try encodeValue( val, to:self )
 				encodedData.append( .end )
 			}
 		}

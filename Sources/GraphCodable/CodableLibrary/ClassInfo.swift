@@ -22,7 +22,6 @@
 
 import Foundation
 
-
 struct ClassData : NativeType, CustomStringConvertible {
 	let	readableTypeName:	String	// the TypeName Generated _typeName( type, qualified:true )
 	let	mangledTypeName:	String?	// the TypeName Generated _mangledTypeName( type )

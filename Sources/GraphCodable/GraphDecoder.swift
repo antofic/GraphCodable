@@ -652,8 +652,8 @@ fileprivate final class TypeConstructor {
 						currentBlock	= block
 						defer { currentBlock = saveCurrent }
 
-						let classInfo	= try classInfo( typeID:typeID )
-						let value		= try classInfo.codableType.init(from: decoder)
+						let cInfo	= try classInfo( typeID:typeID )
+						let value	= try cInfo.codableType.init(from: decoder)
 						
 						objectRepository[ objID ]	= value as AnyObject
 						return value as AnyObject
