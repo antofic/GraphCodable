@@ -47,7 +47,7 @@ extension Optional : OptionalProtocol {
 		}
 		return currentType
 	}
-
+	
 	var isNil: Bool {
 		switch self {
 		case .some:

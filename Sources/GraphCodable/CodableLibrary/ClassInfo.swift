@@ -69,10 +69,10 @@ struct ClassData : NativeType, CustomStringConvertible {
 				)
 			}
 		}
-		self.encodeVersion			= codableType.encodeVersion
+		self.encodeVersion		= codableType.currentVersion
 	}
 	
-	static func isEncodable( _ type:(AnyObject & GCodable).Type ) -> Bool {
+	static func supportsCodable( _ type:(AnyObject & GCodable).Type ) -> Bool {
 		// we try to be more restrictive
 		
 		if #available(macOS 10.16, iOS 14.0, watchOS 7.0, tvOS 14.0, *) {
@@ -86,23 +86,26 @@ struct ClassData : NativeType, CustomStringConvertible {
 		}
 	}
 	
-	var codableType	: (AnyObject & GCodable).Type? {
-		func getType() -> Any.Type? {
-			func typeByMangledName() -> Any.Type? {
-				if let typeName = mangledTypeName {
-					return _typeByName( typeName )
-				} else {
-					return nil
-				}
+	private var encodedType : Any.Type? {
+		func typeByMangledName() -> Any.Type? {
+			if let typeName = mangledTypeName {
+				return _typeByName( typeName )
+			} else {
+				return nil
 			}
-			// provo in tutti i modi:
-			return typeByMangledName() ?? NSClassFromString( objcTypeName ) ?? NSClassFromString( readableTypeName )
 		}
-		if let type = getType() as? (AnyObject & GCodable).Type {
-			return type
-		} else {
-			return nil
-		}
+		// provo in tutti i modi:
+		return typeByMangledName() ?? NSClassFromString( objcTypeName ) ?? NSClassFromString( readableTypeName )
+	}
+	
+	var codableType	: (AnyObject & GCodable).Type? {
+		let type = encodedType
+		
+		return type as? (AnyObject & GCodable).Type ?? (type as? GCodableObsolete.Type)?.replacementType
+	}
+	
+	var obsoleteType : GCodableObsolete.Type? {
+		return encodedType as? GCodableObsolete.Type
 	}
 
 	var isDecodable : Bool {

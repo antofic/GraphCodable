@@ -68,12 +68,6 @@ public struct DumpOptions: OptionSet {
 	]
 }
 
-enum MainModuleUti {
-	static func mainModuleName( fromFileID fileID: String ) -> String {
-		return String( fileID.prefix() { $0 != "/" } )
-	}
-}
-
 public final class GraphEncoder {
 	private let encoder	: Encoder
 
@@ -328,6 +322,22 @@ public final class GraphEncoder {
 				blocks.append( dataBlock )
 			}
 			
+			func write( to writer: inout BinaryWriter ) throws {
+				try header.write(to: &writer)
+				
+				for (typeID,classInfo) in codableClassID.typeIDtoName {
+					try DataBlock.inTypeMap( typeID: typeID, classInfo: classInfo ).write(to: &writer)
+				}
+				
+				for block in blocks {
+					try block.write(to: &writer)
+				}
+				
+				for (keyID,key) in keyNameID.keyIDtoKey {
+					try DataBlock.keyMap(keyID: keyID, keyName: key).write(to: &writer)
+				}
+			}
+			
 			var description: String {
 				return readableOutput( options:.binaryLike )
 			}
@@ -335,7 +345,7 @@ public final class GraphEncoder {
 			var debugDescription: String {
 				return readableOutput( options:.binaryLike )
 			}
-
+			
 			func readableOutput( options:DumpOptions ) -> String {
 				let info = DumpInfo(
 					options:		options,
@@ -407,23 +417,6 @@ public final class GraphEncoder {
 				return output
 			}
 			
-			
-			func write( to writer: inout BinaryWriter ) throws {
-				try header.write(to: &writer)
-				
-				for (typeID,classInfo) in codableClassID.typeIDtoName {
-					try DataBlock.inTypeMap( typeID: typeID, classInfo: classInfo ).write(to: &writer)
-				}
-				
-				for block in blocks {
-					try block.write(to: &writer)
-				}
-				
-				for (keyID,key) in keyNameID.keyIDtoKey {
-					try DataBlock.keyMap(keyID: keyID, keyName: key).write(to: &writer)
-				}
-			}
-			
 			// -------------------------------------------------
 			// ----- CodableClassMap
 			// -------------------------------------------------
@@ -455,40 +448,7 @@ public final class GraphEncoder {
 				}
 			}
 
-			
-			
-			/*
-			private struct CodableClassMap  {
-				private	var			actualId : IntID	= 100	// <100 reserved for future use
-				private (set) var	typeIDtoName		= [ IntID:ClassInfo ]()
-				private var			aClassToID			= [ ObjectIdentifier: IntID ]()
-
-				func contains( typeID:IntID ) -> Bool {
-					return typeIDtoName.index(forKey: typeID) != nil
-				}
-
-				func contains( codableClass:(GCodable & AnyObject).Type ) -> Bool {
-					return aClassToID.index(forKey: ObjectIdentifier(codableClass) ) != nil
-				}
-
-				mutating func createIDIfNeeded( codableClass: (GCodable & AnyObject).Type ) -> IntID {
-					if let typeID = aClassToID[ ObjectIdentifier(codableClass) ] {
-						return typeID
-					} else {
-						defer { actualId += 1 }
-
-						let typeID = actualId
-						typeIDtoName[ typeID ]	= ClassInfo(
-							mangledName:	NSStringFromClass( codableClass ),
-							version: 		codableClass.encodeVersion
-						)
-						aClassToID[ ObjectIdentifier( codableClass ) ] = typeID
-						return typeID
-					}
-				}
-			}
-			*/
-
+	
 			// -------------------------------------------------
 			// ----- KeyMap
 			// -------------------------------------------------
@@ -521,8 +481,6 @@ public final class GraphEncoder {
 		}
 	}
 }
-
-
 
 
 

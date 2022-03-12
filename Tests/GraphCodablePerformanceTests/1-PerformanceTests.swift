@@ -26,7 +26,7 @@ import GraphCodable
 //	••••••• We compare GraphCoder() with Codable JSON and PropertyList Coders
 //	••••••• Use 'Release' build configuration
 
-struct RecursiveData : Codable, GCodable {
+struct RecursiveData : Codable, GCodable, BinaryIOType {
 	var larges	: [RecursiveData]
 	var string	: String
 	var array	: [Int]
@@ -53,6 +53,18 @@ struct RecursiveData : Codable, GCodable {
 		string	= try decoder.decode( for: Key.string )
 		array	= try decoder.decode( for: Key.array )
 	}
+	
+	func write(to writer: inout GraphCodable.BinaryWriter) throws {
+		try larges.write(to: &writer)
+		try string.write(to: &writer)
+		try array.write(to: &writer)
+	}
+	
+	init(from reader: inout GraphCodable.BinaryReader) throws {
+		larges	= try [RecursiveData](from: &reader)
+		string	= try String( from: &reader )
+		array	= try [Int]( from: &reader )
+	}
 }
 
 // --------------------------------------------------------------------------------
@@ -64,9 +76,11 @@ final class PerformanceTests: XCTestCase {
 	func testDataSize() throws {
 		// just to print generated file size.
 		print("\n\n\n- DATA SIZES ----------------------------------")
-		print("GraphEncoder        : \( try GraphEncoder().encode(input) )")
-		print("JSONEncoder         : \( try JSONEncoder().encode(input) )")
-		print("PropertyListEncoder : \( try PropertyListEncoder().encode(input) )")
+		print("GraphEncoder           : \( try GraphEncoder().encode(input) )")
+		print("GraphEncoder (bin=off) : \( try GraphEncoder( fullBinaryEncode:false ).encode(input) )")
+		print("BinariIOReader         : \( try input.binaryData() as Data )")
+		print("JSONEncoder            : \( try JSONEncoder().encode(input) )")
+		print("PropertyListEncoder    : \( try PropertyListEncoder().encode(input) )")
 		print("-----------------------------------------------\n\n\n")
 	}
 	
@@ -77,7 +91,23 @@ final class PerformanceTests: XCTestCase {
 			} catch {}
 		}
 	}
-	
+
+	func testGraphEncoderBinOff() throws {
+		measure {
+			do {
+				let _		= try GraphEncoder( fullBinaryEncode:false ).encode(input)
+			} catch {}
+		}
+	}
+
+	func testBinaryWriter() throws {
+		measure {
+			do {
+				let _		= try input.binaryData() as [UInt8]
+			} catch {}
+		}
+	}
+
 	func testJSONEncoder() throws {
 		measure {
 			do {
@@ -103,7 +133,25 @@ final class PerformanceTests: XCTestCase {
 			} catch {}
 		}
 	}
-	
+
+	func testGraphDecoderBinOff() throws {
+		let data	= try GraphEncoder( fullBinaryEncode:false ).encode(input)
+		measure {
+			do {
+				let	_		= try GraphDecoder().decode( type(of:input), from: data )
+			} catch {}
+		}
+	}
+
+	func testBinaryReader() throws {
+		let data	= try input.binaryData() as [UInt8]
+		measure {
+			do {
+				let	_		= try type(of:input).init( binaryData: data)
+			} catch {}
+		}
+	}
+
 	func testJSONDecoder() throws {
 		let data	= try JSONEncoder().encode(input)
 		measure {

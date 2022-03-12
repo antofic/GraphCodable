@@ -51,8 +51,8 @@ extension Array: GCodable where Element:GCodable {
 	public init(from decoder: GDecoder) throws {
 		self.init()
 		
-		self.reserveCapacity( decoder.unkeyedCount() )
-		while decoder.unkeyedCount() > 0 {
+		self.reserveCapacity( decoder.unkeyedCount )
+		while decoder.unkeyedCount > 0 {
 			self.append( try decoder.decode() )
 		}
 	}
@@ -70,8 +70,8 @@ extension ContiguousArray: GCodable where Element:GCodable {
 	public init(from decoder: GDecoder) throws {
 		self.init()
 		
-		self.reserveCapacity( decoder.unkeyedCount() )
-		while decoder.unkeyedCount() > 0 {
+		self.reserveCapacity( decoder.unkeyedCount )
+		while decoder.unkeyedCount > 0 {
 			self.append( try decoder.decode() )
 		}
 	}
@@ -88,8 +88,8 @@ extension Set: GCodable where Element:GCodable {
 	public init(from decoder: GDecoder) throws {
 		self.init()
 		
-		self.reserveCapacity( decoder.unkeyedCount() )
-		while decoder.unkeyedCount() > 0 {
+		self.reserveCapacity( decoder.unkeyedCount )
+		while decoder.unkeyedCount > 0 {
 			self.insert( try decoder.decode() )
 		}
 	}
@@ -108,8 +108,8 @@ extension Dictionary: GCodable where Key:GCodable, Value:GCodable {
 	public init(from decoder: GDecoder) throws {
 		self.init()
 		
-		self.reserveCapacity( decoder.unkeyedCount() )
-		while decoder.unkeyedCount() > 0 {
+		self.reserveCapacity( decoder.unkeyedCount )
+		while decoder.unkeyedCount > 0 {
 			let key		: Key	= try decoder.decode()
 			let value	: Value	= try decoder.decode()
 			self[ key ]	= value
@@ -226,7 +226,7 @@ extension CollectionDifference.Change : GCodable where ChangeElement : GCodable 
 extension CollectionDifference : GCodable where ChangeElement:GCodable {
 	public init(from decoder: GDecoder) throws {
 		var changes	= [CollectionDifference<ChangeElement>.Change]()
-		while decoder.unkeyedCount() > 0 {
+		while decoder.unkeyedCount > 0 {
 			changes.append( try decoder.decode() )
 		}
 		guard let value = Self(changes) else {
