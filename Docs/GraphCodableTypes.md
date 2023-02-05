@@ -15,6 +15,7 @@
 -	Array, ContiguousArray, Set, Dictionary (*)
 -	Range, ClosedRange, PartialRangeFrom, PartialRangeUpTo, PartialRangeThrough (*)
 -	RawRepresentable types (enum, OptionSet) (*)
+
 (*) If the contained types are NativeTypes/BinaryTypes
 
 ### GCodable as BinaryTypes
@@ -36,6 +37,7 @@
 -	FileDescriptor, FileDescriptor.AccessMode, FileDescriptor.OpenOptions, FileDescriptor.SeekOrigin
 -	FilePath, FilePermissions
 -	UTTagClass, UTType
+
 (*) If the contained types are NativeTypes/BinaryTypes
 
 ### GCodable
