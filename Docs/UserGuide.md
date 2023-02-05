@@ -19,14 +19,11 @@
 		- [Reference type replacement system](#Reference-type-replacement-system)
 	
 ## Premise
-GraphCodable has been completely revised. It now relies on `_mangledTypeName(...)` (when available) and `NSStringFromClass(...)` to generate the "type name" and on `_typeByName(...)` and `NSClassFromString(...)` to retrieve the class type from it.
-
-
-Thanks to this change **it is no longer necessary to register the classes (the repository is gone)** or even set the main module name.
-
-All the previous features are maintained, except for the reference type replacement system which is no longer available at this point in the redesign phase.
-
+GraphCodable has been completely revised.
+It now relies on `_mangledTypeName(...)` (when available) and `NSStringFromClass(...)` to generate the "type name" and on `_typeByName(...)` and `NSClassFromString(...)` to retrieve the class type from it.
 Use `myClass.isGCodable` to check if a class is actually decodable.
+
+`deferDecode(...)` can now be used also with value types or with reference types and this allows to handle all possible cyclic graphs, including those in which the cycle is caused by reference types internal to value types (e.g.: reference types contained in arrays , etc…).
 
 ## Code examples
 
