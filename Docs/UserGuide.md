@@ -634,7 +634,7 @@ If `decode` is used for those connections, the dearchiving fails due to referenc
 The solution, as per the following example, is to use `deferDecode` to dearchive the array.
 
 See the example:
-```
+```swift
 import Foundation
 import GraphCodable
 
