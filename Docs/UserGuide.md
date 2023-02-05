@@ -880,7 +880,7 @@ The problem is that there are already saved files in which objects of type MyDat
 To achieve this you shouldn't eliminate MyData from your code, but rather remove all content and implement the GCodableObsolete protocol by indicating in the `replacementType` method that
 `MyNewData` replaces `MyData`.
 
-```
+```swift
 class MyData :GCodableObsolete {
 	static var replacementType: (AnyObject & GCodable).Type {
 		return MyNewData.self
@@ -888,7 +888,7 @@ class MyData :GCodableObsolete {
 }
 ```
 Here is the full code:
-```
+```swift
 import Foundation
 import GraphCodable
 
