@@ -114,7 +114,7 @@ extension Date : GCodable {
 extension IndexSet : GCodable {
 	public init(from decoder: GDecoder) throws {
 		self.init()
-		while decoder.unkeyedCount() > 0 {
+		while decoder.unkeyedCount > 0 {
 			self.insert(integersIn: try decoder.decode() )
 		}
 	}
@@ -131,7 +131,7 @@ extension IndexSet : GCodable {
 extension IndexPath : GCodable {
 	public init(from decoder: GDecoder) throws {
 		self.init()
-		while decoder.unkeyedCount() > 0 {
+		while decoder.unkeyedCount > 0 {
 			self.append( try decoder.decode() as Element )
 		}
 	}

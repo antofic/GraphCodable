@@ -21,15 +21,6 @@
 //	SOFTWARE.
 
 import Foundation
-/*
-throw GCodableError.programMustNotReachThisPoint(
-	Self.self, GCodableError.Context(
-		debugDescription: "Program must not reach this point \(#function)"
-	)
-)
-*/
-
-
 
 enum GCodableError : Error {
 	struct Context {
@@ -51,7 +42,6 @@ enum GCodableError : Error {
 		}
 	}
 	
-	// RawRepresentableSupport
 	case initTypeError( Any.Type, GCodableError.Context )
 	
 	case internalInconsistency( Any.Type, GCodableError.Context )
@@ -61,14 +51,8 @@ enum GCodableError : Error {
 	case duplicateTypeID( Any.Type, GCodableError.Context )
 	case keyNotFound( Any.Type, GCodableError.Context )
 	case childNotFound( Any.Type, GCodableError.Context )
-	case pointerNotFound( Any.Type, GCodableError.Context )
 
 	case decodingError( Any.Type, GCodableError.Context )
 	case typeMismatch( Any.Type, GCodableError.Context )
-
-	// GraphDecoder
-	case decodedDataDontContainsType( Any.Type, GCodableError.Context )
-
-	// GraphDecoder & GraphEncoder
 }
 

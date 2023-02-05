@@ -22,14 +22,11 @@
 
 import Foundation
 
-///	GCodable allows you to store and decode
-///	value types and arbitrarily complex reference graphs as long
-///	as the connections do not realize memory strong cycles.
-/// Strong cycles are incompatible with ARC (they leak memory) and
-/// therefore this is not a limitation.
-/// Indeed, GCodable allows you to easily find out if your graph
-/// contains strong cycles precisely because **decoding** it causes
-/// an error.
+///	GCodable allows you to store and decode value types and
+///	arbitrarily complex reference graphs.
+/// GCodable offers a special "deferDecode" method to decode
+/// cyclic graphs. Acyclic graph do not require any special
+/// treatment.
 /// Encoded and decoded variables are fully type checked. For this
 /// reason, GCodable does **not** allow you to encode heterogeneous
 /// collections, even if they contain encodable items.
@@ -112,21 +109,21 @@ import Foundation
 ///			...
 ///		}
 ///
-/// -- To decode a reference that is declared **weak** to avoid
-/// strong memory cycles in ARC, use:
+/// -- To decode a value (optional or not) or a reference (optional
+/// or not), conditionally encoded or not, that form a cyclic graph
+/// use:
 ///
 ///    	required init(from decoder: GDecoder) throws {
 ///     	...
 ///			super.init( ... )
 ///     	...
-///	    	try decoder.deferDecode( for: Key.valueA ) { self.weakA = $0 }
-///	    	try decoder.deferDecode()  { self.weakB = $0 }
+///	    	try decoder.deferDecode( for: Key.valueA ) { self.valueA = $0 }
+///	    	try decoder.deferDecode()  { self.valueA = $0 }
 ///			...
 ///		}
 ///
-/// **Note:** The weak reference **should** have be conditionally encoded.
-/// Deferred decoding **requires** the caller to be the init method
-/// of a class and can be called only after initializing the superclass.
+/// **Note:** A value type that contains a reference type (e.g., an
+/// array of reference types) can indirectly create a cyclic graph.
 ///
 /// **Note: Just as encoding a variable appends it to the encoder,**
 /// **decoding it removes it from the decoder.**
@@ -145,7 +142,7 @@ import Foundation
 /// You can find out how many unkeyed variables there are still in the
 /// decoder with:
 ///
-///	    try decoder.unkeyedCount()
+///	    try decoder.unkeyedCount
 ///
 /// * **GCodable**
 ///
@@ -166,26 +163,32 @@ public protocol GCodable {
 	///
 	/// - Parameter encoder: The encoder to write data to.
 	func encode(to encoder: GEncoder) throws
-
-	/// The version of the encoded object.
+	/// The version of the encoded reference type.
 	///
-	/// Only for reference types.
-	static var	encodeVersion:	UInt32 { get }
+	/// Only reference types support versioning.
+	/// Should really be 'class var' but Swift doesn't allow that
+	static var currentVersion: UInt32 { get }
 }
 
 public extension GCodable {
-	static var encodeVersion: UInt32 {
-		return 0
-	}
+	static var currentVersion: UInt32 { 0 }
 }
 
 public extension GCodable where Self:AnyObject {
 	/// Check if a class is really GCodable.
 	///
 	/// It depends on the ability to be created from its name.
-	static var isGCodable: Bool {
-		return ClassData.isEncodable( self )
+	static var supportsCodable: Bool {
+		return ClassData.supportsCodable( self )
 	}
+}
+
+/// A protocol to mark GCodable obsolete class.
+public protocol GCodableObsolete : AnyObject {
+	/// The class that replaces this obsoleted class.
+	///
+	/// Returns the class that replaces the class that adopt this protocol
+	static var replacementType : (AnyObject & GCodable).Type { get }
 }
 
 /// A type that can encode values into a native format for external
@@ -194,20 +197,14 @@ public protocol GEncoder {
 	/// Any contextual information set by the user for encoding.
 	var	userInfo : [String:Any] { get }
 	
-	/// Encodes the given value for the given key.
-	///
-	/// It can be used with values or **strong** reference, optional or not.
-	/// It should not be used with **weak** references.
+	/// Encodes the given value/reference for the given key.
 	///
 	/// - parameter value: The value to encode.
 	/// - parameter key: The key to associate the value with.
 	func encode<Key,Value>(_ value: Value, for key:Key ) throws where
 		Value : GCodable, Key:RawRepresentable, Key.RawValue == String
 
-	/// Encodes the given value for the given key if it is not `nil`.
-	///
-	/// It can be used with optional values or optional **strong** reference.
-	/// It should not be used with **weak** references.
+	/// Encodes the given value/reference for the given key if it is not `nil`.
 	///
 	/// - parameter value: The value to encode.
 	/// - parameter key: The key to associate the value with.
@@ -217,9 +214,6 @@ public protocol GEncoder {
 	/// Encodes a reference to the given object only if it is encoded
 	/// unconditionally elsewhere in the payload (previously, or in the future).
 	///
-	/// It can be used with optional **strong** reference and is required
-	///	with (mandatory optional) **weak** references.
-	///
 	/// - parameter object: The object to encode.
 	/// - parameter key: The key to associate the object with.
 	func encodeConditional<Key,Value>(_ value: Value? , for key:Key ) throws where
@@ -227,18 +221,12 @@ public protocol GEncoder {
 	
 	/// Encodes the given value.
 	///
-	/// It can be used with values or reference, optional or not. It
-	/// should not be used with **weak** references.
-	///
 	/// - parameter value: The value to encode.
 	func encode<Value>(_ value: Value ) throws where
 		Value : GCodable
 	
 	/// Encodes a reference to the given object only if it is encoded
 	/// unconditionally elsewhere in the payload (previously, or in the future).
-	///
-	/// It can be used with optional **strong** reference and is required
-	///	with (mandatory optional) **weak** references.
 	///
 	/// - parameter object: The object to encode.
 	func encodeConditional<Value>(_ value: Value? ) throws where
@@ -261,12 +249,22 @@ public protocol GDecoder {
 	/// Any contextual information set by the user for encoding.
 	var userInfo : [String:Any] { get }
 	
-	/// Returns the version of the encoded object
+	/// Returns the version of the encoded object during the object decoding
 	///
 	/// Corresponds to the value of encodedVersion() when encoding the
 	/// data and can be used to decide on different decoding strategies.
-	/// Only objects can have a version.
-	func encodedVersion<Value>( _ type: Value.Type ) throws -> UInt32  where Value:GCodable, Value:AnyObject
+	///
+	/// Only reference types can have a version.
+	var encodedVersion : UInt32  { get throws }
+
+	/// Returns the replacedType type during the object decoding if exists
+	///
+	/// Corresponds to the class marked with GCodableObsolete protocol that
+	/// signals the replacingClass.
+	/// Can be used to decide on different decoding strategies.
+	///
+	/// Only reference types can have a version.
+	var replacedType : GCodableObsolete.Type?  { get throws }
 	
 	/// Returns a Boolean value indicating whether the decoder contains a value
 	/// associated with the given key.
@@ -280,30 +278,20 @@ public protocol GDecoder {
 	func contains<Key>( _ key:Key ) -> Bool where
 		Key:RawRepresentable, Key.RawValue == String
 
-	/// Decodes a value of the given type for the given key.
+	/// Decodes a value/reference of the given type for the given key.
 	///
-	/// It must be used with values or **strong** reference, optional or not.
-	/// It can be used with **weak** references **not** used in order
-	/// to avoid strong memory cycles with ARC.
-	///
-	/// - parameter type: The type of value to decode.
 	/// - parameter key: The key that the decoded value is associated with.
 	/// - returns: A value of the requested type, if present for the given key
 	///   and convertible to the requested type.
 	func decode<Key, Value>(for key: Key) throws -> Value where
 		Key : RawRepresentable, Value : GCodable, Key.RawValue == String
 
-	/// Decodes a value of the given type for the given key, if present.
+	/// Decodes a value/reference of the given type for the given key, if present.
 	///
 	/// This method returns `nil` if the container does not have a value
 	/// associated with `key`, or if the value is null. The difference between
 	/// these states can be distinguished with a `contains(_:)` call.
 	///
-	/// It must be used with optional values or optional **strong** reference.
-	/// It can be used with **weak** references **not** used in order
-	/// to avoid strong memory cycles with ARC.
-	///
-	/// - parameter type: The type of value to decode.
 	/// - parameter key: The key that the decoded value is associated with.
 	/// - returns: A decoded value of the requested type, or `nil` if the
 	///   `Decoder` does not have an entry associated with the given key, or if
@@ -311,42 +299,34 @@ public protocol GDecoder {
 	func decodeIfPresent<Key, Value>(for key: Key) throws -> Value? where
 		Key : RawRepresentable, Value : GCodable, Key.RawValue == String
 
-	/// Decodes a reference of the given type for the given key when it become available.
+	/// Decodes a value/reference of the given type for the given key when it
+	/// become available.
 	///
-	/// This method **must** be used exclusively with **weak** references used in order
-	/// to avoid strong memory cycles with ARC. The **weak** reference **must** be
-	/// encoded conditionally.
+	/// If your data forms a cyclic graph, use this method to "break" the cycle
+	/// and decode the graph.
 	///
-	/// - parameter type: The type of reference to decode.
 	/// - parameter key: The key that the decoded reference is associated with.
-	/// - parameter setter: A closure to which the required reference is provided.
-	func deferDecode<Key, Value>( for key: Key, _ setter: @escaping (Value?) -> ()) throws where
-		Key : RawRepresentable, Value : AnyObject, Value : GCodable, Key.RawValue == String
+	/// - parameter setter: A closure to which the required value is provided.
+	func deferDecode<Key, Value>( for key: Key, _ setter: @escaping (Value) -> ()) throws where
+		Key : RawRepresentable, Value : GCodable, Key.RawValue == String
 
 	/// The number of elements still available for unkeyed decoding.
 	///
 	/// The decoding of an element removes it from the decoder.
-	func unkeyedCount() -> Int
+	var unkeyedCount : Int { get }
 	
-	/// Decodes a value of the given type.
+	/// Decodes a value/reference of the given type.
 	///
-	/// It must be used with values or **strong** reference, optional or not.
-	/// It should be used with **weak** references **not** used in order
-	/// to avoid strong memory cycles with ARC.
-	///
-	/// - parameter type: The type of value to decode.
-	/// - returns: A value of the requested type, if present.
+	/// - returns: A value of the requested type, if present for the given key
+	///   and convertible to the requested type.
 	func decode<Value>() throws -> Value where
 		Value : GCodable
 	
-	/// Decodes a reference of the given type when it become available.
+	/// Decodes a value/reference of the given type when it become available.
 	///
-	/// This method **must** be used exclusively with **weak** references used in order
-	/// to avoid strong memory cycles with ARC. The **weak** reference **must** be
-	/// encoded conditionally.
+	/// If references in your data forms a cyclic graph, use this method to
+	/// "break" the cycle and decode the graph.
 	///
-	/// - parameter type: The type of reference to decode.
-	/// - parameter key: The key that the decoded reference is associated with.
 	/// - parameter setter: A closure to which the required reference is provided.
 	func deferDecode<Value>( _ setter: @escaping (Value?)->() ) throws where
 		Value : GCodable, Value : AnyObject

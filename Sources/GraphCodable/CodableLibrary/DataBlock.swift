@@ -282,7 +282,7 @@ extension DataBlock {
 			} else if let key = info.keyIDtoKey?[keyID] {
 				return "+ \"\(key)\": \(string)"
 			} else {
-				return "+ Key\(keyID): \(string)"
+				return "+ KEY\(keyID): \(string)"
 			}
 		}
 		
@@ -307,7 +307,7 @@ extension DataBlock {
 					return classData.readableTypeName
 				}
 			} else {
-				return "Type\(typeID)"
+				return "TYPE\(typeID)"
 			}
 		}
 		
@@ -322,34 +322,34 @@ extension DataBlock {
 		
 		switch self {
 		case .header	( let version, let module, let unused1, let unused2 ):
-			return "Filetype = \(HeaderID.gcodable) V\(version), U0 = \"\(module)\", U1 = \(unused1), U2 = \(unused2)"
+			return "FILETYPE = \(HeaderID.gcodable) V\(version), U0 = \"\(module)\", U1 = \(unused1), U2 = \(unused2)"
 		case .inTypeMap	( let typeID, let classInfo ):
-			return	"Type\( typeID ):\t\( typeString( info, classInfo.classData ) )"
+			return	"TYPE\( typeID ):\t\( typeString( info, classInfo.classData ) )"
 		case .outTypeMap	( let typeID, let classData ):
-			return	"Type\( typeID ):\t\( typeString( info, classData ) )"
+			return	"TYPE\( typeID ):\t\( typeString( info, classData ) )"
 		case .nilValue	( let keyID ):
 			return format( keyID, info, "nil")
 		case .inBinType( let keyID, let value ):
 			return format( keyID, info, small( value, info ) )
 		case .outBinType( let keyID, let bytes ):
-			let string	= "Binary \(bytes.count) bytes"
+			let string	= "BIN \(bytes.count) bytes"
 			return format( keyID, info, string )
 		case .valueType	( let keyID ):
-			let string	= "Struct"
+			let string	= "VAL"
 			return format( keyID, info, string )
 		case .objectType( let keyID, let typeID, let objID ):
-			let string	= "Obj_\(objID) \( objectString( typeID,info ) )"
+			let string	= "REF\(objID) \( objectString( typeID,info ) )"
 			return format( keyID, info, string )
 		case .objectSPtr( let keyID, let objID ):
-			let string	= "Ptr_\(objID)"
+			let string	= "PTR\(objID)"
 			return format( keyID, info, string )
 		case .objectWPtr( let keyID, let objID ):
-			let string	= "Ptr_\(objID)?"
+			let string	= "PTR\(objID)?"
 			return format( keyID, info, string )
 		case .end:
 			return 	"."
 		case .keyMap	( let keyID, let keyName ):
-			return "Key\( keyID ):\t\"\( keyName )\""
+			return "KEY\( keyID ):\t\"\( keyName )\""
 		}
 	}
 }
