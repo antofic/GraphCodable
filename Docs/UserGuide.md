@@ -28,7 +28,7 @@ Use `myClass.isGCodable` to check if a class is actually decodable.
 ## Code examples
 
 Keep in mind that in GraphCodable:
-- GCodable, GCodable and GCodable have the same roles as Encodable, Decodable and Codable
+- GCodable have the same role as Codable
 - GEncoder, GDecoder have the same roles as Encoder, Decoder
 - GraphEncoder has the same role as JSONEncoder, PropertyListEncoder
 - GraphDecoder has the same role as JSONDecoder, PropertyListDecoder
