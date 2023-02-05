@@ -2,14 +2,12 @@
 
 ## Swift Standard Library
 
-### GCodable as NativeIOTypes
+### GCodable as NativeTypes
 -	Int, Int8, Int16, Int32, Int64
-
 	*note:* Int is always encoded as Int64
 -	UInt, UInt8, UInt16, UInt32, UInt64
-
 	*note:* UInt is always encoded as UInt64
--	Float, Double
+-	Float, Double, CGFloat
 -	Bool
 -	String
 -	Data
@@ -17,53 +15,48 @@
 -	Array, ContiguousArray, Set, Dictionary (*)
 -	Range, ClosedRange, PartialRangeFrom, PartialRangeUpTo, PartialRangeThrough (*)
 -	RawRepresentable types (enum, OptionSet) (*)
-	
-(*) If the contained types are NativeIOTypes
+(*) If the contained types are NativeTypes/BinaryTypes
 
-### GCodable
+### GCodable as BinaryTypes
+	** Only when encoding with: GraphEncoder( fullBinaryEncode:true /* default */ ) **
 -	Optional (*)
 -	Array, ContiguousArray, Set, Dictionary (*)
 -	Range, ClosedRange, PartialRangeFrom, PartialRangeUpTo, PartialRangeThrough (*)
 -	RawRepresentable types (enum, OptionSet) (*)
+-	CollectionDifference.Change, CollectionDifference (*)
+-	CharacterSet, AffineTransform, Locale, TimeZone, UUID, Date
+-	IndexSet, IndexPath, CGSize, CGPoint, CGVector, CGRect, NSRange
+-	Decimal, Calendar, DateComponents, DateInterval, PersonNameComponents
+-	URL, URLComponents, Measurement
+-	OperationQueue.SchedulerTimeType, OperationQueue.SchedulerTimeType.Stride
+-	RunLoop.SchedulerTimeType, RunLoop.SchedulerTimeType.Stride
+-	DispatchTime, DispatchTimeInterval
+-	DispatchQueue.SchedulerTimeType, DispatchQueue.SchedulerTimeType.Stride
+-	Errno
+-	FileDescriptor, FileDescriptor.AccessMode, FileDescriptor.OpenOptions, FileDescriptor.SeekOrigin
+-	FilePath, FilePermissions
+-	UTTagClass, UTType
+(*) If the contained types are NativeTypes/BinaryTypes
 
+### GCodable
+	** When encoding with: GraphEncoder( fullBinaryEncode:false ) **	
+-	Optional (*)
+-	Array, ContiguousArray, Set, Dictionary (*)
+-	Range, ClosedRange, PartialRangeFrom, PartialRangeUpTo, PartialRangeThrough (*)
+-	RawRepresentable types (enum, OptionSet) (*)
+-	CollectionDifference.Change, CollectionDifference (*)
+-	CharacterSet, AffineTransform, Locale, TimeZone, UUID, Date
+-	IndexSet, IndexPath, CGSize, CGPoint, CGVector, CGRect, NSRange
+-	Decimal, Calendar, DateComponents, DateInterval, PersonNameComponents
+-	URL, URLComponents, Measurement
+-	OperationQueue.SchedulerTimeType, OperationQueue.SchedulerTimeType.Stride
+-	RunLoop.SchedulerTimeType, RunLoop.SchedulerTimeType.Stride
+-	DispatchTime, DispatchTimeInterval
+-	DispatchQueue.SchedulerTimeType, DispatchQueue.SchedulerTimeType.Stride
+-	Errno
+-	FileDescriptor, FileDescriptor.AccessMode, FileDescriptor.OpenOptions, FileDescriptor.SeekOrigin
+-	FilePath, FilePermissions
+-	UTTagClass, UTType
 (*) If the contained types are GCodable
-
-### Unsupported
-Where is the list of all "Apple Codable" types from the standard library?
-
-## Foundation
-Almost all "Apple Codable" foundation types are GCodable, too.
-
-### GCodable as NativeIOTypes
--	CGFloat
-
-	*note:* CGFloat is always encoded as Double
--	CharacterSet
--	AffineTransform
--	Locale
--	TimeZone
--	UUID
--	Date
--	IndexSet
--	CGSize
--	CGPoint
--	CGVector
--	CGRect
--	NSRange
--	Decimal
-
-### CGCodable
--	Calendar
--	DateComponents
--	DateInterval
--	PersonNameComponents
--	URL
--	URLComponents
-
-### Unsupported
--	IndexPath
-
-	*reason:* inaccessible underlying storage.
-
 
 
