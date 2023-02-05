@@ -68,16 +68,11 @@ public struct DumpOptions: OptionSet {
 	]
 }
 
-enum MainModuleUti {
-	static func mainModuleName( fromFileID fileID: String ) -> String {
-		return String( fileID.prefix() { $0 != "/" } )
-	}
-}
-
 public final class GraphEncoder {
-	private let encoder	= Encoder()
+	private let encoder	: Encoder
 
-	public init() {
+	public init( fullBinaryEncode:Bool = true ) {
+		encoder	= Encoder( fullBinaryEncode:fullBinaryEncode )
 	}
 	
 	public var userInfo : [String:Any] {
@@ -98,9 +93,10 @@ public final class GraphEncoder {
 	// -------------------------------------------------
 
 	private final class Encoder : GEncoder {
-		var userInfo		= [String:Any]()
+		var userInfo			= [String:Any]()
 		
-		init() {
+		init( fullBinaryEncode:Bool ) {
+			self.fullBinaryEncode	= fullBinaryEncode
 		}
 		
 		private func _encodeRoot<T>( _ value: T ) throws -> EncodedData where T:GCodable {
@@ -120,7 +116,7 @@ public final class GraphEncoder {
 		
 		func encodeRoot<T>( _ value: T ) throws -> Data where T:GCodable {
 			let output	= try _encodeRoot( value )
-			var writer	= BinaryWriter()
+			var writer	: BinaryWriter = BinaryWriter()
 			try output.write(to: &writer)
 			return writer.data()
 		}
@@ -148,10 +144,11 @@ public final class GraphEncoder {
 		}
 
 		// --------------------------------------------------------
-		private var 		currentKeys		= Set<String>()
-		private var			referenceID		= ObjectMap()
-		private (set) var	encodedData		= EncodedData()
-		private var			tempNativeValue	: Any?
+		private let 		fullBinaryEncode	: Bool
+		private var 		currentKeys			= Set<String>()
+		private var			referenceID			= ObjectMap()
+		private (set) var	encodedData			= EncodedData()
+		private var			tempNativeValue		: Any?
 
 		private func reset() {
 			self.currentKeys	= Set<String>()
@@ -195,7 +192,9 @@ public final class GraphEncoder {
 			}
 			// now value if not nil!
 
-			if let binaryValue = value as? NativeIOType {
+			if let binaryValue = value as? NativeType {
+				encodedData.append( .inBinType(keyID: keyID, value: binaryValue ) )
+			} else if fullBinaryEncode, let binaryValue = value as? BinaryIOType {
 				encodedData.append( .inBinType(keyID: keyID, value: binaryValue ) )
 			} else if type(of:value) is AnyClass {
 				guard let object = value as? GCodable & AnyObject else {
@@ -205,7 +204,6 @@ public final class GraphEncoder {
 						)
 					)
 				}
-
 				let classInfo	= try ClassInfo(codableType: type(of:object))
 				let typeID		= encodedData.createTypeIDIfNeeded(classInfo: classInfo)
 
@@ -231,7 +229,7 @@ public final class GraphEncoder {
 					encodedData.append( .end )
 				}
 			} else {	// full value type (struct)
-				guard let value = value as? GCodable else {
+				guard let val = value as? GCodable else {
 					throw GCodableError.internalInconsistency(
 						Self.self, GCodableError.Context(
 							debugDescription: "Not GCodable value \(value)."
@@ -239,7 +237,7 @@ public final class GraphEncoder {
 					)
 				}
 				encodedData.append( .valueType( keyID: keyID ) )
-				try encodeValue( value, to:self )
+				try encodeValue( val, to:self )
 				encodedData.append( .end )
 			}
 		}
@@ -324,6 +322,22 @@ public final class GraphEncoder {
 				blocks.append( dataBlock )
 			}
 			
+			func write( to writer: inout BinaryWriter ) throws {
+				try header.write(to: &writer)
+				
+				for (typeID,classInfo) in codableClassID.typeIDtoName {
+					try DataBlock.inTypeMap( typeID: typeID, classInfo: classInfo ).write(to: &writer)
+				}
+				
+				for block in blocks {
+					try block.write(to: &writer)
+				}
+				
+				for (keyID,key) in keyNameID.keyIDtoKey {
+					try DataBlock.keyMap(keyID: keyID, keyName: key).write(to: &writer)
+				}
+			}
+			
 			var description: String {
 				return readableOutput( options:.binaryLike )
 			}
@@ -331,7 +345,7 @@ public final class GraphEncoder {
 			var debugDescription: String {
 				return readableOutput( options:.binaryLike )
 			}
-
+			
 			func readableOutput( options:DumpOptions ) -> String {
 				let info = DumpInfo(
 					options:		options,
@@ -403,23 +417,6 @@ public final class GraphEncoder {
 				return output
 			}
 			
-			
-			func write( to writer: inout BinaryWriter ) throws {
-				try header.write(to: &writer)
-				
-				for (typeID,classInfo) in codableClassID.typeIDtoName {
-					try DataBlock.inTypeMap( typeID: typeID, classInfo: classInfo ).write(to: &writer)
-				}
-				
-				for block in blocks {
-					try block.write(to: &writer)
-				}
-				
-				for (keyID,key) in keyNameID.keyIDtoKey {
-					try DataBlock.keyMap(keyID: keyID, keyName: key).write(to: &writer)
-				}
-			}
-			
 			// -------------------------------------------------
 			// ----- CodableClassMap
 			// -------------------------------------------------
@@ -451,40 +448,7 @@ public final class GraphEncoder {
 				}
 			}
 
-			
-			
-			/*
-			private struct CodableClassMap  {
-				private	var			actualId : IntID	= 100	// <100 reserved for future use
-				private (set) var	typeIDtoName		= [ IntID:ClassInfo ]()
-				private var			aClassToID			= [ ObjectIdentifier: IntID ]()
-
-				func contains( typeID:IntID ) -> Bool {
-					return typeIDtoName.index(forKey: typeID) != nil
-				}
-
-				func contains( codableClass:(GCodable & AnyObject).Type ) -> Bool {
-					return aClassToID.index(forKey: ObjectIdentifier(codableClass) ) != nil
-				}
-
-				mutating func createIDIfNeeded( codableClass: (GCodable & AnyObject).Type ) -> IntID {
-					if let typeID = aClassToID[ ObjectIdentifier(codableClass) ] {
-						return typeID
-					} else {
-						defer { actualId += 1 }
-
-						let typeID = actualId
-						typeIDtoName[ typeID ]	= ClassInfo(
-							mangledName:	NSStringFromClass( codableClass ),
-							version: 		codableClass.encodeVersion
-						)
-						aClassToID[ ObjectIdentifier( codableClass ) ] = typeID
-						return typeID
-					}
-				}
-			}
-			*/
-
+	
 			// -------------------------------------------------
 			// ----- KeyMap
 			// -------------------------------------------------
@@ -517,8 +481,6 @@ public final class GraphEncoder {
 		}
 	}
 }
-
-
 
 
 

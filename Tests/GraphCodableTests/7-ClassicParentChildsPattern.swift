@@ -90,7 +90,6 @@ final class ClassicParentChildsPattern: XCTestCase {
 	class Screen	: View {}	// we make the screen subclass of view
 	
 	func testClassicParentChildsPattern() throws {
-		
 		let screen	= Screen()
 		
 		let windowA	= Window()

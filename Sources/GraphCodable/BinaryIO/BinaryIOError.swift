@@ -22,7 +22,7 @@
 
 import Foundation
 
-enum GCodableError : Error {
+enum BinaryIOError : Error {
 	struct Context {
 		let debugDescription:	String
 		let underlyingError:	Error?
@@ -41,18 +41,9 @@ enum GCodableError : Error {
 			self.file				= file
 		}
 	}
-	
-	case initTypeError( Any.Type, GCodableError.Context )
-	
-	case internalInconsistency( Any.Type, GCodableError.Context )
-	case cantConstructClass( Any.Type, GCodableError.Context )
 
-	case duplicateKey( Any.Type, GCodableError.Context )
-	case duplicateTypeID( Any.Type, GCodableError.Context )
-	case keyNotFound( Any.Type, GCodableError.Context )
-	case childNotFound( Any.Type, GCodableError.Context )
-
-	case decodingError( Any.Type, GCodableError.Context )
-	case typeMismatch( Any.Type, GCodableError.Context )
+	case outOfBounds( Any.Type, BinaryIOError.Context )
+	case initTypeError( Any.Type, BinaryIOError.Context )
+	case versionError( Any.Type, BinaryIOError.Context )
 }
 

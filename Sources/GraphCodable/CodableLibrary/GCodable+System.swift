@@ -21,38 +21,36 @@
 //	SOFTWARE.
 
 import Foundation
+import System
 
-enum GCodableError : Error {
-	struct Context {
-		let debugDescription:	String
-		let underlyingError:	Error?
-		let function:			String
-		let file:				String
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+extension Errno : GCodable {}
 
-		init(
-			debugDescription: String,
-			underlyingError: Error? = nil,
-			function: String = #function,
-			file: String = #fileID
-		) {
-			self.debugDescription	= debugDescription
-			self.underlyingError	= underlyingError
-			self.function			= function
-			self.file				= file
-		}
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+extension FileDescriptor : GCodable {}
+
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+extension FileDescriptor.AccessMode : GCodable {}
+
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+extension FileDescriptor.OpenOptions : GCodable {}
+
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+extension FileDescriptor.SeekOrigin : GCodable {}
+
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+extension FilePath : GCodable {
+	private enum Key : String { case path }
+
+	public func encode(to encoder: GEncoder) throws {
+		try encoder.encode(description, for: Key.path)
 	}
 	
-	case initTypeError( Any.Type, GCodableError.Context )
-	
-	case internalInconsistency( Any.Type, GCodableError.Context )
-	case cantConstructClass( Any.Type, GCodableError.Context )
 
-	case duplicateKey( Any.Type, GCodableError.Context )
-	case duplicateTypeID( Any.Type, GCodableError.Context )
-	case keyNotFound( Any.Type, GCodableError.Context )
-	case childNotFound( Any.Type, GCodableError.Context )
-
-	case decodingError( Any.Type, GCodableError.Context )
-	case typeMismatch( Any.Type, GCodableError.Context )
+	public init(from decoder: GDecoder) throws {
+		self.init( try decoder.decode(for: Key.path) as String )
+	}
 }
 
+@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+extension FilePermissions : GCodable {}

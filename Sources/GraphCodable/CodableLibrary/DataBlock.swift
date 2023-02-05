@@ -73,7 +73,7 @@ enum DataBlock {
 	case inTypeMap	( typeID:IntID, classInfo:ClassInfo )	// input only
 	case outTypeMap	( typeID:IntID, classData:ClassData )	// output only
 	case nilValue	( keyID:IntID )
-	case inBinType	( keyID:IntID, value:NativeIOType )	// input only
+	case inBinType	( keyID:IntID, value:BinaryIOType )	// input only
 	case outBinType	( keyID:IntID, bytes:[UInt8] )		// output only
 	case valueType	( keyID:IntID )
 	case objectType	( keyID:IntID, typeID:IntID, objID:IntID )
@@ -87,7 +87,7 @@ enum DataBlock {
 //	--BinaryIOType conformance
 //	-------------------------------------------------
 
-extension DataBlock : NativeIOType {
+extension DataBlock : BinaryIOType {
 	func write( to writer: inout BinaryWriter ) throws {
 		switch self {
 		case .header	( let version, let unused0, let unused1, let unused2 ):
@@ -97,12 +97,11 @@ extension DataBlock : NativeIOType {
 			try unused0.write(to: &writer)
 			try unused1.write(to: &writer)
 			try unused2.write(to: &writer)
-
 		case .inTypeMap	( let typeID, let classInfo ):
 			// ••••• SALVO COME outTypeMap ••••••••••
 			try Code.outTypeMap.write(to: &writer)
 			try typeID.write(to: &writer)
-			try classInfo.classData.write(to: &writer)
+			try classInfo.classData.write(to: &writer)	// <----- ••••••
 		case .outTypeMap( _, _ ):
 			// non deve mai arrivare qui
 			throw GCodableError.internalInconsistency(
@@ -113,13 +112,12 @@ extension DataBlock : NativeIOType {
 		case .nilValue	( let keyID ):
 			try Code.nilValue.write(to: &writer)
 			try keyID.write(to: &writer)
-
 		case .inBinType( let keyID, let value ):
 			// ••••• SALVO COME outBinType ••••••••••
-			let bytes	= try value.bytesArray()
+			let bytes	= try value.binaryData() as [UInt8]
 			try Code.outBinType.write(to: &writer)	// <----- ••••••
 			try keyID.write(to: &writer)
-			try bytes.write(to: &writer)
+			writer.writeData( bytes )
 		case .outBinType( _, _ ):
 			// non deve mai arrivare qui
 			throw GCodableError.internalInconsistency(
@@ -189,7 +187,7 @@ extension DataBlock : NativeIOType {
 			)
 		case .outBinType:
 			let keyID	= try IntID		( from: &reader )
-			let bytes	= try [UInt8]	( from: &reader )
+			let bytes	= try reader.readData() as [UInt8]
 			self = .outBinType(keyID: keyID, bytes: bytes)
 		case .valueType:
 			let keyID	= try IntID		( from: &reader )
@@ -276,7 +274,6 @@ struct DumpInfo {
 //	-- Readable output
 //	-------------------------------------------------
 
-/*
 extension DataBlock {
 	func readableOutput( info:DumpInfo ) -> String {
 		func format( _ keyID:IntID, _ info: DumpInfo, _ string:String ) -> String {
@@ -285,7 +282,7 @@ extension DataBlock {
 			} else if let key = info.keyIDtoKey?[keyID] {
 				return "+ \"\(key)\": \(string)"
 			} else {
-				return "+ Key\(keyID): \(string)"
+				return "+ KEY\(keyID): \(string)"
 			}
 		}
 		
@@ -310,7 +307,7 @@ extension DataBlock {
 					return classData.readableTypeName
 				}
 			} else {
-				return "Type\(typeID)"
+				return "TYPE\(typeID)"
 			}
 		}
 		
@@ -325,120 +322,37 @@ extension DataBlock {
 		
 		switch self {
 		case .header	( let version, let module, let unused1, let unused2 ):
-			return "Filetype = \(HeaderID.gcodable) V\(version), U0 = \"\(module)\", U1 = \(unused1), U2 = \(unused2)"
+			return "FILETYPE = \(HeaderID.gcodable) V\(version), U0 = \"\(module)\", U1 = \(unused1), U2 = \(unused2)"
 		case .inTypeMap	( let typeID, let classInfo ):
-			return	"Type\( typeID ):\t\( typeString( info, classInfo.classData ) )"
+			return	"TYPE\( typeID ):\t\( typeString( info, classInfo.classData ) )"
 		case .outTypeMap	( let typeID, let classData ):
-			return	"Type\( typeID ):\t\( typeString( info, classData ) )"
+			return	"TYPE\( typeID ):\t\( typeString( info, classData ) )"
 		case .nilValue	( let keyID ):
 			return format( keyID, info, "nil")
 		case .inBinType( let keyID, let value ):
 			return format( keyID, info, small( value, info ) )
 		case .outBinType( let keyID, let bytes ):
-			let string	= "BINARY \(bytes.count) bytes"
+			let string	= "BIN \(bytes.count) bytes"
 			return format( keyID, info, string )
 		case .valueType	( let keyID ):
-			let string	= "STRUCT"
+			let string	= "VAL"
 			return format( keyID, info, string )
 		case .objectType( let keyID, let typeID, let objID ):
-			let string	= "CLASS \( objectString( typeID,info ) ) Obj\(objID)"
+			let string	= "REF\(objID) \( objectString( typeID,info ) )"
 			return format( keyID, info, string )
 		case .objectSPtr( let keyID, let objID ):
-			let string	= "POINTER Obj\(objID)"
+			let string	= "PTR\(objID)"
 			return format( keyID, info, string )
 		case .objectWPtr( let keyID, let objID ):
-			let string	= "POINTER? Obj\(objID)"
+			let string	= "PTR\(objID)?"
 			return format( keyID, info, string )
 		case .end:
 			return 	"."
 		case .keyMap	( let keyID, let keyName ):
-			return "Key\( keyID ):\t\"\( keyName )\""
+			return "KEY\( keyID ):\t\"\( keyName )\""
 		}
 	}
 }
-*/
-
-extension DataBlock {
-	func readableOutput( info:DumpInfo ) -> String {
-		func format( _ keyID:IntID, _ info: DumpInfo, _ string:String ) -> String {
-			if keyID == 0 {	// unkeyed
-				return "- \(string)"
-			} else if let key = info.keyIDtoKey?[keyID] {
-				return "+ \"\(key)\": \(string)"
-			} else {
-				return "+ Key\(keyID): \(string)"
-			}
-		}
-		
-		func small( _ value: Any, _ info:DumpInfo ) -> String {
-			let phase1		= String(describing: value)
-			if info.options.contains( .noTruncation ) {
-				return phase1
-			} else {
-				let maxLength	= 64
-				let phase2	= phase1.count > maxLength ?
-					phase1.prefix(maxLength).appending("…") : phase1
-				
-				return value is String ? "\"\(phase2)\"" : phase2
-			}
-		}
-		
-		func objectString( _ typeID:UInt32, _ info: DumpInfo ) -> String {
-			if let classData	= info.classInfoMap?[typeID]?.classData {
-				if info.options.contains( .showTypeVersion ) {
-					return "\(classData.readableTypeName) V\(classData.encodeVersion)"
-				} else {
-					return classData.readableTypeName
-				}
-			} else {
-				return "Type\(typeID)"
-			}
-		}
-		
-		func typeString( _ info: DumpInfo, _ classData:ClassData ) -> String {
-			var string	= "\(classData.readableTypeName) V\(classData.encodeVersion)"
-			if info.options.contains( .showMangledClassNames ) {
-				string.append( "\n\t\t\tMangledName = \( classData.mangledTypeName ?? "nil" )"  )
-				string.append( "\n\t\t\tNSTypeName  = \( classData.objcTypeName )"  )
-			}
-			return string
-		}
-		
-		switch self {
-		case .header	( let version, let module, let unused1, let unused2 ):
-			return "Filetype = \(HeaderID.gcodable) V\(version), U0 = \"\(module)\", U1 = \(unused1), U2 = \(unused2)"
-		case .inTypeMap	( let typeID, let classInfo ):
-			return	"Type\( typeID ):\t\( typeString( info, classInfo.classData ) )"
-		case .outTypeMap	( let typeID, let classData ):
-			return	"Type\( typeID ):\t\( typeString( info, classData ) )"
-		case .nilValue	( let keyID ):
-			return format( keyID, info, "nil")
-		case .inBinType( let keyID, let value ):
-			return format( keyID, info, small( value, info ) )
-		case .outBinType( let keyID, let bytes ):
-			let string	= "Binary \(bytes.count) bytes"
-			return format( keyID, info, string )
-		case .valueType	( let keyID ):
-			let string	= "Struct"
-			return format( keyID, info, string )
-		case .objectType( let keyID, let typeID, let objID ):
-			let string	= "Obj_\(objID) \( objectString( typeID,info ) )"
-			return format( keyID, info, string )
-		case .objectSPtr( let keyID, let objID ):
-			let string	= "Ptr_\(objID)"
-			return format( keyID, info, string )
-		case .objectWPtr( let keyID, let objID ):
-			let string	= "Ptr_\(objID)?"
-			return format( keyID, info, string )
-		case .end:
-			return 	"."
-		case .keyMap	( let keyID, let keyName ):
-			return "Key\( keyID ):\t\"\( keyName )\""
-		}
-	}
-}
-
-
 
 extension DataBlock : CustomStringConvertible {
 	var description: String {

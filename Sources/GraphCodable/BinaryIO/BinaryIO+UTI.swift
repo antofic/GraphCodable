@@ -20,39 +20,41 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
-import Foundation
+import UniformTypeIdentifiers
 
-enum GCodableError : Error {
-	struct Context {
-		let debugDescription:	String
-		let underlyingError:	Error?
-		let function:			String
-		let file:				String
+@available(macOS 11.00, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+extension UTTagClass : BinaryIOType {}
 
-		init(
-			debugDescription: String,
-			underlyingError: Error? = nil,
-			function: String = #function,
-			file: String = #fileID
-		) {
-			self.debugDescription	= debugDescription
-			self.underlyingError	= underlyingError
-			self.function			= function
-			self.file				= file
-		}
+@available(macOS 11.00, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+extension UTType : BinaryIOType {
+	private enum Version : UInt8 { case v0 }
+
+	public func write(to writer: inout BinaryWriter) throws {
+		try Version.v0.rawValue.write(to: &writer)
+		try identifier.write(to: &writer)
 	}
 	
-	case initTypeError( Any.Type, GCodableError.Context )
-	
-	case internalInconsistency( Any.Type, GCodableError.Context )
-	case cantConstructClass( Any.Type, GCodableError.Context )
+	public init(from reader: inout BinaryReader) throws {
+		let versionRaw	= try Version.RawValue(from: &reader)
 
-	case duplicateKey( Any.Type, GCodableError.Context )
-	case duplicateTypeID( Any.Type, GCodableError.Context )
-	case keyNotFound( Any.Type, GCodableError.Context )
-	case childNotFound( Any.Type, GCodableError.Context )
-
-	case decodingError( Any.Type, GCodableError.Context )
-	case typeMismatch( Any.Type, GCodableError.Context )
+		switch versionRaw {
+		case Version.v0.rawValue:
+			let identifier = try String( from: &reader )
+			
+			guard let uttype = Self.init( identifier ) else {
+				throw BinaryIOError.initTypeError(
+					Self.self, BinaryIOError.Context(
+						debugDescription: "Invalid UTType identifier -\(identifier)-"
+					)
+				)
+			}
+			self = uttype
+		default:
+			throw BinaryIOError.versionError(
+				Self.self, BinaryIOError.Context(
+					debugDescription: "\(Self.self) data in a new unknown version -\(versionRaw)-."
+				)
+			)
+		}
+	}
 }
-
