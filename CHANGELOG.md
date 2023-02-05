@@ -1,7 +1,6 @@
 
 # 0.3.0
-
-The type construction now relies on `_mangledTypeName(...)` (when available) and on  `_typeByName(...)`, too. On systems where `_mangledTypeName(...)` is available it should always be possible to decode the classes that are encoded.
+Reference type substitution system implemented. Internal changes.
 
 **Most Swift Standard Library and Foundation types are supported now.** The list is [here](/Docs/GraphCodableTypes.md).
 
