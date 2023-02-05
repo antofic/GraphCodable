@@ -216,7 +216,7 @@ extension DataBlock : BinaryIOType {
 }
 
 //	-------------------------------------------------
-//	-- Some Utils
+//	-- Some Utils 
 //	-------------------------------------------------
 extension DataBlock {
 	enum Level : Int { case exit = -1, same, enter }
@@ -261,7 +261,6 @@ extension DataBlock {
 		default:									return	nil
 		}
 	}
-	
 }
 
 struct DumpInfo {

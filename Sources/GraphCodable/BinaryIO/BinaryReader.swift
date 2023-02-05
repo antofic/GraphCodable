@@ -47,7 +47,7 @@ public struct BinaryReader {
 	}
 
 	var eof : Bool {
-		return bytes.count == 0
+		bytes.count == 0
 	}
 
 	mutating func readBool() throws -> Bool {
@@ -56,18 +56,18 @@ public struct BinaryReader {
 		return value
 	}
 	
-	mutating func readInt8 () throws -> Int8 	{ return try Int8 ( littleEndian: readInteger() ) }
-	mutating func readInt16() throws -> Int16	{ return try Int16( littleEndian: readInteger() ) }
-	mutating func readInt32() throws -> Int32	{ return try Int32( littleEndian: readInteger() ) }
-	mutating func readInt64() throws -> Int64	{ return try Int64( littleEndian: readInteger() ) }
+	mutating func readInt8 () throws -> Int8 	{ try Int8 ( littleEndian: readInteger() ) }
+	mutating func readInt16() throws -> Int16	{ try Int16( littleEndian: readInteger() ) }
+	mutating func readInt32() throws -> Int32	{ try Int32( littleEndian: readInteger() ) }
+	mutating func readInt64() throws -> Int64	{ try Int64( littleEndian: readInteger() ) }
 
-	mutating func readUInt8 () throws -> UInt8  { return try UInt8 ( littleEndian: readInteger() ) }
-	mutating func readUInt16() throws -> UInt16 { return try UInt16( littleEndian: readInteger() ) }
-	mutating func readUInt32() throws -> UInt32 { return try UInt32( littleEndian: readInteger() ) }
-	mutating func readUInt64() throws -> UInt64 { return try UInt64( littleEndian: readInteger() ) }
+	mutating func readUInt8 () throws -> UInt8  { try UInt8 ( littleEndian: readInteger() ) }
+	mutating func readUInt16() throws -> UInt16 { try UInt16( littleEndian: readInteger() ) }
+	mutating func readUInt32() throws -> UInt32 { try UInt32( littleEndian: readInteger() ) }
+	mutating func readUInt64() throws -> UInt64 { try UInt64( littleEndian: readInteger() ) }
 
-	mutating func readFloat() throws -> Float	{ return try Float(bitPattern: readUInt32()) }
-	mutating func readDouble() throws -> Double	{ return try Double(bitPattern: readUInt64()) }
+	mutating func readFloat() throws -> Float	{ try Float(bitPattern: readUInt32()) }
+	mutating func readDouble() throws -> Double	{ try Double(bitPattern: readUInt64()) }
 
 	mutating func readInt() throws -> Int		{
 		let value64 = try readInt64()
@@ -138,35 +138,25 @@ public struct BinaryReader {
 
 	// read a null terminated utf8 string
 	mutating func readString() throws -> String {
-		let availableCount	= bytes.count
-		
-		// ci deve essere almeno un carattere: null
-		guard availableCount > 0 else {
+		var inSize = 0
+		let string = try bytes.withUnsafeBytes { source -> String in
+			let buffer = source.bindMemory(to: UInt8.self)
+			
+			for char in buffer {
+				inSize += 1
+				if char == 0 {	// ho trovato NULL
+					return String( cString: buffer.baseAddress! )
+				}
+			}
+			
 			throw BinaryIOError.outOfBounds(
 				Self.self, BinaryIOError.Context(
 					debugDescription: "No more bytes available for a null terminated string."
 				)
 			)
 		}
-		
-		var inSize = 0
-		let string = try bytes.withUnsafeBytes { source -> String in
-			guard let baseAddress = source.baseAddress else {
-				throw BinaryIOError.outOfBounds(
-					Self.self, BinaryIOError.Context(
-						debugDescription: "This should never happen."
-					)
-				)
-			}
-			let ptr	= UnsafePointer<UInt8>( OpaquePointer( baseAddress ) )
-			// non posso superare bytesCount
-			for index in 0..<availableCount {
-				if ptr[index] == 0 {	// ho trovato NULL
-					inSize = index + 1
-					return String(cString: ptr)
-				}
-			}
-			// ho superato bytesCount!
+		// ci deve essere almeno un carattere: null
+		guard inSize > 0 else {
 			throw BinaryIOError.outOfBounds(
 				Self.self, BinaryIOError.Context(
 					debugDescription: "No more bytes available for a null terminated string."
