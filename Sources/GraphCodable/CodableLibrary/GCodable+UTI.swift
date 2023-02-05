@@ -20,39 +20,31 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
-import Foundation
+import UniformTypeIdentifiers
 
-enum GCodableError : Error {
-	struct Context {
-		let debugDescription:	String
-		let underlyingError:	Error?
-		let function:			String
-		let file:				String
+@available(macOS 11.00, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+extension UTTagClass : GCodable {}
 
-		init(
-			debugDescription: String,
-			underlyingError: Error? = nil,
-			function: String = #function,
-			file: String = #fileID
-		) {
-			self.debugDescription	= debugDescription
-			self.underlyingError	= underlyingError
-			self.function			= function
-			self.file				= file
-		}
+
+@available(macOS 11.00, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
+extension UTType : GCodable {
+	private enum Key : String { case identifier }
+
+	public func encode(to encoder: GEncoder) throws {
+		try encoder.encode(identifier, for: Key.identifier)
 	}
 	
-	case initTypeError( Any.Type, GCodableError.Context )
-	
-	case internalInconsistency( Any.Type, GCodableError.Context )
-	case cantConstructClass( Any.Type, GCodableError.Context )
 
-	case duplicateKey( Any.Type, GCodableError.Context )
-	case duplicateTypeID( Any.Type, GCodableError.Context )
-	case keyNotFound( Any.Type, GCodableError.Context )
-	case childNotFound( Any.Type, GCodableError.Context )
-
-	case decodingError( Any.Type, GCodableError.Context )
-	case typeMismatch( Any.Type, GCodableError.Context )
+	public init(from decoder: GDecoder) throws {
+		let identifier = try decoder.decode(for: Key.identifier) as String
+		
+		guard let uttype = Self.init( identifier ) else {
+			throw BinaryIOError.initTypeError(
+				Self.self, BinaryIOError.Context(
+					debugDescription: "Invalid UTType identifier -\(identifier)-"
+				)
+			)
+		}
+		self = uttype
+	}
 }
-

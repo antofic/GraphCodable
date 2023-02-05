@@ -67,19 +67,19 @@ The result:
 
 ```
 == GRAPH =========================================================
-- Struct
-	- Obj_1000 MyGraphCodableApp.AClass
-		+ "astruct": Struct
+- VAL
+	- REF1000 MyGraphCodableApp.AClass
+		+ "astruct": VAL
 			+ "array": [1, 2, 3]
-			+ "dict": ["5": 5, "4": 4]
+			+ "dict": ["4": 4, "5": 5]
 		.
-		+ "aclass": Ptr_1001?
+		+ "aclass": PTR1001?
 	.
-	- Ptr_1000
-	- Ptr_1000
-	- Ptr_1000
-	- Obj_1001 MyGraphCodableApp.AClass
-		+ "astruct": Struct
+	- PTR1000
+	- PTR1000
+	- PTR1000
+	- REF1001 MyGraphCodableApp.AClass
+		+ "astruct": VAL
 			+ "array": [1, 2, 3]
 			+ "dict": ["4": 4, "5": 5]
 		.
@@ -99,18 +99,18 @@ Both lists end when the symbol **.** is encountered.
 The root is always the only item of the first sequence.
 
 Rows by rows:
--	`STRUCT`, a value type, is the root.
+-	`VAL`, a value type, is the root.
 -	It contains 5 elements corresponding to `[b, b, b, b, a]`:
-	-	The first element `Obj_1000 MyGraphCodableApp.AClass` is a reference (`Obj`) type.
-		GraphCodable assigns a unique numeric `Obj_number` to each object it encounters.
+	-	The first element `REF1000 MyGraphCodableApp.AClass` is a reference (`REF`) type.
+		GraphCodable assigns a unique numeric `id` in `REF<id>` to each object it encounters.
 		This object in turn contains a structure corresponding to the key 'astruct' and an object corresponding to the key 'aclass'
 		-	First, you see the complete definition of the struct, with its array and its dictionary. They contain native types.
 			The list of all GCodable supported types of Swift Standard Library and Foundation is [here](/Docs/GraphCodableTypes.md).
-		- 	Then you see: `"aclass": Ptr_1001?` This is because aclass has been conditionally archived.
-			The encoder assigns it an attempt `Ptr_number?` and waits for it to be stored unconditionally if it happens.
-	-	The second, third and fourth element of the array are pointers `Ptr_1000` to **b**, which has already been stored as `Obj_1000`.
-		Therefore the encoder only stores the `Ptr_number`, which this time is certain (`Ptr_number` without question mark).
-	-	The fifth element is `a` which was not archived previously and is therefore archived now.
+		- 	Then you see: `"aclass": `PTR1001?` This is because aclass has been conditionally archived.
+			The encoder assigns it an attempt `PTR<id>?` and waits for it to be stored unconditionally if it happens.
+	-	The second, third and fourth element of the array are pointers `PTR1000` to **b**, which has already been stored as `REF_1000`.
+		Therefore the encoder only stores the `PTR<id>`, which this time is certain (`PTR<id>` without question mark).
+	-	The fifth element `REF1001` is `a` which was only conditionally archived previously (`PTR1001?`) and is therefore archived now.
 
 *As an exercise*: see what happens when you delete `a` from the array.
 
@@ -121,44 +121,120 @@ Rows by rows:
 GraphCodable employs some tricks to reduce the size of the data to be stored.
 For example, types and keys are saved only once in special tables and are addressed to them through a unique ID.
 By using the '.binaryLike' option you can see the data saved in a format that more closely resembles the binary format actually used.
+By using the '.showMangledClassNames' option it is possible to see the archived string which will be used to construct the type during dearchiving.
+Graphcodable tries `_typeByName( MangledName )` first and then `NSClassFromString( NSTypeName )`
 
-`print( try GraphEncoder().dump( inRoot, options: .binaryLike ) )`
+Try replacing:
+`print( try GraphEncoder().dump( inRoot ) )`
+with:
+`print( try GraphEncoder().dump( inRoot, options: [.binaryLike,.showMangledClassNames] ) )`
+in the previous code.
 
+The result:
 ```
 == HEADER ========================================================
-Filetype = gcodable V0, U0 = "", U1 = 0, U2 = 0
+FILETYPE = gcodable V0, U0 = "", U1 = 0, U2 = 0
 == TYPEMAP =======================================================
-Type100:	MyGraphCodableApp.AClass V0
+TYPE100:	MyGraphCodableApp.AClass V0
+			MangledName = 17MyGraphCodableApp6AClassC
+			NSTypeName  = MyGraphCodableApp.AClass
 == GRAPH =========================================================
-- Struct
-	- Obj_1000 Type100
-		+ Key100: Struct
-			+ Key101: [1, 2, 3]
-			+ Key102: ["4": 4, "5": 5]
+- VAL
+	- REF1000 TYPE100
+		+ KEY100: VAL
+			+ KEY101: [1, 2, 3]
+			+ KEY102: ["5": 5, "4": 4]
 		.
-		+ Key103: Ptr_1001?
+		+ KEY103: PTR1001?
 	.
-	- Ptr_1000
-	- Ptr_1000
-	- Ptr_1000
-	- Obj_1001 Type100
-		+ Key100: Struct
-			+ Key101: [1, 2, 3]
-			+ Key102: ["5": 5, "4": 4]
+	- PTR1000
+	- PTR1000
+	- PTR1000
+	- REF1001 TYPE100
+		+ KEY100: VAL
+			+ KEY101: [1, 2, 3]
+			+ KEY102: ["4": 4, "5": 5]
 		.
-		+ Key103: nil
+		+ KEY103: nil
 	.
 .
 == KEYMAP ========================================================
-Key100:	"astruct"
-Key101:	"array"
-Key102:	"dict"
-Key103:	"aclass"
+KEY101:	"array"
+KEY103:	"aclass"
+KEY102:	"dict"
+KEY100:	"astruct"
 ==================================================================
 ```
-
 You can see:
 - The **HEADER** section, with the file format name (gcodable), its global version, and some unused fields;
 - The **TYPEMAP** section, in which an **TypeID** is associated with each class with its version;
 - The **GRAPH** section, which uses typeIDs and keyIDs;
-- The **TYPEMAP** section, in which an **KeyID** is associated with each key used in keyed coding;
+- The **KEYMAP** section, in which an **KeyID** is associated with each key used in keyed coding;
+
+## Full Binary Encoding
+During archiving, all data is transformed into basic simple types (NativeType protocol, implemented by integer and binary floating points numbers, Bool, Strings, Data) and written in binary format.
+But GraphCodable is capable of saving directly in binary a whole series of "system" types, among which arrays, dictionaries etc… and by default it employs this optimization.
+You can disable it during archiving using `GraphEncoder( fullBinaryEncode: false )`.
+
+Try replacing:
+`print( try GraphEncoder().dump( inRoot ) )`
+with:
+`print( try GraphEncoder( fullBinaryEncode: false ).dump( inRoot, options: [.binaryLike,.showMangledClassNames] ) )`
+in the previous code.
+
+The result:
+```
+== HEADER ========================================================
+FILETYPE = gcodable V0, U0 = "", U1 = 0, U2 = 0
+== TYPEMAP =======================================================
+TYPE100:	MyGraphCodableApp.AClass V0
+			MangledName = 17MyGraphCodableApp6AClassC
+			NSTypeName  = MyGraphCodableApp.AClass
+== GRAPH =========================================================
+- VAL
+	- REF1000 TYPE100
+		+ KEY100: VAL
+			+ KEY101: VAL
+				- 1
+				- 2
+				- 3
+			.
+			+ KEY102: VAL
+				- "5"
+				- 5
+				- "4"
+				- 4
+			.
+		.
+		+ KEY103: PTR1001?
+	.
+	- PTR1000
+	- PTR1000
+	- PTR1000
+	- REF1001 TYPE100
+		+ KEY100: VAL
+			+ KEY101: VAL
+				- 1
+				- 2
+				- 3
+			.
+			+ KEY102: VAL
+				- "4"
+				- 4
+				- "5"
+				- 5
+			.
+		.
+		+ KEY103: nil
+	.
+.
+== KEYMAP ========================================================
+KEY100:	"astruct"
+KEY103:	"aclass"
+KEY101:	"array"
+KEY102:	"dict"
+==================================================================```
+```
+You can now see how arrays and dictionaries are first decomposed into each element and then stored.
+
+

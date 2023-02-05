@@ -22,37 +22,22 @@
 
 import Foundation
 
-enum GCodableError : Error {
-	struct Context {
-		let debugDescription:	String
-		let underlyingError:	Error?
-		let function:			String
-		let file:				String
-
-		init(
-			debugDescription: String,
-			underlyingError: Error? = nil,
-			function: String = #function,
-			file: String = #fileID
-		) {
-			self.debugDescription	= debugDescription
-			self.underlyingError	= underlyingError
-			self.function			= function
-			self.file				= file
-		}
-	}
-	
-	case initTypeError( Any.Type, GCodableError.Context )
-	
-	case internalInconsistency( Any.Type, GCodableError.Context )
-	case cantConstructClass( Any.Type, GCodableError.Context )
-
-	case duplicateKey( Any.Type, GCodableError.Context )
-	case duplicateTypeID( Any.Type, GCodableError.Context )
-	case keyNotFound( Any.Type, GCodableError.Context )
-	case childNotFound( Any.Type, GCodableError.Context )
-
-	case decodingError( Any.Type, GCodableError.Context )
-	case typeMismatch( Any.Type, GCodableError.Context )
+public protocol BinaryIOType {
+	func write( to writer: inout BinaryWriter ) throws
+	init( from reader: inout BinaryReader ) throws
 }
+
+extension BinaryIOType {
+	public func binaryData<Q>() throws -> Q where Q:MutableDataProtocol {
+		var writer = BinaryWriter()
+		try write( to:&writer )
+		return writer.data()
+	}
+
+	public init<Q>( binaryData: Q ) throws where Q:Sequence, Q.Element==UInt8 {
+		var reader = BinaryReader( data:binaryData )
+		try self.init( from: &reader )
+	}
+}
+
 

@@ -19,8 +19,8 @@
 		- [Reference type replacement system](#Reference-type-replacement-system)
 	
 ## Premise
-GraphCodable has been completely revised. It now relies on `NSStringFromClass(...)` to generate the "type name" and on  `NSClassFromString(...)` to retrieve the class type.
-At least on Apple systems this procedure should be stable.
+GraphCodable has been completely revised. It now relies on `_mangledTypeName(...)` (when available) and `NSStringFromClass(...)` to generate the "type name" and on `_typeByName(...)` and `NSClassFromString(...)` to retrieve the class type from it.
+
 
 Thanks to this change **it is no longer necessary to register the classes (the repository is gone)** or even set the main module name.
 
@@ -167,9 +167,9 @@ extension Array: GCodable where Element:GCodable {
 	public init(from decoder: GDecoder) throws {
 		self.init()
 
-		self.reserveCapacity( try decoder.unkeyedCount() )
+		self.reserveCapacity( try decoder.unkeyedCount )
 
-		while try decoder.unkeyedCount() > 0 {
+		while try decoder.unkeyedCount > 0 {
 			self.append( try decoder.decode() )
 		}
 	}
@@ -517,17 +517,12 @@ What happens if you add a connection from **e** to **b** in the previous example
 Just like ARC cannot release **e**, **b** and **d** because each retain the other, GraphCodable cannot initialize **e**, **b** and **d** because the initialization of each of them requires that the other be initialized and
 Swift does not allow to exit from an init method without inizializing all variables. So, when GraphCodable during decode encounters a cycle that it cannot resolve, it throws an exception.
 
-ARC has a specific solution for these cases: the use of weak variables.
-Similarly, GraphCodable uses a slightly different way to decode weak variables used to break strong memory cycles: it postpones, calling a closure with the `deferDecode(...)` method, the setting of these variables (remember: they are optional, so they are auto-inizializated to nil) until the objects they point to have been initialized.
-
-There is therefore a **one-to-one** correspondence between using weak variables to break strong memory cycles in ARC and using `deferDecode(...)` to allow initialization of such variables. `deferDecode(...)` **should not be used in any other case**.
+##### An example: weak variables
+One possible solution for ARC is to use weak variables.
+Than, GraphCodable uses a slightly different way to decode weak variables used to break strong memory cycles: it postpones, calling a closure with the `deferDecode(...)` method, the setting of these variables (remember: they are optional, so they are auto-inizializated to nil) until the objects they point to have been initialized.
 
 Let's see how with a classic example: the **parent-childs pattern**. In this pattern the parent variable is weak to break the strong cycles (self.parent.child === self) that would otherwise form with his childs.
 Similarly, this pattern requires to 'deferDecode' the weak variable (parent) because the initialization of parent depends on that of its childs and vice versa.
-
-*Note:* You should **always** use `encodeConditional(...)` to encode a weak variable. Otherwise you run the risk of unnecessarily encode and decode objects that will be immediately released  after decoding.
-
-*Note:* Swift does not allow to call `deferDecode(...)` from the init of a value type, but only from that of a reference type and forces to call it **after** super class initialization.
 
 ```swift
 import Foundation
@@ -630,57 +625,134 @@ print( outRoot )	// print 'Screen [Window [View [], View [View []]], Window [Vie
 
 print( outRoot === outRoot.childs.first?.childs.first?.parent?.parent! )	// print true
 ```
+##### A more general example: elimination of ARC trong cycles
+Another possible workaround with ARC is to manually drop the strong cycles to allow for memory release.
+In the following example, the Model class contains a collection of Node classes by name in a dictionary.
+Each node contains an array of nodes it is connected to and may also be connected to itself.
+To prevent memory from ever being freed, Model's 'deinit' method calls 'removeConnections' for each node it owns.
 
-For another example of DCG, see `testDGC()` in the tests section (DirectedCyclicGraphTests).
+So we have a model where the array of connections in each Node to other Nodes generates reference cycles.
 
-### Coding rules
+If `decode` is used for those connections, the dearchiving fails due to reference cycles.
+The solution, as per the following example, is to use `deferDecode` to dearchive the array.
 
-This table summarizes the methods to be used in your `func encode(to encoder: GEncoder) throws { ... }` and `init(from decoder: GDecoder) throws { ... }` depending on the type of variable to be encoded and decoded:
-
+See the example:
 ```
-┌───────────────────────────────────────────────────────────────────────────────┐
-│                           ENCODE/DECODE RULES                                 │
-├───────────────────┬───────────────────┬───────────────────────────────────────┤
-│                   │    VALUE   TYPE   │            REFERENCE TYPE             │
-│      METHOD       ├─────────┬─────────┼─────────┬─────────┬─────────┬─────────┤
-│                   │         │    ?    │ strong  │ strong? │ weak? O │ weak? Ø │
-╞═══════════════════╪═════════╪═════════╪═════════╪═════════╪═════════╪═════════╡
-│ encode            │  █████  │  █████  │  █████  │  █████  │⁵        │⁵        │
-├───────────────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────┤
-│⁶encodeIfPresent   │¹        │  █████  │¹        │  █████  │⁵        │⁵        │
-├───────────────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────┤
-│ encodeConditional │¹        │¹        │¹        │  █████  │  █████  │  █████  │
-╞═══════════════════╪═════════╪═════════╪═════════╪═════════╪═════════╪═════════╡
-│ decode            │  █████  │  █████  │  █████  │  █████  │  █████  │⁴        │
-├───────────────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────┤
-│⁶decodeIfPresent   │¹        │  █████  │¹        │  █████  │  █████  │⁴        │
-├───────────────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────┤
-│ deferDecode       │¹        │¹        │¹        │³        │³        │² █████  │
-╞═══════════════════╧═════════╧═════════╧═════════╧═════════╧═════════╧═════════╡
-│    ?    = optional                                                            │
-│ strong  = strong reference                                                    │
-│ strong? = optional strong reference                                           │
-│  weak?  = weak reference (always optional)                                    │
-│    Ø    = weak reference used to prevent strong memory cycles in ARC          │
-│    O    = any other use of a weak reference                                   │
-├───────────────────────────────────────────────────────────────────────────────┤
-│  █████  = mandatory or highly recommended                                     │
-│ ¹       = not allowed                                                         │
-│ ²       = allowed by Swift only in the init method of a reference type        │
-│           Swift forces to call it after super class initialization            │
-│ ³       = you don't need deferDecode: use decode(...) instead                 │
-│ ⁴       = GraphCodable exception during decode: use deferDecode(...) instead  │
-│ ⁵       = allowed but not recommendend: you run the risk of unnecessarily     │
-│           encode and decode objects that will be immediately released after   │
-│           decoding. Use encodeConditional(...) instead.                       │
-│ ⁶       = keyed coding only.                                                  │
-│         - encodeIfPresent(...) encode the value only if value != nil          │
-│           encode(...) encode nil in the same situation                        │
-│         - decodeIfPresent(...) decode the value for the given key if it       │
-│           exists ( i.e. contains(key) == true ) and do not generate an        │
-│           exception if the key doesn't exists.                                │
-└───────────────────────────────────────────────────────────────────────────────┘
+import Foundation
+import GraphCodable
+
+class Model : GCodable, Equatable, CustomStringConvertible {
+	class Node : GCodable, Equatable, CustomStringConvertible {
+		static func == (lhs: Node, rhs: Node) -> Bool {
+			return lhs.name == rhs.name && lhs.connections.map { $0.name } == rhs.connections.map { $0.name }
+		}
+		
+		private var connections = [Node]()
+		let name : String
+
+		func connect( to nodes: Node... ) {
+			connections.append(contentsOf: nodes)
+		}
+		
+		init( _ name:String ) {
+			self.name	= name
+		}
+		
+		private enum Key : String {
+			case name, connections
+		}
+		
+		required init(from decoder: GDecoder) throws {
+			name		= try decoder.decode( for: Key.name  )
+			// *** SEE HERE:  *** SEE HERE:  *** SEE HERE:  *** SEE HERE: ***
+			try decoder.deferDecode( for: Key.connections ) { self.connections = $0 }
+		}
+		
+		func encode(to encoder: GEncoder) throws {
+			try encoder.encode( name,  for: Key.name  )
+			try encoder.encode( connections, for: Key.connections )
+		}
+		
+		func removeConnections() {
+			connections.removeAll()
+		}
+
+		var description: String {
+			return "\( Self.self ) '\(name)' -> \( connections.map { $0.name } )"
+		}
+	}
+
+	
+	private (set) var nodes = [String:Node]()
+	
+	init() {}
+
+	static func == (lhs: Model, rhs: Model) -> Bool {
+		return lhs.nodes == rhs.nodes
+	}
+
+	private enum Key : String {
+		case nodes
+	}
+
+	required init(from decoder: GDecoder) throws {
+		nodes	= try decoder.decode( for: Key.nodes )
+		//	deferDecode can be used here, but is not required
+		//	try decoder.deferDecode( for: Key.nodes ) { self.nodes = $0 }
+	}
+	
+	func encode(to encoder: GEncoder) throws {
+		try encoder.encode(nodes, for: Key.nodes )
+	}
+	
+	func newNode( _ name: String ) -> Node {
+		if let node = nodes[name] {
+			return node
+		} else {
+			let node = Node( name )
+			nodes[name]	= node
+			return node
+		}
+	}
+	
+	subscript( _ name: String ) -> Node? {
+		return nodes[name]
+	}
+			
+	deinit {
+		// avoid strong memory cycles
+		nodes.forEach { $0.value.removeConnections() }
+	}
+	
+	var description: String {
+		return nodes.values.reduce(into: "\(Self.self):" ) { $0.append( "\n\t• \($1.description )" ) }
+	}
+}
+
+let inModel	= Model()
+
+let a 		= inModel.newNode("a")
+let b 		= inModel.newNode("b")
+let c 		= inModel.newNode("c")
+let d 		= inModel.newNode("d")
+let e 		= inModel.newNode("e")
+
+//	A cyclic graph
+a.connect( to: b,c,d,e )
+b.connect( to: d,a,c,b,b,b )
+c.connect( to: d,e,a,c,b,b,b,c,e )
+d.connect( to: e,d,e,a,c,b )
+e.connect( to: a,b,c,d,e,e )
+
+let data		= try GraphEncoder().encode( inModel )
+let outModel	= try GraphDecoder().decode( type(of:inModel), from:data )
+
+print( "decoded \( outModel ) " )
+print( "\( inModel == outModel ) " )
 ```
+
+### GraphCodable protocols
+
 All GraphCodable protocols are defined [here](/Sources/GraphCodable/GraphCodable.swift).
 
 ### Other features
@@ -755,18 +827,20 @@ class MyData :GCodable, CustomStringConvertible {
 	}
 	
 	//	Let's make a new version of MyData...
-	static var	encodeVersion: UInt32 { return 1 }
+	class var currentVersion: UInt32 {
+		return 1
+	}
 	
 	// ...so that during the dearchive it can be distinguished from the old one:
 	required init(from decoder: GDecoder) throws {
-		let version = try decoder.encodedVersion( type(of:self) )
+		let version = try decoder.encodedVersion
 		
 		switch version {
 		case 0:
-			print( "decoding \(MyData.self) version 0 and updating to \(Self.encodeVersion)..." )
+			print( "decoding \(MyData.self) version 0 and updating to \(Self.currentVersion)..." )
 			self.string	=  String( try decoder.decode( for: OldKey.number ) as Int )
-		case Self.encodeVersion:
-			print( "decoding the actual (\(Self.encodeVersion)) version of \(MyData.self)..." )
+		case Self.currentVersion:
+			print( "decoding the actual (\(Self.currentVersion)) version of \(MyData.self)..." )
 			self.string	=  try decoder.decode( for: Key.string )
 		default:
 			preconditionFailure( "unknown version \(version) for type \( MyData.self )" )
@@ -798,7 +872,84 @@ let outRoot2	= try GraphDecoder().decode( MyData.self, from: GraphEncoder().enco
 print( outRoot2 )
 // print: MyData(string: "3")
 ```
-
 #### Reference type replacement system
 
-I'm redesigning it.
+Now suppose we need to change the name from `MyData` to `MyNewData`.
+The problem is that there are already saved files in which objects of type MyData are stored and it is therefore necessary, during dearchiving, that objects of the new type MyNewData be created instead of these.
+
+To achieve this you shouldn't eliminate MyData from your code, but rather remove all content and implement the GCodableObsolete protocol by indicating in the `replacementType` method that
+`MyNewData` replaces `MyData`.
+
+```
+class MyData :GCodableObsolete {
+	static var replacementType: (AnyObject & GCodable).Type {
+		return MyNewData.self
+	}
+}
+```
+Here is the full code:
+```
+import Foundation
+import GraphCodable
+
+class MyData :GCodableObsolete {
+	static var replacementType: (AnyObject & GCodable).Type {
+		return MyNewData.self
+	}
+}
+
+class MyNewData :GCodable, CustomStringConvertible {
+	let string : String
+	
+	init( string: String ) {
+		self.string	= string
+	}
+	
+	private enum OldKey : String {
+		case number
+	}
+	
+	private enum Key : String {
+		case string
+	}
+		
+	required init(from decoder: GDecoder) throws {
+		if let replacedType	= try decoder.replacedType {
+			// I'm decoding MyData and replacing with MyNewData
+			print( "decoding \(replacedType.self) and replacing with \(Self.self)..." )
+			self.string	=  String( try decoder.decode( for: OldKey.number ) as Int )
+		} else {
+			// I'm decoding MyNewData
+			print( "decoding \(Self.self)..." )
+			self.string	=  try decoder.decode( for: Key.string )
+		}
+	}
+	
+	func encode(to encoder: GEncoder) throws {
+		try encoder.encode( string, for:Key.string )
+	}
+	
+	var description: String {
+		return "\(type(of:self))(string: \(string))"
+	}
+}
+
+let path = FileManager.default.urls(
+	for: .documentDirectory, in: .userDomainMask
+)[0].appendingPathComponent("MyFile.graph")
+
+let data	= try Data(contentsOf: path)
+
+let outRoot	= try GraphDecoder().decode( MyNewData.self, from: data )
+// print: decoding MyData and replacing with MyNewData...
+print( outRoot )
+// print: MyData(string: "3")
+
+let outRoot2	= try GraphDecoder().decode( MyNewData.self, from: GraphEncoder().encode( outRoot ) )
+// print: decoding MyNewData...
+print( outRoot2 )
+// print: MyData(string: "3")
+```
+Multiple classes can be replaced by only one if necessary: use `decoder.replacedType` to find out which one was replaced during dearchiving.
+
+Version and replacement system can be combined.

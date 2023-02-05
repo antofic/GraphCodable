@@ -45,7 +45,7 @@ public final class GraphDecoder {
 	public init() {}
 
 	public var userInfo : [String:Any] {
-		get { return decoder.userInfo }
+		get { decoder.userInfo }
 		set { decoder.userInfo = newValue }
 	}
 
@@ -92,17 +92,19 @@ public final class GraphDecoder {
 		func decodeRoot<T>( _ type: T.Type, from data: Data ) throws -> T  where T:GCodable {
 			defer { _costructor = nil }
 			
-			var reader		= BinaryReader(data: data)
+			var reader	= BinaryReader(data: data)
 			
 			constructor	= TypeConstructor(decodedData: try DecodedData( from: &reader ))
 			
 			return try constructor.decodeRoot(type, from: self)
 		}
 		
-		// ------ keyed support
-		
-		func encodedVersion<T>( _ type: T.Type ) throws -> UInt32  where T:GCodable, T:AnyObject {
-			return try constructor.encodedVersion( type )
+		var encodedVersion : UInt32 {
+			get throws { try constructor.encodedVersion }
+		}
+
+		var replacedType : GCodableObsolete.Type?   {
+			get throws { try constructor.replacedType }
 		}
 		
 		// ------ keyed support
@@ -121,16 +123,18 @@ public final class GraphDecoder {
 			return try constructor.decodeNode( block:block, from: self )
 		}
 		
-		func deferDecode<Key, Value>( for key: Key, _ setter: @escaping (Value?) -> ()) throws
-		where Key : RawRepresentable, Value : AnyObject, Value : GCodable, Key.RawValue == String
+		func deferDecode<Key, Value>( for key: Key, _ setter: @escaping (Value) -> ()) throws
+		where Key : RawRepresentable, Value : GCodable, Key.RawValue == String
 		{
-			try constructor.decodeNode( block:try constructor.popNode( key:key.rawValue ), setter )
+			let	block = try constructor.popNode( key:key.rawValue )
+
+			try constructor.deferDecodeNode( block:block, from: self, setter )
 		}
 
 		// ------ unkeyed support
 		
-		func unkeyedCount() -> Int {
-			return constructor.currentBlock.unkeyedCount
+		var unkeyedCount : Int {
+			constructor.currentBlock.unkeyedCount
 		}
 		
 		func decode<Value>() throws -> Value where Value : GCodable {
@@ -140,7 +144,9 @@ public final class GraphDecoder {
 		}
 		
 		func deferDecode<Value>(_ setter: @escaping (Value?) -> ()) throws where Value : GCodable, Value : AnyObject {
-			try constructor.decodeNode( block:try constructor.popNode(), setter )
+			let	block = try constructor.popNode()
+
+			try constructor.deferDecodeNode( block:block, from: self, setter )
 		}
 
 		// ------ Private
@@ -499,10 +505,21 @@ fileprivate final class GraphBlock {
 }
 
 // -------------------------------------------------
-// ----- DecodeConstructor
+// ----- TypeConstructor
 // -------------------------------------------------
 
 fileprivate final class TypeConstructor {
+	private enum SetterType {
+		case object	( objID:IntID, setter:(AnyObject) throws -> () )
+		case value	( setter:() throws -> () )
+	}
+
+	private var			decodedData			: DecodedData
+	private (set) var 	currentBlock 		: GraphBlock
+	private (set) var 	currentInfo 		: ClassInfo?
+	private var			objectRepository 	= [ IntID :AnyObject ]()
+	private var			setterRepository 	= [ SetterType ]()
+
 	init( decodedData:DecodedData ) {
 		self.decodedData	= decodedData
 		self.currentBlock	= decodedData.rootBlock
@@ -516,29 +533,24 @@ fileprivate final class TypeConstructor {
 		return value
 	}
 	
-	private var			decodedData			: DecodedData
-	private (set) var 	currentBlock 		: GraphBlock
-	private var			objectRepository 	= [IntID:AnyObject]()
-	private var			deferredRepository 	= [IntID:[(AnyObject) throws -> ()]]()
-	private lazy var	classToID	 		: [ObjectIdentifier:IntID] = {
-		var cToID = [ObjectIdentifier:IntID]()
-		for (id,classInfo) in decodedData.classInfoMap {
-			cToID[ ObjectIdentifier( classInfo.codableType ) ] = id
-		}
-		return cToID
-	}()
-
-	func decodeDelayed() throws {
-		for (objID,setters) in deferredRepository {
-			// solo se sono stati salvati!
-			if let anyValue = objectRepository[objID] {
-				for setter in setters {
-					try setter( anyValue )
+	private func decodeDelayed() throws {
+		while setterRepository.isEmpty == false {
+			switch setterRepository.removeLast() {
+			case .object(objID: let objID, setter: let setter):
+				guard let object = objectRepository[objID] else {
+					throw GCodableError.internalInconsistency(
+						Self.self, GCodableError.Context(
+							debugDescription: "Object objID = \(objID) must exists."
+						)
+					)
 				}
+				try setter( object )
+			case .value(setter: let setter):
+				try setter()
 			}
 		}
 	}
-	
+
 	func contains(key: String) -> Bool {
 		return currentBlock.contains(key: key)
 	}
@@ -576,28 +588,41 @@ fileprivate final class TypeConstructor {
 		}
 		return classInfo
 	}
-
-	func encodedVersion<T>( _ type: T.Type ) throws -> UInt32  where T:GCodable, T:AnyObject {
-		guard let typeID = classToID[ ObjectIdentifier(type) ] else {
-			throw GCodableError.decodedDataDontContainsType(
-				Self.self, GCodableError.Context(
-					debugDescription: "The dearchived data does not contain any objects of the class -\(type)-."
+	
+	var encodedVersion : UInt32 {
+		get throws {
+			guard let classInfo = currentInfo else {
+				throw GCodableError.typeMismatch(
+					Self.self, GCodableError.Context(
+						debugDescription: "Property not available for value types."
+					)
 				)
-			)
+			}
+			return classInfo.classData.encodeVersion
 		}
-		return try classInfo( typeID:typeID ).classData.encodeVersion
 	}
 
-	func decodeNode<T>( block:GraphBlock, _ setter: @escaping (T?) -> () ) throws  where T:GCodable {
-		let saveCurrent = currentBlock
-		currentBlock	= block
-		defer { currentBlock = saveCurrent }
-		
+	var replacedType : GCodableObsolete.Type? {
+		get throws {
+			guard let classInfo = currentInfo else {
+				throw GCodableError.typeMismatch(
+					Self.self, GCodableError.Context(
+						debugDescription: "Property not available for value types."
+					)
+				)
+			}
+			return classInfo.classData.obsoleteType
+		}
+	}
+	
+	func deferDecodeNode<T>( block:GraphBlock, from decoder:GDecoder, _ setter: @escaping (T) -> () ) throws where T:GCodable {
+		let saved	= (currentBlock, currentInfo)
+		(currentBlock, currentInfo)	= (block, nil)
+		defer { (currentBlock, currentInfo) = saved }
+
 		switch block.dataBlock {
-		case .nilValue( _ ):
-			setter( nil )
 		case .objectSPtr( _, let objID ):
-			//	con questo fallthrough scompare l'obblico di impiegare
+			//	con questo fallthrough scompare l'obbligo di impiegare
 			//	encodeConditional per le variabili weak e tutto funziona,
 			//	ma la cosa non ha logicamente senso perché se non sono
 			//	tenute in vita da qualche strong path, diventerebbero
@@ -606,29 +631,24 @@ fileprivate final class TypeConstructor {
 			fallthrough
 		case .objectWPtr( _, let objID ):
 			let anySetter : (AnyObject) throws -> () = {
-				anyValue in
-				guard let value = anyValue as? T else {
+				anyObject in
+				guard let object = anyObject as? T else {
 					throw GCodableError.typeMismatch(
 						Self.self, GCodableError.Context(
 							debugDescription: "Block \(block.dataBlock) doesn't contains -\(T.self)-."
 						)
 					)
 				}
-				setter( value )
+				setter( object )
 			}
 			
-			if var array = deferredRepository[ objID ] {
-				array.append( anySetter )
-				deferredRepository[ objID ]	= array
-			} else {
-				deferredRepository[ objID ] = [ anySetter ]
-			}
+			setterRepository.append( .object(objID: objID, setter: anySetter) )			
 		default:
-			throw GCodableError.internalInconsistency(
-				Self.self, GCodableError.Context(
-					debugDescription: "Inappropriate block \(block.dataBlock) here."
-				)
-			)
+			let anySetter : () throws -> () = {
+				let value : T = try self.decodeNode( block:block, from:decoder )
+				setter( value )
+			}
+			setterRepository.append( .value(setter: anySetter) )
 		}
 	}
 
@@ -648,15 +668,13 @@ fileprivate final class TypeConstructor {
 					//	gli unici blocchi possibili sono di tipo .Object
 					switch block.dataBlock {
 					case .objectType( _, let typeID, let objID ):
-						let saveCurrent = currentBlock
-						currentBlock	= block
-						defer { currentBlock = saveCurrent }
+						let saved	= (currentBlock, currentInfo)
+						(currentBlock, currentInfo)	= (block, try classInfo( typeID:typeID ))
+						defer { (currentBlock, currentInfo) = saved }
 
-						let classInfo	= try classInfo( typeID:typeID )
-						let value		= try classInfo.codableType.init(from: decoder)
-						
-						objectRepository[ objID ]	= value as AnyObject
-						return value as AnyObject
+						let object		= try currentInfo!.codableType.init(from: decoder)
+						objectRepository[ objID ]	= object
+						return object
 					default:
 						throw GCodableError.internalInconsistency(
 							Self.self, GCodableError.Context(
@@ -671,13 +689,12 @@ fileprivate final class TypeConstructor {
 			
 			switch block.dataBlock {
 			case .nilValue( _ ):
-				let x : Any? = nil
-				return x as Any
+				return Optional<Any>.none as Any
 			case .objectWPtr( _, let objID ):
-				// nessun controllo: può essere nil!
+				// nessun controllo: può essere nil
 				return try decodeAnyObject( objID:objID, from:decoder ) as Any
 			case .objectSPtr( _, let objID ):
-				guard let anyObject = try decodeAnyObject( objID:objID, from:decoder ) else {
+				guard let object = try decodeAnyObject( objID:objID, from:decoder ) else {
 					throw GCodableError.internalInconsistency(
 						Self.self, GCodableError.Context(
 							debugDescription:
@@ -686,7 +703,7 @@ fileprivate final class TypeConstructor {
 						)
 					)
 				}
-				return anyObject
+				return object
 			default:	// .Struct & .Object are inappropriate here!
 				throw GCodableError.internalInconsistency(
 					Self.self, GCodableError.Context(
@@ -696,10 +713,10 @@ fileprivate final class TypeConstructor {
 			}
 		}
 		
-		let saveCurrent = currentBlock
-		currentBlock	= block
-		defer { currentBlock = saveCurrent }
-
+		let saved	= (currentBlock, currentInfo)
+		(currentBlock, currentInfo)	= (block, nil)
+		defer { (currentBlock, currentInfo) = saved }
+		
 		switch block.dataBlock {
 		case .valueType( _ ):
 			// if T is optional
@@ -707,7 +724,7 @@ fileprivate final class TypeConstructor {
 				// get the inner non optional type
 				let wrapped	= optType.fullUnwrappedType
 				
-				// check if conforms to GCodable.Type and
+				// check if conforms to GCodable.Type,
 				// costruct the value and check if is T
 				guard
 					let decodableType = wrapped as? GCodable.Type,
@@ -725,36 +742,26 @@ fileprivate final class TypeConstructor {
 				return try T.init(from: decoder)
 			}
 		case .outBinType( _ , let bytes ):
+			let wrapped : Any.Type
+
 			if let optType = T.self as? OptionalProtocol.Type {
 				// get the inner non optional type
-				let wrapped	= optType.fullUnwrappedType
-				
-				// check if conforms to GCodable.Type and
-				// costruct the value and check if is T
-				guard
-					let binaryIOType = wrapped as? NativeIOType.Type,
-					let value = try binaryIOType.init(bytesArray: bytes) as? T
-				else {
-					throw GCodableError.typeMismatch(
-						Self.self, GCodableError.Context(
-							debugDescription: "Block \(block) wrapped type -\(wrapped)- not NativeIOType."
-						)
-					)
-				}
-				return value
-			} else { //	if not, construct it:
-				guard
-					let binaryIOType = T.self as? NativeIOType.Type,
-					let value = try binaryIOType.init(bytesArray: bytes) as? T
-				else {
-					throw GCodableError.typeMismatch(
-						Self.self, GCodableError.Context(
-							debugDescription: "Block \(block) type -\(T.self)- not NativeIOType."
-						)
-					)
-				}
-				return value
+				wrapped	= optType.fullUnwrappedType
+			} else {
+				wrapped	= T.self
 			}
+
+			guard
+				let binaryIOType = wrapped as? BinaryIOType.Type,
+				let value = try binaryIOType.init(binaryData: bytes) as? T
+			else {
+				throw GCodableError.typeMismatch(
+					Self.self, GCodableError.Context(
+						debugDescription: "Block \(block) wrapped type -\(wrapped)- not BinaryIOType."
+					)
+				)
+			}
+			return value
 		default:
 			guard let value = try decodeAnyNode( block:block, from:decoder ) as? T else {
 				throw GCodableError.typeMismatch(
