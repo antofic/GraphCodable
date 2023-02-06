@@ -594,7 +594,7 @@ fileprivate final class TypeConstructor {
 			guard let classInfo = currentInfo else {
 				throw GCodableError.typeMismatch(
 					Self.self, GCodableError.Context(
-						debugDescription: "Property not available for value types."
+						debugDescription: "\(#function) not available for value types."
 					)
 				)
 			}
@@ -607,7 +607,7 @@ fileprivate final class TypeConstructor {
 			guard let classInfo = currentInfo else {
 				throw GCodableError.typeMismatch(
 					Self.self, GCodableError.Context(
-						debugDescription: "Property not available for value types."
+						debugDescription: "\(#function) not available for value types."
 					)
 				)
 			}
@@ -695,11 +695,11 @@ fileprivate final class TypeConstructor {
 				return try decodeAnyObject( objID:objID, from:decoder ) as Any
 			case .objectSPtr( _, let objID ):
 				guard let object = try decodeAnyObject( objID:objID, from:decoder ) else {
-					throw GCodableError.internalInconsistency(
+					throw GCodableError.decodingError(
 						Self.self, GCodableError.Context(
 							debugDescription:
 								"Object pointed from -\(block.dataBlock)- not found." +
-								"Check if it is a weak variable that requires deferDecode."
+								"Use deferDecode to break the cycles."
 						)
 					)
 				}
