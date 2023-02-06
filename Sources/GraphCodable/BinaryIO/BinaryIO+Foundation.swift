@@ -464,7 +464,6 @@ extension DateComponents : BinaryIOType {
 //	DateInterval SUPPORT ------------------------------------------------------
 //	Uses Version: YES
 
-@available(macOS 10.12, iOS 10.0, watchOS 3.0, tvOS 10.0, *)
 extension DateInterval : BinaryIOType {
 	private enum Version : UInt8 { case v0 }
 
@@ -496,7 +495,6 @@ extension DateInterval : BinaryIOType {
 //	PersonNameComponents SUPPORT ------------------------------------------------------
 //	Uses Version: YES
 
-@available(macOS 10.11, iOS 9.0, watchOS 2.0, tvOS 9.0, *)
 extension PersonNameComponents : BinaryIOType {
 	private enum Version : UInt8 { case v0 }
 
@@ -625,7 +623,6 @@ extension URLComponents : BinaryIOType {
 //	Measurement SUPPORT ------------------------------------------------------
 
 
-@available(macOS 10.12, iOS 10.0, watchOS 3.0, tvOS 10.0, *)
 extension Measurement : BinaryIOType {
 	private enum Version : UInt8 { case v0 }
 
@@ -654,7 +651,6 @@ extension Measurement : BinaryIOType {
 	}
 }
 
-@available(macOS 10.15, iOS 7.0, watchOS 2.0, tvOS 9.0, *)
 extension OperationQueue.SchedulerTimeType : BinaryIOType {
 	public func write(to writer: inout BinaryWriter) throws {
 		try date.write(to: &writer)
@@ -665,7 +661,6 @@ extension OperationQueue.SchedulerTimeType : BinaryIOType {
 	}
 }
 
-@available(macOS 10.15, iOS 7.0, watchOS 2.0, tvOS 9.0, *)
 extension OperationQueue.SchedulerTimeType.Stride : BinaryIOType {
 	public func write(to writer: inout BinaryWriter) throws {
 		try timeInterval.write(to: &writer)
@@ -676,7 +671,6 @@ extension OperationQueue.SchedulerTimeType.Stride : BinaryIOType {
 	}
 }
 
-@available(macOS 10.15, iOS 7.0, watchOS 2.0, tvOS 9.0, *)
 extension RunLoop.SchedulerTimeType : BinaryIOType {
 	public func write(to writer: inout BinaryWriter) throws {
 		try date.write(to: &writer)
@@ -687,7 +681,6 @@ extension RunLoop.SchedulerTimeType : BinaryIOType {
 	}
 }
 
-@available(macOS 10.15, iOS 7.0, watchOS 2.0, tvOS 9.0, *)
 extension RunLoop.SchedulerTimeType.Stride : BinaryIOType {
 	public func write(to writer: inout BinaryWriter) throws {
 		try timeInterval.write(to: &writer)

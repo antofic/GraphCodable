@@ -188,7 +188,6 @@ extension PartialRangeThrough: GCodable where Bound: GCodable {
 
 // CollectionDifference ------------------------------------------------------
 
-@available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
 extension CollectionDifference.Change : GCodable where ChangeElement : GCodable {
 	private enum ChangeType : UInt8, GCodable { case insert, remove }
 	private enum Key : String { case changeType, offset, element, associatedWith }
@@ -222,7 +221,6 @@ extension CollectionDifference.Change : GCodable where ChangeElement : GCodable 
 	}
 }
 
-@available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
 extension CollectionDifference : GCodable where ChangeElement:GCodable {
 	public init(from decoder: GDecoder) throws {
 		var changes	= [CollectionDifference<ChangeElement>.Change]()

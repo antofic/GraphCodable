@@ -42,60 +42,35 @@ struct ClassData : NativeType, CustomStringConvertible {
 		self.encodeVersion		= try UInt32( from: &reader )
 	}
 	
-	init( codableType:(AnyObject & GCodable).Type ) throws {
-		self.readableTypeName		= _typeName( codableType, qualified:true )
-
-		if #available(macOS 10.16, iOS 14.0, watchOS 7.0, tvOS 14.0, *) {
-			self.mangledTypeName = _mangledTypeName( codableType )
-			guard
-				let typeName = mangledTypeName,
-				_typeByName( typeName ) == codableType else {
-				throw GCodableError.cantConstructClass(
-					Self.self, GCodableError.Context(
-						debugDescription:"The class -\(readableTypeName)- can't be constructed."
-					)
-				)
-			}
-			self.objcTypeName		= NSStringFromClass( codableType )
+	static private func constructType( mangledTypeName:String?, objcTypeName:String ) -> AnyClass? {
+		if let mangledTypeName, let type = _typeByName( mangledTypeName ) as? AnyClass {
+			return type
 		} else {
-			self.mangledTypeName	= nil
-			self.objcTypeName		= NSStringFromClass( codableType )
-
-			guard NSClassFromString( objcTypeName ) == codableType else {
-				throw GCodableError.cantConstructClass(
-					Self.self, GCodableError.Context(
-						debugDescription:"The class -\(readableTypeName)- can't be constructed."
-					)
-				)
-			}
+			return NSClassFromString( objcTypeName )
 		}
+	}
+	
+	init( codableType:(AnyObject & GCodable).Type ) throws {
+		self.readableTypeName	= _typeName( codableType, qualified:true )
+		self.mangledTypeName 	= _mangledTypeName( codableType )
+		self.objcTypeName		= NSStringFromClass( codableType )
 		self.encodeVersion		= codableType.currentVersion
+
+		guard Self.constructType(mangledTypeName: mangledTypeName, objcTypeName: objcTypeName ) != nil else {
+			throw GCodableError.cantConstructClass(
+				Self.self, GCodableError.Context(
+					debugDescription:"The class -\(readableTypeName)- can't be constructed."
+				)
+			)
+		}
 	}
 	
 	static func supportsCodable( _ type:(AnyObject & GCodable).Type ) -> Bool {
-		// we try to be more restrictive
-		
-		if #available(macOS 10.16, iOS 14.0, watchOS 7.0, tvOS 14.0, *) {
-			if let typeName = _mangledTypeName( type ) {
-				return _typeByName( typeName ) != nil
-			} else {
-				return false
-			}
-		} else {
-			return NSClassFromString( NSStringFromClass( type ) ) != nil
-		}
+		Self.constructType(mangledTypeName: _mangledTypeName( type ), objcTypeName: NSStringFromClass( type ) ) != nil
 	}
 	
 	private var encodedType : Any.Type? {
-		func typeByMangledName() -> Any.Type? {
-			if let typeName = mangledTypeName {
-				return _typeByName( typeName )
-			} else {
-				return nil
-			}
-		}
-		// provo in tutti i modi:
-		return typeByMangledName() ?? NSClassFromString( objcTypeName ) ?? NSClassFromString( readableTypeName )
+		return Self.constructType(mangledTypeName: mangledTypeName, objcTypeName: objcTypeName )
 	}
 	
 	var codableType	: (AnyObject & GCodable).Type? {

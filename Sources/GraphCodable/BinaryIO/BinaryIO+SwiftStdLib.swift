@@ -301,7 +301,6 @@ extension PartialRangeThrough: BinaryIOType where Bound: BinaryIOType {
 // CollectionDifference.Change ------------------------------------------------------
 //	Uses Version: NO (is frozen)
 
-@available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
 extension CollectionDifference.Change : BinaryIOType where ChangeElement : BinaryIOType {
 	private enum ChangeType : UInt8, BinaryIOType { case insert, remove }
 
@@ -336,7 +335,6 @@ extension CollectionDifference.Change : BinaryIOType where ChangeElement : Binar
 // CollectionDifference ------------------------------------------------------
 //	Uses Version: NO
 
-@available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
 extension CollectionDifference : BinaryIOType where ChangeElement:BinaryIOType {
 	public init( from reader: inout BinaryReader ) throws {
 		var changes	= [CollectionDifference<ChangeElement>.Change]()

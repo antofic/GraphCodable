@@ -404,7 +404,6 @@ extension DateComponents : GCodable {
 
 //	DateInterval SUPPORT ------------------------------------------------------
 
-@available(macOS 10.12, iOS 10.0, watchOS 3.0, tvOS 10.0, *)
 extension DateInterval : GCodable {
 	private enum Key : String {
 		case start
@@ -425,7 +424,6 @@ extension DateInterval : GCodable {
 
 //	PersonNameComponents SUPPORT ------------------------------------------------------
 
-@available(macOS 10.11, iOS 9.0, watchOS 2.0, tvOS 9.0, *)
 extension PersonNameComponents : GCodable {
 	private enum Key : String {
 		case namePrefix
@@ -530,7 +528,6 @@ extension URLComponents : GCodable {
 //	Measurement SUPPORT ------------------------------------------------------
 
 
-@available(macOS 10.12, iOS 10.0, watchOS 3.0, tvOS 10.0, *)
 extension Measurement : GCodable {
 	private enum Key : String {
 		case value

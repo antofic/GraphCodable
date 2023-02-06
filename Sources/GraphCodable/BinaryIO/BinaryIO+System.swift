@@ -22,22 +22,16 @@
 
 import System
 
-@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 extension Errno : BinaryIOType {}
 
-@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 extension FileDescriptor : BinaryIOType {}
 
-@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 extension FileDescriptor.AccessMode : BinaryIOType {}
 
-@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 extension FileDescriptor.OpenOptions : BinaryIOType {}
 
-@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 extension FileDescriptor.SeekOrigin : BinaryIOType {}
 
-@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 extension FilePath : BinaryIOType {
 	private enum Version : UInt8 { case v0 }
 	public func write(to writer: inout BinaryWriter) throws {
@@ -61,5 +55,4 @@ extension FilePath : BinaryIOType {
 	}
 }
 
-@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 extension FilePermissions : BinaryIOType {}

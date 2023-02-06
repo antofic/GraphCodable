@@ -84,7 +84,6 @@ extension DispatchTimeInterval : BinaryIOType {
 	}
 }
 
-@available(macOS 10.15, iOS 8.0, watchOS 2.0, tvOS 9.0, *)
 extension DispatchQueue.SchedulerTimeType : BinaryIOType {
 	public func write(to writer: inout BinaryWriter) throws {
 		try dispatchTime.write(to: &writer)
@@ -96,7 +95,6 @@ extension DispatchQueue.SchedulerTimeType : BinaryIOType {
 }
 
 
-@available(macOS 10.15, iOS 8.0, watchOS 2.0, tvOS 9.0, *)
 extension DispatchQueue.SchedulerTimeType.Stride : BinaryIOType {
 	public func write(to writer: inout BinaryWriter) throws {
 		try timeInterval.write(to: &writer)

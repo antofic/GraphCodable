@@ -23,22 +23,16 @@
 import Foundation
 import System
 
-@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 extension Errno : GCodable {}
 
-@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 extension FileDescriptor : GCodable {}
 
-@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 extension FileDescriptor.AccessMode : GCodable {}
 
-@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 extension FileDescriptor.OpenOptions : GCodable {}
 
-@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 extension FileDescriptor.SeekOrigin : GCodable {}
 
-@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 extension FilePath : GCodable {
 	private enum Key : String { case path }
 
@@ -52,5 +46,4 @@ extension FilePath : GCodable {
 	}
 }
 
-@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 extension FilePermissions : GCodable {}
