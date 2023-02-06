@@ -124,23 +124,23 @@ public final class GraphEncoder {
 		// --------------------------------------------------------
 	
 		func encode<Value>(_ value: Value) throws where Value:GCodable {
-			try encodeUnwrapping( value, forKey: nil, weak:false )
+			try encodeUnwrapping( value, forKey: nil, conditional:false )
 		}
 
 		func encodeConditional<Value>(_ value: Value?) throws where Value:GCodable, Value:AnyObject {
-			try encodeUnwrapping( value, forKey: nil, weak:true )
+			try encodeUnwrapping( value, forKey: nil, conditional:true )
 		}
 		
 		func encode<Key, Value>(_ value: Value, for key: Key) throws
 		where Key : RawRepresentable, Value : GCodable, Key.RawValue == String
 		{
-			try encodeUnwrapping( value, forKey: key.rawValue, weak:false )
+			try encodeUnwrapping( value, forKey: key.rawValue, conditional:false )
 		}
 		
 		func encodeConditional<Key, Value>(_ value: Value?, for key: Key) throws
 		where Key : RawRepresentable, Value : AnyObject, Value : GCodable, Key.RawValue == String
 		{
-			try encodeUnwrapping( value, forKey: key.rawValue, weak:true )
+			try encodeUnwrapping( value, forKey: key.rawValue, conditional:true )
 		}
 
 		// --------------------------------------------------------
@@ -156,11 +156,11 @@ public final class GraphEncoder {
 			self.encodedData	= EncodedData()
 		}
 	
-		private func encodeUnwrapping<T>(_ value: T, forKey key: String?, weak:Bool ) throws {
-			try encodeAny( Optional(fullUnwrapping: value as Any), forKey: key, weak:weak )
+		private func encodeUnwrapping<T>(_ value: T, forKey key: String?, conditional:Bool ) throws {
+			try encodeAny( Optional(fullUnwrapping: value as Any), forKey: key, conditional:conditional )
 		}
 
-		private func encodeAny(_ value: Any?, forKey key: String?, weak:Bool ) throws {
+		private func encodeAny(_ value: Any?, forKey key: String?, conditional:Bool ) throws {
 			func encodeValue( _ value:GCodable, to encoder:GEncoder ) throws {
 				let savedKeys	= currentKeys
 				defer { currentKeys = savedKeys }
@@ -210,14 +210,14 @@ public final class GraphEncoder {
 				// siamo sicuri che è un oggetto
 				if let objID = referenceID.strongID( object ) {
 					// l'oggetto è stato già memorizzato, basta un pointer
-					if weak {
+					if conditional {
 						encodedData.append( .objectWPtr(keyID: keyID, objID: objID) )
 					} else {
 						encodedData.append( .objectSPtr(keyID: keyID, objID: objID) )
 					}
-				} else if weak {
-					// WeakRef: avrei la descrizione ma non la voglio usare
-					// perché servirà solo se arriverà da uno strongRef
+				} else if conditional {
+					// Conditional Encoding: avrei la descrizione ma non la voglio usare
+					// perché servirà solo se dopo arriverà da uno strongRef
 					let objID	= referenceID.createWeakID( object )
 					encodedData.append( .objectWPtr(keyID: keyID, objID: objID) )
 				} else {
