@@ -143,7 +143,7 @@ public final class GraphDecoder {
 			return try constructor.decodeNode( block:block, from: self )
 		}
 		
-		func deferDecode<Value>(_ setter: @escaping (Value?) -> ()) throws where Value : GCodable, Value : AnyObject {
+		func deferDecode<Value>(_ setter: @escaping (Value) -> ()) throws where Value : GCodable {
 			let	block = try constructor.popNode()
 
 			try constructor.deferDecodeNode( block:block, from: self, setter )

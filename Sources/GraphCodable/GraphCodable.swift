@@ -328,8 +328,8 @@ public protocol GDecoder {
 	/// "break" the cycle and decode the graph.
 	///
 	/// - parameter setter: A closure to which the required reference is provided.
-	func deferDecode<Value>( _ setter: @escaping (Value?)->() ) throws where
-		Value : GCodable, Value : AnyObject
+	func deferDecode<Value>( _ setter: @escaping (Value)->() ) throws where
+		Value : GCodable
 }
 
 extension GDecoder {
