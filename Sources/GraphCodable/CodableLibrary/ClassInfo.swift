@@ -70,7 +70,7 @@ struct ClassData : NativeType, CustomStringConvertible {
 	}
 	
 	private var encodedType : Any.Type? {
-		return Self.constructType(mangledTypeName: mangledTypeName, objcTypeName: objcTypeName )
+		Self.constructType(mangledTypeName: mangledTypeName, objcTypeName: objcTypeName )
 	}
 	
 	var codableType	: (AnyObject & GCodable).Type? {
