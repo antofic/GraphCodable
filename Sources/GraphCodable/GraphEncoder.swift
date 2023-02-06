@@ -76,16 +76,16 @@ public final class GraphEncoder {
 	}
 	
 	public var userInfo : [String:Any] {
-		get { return encoder.userInfo }
+		get { encoder.userInfo }
 		set { encoder.userInfo = newValue }
 	}
 
 	public func dump<T>( _ value: T, options: DumpOptions = .readable ) throws -> String where T:GCodable {
-		return try encoder.dumpRoot( value, options:options )
+		try encoder.dumpRoot( value, options:options )
 	}
 	
 	public func encode<T>( _ value: T ) throws -> Data where T:GCodable {
-		return try encoder.encodeRoot( value )
+		try encoder.encodeRoot( value )
 	}
 
 	// -------------------------------------------------
@@ -252,7 +252,7 @@ public final class GraphEncoder {
 			private var	weakObjDict			= [ObjectIdentifier:IntID]()
 			
 			func strongID( _ value: AnyObject ) -> IntID? {
-				return strongObjDict[ ObjectIdentifier( value as AnyObject ) ]
+				strongObjDict[ ObjectIdentifier( value as AnyObject ) ]
 			}
 			
 			mutating func createWeakID( _ value: AnyObject ) -> IntID {
@@ -303,19 +303,19 @@ public final class GraphEncoder {
 			)
 			
 			func contains( typeID:IntID ) -> Bool {
-				return codableClassID.contains( typeID:typeID )
+				codableClassID.contains( typeID:typeID )
 			}
 
 			func contains( codableClass:(GCodable & AnyObject).Type ) -> Bool {
-				return codableClassID.contains( codableClass:codableClass )
+				codableClassID.contains( codableClass:codableClass )
 			}
 
 			mutating func createTypeIDIfNeeded( classInfo:ClassInfo ) -> IntID {
-				return codableClassID.createIDIfNeeded( classInfo:classInfo )
+				codableClassID.createIDIfNeeded( classInfo:classInfo )
 			}
 			
 			mutating func createKeyIDIfNeeded( key:String ) -> IntID {
-				return keyNameID.createIDIfNeeded( key:key )
+				keyNameID.createIDIfNeeded( key:key )
 			}
 			
 			mutating func append( _ dataBlock:DataBlock ) {
@@ -339,11 +339,11 @@ public final class GraphEncoder {
 			}
 			
 			var description: String {
-				return readableOutput( options:.binaryLike )
+				readableOutput( options:.binaryLike )
 			}
 
 			var debugDescription: String {
-				return readableOutput( options:.binaryLike )
+				readableOutput( options:.binaryLike )
 			}
 			
 			func readableOutput( options:DumpOptions ) -> String {
@@ -427,11 +427,11 @@ public final class GraphEncoder {
 				private var			aClassToID			= [ ObjectIdentifier: IntID ]()
 
 				func contains( typeID:IntID ) -> Bool {
-					return typeIDtoName.index(forKey: typeID) != nil
+					typeIDtoName.index(forKey: typeID) != nil
 				}
 
 				func contains( codableClass:(GCodable & AnyObject).Type ) -> Bool {
-					return aClassToID.index(forKey: ObjectIdentifier(codableClass) ) != nil
+					aClassToID.index(forKey: ObjectIdentifier(codableClass) ) != nil
 				}
 
 				mutating func createIDIfNeeded( classInfo: ClassInfo ) -> IntID {
@@ -459,11 +459,11 @@ public final class GraphEncoder {
 				private var			keyToKeyID			= [String:IntID]()
 				
 				func contains( keyID:IntID ) -> Bool {
-					return keyIDtoKey.index(forKey: keyID) != nil
+					keyIDtoKey.index(forKey: keyID) != nil
 				}
 
 				func contains( key:String ) -> Bool {
-					return keyToKeyID.index(forKey: key) != nil
+					keyToKeyID.index(forKey: key) != nil
 				}
 
 				mutating func createIDIfNeeded( key:String ) -> IntID {

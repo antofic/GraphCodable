@@ -336,6 +336,6 @@ extension GDecoder {
 	func decodeIfPresent<Key, Value>(for key: Key) throws -> Value? where
 		Key : RawRepresentable, Value : GCodable, Key.RawValue == String
 	{
-		return contains(key) ? try decode(for: key) : nil
+		contains(key) ? try decode(for: key) : nil
 	}
 }

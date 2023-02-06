@@ -50,16 +50,16 @@ public final class GraphDecoder {
 	}
 
 	public func decode<T>( _ type: T.Type, from data: Data ) throws -> T  where T:GCodable {
-		return try decoder.decodeRoot( type, from: data)
+		try decoder.decodeRoot( type, from: data)
 	}
 
 	public func decodableClasses( from data: Data ) throws -> [(AnyObject & GCodable).Type] {
-		return try decoder.allClassData( from: data ).compactMap { $0.codableType }
+		try decoder.allClassData( from: data ).compactMap { $0.codableType }
 	}
 	
 	public func classNames( from data: Data, options:ClassNamesOptions ) throws -> [String] {
 		func name( _ classData:ClassData, _ demangled:Bool ) -> String {
-			return demangled ? classData.readableTypeName : classData.mangledTypeName ?? classData.objcTypeName
+			demangled ? classData.readableTypeName : classData.mangledTypeName ?? classData.objcTypeName
 		}
 
 		let data	= try decoder.allClassData( from: data )
@@ -112,7 +112,7 @@ public final class GraphDecoder {
 		func contains<Key>(_ key: Key) -> Bool
 		where Key : RawRepresentable, Key.RawValue == String
 		{
-			return constructor.contains(key: key.rawValue)
+			constructor.contains(key: key.rawValue)
 		}
 		
 		func decode<Key, Value>(for key: Key) throws -> Value
@@ -188,7 +188,7 @@ fileprivate struct DecodedData {
 	}
 	
 	mutating func pop( objID:IntID ) -> GraphBlock? {
-		return objBlockMap.removeValue( forKey: objID )
+		objBlockMap.removeValue( forKey: objID )
 	}
 }
 
@@ -326,7 +326,7 @@ fileprivate struct BlockDecoder {
 	}
 
 	mutating func classInfoMap() throws -> [IntID : ClassInfo] {
-		return try classDataMap().mapValues {  try ClassInfo(classData: $0)  }
+		try classDataMap().mapValues {  try ClassInfo(classData: $0)  }
 	}
 	
 	mutating func rootBlock() throws -> ( root:GraphBlock, objBlockMap:[IntID : GraphBlock] ) {
@@ -382,15 +382,15 @@ fileprivate final class GraphBlock {
 	private		var 		unkeyedValues 	= [GraphBlock]()
 	
 	var keyedCount : Int {
-		return keyedValues.count
+		keyedValues.count
 	}
 	
 	var unkeyedCount : Int {
-		return unkeyedValues.count
+		unkeyedValues.count
 	}
 	
 	func contains( key:String ) -> Bool {
-		return keyedValues.index(forKey: key) != nil
+		keyedValues.index(forKey: key) != nil
 	}
 	
 	func pop( key:String? ) -> GraphBlock? {
@@ -552,7 +552,7 @@ fileprivate final class TypeConstructor {
 	}
 
 	func contains(key: String) -> Bool {
-		return currentBlock.contains(key: key)
+		currentBlock.contains(key: key)
 	}
 	
 	func popNode( key:String? = nil ) throws -> GraphBlock {

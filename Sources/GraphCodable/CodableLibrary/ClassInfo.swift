@@ -105,15 +105,15 @@ struct ClassData : NativeType, CustomStringConvertible {
 	}
 	
 	var obsoleteType : GCodableObsolete.Type? {
-		return encodedType as? GCodableObsolete.Type
+		encodedType as? GCodableObsolete.Type
 	}
 
 	var isDecodable : Bool {
-		return codableType != nil
+		codableType != nil
 	}
 
 	var description: String {
-		return "\"\(readableTypeName)\" V\(encodeVersion) "
+		"\"\(readableTypeName)\" V\(encodeVersion) "
 	}
 }
 

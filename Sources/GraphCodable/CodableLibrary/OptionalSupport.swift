@@ -37,7 +37,7 @@ protocol OptionalProtocol {
 
 extension Optional : OptionalProtocol {
 	static var wrappedType: Any.Type {
-		return Wrapped.self
+		Wrapped.self
 	}
 
 	static var fullUnwrappedType: Any.Type {
