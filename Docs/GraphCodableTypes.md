@@ -37,6 +37,7 @@
 -	FileDescriptor, FileDescriptor.AccessMode, FileDescriptor.OpenOptions, FileDescriptor.SeekOrigin
 -	FilePath, FilePermissions
 -	UTTagClass, UTType
+-	SIMD2...64, SIMDMask, SIMDStorage, simd_floatAxB, simd_doubleAxB
 
 (*) If the contained types are NativeTypes/BinaryTypes
 
@@ -59,6 +60,8 @@
 -	FileDescriptor, FileDescriptor.AccessMode, FileDescriptor.OpenOptions, FileDescriptor.SeekOrigin
 -	FilePath, FilePermissions
 -	UTTagClass, UTType
+-	SIMD2...64, SIMDMask, SIMDStorage, simd_floatAxB, simd_doubleAxB
+
 (*) If the contained types are GCodable
 
 
