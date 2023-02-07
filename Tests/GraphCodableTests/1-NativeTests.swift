@@ -21,6 +21,7 @@
 //	SOFTWARE.
 
 import XCTest
+import simd
 @testable import GraphCodable
 
 
@@ -115,4 +116,29 @@ final class NativeTests: XCTestCase {
 
 		XCTAssertEqual( inRoot, outRoot, #function )
 	}
+	
+	func testSIMDVector() throws {
+		let a = SIMD8(repeating: 2.0)
+		let b = SIMD8(repeating: 4.0)
+		let inRoot	= [a, b, nil]
+	
+		let data	= try GraphEncoder().encode( inRoot )
+		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
+
+		XCTAssertEqual( inRoot, outRoot, #function )
+	}
+	
+	func testSIMDMatrix() throws {
+		var a = simd_float4x2()
+		a[3,0] = 1.0
+		a[2,1] = 3.0
+
+		let inRoot	= [[a, a, nil],[a, a]]
+	
+		let data	= try GraphEncoder().encode( inRoot )
+		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
+
+		XCTAssertEqual( inRoot, outRoot, #function )
+	}
+	
 }
