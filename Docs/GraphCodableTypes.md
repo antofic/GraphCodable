@@ -19,7 +19,7 @@
 (*) If the contained types are NativeTypes/BinaryTypes
 
 ### GCodable as BinaryTypes
-	** Only when encoding with: GraphEncoder( fullBinaryEncode:true /* default */ ) **
+	** Only when encoding with: GraphEncoder( .allBinaryTypes /* default */ ) **
 -	Optional (*)
 -	Array, ContiguousArray, Set, Dictionary (*)
 -	Range, ClosedRange, PartialRangeFrom, PartialRangeUpTo, PartialRangeThrough (*)
@@ -41,7 +41,7 @@
 (*) If the contained types are NativeTypes/BinaryTypes
 
 ### GCodable
-	** When encoding with: GraphEncoder( fullBinaryEncode:false ) **	
+	** When encoding with: GraphEncoder( .onlyNativeTypes ) **	
 -	Optional (*)
 -	Array, ContiguousArray, Set, Dictionary (*)
 -	Range, ClosedRange, PartialRangeFrom, PartialRangeUpTo, PartialRangeThrough (*)

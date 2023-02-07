@@ -29,7 +29,7 @@ BINARY FILE FORMAT:
 ······0·|·1········|·2···········|·3······|·4······
 ••••••PHASE 2: Types table
 ···code·|·typeID···|·classData                   code = .typeMap
-••••••PHASE 3: Graphcode =
+••••••PHASE 3: Bodycode =
 ···code·|·keyID                                  code = .nilValue
 ···code·|·keyID····|·VALUE                       code = .native( _ nativeCode:NativeCode )
 ···code·|·keyID····|·[UInt8]                     code = .binaryType
@@ -230,7 +230,7 @@ extension DataBlock {
 		}
 	}
 	
-	enum BlockType { case header, typeMap, graph, keyMap }
+	enum BlockType { case header, typeMap, body, keyMap }
 	
 	var blockType : BlockType {
 		switch self {
@@ -238,7 +238,7 @@ extension DataBlock {
 		case .inTypeMap:	return .typeMap
 		case .outTypeMap:	return .typeMap
 		case .keyMap:		return .keyMap
-		default:			return .graph
+		default:			return .body
 		}
 	}
 	
@@ -264,7 +264,7 @@ extension DataBlock {
 }
 
 struct DumpInfo {
-	let 	options: 		DumpOptions
+	let 	options: 		GraphEncoder.DumpOptions
 	let		classInfoMap:	[IntID:ClassInfo]?
 	let		keyIDtoKey:		[IntID:String]?
 }

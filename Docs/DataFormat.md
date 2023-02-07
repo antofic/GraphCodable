@@ -88,9 +88,9 @@ The result:
 .
 ==================================================================
 ```
-By default `dump()` prints only the **GRAPH** section of the data.
+By default `dump()` prints only the **BODY** section of the data.
 
-The **GRAPH** section contains the structured data, organized in:
+The **BODY** section contains the structured data, organized in:
 - *Sequences*: a list of items preceded by the **-** symbol.
 - *Dictionaries*: a list of items (in the form "key": value) preceded by the **+** symbol.
 
@@ -138,7 +138,7 @@ FILETYPE = gcodable V0, U0 = "", U1 = 0, U2 = 0
 TYPE100:	MyGraphCodableApp.AClass V0
 			MangledName = 17MyGraphCodableApp6AClassC
 			NSTypeName  = MyGraphCodableApp.AClass
-== GRAPH =========================================================
+== BODY ==========================================================
 - VAL
 	- REF1000 TYPE100
 		+ KEY100: VAL
@@ -168,18 +168,18 @@ KEY100:	"astruct"
 You can see:
 - The **HEADER** section, with the file format name (gcodable), its global version, and some unused fields;
 - The **TYPEMAP** section, in which an **TypeID** is associated with each class with its version;
-- The **GRAPH** section, which uses typeIDs and keyIDs;
+- The **BODY** section, which uses typeIDs and keyIDs;
 - The **KEYMAP** section, in which an **KeyID** is associated with each key used in keyed coding;
 
 ## Full Binary Encoding
 During archiving, all data is transformed into basic simple types (NativeType protocol, implemented by integer and binary floating points numbers, Bool, Strings, Data) and written in binary format.
 But GraphCodable is capable of saving directly in binary a whole series of "system" types, among which arrays, dictionaries etc… and by default it employs this optimization.
-You can disable it during archiving using `GraphEncoder( fullBinaryEncode: false )`.
+You can disable it during archiving using `GraphEncoder( .onlyNativeTypes )`.
 
 Try replacing:
 `print( try GraphEncoder().dump( inRoot ) )`
 with:
-`print( try GraphEncoder( fullBinaryEncode: false ).dump( inRoot, options: [.binaryLike,.showMangledClassNames] ) )`
+`print( try GraphEncoder( .onlyNativeTypes ).dump( inRoot, options: [.binaryLike,.showMangledClassNames] ) )`
 in the previous code.
 
 The result:
@@ -190,7 +190,7 @@ FILETYPE = gcodable V0, U0 = "", U1 = 0, U2 = 0
 TYPE100:	MyGraphCodableApp.AClass V0
 			MangledName = 17MyGraphCodableApp6AClassC
 			NSTypeName  = MyGraphCodableApp.AClass
-== GRAPH =========================================================
+== BODY ==========================================================
 - VAL
 	- REF1000 TYPE100
 		+ KEY100: VAL

@@ -144,7 +144,7 @@ extension List: GCodable where Element:GCodable {
 
 //	testOptionSet
 //	we make 'DumpOptions' (defined in 'GraphEncoder.swift') gcodable!
-extension DumpOptions : GCodable {}
+extension GraphEncoder.DumpOptions : GCodable {}
 
 // --------------------------------------------------------------------------------
 
@@ -293,7 +293,7 @@ final class StructEnumOptionTests: XCTestCase {
 	}
 	
 	func testOptionSet() throws {
-		let inRoot	= DumpOptions.binaryLike
+		let inRoot	= GraphEncoder.DumpOptions.binaryLike
 		let data	= try GraphEncoder().encode( inRoot )
 		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 

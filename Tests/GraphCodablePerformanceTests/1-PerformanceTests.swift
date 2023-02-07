@@ -77,7 +77,7 @@ final class PerformanceTests: XCTestCase {
 		// just to print generated file size.
 		print("\n\n\n- DATA SIZES ----------------------------------")
 		print("GraphEncoder           : \( try GraphEncoder().encode(input) )")
-		print("GraphEncoder (bin=off) : \( try GraphEncoder( fullBinaryEncode:false ).encode(input) )")
+		print("GraphEncoder (bin=off) : \( try GraphEncoder( .onlyNativeTypes ).encode(input) )")
 		print("BinariIOReader         : \( try input.binaryData() as Data )")
 		print("JSONEncoder            : \( try JSONEncoder().encode(input) )")
 		print("PropertyListEncoder    : \( try PropertyListEncoder().encode(input) )")
@@ -95,7 +95,7 @@ final class PerformanceTests: XCTestCase {
 	func testGraphEncoderBinOff() throws {
 		measure {
 			do {
-				let _		= try GraphEncoder( fullBinaryEncode:false ).encode(input)
+				let _		= try GraphEncoder( .onlyNativeTypes ).encode(input)
 			} catch {}
 		}
 	}
@@ -135,7 +135,7 @@ final class PerformanceTests: XCTestCase {
 	}
 
 	func testGraphDecoderBinOff() throws {
-		let data	= try GraphEncoder( fullBinaryEncode:false ).encode(input)
+		let data	= try GraphEncoder( .onlyNativeTypes ).encode(input)
 		measure {
 			do {
 				let	_		= try GraphDecoder().decode( type(of:input), from: data )

@@ -50,11 +50,11 @@ struct ClassData : NativeType, CustomStringConvertible {
 		}
 	}
 	
-	init( codableType:(AnyObject & GCodable).Type ) throws {
-		self.readableTypeName	= _typeName( codableType, qualified:true )
-		self.mangledTypeName 	= _mangledTypeName( codableType )
-		self.objcTypeName		= NSStringFromClass( codableType )
-		self.encodeVersion		= codableType.currentVersion
+	init( type:(AnyObject & GCodable).Type ) throws {
+		self.readableTypeName	= _typeName( type, qualified:true )
+		self.mangledTypeName 	= _mangledTypeName( type )
+		self.objcTypeName		= NSStringFromClass( type )
+		self.encodeVersion		= type.currentVersion
 
 		guard Self.constructType(mangledTypeName: mangledTypeName, objcTypeName: objcTypeName ) != nil else {
 			throw GCodableError.cantConstructClass(
@@ -65,10 +65,20 @@ struct ClassData : NativeType, CustomStringConvertible {
 		}
 	}
 	
-	static func supportsCodable( _ type:(AnyObject & GCodable).Type ) -> Bool {
+	static func isConstructible( type:(AnyObject & GCodable).Type ) -> Bool {
 		Self.constructType(mangledTypeName: _mangledTypeName( type ), objcTypeName: NSStringFromClass( type ) ) != nil
 	}
-	
+
+	static func throwIfNotConstructible( type:(AnyObject & GCodable).Type ) throws {
+		guard isConstructible( type:type ) else {
+			throw GCodableError.cantConstructClass(
+				Self.self, GCodableError.Context(
+					debugDescription:"The class -\( _typeName( type, qualified:true ) )- can't be constructed."
+				)
+			)
+		}
+	}
+
 	private var encodedType : Any.Type? {
 		Self.constructType(mangledTypeName: mangledTypeName, objcTypeName: objcTypeName )
 	}
@@ -83,7 +93,7 @@ struct ClassData : NativeType, CustomStringConvertible {
 		encodedType as? GCodableObsolete.Type
 	}
 
-	var isDecodable : Bool {
+	var isConstructible : Bool {
 		codableType != nil
 	}
 
@@ -96,9 +106,9 @@ struct ClassInfo : CustomStringConvertible {
 	let	codableType:	(AnyObject & GCodable).Type
 	let	classData:		ClassData
 
-	init( codableType:(AnyObject & GCodable).Type ) throws {
-		self.classData		= try ClassData(codableType: codableType)
-		self.codableType	= codableType
+	init( type:(AnyObject & GCodable).Type ) throws {
+		self.classData		= try ClassData(type: type)
+		self.codableType	= type
 	}
 	
 	init( classData:ClassData ) throws {
@@ -118,4 +128,3 @@ struct ClassInfo : CustomStringConvertible {
 		return classData.description
 	}
 }
-
