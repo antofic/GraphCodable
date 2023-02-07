@@ -190,7 +190,7 @@ final class StructEnumOptionTests: XCTestCase {
 		}
 		let inRoot	= Test()
 		
-		let data	= try GraphEncoder().encode( inRoot )
+		let data = try GraphEncoder().encode( inRoot )
 		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 		
 		XCTAssertEqual( inRoot, outRoot, #function )

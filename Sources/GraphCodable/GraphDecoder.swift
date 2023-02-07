@@ -35,23 +35,26 @@ public final class GraphDecoder {
 		set { decoder.userInfo = newValue }
 	}
 
-	///	Decode the root value from a Data buffer
+	///	Decode the root value from the data byte buffer
 	///
 	///	The root value must conform to the GCodable protocol
-	public func decode<T>( _ type: T.Type, from data: Data ) throws -> T  where T:GCodable {
+	public func decode<T,Q>( _ type: T.Type, from data: Q ) throws -> T
+		where T:GCodable, Q:Sequence, Q.Element==UInt8 {
 		try decoder.decodeRoot( type, from: data)
 	}
 
-	///	Returns all the classes encoded in data
-	public func decodableClasses( from data: Data ) throws -> [(AnyObject & GCodable).Type] {
+	///	Returns all the classes encoded in the data byte buffer
+	public func decodableClasses<Q>( from data: Q ) throws -> [(AnyObject & GCodable).Type]
+		where Q:Sequence, Q.Element==UInt8 {
 		let types	= try decoder.allClassData( from: data ).compactMap { $0.codableType }
 		let keys	= types.map { ObjectIdentifier($0) }
 		let map		= Dictionary( zip(keys,types) ) { v1,v2 in v1 }
 		return Array( map.values )
 	}
 
-	///	Returns all the obsolete classes encoded in data
-	public func obsoleteClasses( from data: Data ) throws -> [GCodableObsolete.Type] {
+	///	Returns all the obsolete classes encoded in the data byte buffer
+	public func obsoleteClasses<Q>( from data: Q ) throws -> [GCodableObsolete.Type]
+		where Q:Sequence, Q.Element==UInt8 {
 		let types	= try decoder.allClassData( from: data ).compactMap { $0.obsoleteType }
 		let keys	= types.map { ObjectIdentifier($0) }
 		let map		= Dictionary( zip(keys,types) ) { v1,v2 in v1 }
@@ -67,14 +70,16 @@ public final class GraphDecoder {
 	private final class Decoder : GDecoder {
 		var	userInfo			= [String:Any]()
 
-		func allClassData( from data: Data ) throws -> [ClassData] {
+		func allClassData<Q>( from data: Q ) throws -> [ClassData]
+		where Q:Sequence, Q.Element==UInt8 {
 			var reader				= BinaryReader(data: data)
 			let decodedNames		= try DecodedNames(from: &reader)
 			
 			return Array( decodedNames.classDataMap.values )
 		}
 		
-		func decodeRoot<T>( _ type: T.Type, from data: Data ) throws -> T  where T:GCodable {
+		func decodeRoot<T,Q>( _ type: T.Type, from data: Q ) throws -> T
+			where T:GCodable, Q:Sequence, Q.Element==UInt8 {
 			defer { _costructor = nil }
 			
 			var reader	= BinaryReader(data: data)
