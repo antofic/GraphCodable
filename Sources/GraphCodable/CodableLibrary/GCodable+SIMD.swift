@@ -37,48 +37,43 @@ extension SIMDMask:GCodable {}
 // Matrix support
 
 protocol SimdMatrixCodable : GCodable {
-	associatedtype Scalar : GCodable
+	associatedtype Vector : GCodable
 	init()
-	subscript(column: Int, row: Int) -> Scalar { get set }
-	var _codableDim : (cols: Int, rows: Int)  { get }
+	subscript(column: Int) -> Vector { get set }
+	var _codableNumCols : Int  { get }
 }
 
 extension SimdMatrixCodable {
 	public func encode(to encoder: GraphCodable.GEncoder) throws {
-		let (cols,rows) = _codableDim
-		for r in 0..<rows {
-			for c in 0..<cols {
-				try encoder.encode( self[c,r] )
-			}
+		for c in 0..<_codableNumCols {
+			try encoder.encode( self[c] )
 		}
 	}
 	public init(from decoder: GraphCodable.GDecoder) throws {
 		self.init()
-		let (cols,rows) = _codableDim
-		for r in 0..<rows {
-			for c in 0..<cols {
-				self[c,r]	= try decoder.decode()
-			}
+		for c in 0..<_codableNumCols {
+			self[c]	= try decoder.decode()
 		}
 	}
 }
 
-extension simd_float2x2: SimdMatrixCodable { var _codableDim: (cols: Int, rows: Int) { (2,2) } }
-extension simd_float2x3: SimdMatrixCodable { var _codableDim: (cols: Int, rows: Int) { (2,3) } }
-extension simd_float2x4: SimdMatrixCodable { var _codableDim: (cols: Int, rows: Int) { (2,4) } }
-extension simd_float3x2: SimdMatrixCodable { var _codableDim: (cols: Int, rows: Int) { (3,2) } }
-extension simd_float3x3: SimdMatrixCodable { var _codableDim: (cols: Int, rows: Int) { (3,3) } }
-extension simd_float3x4: SimdMatrixCodable { var _codableDim: (cols: Int, rows: Int) { (3,4) } }
-extension simd_float4x2: SimdMatrixCodable { var _codableDim: (cols: Int, rows: Int) { (4,2) } }
-extension simd_float4x3: SimdMatrixCodable { var _codableDim: (cols: Int, rows: Int) { (4,3) } }
-extension simd_float4x4: SimdMatrixCodable { var _codableDim: (cols: Int, rows: Int) { (4,4) } }
+extension simd_float2x2: SimdMatrixCodable { var _codableNumCols: Int { 2 } }
+extension simd_float2x3: SimdMatrixCodable { var _codableNumCols: Int { 2 } }
+extension simd_float2x4: SimdMatrixCodable { var _codableNumCols: Int { 2 } }
+extension simd_float3x2: SimdMatrixCodable { var _codableNumCols: Int { 3 } }
+extension simd_float3x3: SimdMatrixCodable { var _codableNumCols: Int { 3 } }
+extension simd_float3x4: SimdMatrixCodable { var _codableNumCols: Int { 3 } }
+extension simd_float4x2: SimdMatrixCodable { var _codableNumCols: Int { 4 } }
+extension simd_float4x3: SimdMatrixCodable { var _codableNumCols: Int { 4 } }
+extension simd_float4x4: SimdMatrixCodable { var _codableNumCols: Int { 4 } }
 
-extension simd_double2x2: SimdMatrixCodable { var _codableDim: (cols: Int, rows: Int) { (2,2) } }
-extension simd_double2x3: SimdMatrixCodable { var _codableDim: (cols: Int, rows: Int) { (2,3) } }
-extension simd_double2x4: SimdMatrixCodable { var _codableDim: (cols: Int, rows: Int) { (2,4) } }
-extension simd_double3x2: SimdMatrixCodable { var _codableDim: (cols: Int, rows: Int) { (3,2) } }
-extension simd_double3x3: SimdMatrixCodable { var _codableDim: (cols: Int, rows: Int) { (3,3) } }
-extension simd_double3x4: SimdMatrixCodable { var _codableDim: (cols: Int, rows: Int) { (3,4) } }
-extension simd_double4x2: SimdMatrixCodable { var _codableDim: (cols: Int, rows: Int) { (4,2) } }
-extension simd_double4x3: SimdMatrixCodable { var _codableDim: (cols: Int, rows: Int) { (4,3) } }
-extension simd_double4x4: SimdMatrixCodable { var _codableDim: (cols: Int, rows: Int) { (4,4) } }
+extension simd_double2x2: SimdMatrixCodable { var _codableNumCols: Int { 2 } }
+extension simd_double2x3: SimdMatrixCodable { var _codableNumCols: Int { 2 } }
+extension simd_double2x4: SimdMatrixCodable { var _codableNumCols: Int { 2 } }
+extension simd_double3x2: SimdMatrixCodable { var _codableNumCols: Int { 3 } }
+extension simd_double3x3: SimdMatrixCodable { var _codableNumCols: Int { 3 } }
+extension simd_double3x4: SimdMatrixCodable { var _codableNumCols: Int { 3 } }
+extension simd_double4x2: SimdMatrixCodable { var _codableNumCols: Int { 4 } }
+extension simd_double4x3: SimdMatrixCodable { var _codableNumCols: Int { 4 } }
+extension simd_double4x4: SimdMatrixCodable { var _codableNumCols: Int { 4 } }
+
