@@ -29,7 +29,7 @@ extension NativeType {
 	public func encode(to encoder: GEncoder) throws	{
 		throw GCodableError.internalInconsistency(
 			Self.self, GCodableError.Context(
-				debugDescription: "Program must not reach this point."
+				debugDescription: "Program must not reach \(#function)."
 			)
 		)
 	}
@@ -37,7 +37,7 @@ extension NativeType {
 	public init(from decoder: GDecoder) throws {
 		throw GCodableError.internalInconsistency(
 			Self.self, GCodableError.Context(
-				debugDescription: "Program must not reach this point."
+				debugDescription: "Program must not reach \(#function)."
 			)
 		)
 	}
@@ -67,11 +67,12 @@ extension Bool 		: NativeType {}
 // -- String support --------------------------------------------
 extension String 	: NativeType {}
 
+
+/* Considerali nativi o no?
 // -- Data support ----------------------------------------------------------
 extension Data 		: NativeType {}
 
-/* Considerali nativi o no?
-// -- Collection support ----------------------------------------------------------
+ // -- Collection support ----------------------------------------------------------
 extension Array 			: NativeType where Element: NativeType {}
 extension ContiguousArray 	: NativeType where Element: NativeType {}
 extension Set			 	: NativeType where Element: NativeType {}

@@ -7,6 +7,24 @@
 
 import Foundation
 
+//	Data SUPPORT ------------------------------------------------------
+
+extension Data : GCodable {
+	public func encode(to encoder: GEncoder) throws {
+		for element in self {
+			try encoder.encode( element )
+		}
+	}
+	public init(from decoder: GDecoder) throws {
+		self.init()
+		
+		self.reserveCapacity( decoder.unkeyedCount )
+		while decoder.unkeyedCount > 0 {
+			self.append( try decoder.decode() )
+		}
+	}
+}
+
 //	CharacterSet SUPPORT ------------------------------------------------------
 
 extension CharacterSet : GCodable {

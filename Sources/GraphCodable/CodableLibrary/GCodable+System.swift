@@ -40,7 +40,6 @@ extension FilePath : GCodable {
 		try encoder.encode(description, for: Key.path)
 	}
 	
-
 	public init(from decoder: GDecoder) throws {
 		self.init( try decoder.decode(for: Key.path) as String )
 	}

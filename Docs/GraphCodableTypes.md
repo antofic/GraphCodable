@@ -8,19 +8,14 @@
 -	UInt, UInt8, UInt16, UInt32, UInt64
 	*note:* UInt is always encoded as UInt64
 -	Float, Double, CGFloat
+	*note:* CGFloat is always encoded as Double
 -	Bool
 -	String
--	Data
--	Optional (*)
--	Array, ContiguousArray, Set, Dictionary (*)
--	Range, ClosedRange, PartialRangeFrom, PartialRangeUpTo, PartialRangeThrough (*)
--	RawRepresentable types (enum, OptionSet) (*)
-
-(*) If the contained types are NativeTypes/BinaryTypes
 
 ### GCodable as BinaryTypes
-	** Only when encoding with: GraphEncoder( .allBinaryTypes /* default */ ) **
--	Optional (*)
+	** Using `GraphEncoder( .allBinaryTypes /* default */ )` the following types are encoded directly with BinaryIO (fast path). **
+	It is assumed that the format of these types can no longer change.
+-	Data
 -	Array, ContiguousArray, Set, Dictionary (*)
 -	Range, ClosedRange, PartialRangeFrom, PartialRangeUpTo, PartialRangeThrough (*)
 -	RawRepresentable types (enum, OptionSet) (*)
@@ -39,11 +34,11 @@
 -	UTTagClass, UTType
 -	SIMD2...64, SIMDMask, SIMDStorage, simd_floatAxB, simd_doubleAxB
 
-(*) If the contained types are NativeTypes/BinaryTypes
+(*) If the contained types are NativeTypes or BinaryTypes
 
 ### GCodable
-	** When encoding with: GraphEncoder( .onlyNativeTypes ) **	
--	Optional (*)
+	** Using `GraphEncoder( .onlyNativeTypes )` the following types are encoded with general GCodable methods (slow path). **
+-	Data
 -	Array, ContiguousArray, Set, Dictionary (*)
 -	Range, ClosedRange, PartialRangeFrom, PartialRangeUpTo, PartialRangeThrough (*)
 -	RawRepresentable types (enum, OptionSet) (*)

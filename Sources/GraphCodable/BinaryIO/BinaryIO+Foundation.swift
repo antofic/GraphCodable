@@ -34,7 +34,6 @@ extension Data : BinaryIOType {
 	}
 }
 
-
 // -- CGFloat (BinaryIOType) --------------------------------------------
 //	Uses Version: NO
 //	Su alcune piattaforme CGFloat == Float (32 bit).

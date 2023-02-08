@@ -12,7 +12,7 @@ extension Optional : GCodable where Wrapped : GCodable {
 	public func encode(to encoder: GEncoder) throws {
 		throw GCodableError.internalInconsistency(
 			Self.self, GCodableError.Context(
-				debugDescription: "Program must not reach this point."
+				debugDescription: "Program must not reach \(#function)."
 			)
 		)
 	}
@@ -20,7 +20,7 @@ extension Optional : GCodable where Wrapped : GCodable {
 	public init(from decoder: GDecoder) throws {
 		throw GCodableError.internalInconsistency(
 			Self.self, GCodableError.Context(
-				debugDescription: "Program must not reach this point."
+				debugDescription: "Program must not reach \(#function)."
 			)
 		)
 	}
