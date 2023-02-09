@@ -144,23 +144,23 @@ public final class GraphEncoder {
 		// --------------------------------------------------------
 	
 		func encode<Value>(_ value: Value) throws where Value:GCodable {
-			try encodeUnwrapping( value, forKey: nil, conditional:false )
+			try encodeAnyValue( value, forKey: nil, conditional:false )
 		}
 
 		func encodeConditional<Value>(_ value: Value?) throws where Value:GCodable, Value:AnyObject {
-			try encodeUnwrapping( value, forKey: nil, conditional:true )
+			try encodeAnyValue( value as Any, forKey: nil, conditional:true )
 		}
 		
 		func encode<Key, Value>(_ value: Value, for key: Key) throws
 		where Key : RawRepresentable, Value : GCodable, Key.RawValue == String
 		{
-			try encodeUnwrapping( value, forKey: key.rawValue, conditional:false )
+			try encodeAnyValue( value, forKey: key.rawValue, conditional:false )
 		}
 		
 		func encodeConditional<Key, Value>(_ value: Value?, for key: Key) throws
 		where Key : RawRepresentable, Value : AnyObject, Value : GCodable, Key.RawValue == String
 		{
-			try encodeUnwrapping( value, forKey: key.rawValue, conditional:true )
+			try encodeAnyValue( value as Any, forKey: key.rawValue, conditional:true )
 		}
 
 		// --------------------------------------------------------
@@ -183,35 +183,10 @@ public final class GraphEncoder {
 			self.encodedData	= EncodedData()
 		}
 	
-		private func encodeUnwrapping<T>(_ value: T, forKey key: String?, conditional:Bool ) throws {
-			try encodeAny( Optional(fullUnwrapping: value as Any), forKey: key, conditional:conditional )
-		}
-
-		private func encodeAny(_ value: Any?, forKey key: String?, conditional:Bool ) throws {
-			func encodeValue( _ value:GCodable, to encoder:GEncoder ) throws {
-				let savedKeys	= currentKeys
-				defer { currentKeys = savedKeys }
-				currentKeys.removeAll()
-				
-				try value.encode(to: encoder)
-			}
-			
-			func updateKey( key: String? ) throws -> IntID {
-				if let key = key {
-					defer { currentKeys.insert( key ) }
-					if currentKeys.contains( key ) {
-						throw GCodableError.duplicateKey(
-							Self.self, GCodableError.Context(
-								debugDescription: "Key -\(key)- already used."
-							)
-						)
-					}
-					return encodedData.createKeyIDIfNeeded(key: key)
-				} else {
-					return 0	// unkeyed
-				}
-			}
-			let keyID	= try updateKey( key: key )
+		private func encodeAnyValue(_ anyValue: Any, forKey key: String?, conditional:Bool ) throws {
+			// trasformo in un Optional<Any> di un solo livello:
+			let value	= Optional(fullUnwrapping: anyValue)
+			let keyID	= try createKeyID( key: key )
 			
 			guard let value = value else {
 				encodedData.append( .nilValue(keyID: keyID) )
@@ -219,23 +194,15 @@ public final class GraphEncoder {
 			}
 			// now value if not nil!
 
+			//	let valueIdentifier	= (value as? GUniqueValue)?.uniqueID
+			
 			if let binaryValue = value as? NativeType {
 				encodedData.append( .inBinType(keyID: keyID, value: binaryValue ) )
 			} else if fullBinaryEncode, let binaryValue = value as? BinaryIOType {
 				encodedData.append( .inBinType(keyID: keyID, value: binaryValue ) )
-			} else if type(of:value) is AnyClass {	// reference type
-				guard let object = value as? GCodable & AnyObject else {
-					throw GCodableError.internalInconsistency(
-						Self.self, GCodableError.Context(
-							debugDescription: "Not GCodable object \(value)."
-						)
-					)
-				}
-//				Spostati dove servono effettivamente ->
-//				let classInfo	= try ClassInfo(codableType: type(of:object))
-//				let typeID		= encodedData.createTypeIDIfNeeded(classInfo: classInfo)
-
-				if let objID = referenceID.strongID( object ) {
+			} else if let object = value as? GCodable & AnyObject {	// reference type
+				let identifier = ObjectIdentifier( object )
+				if let objID = referenceID.strongID( identifier ) {
 					// l'oggetto è stato già memorizzato, basta un pointer
 					if conditional {
 						encodedData.append( .objectWPtr(keyID: keyID, objID: objID) )
@@ -249,35 +216,59 @@ public final class GraphEncoder {
 					// Verifico comunque se l'oggetto è reificabile
 					try ClassData.throwIfNotConstructible( type: type(of:object) )
 					
-					let objID	= referenceID.createWeakID( object )
+					let objID	= referenceID.createWeakID( identifier )
 					encodedData.append( .objectWPtr(keyID: keyID, objID: objID) )
 				} else {
 					//	memorizzo l'oggetto
 					let typeID	= try encodedData.createTypeIDIfNeeded(type: type(of:object))
-					let objID	= referenceID.createStrongID( object )
+					let objID	= referenceID.createStrongID( identifier )
 					
 					encodedData.append( .objectType(keyID: keyID, typeID: typeID, objID: objID) )
 					try encodeValue( object, to:self )
 					encodedData.append( .end )
 				}
-			} else {	// value type
-				guard let value = value as? GCodable else {
-					throw GCodableError.internalInconsistency(
-						Self.self, GCodableError.Context(
-							debugDescription: "Not GCodable value \(value)."
-						)
-					)
-				}
+			} else if let value = value as? GCodable {
+				// value type
 				encodedData.append( .valueType( keyID: keyID ) )
 				try encodeValue( value, to:self )
 				encodedData.append( .end )
+			} else {
+				throw GCodableError.internalInconsistency(
+					Self.self, GCodableError.Context(
+						debugDescription: "Not GCodable value \(value)."
+					)
+				)
+			}
+		}
+
+		private func encodeValue( _ value:GCodable, to encoder:GEncoder ) throws {
+			let savedKeys	= currentKeys
+			defer { currentKeys = savedKeys }
+			currentKeys.removeAll()
+			
+			try value.encode(to: encoder)
+		}
+
+		private func createKeyID( key: String? ) throws -> IntID {
+			if let key = key {
+				defer { currentKeys.insert( key ) }
+				if currentKeys.contains( key ) {
+					throw GCodableError.duplicateKey(
+						Self.self, GCodableError.Context(
+							debugDescription: "Key -\(key)- already used."
+						)
+					)
+				}
+				return encodedData.createKeyIDIfNeeded(key: key)
+			} else {
+				return 0	// unkeyed
 			}
 		}
 
 		// -------------------------------------------------
 		// ----- ReferenceID
 		// -------------------------------------------------
-		
+		/*
 		fileprivate struct ObjectMap {
 			private	var actualId : IntID	= 1000	// <1000 reserved for future use
 			private var	strongObjDict		= [ObjectIdentifier:IntID]()
@@ -317,8 +308,44 @@ public final class GraphEncoder {
 				}
 			}
 		}
+		*/
+		fileprivate struct ObjectMap {
+			private	var actualId : IntID	= 1000	// <1000 reserved for future use
+			private var	strongObjDict		= [ObjectIdentifier:IntID]()
+			private var	weakObjDict			= [ObjectIdentifier:IntID]()
+			
+			func strongID( _ identifier: ObjectIdentifier ) -> IntID? {
+				strongObjDict[ identifier ]
+			}
+			
+			mutating func createWeakID( _ identifier: ObjectIdentifier ) -> IntID {
+				if let objID = weakObjDict[ identifier ] {
+					return objID
+				} else {
+					let objID = actualId
+					defer { actualId += 1 }
+					weakObjDict[ identifier ] = objID
+					return objID
+				}
+			}
+			
+			mutating func createStrongID( _ identifier: ObjectIdentifier ) -> IntID {
+				if let objID = weakObjDict[identifier] {
+					// se è nel weak dict, lo prendo da lì
+					weakObjDict.removeValue(forKey: identifier)
+					// e lo metto nello strong dict
+					strongObjDict[identifier] = objID
+					return objID
+				} else {
+					// altrimenti creo uno nuovo
+					let objID = actualId
+					defer { actualId += 1 }
+					strongObjDict[identifier] = objID
+					return objID
+				}
+			}
+		}
 
-		
 		// -------------------------------------------------
 		// ----- EncodedData
 		// -------------------------------------------------
