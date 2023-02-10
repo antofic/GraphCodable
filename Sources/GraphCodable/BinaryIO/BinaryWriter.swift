@@ -31,7 +31,7 @@ BinaryWriter data format uses always:
 //	faster than BinaryWriterBase<Data> even if you must generate a Data result
 //	public typealias BinaryWriter = BinaryWriterBase<Array<UInt8>>
 //	typealias BinaryWriter = BinaryWriterBase<Data>
-
+ 
 public struct BinaryWriter{
 	private (set) var bytes = Array<UInt8>()
 
