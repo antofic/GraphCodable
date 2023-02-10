@@ -224,13 +224,13 @@ public final class GraphEncoder {
 					let objID	= referenceID.createStrongID( identifier )
 					
 					encodedData.append( .objectType(keyID: keyID, typeID: typeID, objID: objID) )
-					try encodeValue( object, to:self )
+					try encodeValue( object )
 					encodedData.append( .end )
 				}
 			} else if let value = value as? GCodable {
 				// value type
 				encodedData.append( .valueType( keyID: keyID ) )
-				try encodeValue( value, to:self )
+				try encodeValue( value )
 				encodedData.append( .end )
 			} else {
 				throw GCodableError.internalInconsistency(
@@ -241,12 +241,12 @@ public final class GraphEncoder {
 			}
 		}
 
-		private func encodeValue( _ value:GCodable, to encoder:GEncoder ) throws {
+		private func encodeValue( _ value:GCodable ) throws {
 			let savedKeys	= currentKeys
 			defer { currentKeys = savedKeys }
 			currentKeys.removeAll()
 			
-			try value.encode(to: encoder)
+			try value.encode(to: self)
 		}
 
 		private func createKeyID( key: String? ) throws -> IntID {
@@ -268,47 +268,7 @@ public final class GraphEncoder {
 		// -------------------------------------------------
 		// ----- ReferenceID
 		// -------------------------------------------------
-		/*
-		fileprivate struct ObjectMap {
-			private	var actualId : IntID	= 1000	// <1000 reserved for future use
-			private var	strongObjDict		= [ObjectIdentifier:IntID]()
-			private var	weakObjDict			= [ObjectIdentifier:IntID]()
-			
-			func strongID( _ value: AnyObject ) -> IntID? {
-				strongObjDict[ ObjectIdentifier( value as AnyObject ) ]
-			}
-			
-			mutating func createWeakID( _ value: AnyObject ) -> IntID {
-				let objectKey = ObjectIdentifier( value as AnyObject )
-				if let objID = weakObjDict[ objectKey ] {
-					return objID
-				} else {
-					let objID = actualId
-					defer { actualId += 1 }
-					weakObjDict[ objectKey ] = objID
-					return objID
-				}
-			}
-			
-			mutating func createStrongID( _ value: AnyObject ) -> IntID {
-				let objectKey = ObjectIdentifier( value as AnyObject )
-				
-				if let objID = weakObjDict[ objectKey] {
-					// se è nel weak dict, lo prendo da lì
-					weakObjDict.removeValue(forKey: objectKey)
-					// e lo metto nello strong dict
-					strongObjDict[ objectKey] = objID
-					return objID
-				} else {
-					// altrimenti creo uno nuovo
-					let objID = actualId
-					defer { actualId += 1 }
-					strongObjDict[ objectKey] = objID
-					return objID
-				}
-			}
-		}
-		*/
+
 		fileprivate struct ObjectMap {
 			private	var actualId : IntID	= 1000	// <1000 reserved for future use
 			private var	strongObjDict		= [ObjectIdentifier:IntID]()
