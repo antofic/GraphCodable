@@ -25,7 +25,7 @@ import Foundation
 /*
 BINARY FILE FORMAT:
 ••••••PHASE 1: Header	// only one!
-···code·|·HeaderID·|·Version·|·Unused0·|·Unused1|·Unused2      code = .header
+···code·|·Header···                              code = .header
 ······0·|·1········|·2···········|·3······|·4······
 ••••••PHASE 2: Types table
 ···code·|·typeID···|·classData                   code = .typeMap
@@ -42,16 +42,73 @@ BINARY FILE FORMAT:
 ···code·|·keyID·|·keyName                        code = .keyMap
 
 Note:
-Module = mainModuleName
 Struct, Object open a new level, end closes it
 keyID = 0 -> unkeyed
 */
 
 typealias IntID	= UInt32
 
-enum DataBlock {
-	private enum Code : UInt8 {
+struct FileHeader : CustomStringConvertible, BinaryIOType {
+	static var ACTUAL_GCODABLE_FILE_VERSION	: UInt32 { 0 }
+
+	private enum HeaderID : UInt64 {
+		case gcodable	= 0x67636F6461626C65	// ascii = 'gcodable'
+	}
+
+	let version : UInt32
+	let unused0 : String
+	let unused1 : UInt32
+	let unused2 : UInt64
+	
+	var description: String {
+		"FILETYPE = \(HeaderID.gcodable) V\(version), U0 = \"\(unused0)\", U1 = \(unused1), U2 = \(unused2)"
+	}
+	
+	init( version: UInt32 = ACTUAL_GCODABLE_FILE_VERSION, unused0: String = "", unused1: UInt32 = 0, unused2: UInt64 = 0 ) {
+		self.version = version
+		self.unused0 = unused0
+		self.unused1 = unused1
+		self.unused2 = unused2
+	}
+
+	private enum OsoleteCode : UInt8 {
 		case header		= 0x5E	// '^'
+	}
+
+	init(from reader: inout BinaryReader) throws {
+		// se presente, salta il vecchio header code che non viene più scritto
+		if	let rawCode =	reader.peekValue() as OsoleteCode.RawValue?,
+			let code 	=	OsoleteCode(rawValue: rawCode),
+			code 		==	.header {
+			try reader.skipValue( OsoleteCode.RawValue.self )
+		}
+		
+		let headerID	= try HeaderID	( from: &reader )
+		guard headerID == .gcodable else {
+			throw GCodableError.decodingError(
+				Self.self, GCodableError.Context(
+					debugDescription: "Not a gcodable file."
+				)
+			)
+		}
+		
+		self.version	= try UInt32	( from: &reader )
+		self.unused0	= try String	( from: &reader )
+		self.unused1	= try UInt32	( from: &reader )
+		self.unused2	= try UInt64	( from: &reader )
+	}
+	
+	func write(to writer: inout BinaryWriter) throws {
+		try HeaderID.gcodable.write(to: &writer)
+		try version.write(to: &writer)
+		try unused0.write(to: &writer)
+		try unused1.write(to: &writer)
+		try unused2.write(to: &writer)
+	}
+}
+
+enum FileBlock {
+	private enum Code : UInt8 {
 		case inTypeMap	= 0x23	// '#'
 		case outTypeMap	= 0x24	// '$'
 		case nilValue	= 0x30	// '0'
@@ -64,12 +121,7 @@ enum DataBlock {
 		case end		= 0x2E	// '.'
 		case keyMap		= 0x2A	// '*'
 	}
-	
-	private enum HeaderID : UInt64 {
-		case gcodable	= 0x67636F6461626C65	// ascii = 'gcodable'
-	}
 
-	case header		( version:UInt32, unused0:String, unused1:UInt32, unused2:UInt64 )
 	case inTypeMap	( typeID:IntID, classInfo:ClassInfo )	// input only
 	case outTypeMap	( typeID:IntID, classData:ClassData )	// output only
 	case nilValue	( keyID:IntID )
@@ -83,20 +135,9 @@ enum DataBlock {
 	case keyMap		( keyID:IntID, keyName:String )
 }
 
-//	-------------------------------------------------
-//	--BinaryIOType conformance
-//	-------------------------------------------------
-
-extension DataBlock : BinaryIOType {
+extension FileBlock {
 	func write( to writer: inout BinaryWriter ) throws {
 		switch self {
-		case .header	( let version, let unused0, let unused1, let unused2 ):
-			try Code.header.write(to: &writer)
-			try HeaderID.gcodable.write(to: &writer)
-			try version.write(to: &writer)
-			try unused0.write(to: &writer)
-			try unused1.write(to: &writer)
-			try unused2.write(to: &writer)
 		case .inTypeMap	( let typeID, let classInfo ):
 			// ••••• SALVO COME outTypeMap ••••••••••
 			try Code.outTypeMap.write(to: &writer)
@@ -106,7 +147,7 @@ extension DataBlock : BinaryIOType {
 			// non deve mai arrivare qui
 			throw GCodableError.internalInconsistency(
 				Self.self, GCodableError.Context(
-					debugDescription: "Program must not reach .outTypeMap."
+					debugDescription: "Encoding .outTypeMap not allowed."
 				)
 			)
 		case .nilValue	( let keyID ):
@@ -122,7 +163,7 @@ extension DataBlock : BinaryIOType {
 			// non deve mai arrivare qui
 			throw GCodableError.internalInconsistency(
 				Self.self, GCodableError.Context(
-					debugDescription: "Program must not reach .outBinType."
+					debugDescription: "Encoding .outBinType not allowed."
 				)
 			)
 		case .valueType	( let keyID ):
@@ -149,42 +190,20 @@ extension DataBlock : BinaryIOType {
 			try keyName.write(to: &writer)
 		}
 	}
-	
-	init(from reader: inout BinaryReader) throws {
+
+	init(from reader: inout BinaryReader, header:FileHeader) throws {
 		let code = try Code(from: &reader)
 
 		switch code {
-		case .header:
-			let _		= try HeaderID	( from: &reader )
-			let version	= try UInt32	( from: &reader )
-			let unused0	= try String	( from: &reader )
-			let unused1	= try UInt32	( from: &reader )
-			let unused2	= try UInt64	( from: &reader )
-			self = .header(version: version, unused0:unused0, unused1: unused1, unused2: unused2)
-
-		case .inTypeMap:
-			// non deve mai arrivare qui
-			throw GCodableError.internalInconsistency(
-				Self.self, GCodableError.Context(
-					debugDescription: "Program must not reach .inTypeMap."
-				)
-			)
+		//	case .inTypeMap: invalid -> default
 		case .outTypeMap:
 			let typeID	= try IntID		( from: &reader )
 			let data	= try ClassData	( from: &reader )
 			self = .outTypeMap(typeID: typeID, classData: data )
-
 		case .nilValue:
 			let keyID	= try IntID		( from: &reader )
 			self = .nilValue(keyID: keyID)
-
-		case .inBinType:
-			// non deve mai arrivare qui
-			throw GCodableError.internalInconsistency(
-				Self.self, GCodableError.Context(
-					debugDescription: "Program must not reach .inBinType."
-				)
-			)
+		//	case .inBinType: invalid -> default
 		case .outBinType:
 			let keyID	= try IntID		( from: &reader )
 			let bytes	= try reader.readData() as [UInt8]
@@ -211,14 +230,21 @@ extension DataBlock : BinaryIOType {
 			let keyID	= try IntID		( from: &reader )
 			let keyName	= try String	( from: &reader )
 			self = .keyMap(keyID: keyID, keyName: keyName)
+		default:
+			// include .inTypeMap and .inBinType
+			throw GCodableError.decodingError(
+				Self.self, GCodableError.Context(
+					debugDescription: "Decoding an invalid DataBlock code \(code)."
+				)
+			)
 		}
 	}
 }
 
 //	-------------------------------------------------
-//	-- Some Utils 
+//	-- Some Utils
 //	-------------------------------------------------
-extension DataBlock {
+extension FileBlock {
 	enum Level : Int { case exit = -1, same, enter }
 	
 	var level : Level {
@@ -230,11 +256,10 @@ extension DataBlock {
 		}
 	}
 	
-	enum BlockType { case header, typeMap, body, keyMap }
+	enum BlockType { case typeMap, body, keyMap }
 	
 	var blockType : BlockType {
 		switch self {
-		case .header:		return .header
 		case .inTypeMap:	return .typeMap
 		case .outTypeMap:	return .typeMap
 		case .keyMap:		return .keyMap
@@ -273,7 +298,7 @@ struct DumpInfo {
 //	-- Readable output
 //	-------------------------------------------------
 
-extension DataBlock {
+extension FileBlock {
 	func readableOutput( info:DumpInfo ) -> String {
 		func format( _ keyID:IntID, _ info: DumpInfo, _ string:String ) -> String {
 			if keyID == 0 {	// unkeyed
@@ -286,7 +311,7 @@ extension DataBlock {
 		}
 		
 		func small( _ value: Any, _ info:DumpInfo ) -> String {
-			let phase1		= String(describing: value)
+			let phase1 = String(describing: value)
 			if info.options.contains( .noTruncation ) {
 				return phase1
 			} else {
@@ -320,14 +345,12 @@ extension DataBlock {
 		}
 		
 		switch self {
-		case .header	( let version, let module, let unused1, let unused2 ):
-			return "FILETYPE = \(HeaderID.gcodable) V\(version), U0 = \"\(module)\", U1 = \(unused1), U2 = \(unused2)"
 		case .inTypeMap	( let typeID, let classInfo ):
 			return	"TYPE\( typeID ):\t\( typeString( info, classInfo.classData ) )"
 		case .outTypeMap	( let typeID, let classData ):
 			return	"TYPE\( typeID ):\t\( typeString( info, classData ) )"
 		case .nilValue	( let keyID ):
-			return format( keyID, info, "nil")
+			return format( keyID, info, "NIL")
 		case .inBinType( let keyID, let value ):
 			return format( keyID, info, small( value, info ) )
 		case .outBinType( let keyID, let bytes ):
@@ -353,10 +376,12 @@ extension DataBlock {
 	}
 }
 
-extension DataBlock : CustomStringConvertible {
+extension FileBlock : CustomStringConvertible {
 	var description: String {
 		return readableOutput(
 			info: DumpInfo(options: .readable, classInfoMap: nil, keyIDtoKey: nil)
 		)
 	}
 }
+
+

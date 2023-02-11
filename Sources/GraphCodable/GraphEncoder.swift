@@ -193,8 +193,6 @@ public final class GraphEncoder {
 				return
 			}
 			// now value if not nil!
-
-			//	let valueIdentifier	= (value as? GUniqueValue)?.uniqueID
 			
 			if let binaryValue = value as? NativeType {
 				encodedData.append( .inBinType(keyID: keyID, value: binaryValue ) )
@@ -311,16 +309,12 @@ public final class GraphEncoder {
 		// -------------------------------------------------
 		
 		fileprivate struct EncodedData : CustomStringConvertible, CustomDebugStringConvertible {
+			let fileHeader				= FileHeader()
 			private var	typeMap			= TypeMap()
 			private var	keyMap			= KeyMap()
-			private (set) var blocks	= [DataBlock]()
-			private let header			= DataBlock.header( // Header Block
-				version: 0,
-				unused0: "",
-				unused1: 0,
-				unused2: 0
-			)
+			private (set) var blocks	= [FileBlock]()
 
+			
 			mutating func createTypeIDIfNeeded( type:(AnyObject & GCodable).Type ) throws -> IntID {
 				try typeMap.createTypeIDIfNeeded( type: type )
 			}
@@ -329,23 +323,24 @@ public final class GraphEncoder {
 				keyMap.createKeyIDIfNeeded( key:key )
 			}
 			
-			mutating func append( _ dataBlock:DataBlock ) {
+			mutating func append( _ dataBlock:FileBlock ) {
 				blocks.append( dataBlock )
 			}
 			
 			func write( to writer: inout BinaryWriter ) throws {
-				try header.write(to: &writer)
-				
+				//	header:
+				try fileHeader.write(to: &writer)
+				// typeMap:
 				for (typeID,classInfo) in typeMap.typeIDtoClassInfo {
-					try DataBlock.inTypeMap( typeID: typeID, classInfo: classInfo ).write(to: &writer)
+					try FileBlock.inTypeMap( typeID: typeID, classInfo: classInfo ).write(to: &writer)
 				}
-				
+				// body:
 				for block in blocks {
 					try block.write(to: &writer)
 				}
-				
+				// keyMap:
 				for (keyID,key) in keyMap.keyIDtoKey {
-					try DataBlock.keyMap(keyID: keyID, keyName: key).write(to: &writer)
+					try FileBlock.keyMap(keyID: keyID, keyName: key).write(to: &writer)
 				}
 			}
 			
@@ -369,7 +364,7 @@ public final class GraphEncoder {
 					if options.contains( .showSectionTitles ) {
 						output.append( "== HEADER ========================================================\n" )
 					}
-					output.append( header.readableOutput(info: info) )
+					output.append( fileHeader.description )
 					output.append( "\n" )
 				}
 				if options.contains( .showTypeMap ) {
@@ -379,7 +374,7 @@ public final class GraphEncoder {
 					output = typeMap.typeIDtoClassInfo.reduce( into: output ) {
 						result, tuple in
 						result.append(
-							DataBlock.inTypeMap(
+							FileBlock.inTypeMap(
 								typeID: tuple.key, classInfo: tuple.value
 							).readableOutput(info: info)
 						)
@@ -414,7 +409,7 @@ public final class GraphEncoder {
 					output = keyMap.keyIDtoKey.reduce( into: output ) {
 						result, tuple in
 						result.append(
-							DataBlock.keyMap(
+							FileBlock.keyMap(
 								keyID:		tuple.key,
 								keyName:	tuple.value
 							).readableOutput(info: info)
@@ -477,6 +472,8 @@ public final class GraphEncoder {
 		}
 	}
 }
+
+
 
 
 

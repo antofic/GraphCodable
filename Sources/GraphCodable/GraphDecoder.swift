@@ -163,16 +163,15 @@ public final class GraphDecoder {
 // -------------------------------------------------
 
 fileprivate struct DecodedData {
-	let fileVersion				: UInt32
-	let encodedMainModule		: String
+	let fileHeader				: FileHeader
 	let	classInfoMap			: [IntID:ClassInfo]
 	let bodyRootElement 		: BodyElement
 	private var	bodyElementMap	: [IntID : BodyElement]
 	
 	init( from reader:inout BinaryReader ) throws {
-		var blockDecoder = BlockDecoder( from: &reader )
+		var blockDecoder = try BlockDecoder( from: &reader )
 		
-		(fileVersion,encodedMainModule)		= try blockDecoder.fileVersionAndMainModule()
+		fileHeader							= blockDecoder.fileHeader
 		classInfoMap						= try blockDecoder.classInfoMap()
 		(bodyRootElement,bodyElementMap)	= try blockDecoder.bodyRootElement()
 	}
@@ -187,15 +186,14 @@ fileprivate struct DecodedData {
 // -------------------------------------------------
 
 fileprivate struct DecodedNames {
-	let fileVersion				: UInt32
-	let encodedMainModule		: String
+	let fileHeader				: FileHeader
 	let	classDataMap			: [IntID:ClassData]
 	
 	init( from reader:inout BinaryReader ) throws {
-		var blockDecoder = BlockDecoder( from: &reader )
+		var blockDecoder = try BlockDecoder( from: &reader )
 		
-		(fileVersion,encodedMainModule)	= try blockDecoder.fileVersionAndMainModule()
-		classDataMap					= try blockDecoder.classDataMap()
+		fileHeader		= blockDecoder.fileHeader
+		classDataMap	= try blockDecoder.classDataMap()
 	}
 }
 
@@ -204,29 +202,26 @@ fileprivate struct DecodedNames {
 // -------------------------------------------------
 
 fileprivate struct BlockDecoder {
+	let 		fileHeader			: FileHeader
+
 	private var reader				: BinaryReader
-	private var currentBlock		: DataBlock?
-	private var phase				: DataBlock.BlockType
-	
-	private var _encodedMainModule	= ""
+	private var currentBlock		: FileBlock?
+	private var phase				: FileBlock.BlockType
 
 	private var _fileVersion		= UInt32(0)
 	private var _classDataMap		= [IntID : ClassData]()
-	private var _bodyDataBlocks		= [DataBlock]()
+	private var _bodyDataBlocks		= [FileBlock]()
 	private var _keyIDToKey			= [IntID:String]()
 	
-	init( from reader:inout BinaryReader ) {
-		self.reader				= reader
-		self.phase				= .header
-	}
-
-	mutating func fileVersionAndMainModule() throws -> (UInt32,String) {
-		try parseHeader()
-		return (_fileVersion,_encodedMainModule)
+	init( from reader:inout BinaryReader ) throws {
+		let header		= try FileHeader( from: &reader )
+		
+		self.reader		= reader
+		self.fileHeader	= header
+		self.phase		= .typeMap
 	}
 
 	mutating func classDataMap() throws -> [IntID : ClassData] {
-		try parseHeader()
 		try parseTypeMap()
 		return _classDataMap
 	}
@@ -236,7 +231,6 @@ fileprivate struct BlockDecoder {
 	}
 	
 	mutating func bodyRootElement() throws -> ( bodyRootElement:BodyElement, bodyElementMap:[IntID : BodyElement] ) {
-		try parseHeader()
 		try parseTypeMap()
 		try parseBody()
 		try parseKeyMap()
@@ -246,9 +240,9 @@ fileprivate struct BlockDecoder {
 
 	// private section
 	
-	private mutating func peek() throws -> DataBlock? {
+	private mutating func peek() throws -> FileBlock? {
 		if currentBlock == nil {
-			currentBlock	= reader.eof ? nil : try DataBlock( from: &reader )
+			currentBlock	= reader.eof ? nil : try FileBlock(from: &reader, header: fileHeader)
 		}
 		return currentBlock
 	}
@@ -257,22 +251,6 @@ fileprivate struct BlockDecoder {
 		currentBlock = nil
 	}
 
-	private mutating func parseHeader() throws {
-		guard phase == .header else { return }
-		
-		while let dataBlock	= try peek() {
-			switch dataBlock {
-			case .header( let version, let module, _ /*unused1*/, _ /*unused2*/ ):
-				_encodedMainModule	= module
-				_fileVersion		= version
-			default:
-				self.phase	= .typeMap
-				return
-			}
-			step()
-		}
-	}
-	
 	private mutating func parseTypeMap() throws {
 		guard phase == .typeMap else { return }
 
@@ -338,14 +316,14 @@ fileprivate struct BlockDecoder {
 
 fileprivate final class BodyElement {
 	private weak var	parentElement 	: BodyElement?
-	private(set) var	dataBlock		: DataBlock
+	private(set) var	dataBlock		: FileBlock
 	private		var		keyedValues		= [String:BodyElement]()
 	private		var 	unkeyedValues 	= [BodyElement]()
 	
 	static func bodyRootElement<S>(
 		bodyDataBlocks:S, keyIDToKey:[IntID:String], reverse:Bool
 	) throws -> ( bodyRootElement: BodyElement, bodyElementMap: [IntID : BodyElement] )
-	where S:Sequence, S.Element == DataBlock {
+	where S:Sequence, S.Element == FileBlock {
 		var map			= [IntID : BodyElement]()
 		
 		guard let root	= try BodyElement(
@@ -397,7 +375,7 @@ fileprivate final class BodyElement {
 	//	----------------------------------------------------------------
 
 	private init?<S>( bodyDataBlocks:S, bodyElementMap map: inout [IntID : BodyElement], keyIDToKey:[IntID:String], reverse:Bool ) throws
-	where S:Sequence, S.Element == DataBlock {
+	where S:Sequence, S.Element == FileBlock {
 		var lineIterator = bodyDataBlocks.makeIterator()
 		
 		if let dataBlock = lineIterator.next() {
@@ -416,13 +394,13 @@ fileprivate final class BodyElement {
 		}
 	}
 
-	private init( dataBlock:DataBlock ) {
+	private init( dataBlock:FileBlock ) {
 		self.dataBlock	= dataBlock
 	}
 
 	private static func flatten<T>(
 		bodyElementMap map: inout [IntID : BodyElement], bodyElement:BodyElement, lineIterator: inout T, keyIDsToKey:[IntID:String], reverse:Bool
-	) throws where T:IteratorProtocol, T.Element == DataBlock {
+	) throws where T:IteratorProtocol, T.Element == FileBlock {
 		switch bodyElement.dataBlock {
 		case .objectType( let keyID, let typeID, let objID ):
 			//	l'oggetto non può trovarsi nella map
@@ -459,7 +437,7 @@ fileprivate final class BodyElement {
 	
 	private static func subFlatten<T>(
 		bodyElementMap map: inout [IntID : BodyElement], parentElement:BodyElement, lineIterator: inout T, keyIDsToKey:[IntID:String], reverse:Bool
-	) throws where T:IteratorProtocol, T.Element == DataBlock {
+	) throws where T:IteratorProtocol, T.Element == FileBlock {
 		while let dataBlock = lineIterator.next() {
 			guard dataBlock.blockType == .body else {
 				throw GCodableError.internalInconsistency(
@@ -643,7 +621,7 @@ fileprivate final class TypeConstructor {
 				setter( object )
 			}
 			
-			setterRepository.append( .object(objID: objID, setter: anySetter) )			
+			setterRepository.append( .object(objID: objID, setter: anySetter) )
 		default:
 			let anySetter : () throws -> () = {
 				let value : T = try self.decodeNode( bodyElement:bodyElement, from:decoder )

@@ -51,9 +51,7 @@ public struct BinaryReader {
 	}
 
 	mutating func readBool() throws -> Bool {
-		var value = false
-		try readValue( &value )
-		return value
+		return try readValue()
 	}
 	
 	mutating func readInt8 () throws -> Int8 	{ try Int8 ( littleEndian: readInteger() ) }
@@ -94,7 +92,6 @@ public struct BinaryReader {
 	}
 	
 	// private section ---------------------------------------------------------
-
 	private func checkRemainingSize( size:Int ) throws {
 		if bytes.count < size {
 			throw BinaryIOError.outOfBounds(
@@ -106,24 +103,35 @@ public struct BinaryReader {
 	}
 
 	private mutating func readInteger<T:BinaryInteger>() throws -> T {
-		var value = T()
-		try readValue( &value )
-		return value
+		return try readValue()
 	}
 
 	// usafe section ---------------------------------------------------------
-	private mutating func readValue<T>( _ v : inout T ) throws {
+	mutating func skipValue<T>( _ type:T.Type ) throws {
+		let inSize	= MemoryLayout<T>.size
+		try checkRemainingSize( size:inSize )
+		bytes.removeFirst( MemoryLayout<T>.size )
+	}
+
+	func peekValue<T>() -> T? {
+		guard MemoryLayout<T>.size <= bytes.count else {
+			return nil
+		}
+		return bytes.withUnsafeBytes { source in
+			 source.loadUnaligned(as: T.self)
+		}
+	}
+	
+	private mutating func readValue<T>() throws  -> T {
 		let inSize	= MemoryLayout<T>.size
 		try checkRemainingSize( size:inSize )
 		defer { bytes.removeFirst( inSize ) }
 		
-		bytes.withUnsafeBytes { source in
-			withUnsafeMutableBytes(of: &v) { target in
-				_ = memcpy( target.baseAddress, source.baseAddress, inSize )
-			}
+		return bytes.withUnsafeBytes { source in
+			source.loadUnaligned(as: T.self)
 		}
 	}
-
+	
 	mutating func readData<T>() throws -> T where T:MutableDataProtocol, T:ContiguousBytes {
 		let count = try readInt64()
 
@@ -167,3 +175,4 @@ public struct BinaryReader {
 		return string
 	}
 }
+
