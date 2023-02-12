@@ -263,6 +263,7 @@ public final class GraphEncoder {
 			}
 		}
 
+		
 		// -------------------------------------------------
 		// ----- ReferenceID
 		// -------------------------------------------------
@@ -288,7 +289,9 @@ public final class GraphEncoder {
 			}
 			
 			mutating func createStrongID( _ identifier: ObjectIdentifier ) -> IntID {
-				if let objID = weakObjDict[identifier] {
+				if let objID = strongObjDict[ identifier ] {
+					return objID
+				} else if let objID = weakObjDict[identifier] {
 					// se è nel weak dict, lo prendo da lì
 					weakObjDict.removeValue(forKey: identifier)
 					// e lo metto nello strong dict
