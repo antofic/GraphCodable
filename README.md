@@ -22,9 +22,10 @@ GraphCodable:
 - implements a reference type version system;
 - implements a reference type substitution system during decode;
 - supports **value types with identities**, to avoid duplication of their data;
+
 Check code examples in the [User Guide](/Docs/UserGuide.md). Check the tests section, too.
 
-(*) Fully type checking at compile time is mutually exclusive with the ability to encode/decode heterogeneous collections (i.e. `[Any]`) containing 'codable' elements. I chose to support the first feature while giving up the second.
+(*) Full type checking at compile time is mutually exclusive with the ability to encode/decode heterogeneous collections (i.e. `[Any]`) containing 'codable' elements. I chose to support the first feature while giving up the second.
 
 ## Other information
 **Most Swift Standard Library and Foundation types are supported now.** The list is [here](/Docs/GraphCodableTypes.md).
