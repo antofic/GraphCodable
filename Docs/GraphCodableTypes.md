@@ -4,9 +4,24 @@ GraphCodable relies on an internal library (BinaryIO) to archive/dearchive data 
 
 That said, NativeTypes are the system types that are always encoded/decoded directly by BinaryIO.
 Additional types (BinaryTypes) can be stored directly by BinaryIO using the `GraphEncoder( .allBinaryTypes )` option.
-This option very often makes archiving/dearchiving much faster but, if used, it bypasses the identity of types Array and ContiguousArray (if their elements are BinaryIOType) if they were defined and thus does not prevent their duplication.
-If instead the `GraphEncoder( .onlyNativeTypes )` option is used, only the NativeTypes will be encoded/decoded directly in binary and the other types in the list will be stored with GCodable methods.
+This option very often makes archiving/dearchiving much faster but, if used, it bypasses the identity of types Array and ContiguousArray (if their elements are BinaryIOType) if they were defined in your code and thus does not prevent their duplication.
+If instead the `GraphEncoder( .onlyNativeTypes )` option is used, only the NativeTypes will be encoded/decoded directly in binary and the other types in the list will be stored with standard GCodable methods.
 
+To define identity and avoid duplications of Arrays and ContiguousArrays, copy/paste in your code
+these two extensions.
+```swift
+extension Array : GIdentifiable where Element:GCodable {
+	public var gID: ObjectIdentifier? {
+		withUnsafeBytes { unsafeBitCast( $0.baseAddress, to: ObjectIdentifier?.self) }
+	}
+}
+
+extension ContiguousArray : GIdentifiable where Element:GCodable {
+	public var gID: ObjectIdentifier? {
+		withUnsafeBytes { unsafeBitCast( $0.baseAddress, to: ObjectIdentifier?.self) }
+	}
+}
+```
 ## GCodable as NativeTypes
 -	Int, Int8, Int16, Int32, Int64
 	*note:* Int is always encoded as Int64
