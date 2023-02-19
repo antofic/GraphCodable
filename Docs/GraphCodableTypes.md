@@ -1,8 +1,13 @@
 #  GraphCodableTypes
+This is the list of types that GraphCodable is capable of automatically archiving/unarchiving.
+GraphCodable relies on an internal library (BinaryIO) to archive/dearchive data in binary format.
 
-## Swift Standard Library
+That said, NativeTypes are the system types that are always encoded/decoded directly by BinaryIO.
+Additional types (BinaryTypes) can be stored directly by BinaryIO using the `GraphEncoder( .allBinaryTypes )` option.
+This option very often makes archiving/dearchiving much faster but, if used, it bypasses the identity of types Array and ContiguousArray (if their elements are BinaryIOType) if they were defined and thus does not prevent their duplication.
+If instead the `GraphEncoder( .onlyNativeTypes )` option is used, only the NativeTypes will be encoded/decoded directly in binary and the other types in the list will be stored with GCodable methods.
 
-### GCodable as NativeTypes
+## GCodable as NativeTypes
 -	Int, Int8, Int16, Int32, Int64
 	*note:* Int is always encoded as Int64
 -	UInt, UInt8, UInt16, UInt32, UInt64
@@ -12,8 +17,8 @@
 -	Bool
 -	String
 
-### GCodable as BinaryTypes
-	** Using `GraphEncoder( .allBinaryTypes /* default */ )` the following types are encoded directly with BinaryIO (fast path). **
+## GCodable as BinaryTypes
+	** Using `GraphEncoder( .allBinaryTypes )` the following types are encoded directly with BinaryIO (fast path). **
 	It is assumed that the format of these types can no longer change.
 -	Data
 -	Array, ContiguousArray, Set, Dictionary (*)
@@ -36,7 +41,7 @@
 
 (*) If the contained types are NativeTypes or BinaryTypes
 
-### GCodable
+## GCodable
 	** Using `GraphEncoder( .onlyNativeTypes )` the following types are encoded with general GCodable methods (slow path). **
 -	Data
 -	Array, ContiguousArray, Set, Dictionary (*)
