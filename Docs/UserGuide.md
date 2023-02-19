@@ -12,13 +12,14 @@
 		- [Conditional encode](#Conditional-encode)
 		- [Directed acyclic graphs](#Directed-acyclic-graphs)
 		- [Directed cyclic graphs](#Directed-cyclic-graphs)
-	- [Encoding identity for value types](#Encoding-identity-for-value-types)
+	- [ncoding/Decoding Identity for value types](#ncoding/Decoding-Identity-for-value-types)
+		- [The GIdentifiable protocol](#The-GIdentifiable-protocol)
+		- [Identity for Array and ContiguosArray](#Identity-for-Array-and-ContiguosArray)
 	- [GraphCodable protocols](#GraphCodable-protocols)
 	- [Other features](#Other-features)
 		- [UserInfo dictionary](#UserInfo-dictionary)
 		- [Reference type version system](#Reference-type-version-system)
 		- [Reference type replacement system](#Reference-type-replacement-system)
-		- [Identity for Array and ContiguosArray](#Identity-for-Array-and-ContiguosArray)
 	
 ## Premise
 GraphCodable has been completely revised.
@@ -731,7 +732,9 @@ print( "decoded \( outModel ) " )
 print( "\( inModel == outModel ) " )
 ```
 
-### Encoding identity for value types
+### Encoding/Decoding Identity for value types
+
+#### The GIdentifiable protocol
 
 GraphCodable now supports identity for value types via the following protocol:
 ```swift
@@ -832,6 +835,26 @@ do {	//	Codable
 	print( outRoot == inRoot )	// prints: true
 	print( outRoot.examples[0] === outRoot.examples[1] )	// prints: false --> we use '===': different id: value duplicated!
 	print( outRoot.examples[0] === outRoot.examples[2] )	// prints: false --> we use '===': different id: value duplicated!
+}
+```
+
+#### Identity for Array and ContiguosArray
+
+If you want avoid duplications of Arrays and ContiguousArrays, please, copy/paste in your code
+these two extensions.
+Note: works only with `.onlyNativeTypes` (default) option in `GraphEncoder()`
+ 
+```swift
+extension Array : GIdentifiable where Element:GCodable {
+	public var gID: ObjectIdentifier? {
+		withUnsafeBytes { unsafeBitCast( $0.baseAddress, to: ObjectIdentifier?.self) }
+	}
+}
+
+extension ContiguousArray : GIdentifiable where Element:GCodable {
+	public var gID: ObjectIdentifier? {
+		withUnsafeBytes { unsafeBitCast( $0.baseAddress, to: ObjectIdentifier?.self) }
+	}
 }
 ```
 
@@ -1037,24 +1060,4 @@ print( outRoot2 )
 Multiple classes can be replaced by only one if necessary: use `decoder.replacedType` to find out which one was replaced during dearchiving.
 
 Version and replacement system can be combined.
-
-#### Identity for Array and ContiguosArray
-
-If you want avoid duplications of Arrays and ContiguousArrays, please, copy/paste in your code
-these two extensions.
-Note: works only with `.onlyNativeTypes` (default) option in `GraphEncoder()`
- 
-```swift
-extension Array : GIdentifiable where Element:GCodable {
-	public var gID: ObjectIdentifier? {
-		withUnsafeBytes { unsafeBitCast( $0.baseAddress, to: ObjectIdentifier?.self) }
-	}
-}
-
-extension ContiguousArray : GIdentifiable where Element:GCodable {
-	public var gID: ObjectIdentifier? {
-		withUnsafeBytes { unsafeBitCast( $0.baseAddress, to: ObjectIdentifier?.self) }
-	}
-}
-```
 

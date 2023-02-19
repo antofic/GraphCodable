@@ -23,6 +23,7 @@ GraphCodable:
 - implements a reference type substitution system during decode;
 - supports **value types with identities**, to avoid duplication of their data;
 
+
 Check code examples in the [User Guide](/Docs/UserGuide.md). Check the tests section, too.
 
 (*) Full type checking at compile time is mutually exclusive with the ability to encode/decode heterogeneous collections (i.e. `[Any]`) containing 'codable' elements. I chose to support the first feature while giving up the second.
