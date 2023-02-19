@@ -33,22 +33,22 @@ extension Int : BinaryIOType {
 
 extension Int8 : BinaryIOType {
 	public init(from reader: inout BinaryReader) throws			{ self.init( try reader.readInt8() ) }
-	public func write(to writer: inout BinaryWriter) throws		{ writer.writeInt8( self ) }
+	public func write(to writer: inout BinaryWriter) throws		{ try writer.writeInt8( self ) }
 }
 
 extension Int16 : BinaryIOType {
 	public init(from reader: inout BinaryReader) throws			{ self.init( try reader.readInt16() ) }
-	public func write(to writer: inout BinaryWriter) throws		{ writer.writeInt16( self ) }
+	public func write(to writer: inout BinaryWriter) throws		{ try writer.writeInt16( self ) }
 }
 
 extension Int32 : BinaryIOType {
 	public init(from reader: inout BinaryReader) throws			{ self.init( try reader.readInt32() ) }
-	public func write(to writer: inout BinaryWriter) throws		{ writer.writeInt32( self ) }
+	public func write(to writer: inout BinaryWriter) throws		{ try writer.writeInt32( self ) }
 }
 
 extension Int64 : BinaryIOType {
 	public init(from reader: inout BinaryReader) throws			{ self.init( try reader.readInt64() ) }
-	public func write(to writer: inout BinaryWriter) throws		{ writer.writeInt64( self ) }
+	public func write(to writer: inout BinaryWriter) throws		{ try writer.writeInt64( self ) }
 }
 
 // UInt ------------------------------------------------------
@@ -61,22 +61,22 @@ extension UInt : BinaryIOType {
 
 extension UInt8 : BinaryIOType {
 	public init(from reader: inout BinaryReader) throws			{ self.init( try reader.readUInt8() ) }
-	public func write(to writer: inout BinaryWriter) throws		{ writer.writeUInt8( self ) }
+	public func write(to writer: inout BinaryWriter) throws		{ try writer.writeUInt8( self ) }
 }
 
 extension UInt16 : BinaryIOType {
 	public init(from reader: inout BinaryReader) throws			{ self.init( try reader.readUInt16() ) }
-	public func write(to writer: inout BinaryWriter) throws		{ writer.writeUInt16( self ) }
+	public func write(to writer: inout BinaryWriter) throws		{ try writer.writeUInt16( self ) }
 }
 
 extension UInt32 : BinaryIOType {
 	public init(from reader: inout BinaryReader) throws			{ self.init( try reader.readUInt32() ) }
-	public func write(to writer: inout BinaryWriter) throws		{ writer.writeUInt32( self ) }
+	public func write(to writer: inout BinaryWriter) throws		{ try writer.writeUInt32( self ) }
 }
 
 extension UInt64 : BinaryIOType {
 	public init(from reader: inout BinaryReader) throws			{ self.init( try reader.readUInt64() ) }
-	public func write(to writer: inout BinaryWriter) throws		{ writer.writeUInt64( self ) }
+	public func write(to writer: inout BinaryWriter) throws		{ try writer.writeUInt64( self ) }
 }
 
 // Float & Double ------------------------------------------------------
@@ -84,12 +84,12 @@ extension UInt64 : BinaryIOType {
 
 extension Float : BinaryIOType {
 	public init(from reader: inout BinaryReader) throws			{ self.init( try reader.readFloat() ) }
-	public func write(to writer: inout BinaryWriter) throws		{ writer.writeFloat( self ) }
+	public func write(to writer: inout BinaryWriter) throws		{ try writer.writeFloat( self ) }
 }
 
 extension Double : BinaryIOType {
 	public init(from reader: inout BinaryReader) throws			{ self.init( try reader.readDouble() ) }
-	public func write(to writer: inout BinaryWriter) throws		{ writer.writeDouble( self ) }
+	public func write(to writer: inout BinaryWriter) throws		{ try writer.writeDouble( self ) }
 }
 
 // Bool ------------------------------------------------------
@@ -97,7 +97,7 @@ extension Double : BinaryIOType {
 
 extension Bool : BinaryIOType {
 	public init(from reader: inout BinaryReader) throws			{ self.init( try reader.readBool() ) }
-	public func write(to writer: inout BinaryWriter) throws		{ writer.writeBool( self ) }
+	public func write(to writer: inout BinaryWriter) throws		{ try writer.writeBool( self ) }
 }
 
 
@@ -106,7 +106,7 @@ extension Bool : BinaryIOType {
 
 extension String : BinaryIOType {
 	public func write( to writer: inout BinaryWriter ) throws {
-		writer.writeString( self )
+		try writer.writeString( self )
 	}
 	public init( from reader: inout BinaryReader ) throws {
 		self = try reader.readString()
@@ -361,5 +361,6 @@ extension CollectionDifference : BinaryIOType where ChangeElement:BinaryIOType {
 		}
 	}
 }
+
 
 

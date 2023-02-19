@@ -67,14 +67,14 @@ extension Bool 		: NativeType {}
 // -- String support --------------------------------------------
 extension String 	: NativeType {}
 
+// -- Data support ----------------------------------------------------------
+// extension Data 		: NativeType {}
 
 /* Considerali nativi o no?
-// -- Data support ----------------------------------------------------------
-extension Data 		: NativeType {}
-
  // -- Collection support ----------------------------------------------------------
 extension Array 			: NativeType where Element: NativeType {}
 extension ContiguousArray 	: NativeType where Element: NativeType {}
 extension Set			 	: NativeType where Element: NativeType {}
 extension Dictionary		: NativeType where Key:NativeType, Value:NativeType {}
 */
+

@@ -25,16 +25,19 @@ import Foundation
 
 public final class GraphEncoder {
 	private let encoder	: Encoder
+	
 
 	public enum Options {
 		case onlyNativeTypes, allBinaryTypes
+		
+		public static let defaultOption = Self.onlyNativeTypes
 	}
 	
 	/// GraphEncoder init method
-	public init( _ options: Options = .allBinaryTypes ) {
+	public init( _ options: Options = .defaultOption ) {
 		encoder	= Encoder( options )
 	}
-	
+
 	///	Get/Set the userInfo dictionary
 	public var userInfo : [String:Any] {
 		get { encoder.userInfo }
@@ -147,7 +150,7 @@ public final class GraphEncoder {
 			try encodeAnyValue( value, forKey: nil, conditional:false )
 		}
 
-		func encodeConditional<Value>(_ value: Value?) throws where Value:GCodable, Value:AnyObject {
+		func encodeConditional<Value>(_ value: Value?) throws where Value:GCodable {
 			try encodeAnyValue( value as Any, forKey: nil, conditional:true )
 		}
 		
@@ -158,32 +161,29 @@ public final class GraphEncoder {
 		}
 		
 		func encodeConditional<Key, Value>(_ value: Value?, for key: Key) throws
-		where Key : RawRepresentable, Value : AnyObject, Value : GCodable, Key.RawValue == String
+		where Key : RawRepresentable, Value : GCodable, Key.RawValue == String
 		{
 			try encodeAnyValue( value as Any, forKey: key.rawValue, conditional:true )
 		}
 
 		// --------------------------------------------------------
+		typealias			IdentifierMap		= AnyIdentifierMap // GenIdentifierMap<ObjectIdentifier>
+		
 		private let 		encodeOptions		: Options
 		private var 		currentKeys			= Set<String>()
-		private var			referenceID			= ObjectMap()
+		private var			identifierMap		= IdentifierMap()
 		private (set) var	encodedData			= EncodedData()
 		private var			tempNativeValue		: Any?
 
-		private var fullBinaryEncode : Bool {
-			switch encodeOptions {
-			case	.allBinaryTypes: return true
-			default: return false
-			}
-		}
-		
 		private func reset() {
 			self.currentKeys	= Set<String>()
-			self.referenceID	= ObjectMap()
+			self.identifierMap	= IdentifierMap()
 			self.encodedData	= EncodedData()
 		}
-	
+		
 		private func encodeAnyValue(_ anyValue: Any, forKey key: String?, conditional:Bool ) throws {
+			func gIdentifier( _ value:GCodable ) -> (any Hashable)? { return (value as? any GIdentifiable)?.gID }
+			
 			// trasformo in un Optional<Any> di un solo livello:
 			let value	= Optional(fullUnwrapping: anyValue)
 			let keyID	= try createKeyID( key: key )
@@ -194,18 +194,14 @@ public final class GraphEncoder {
 			}
 			// now value if not nil!
 			
-			if let binaryValue = value as? NativeType {
-				encodedData.append( .inBinType(keyID: keyID, value: binaryValue ) )
-			} else if fullBinaryEncode, let binaryValue = value as? BinaryIOType {
-				encodedData.append( .inBinType(keyID: keyID, value: binaryValue ) )
-			} else if let object = value as? GCodable & AnyObject {	// reference type
-				let identifier = ObjectIdentifier( object )
-				if let objID = referenceID.strongID( identifier ) {
+			if let object = value as? GCodable & AnyObject {	// reference type
+				let identifier = gIdentifier( object ) ?? ObjectIdentifier( object )
+				if let objID = identifierMap.strongID( identifier ) {
 					// l'oggetto è stato già memorizzato, basta un pointer
 					if conditional {
-						encodedData.append( .objectWPtr(keyID: keyID, objID: objID) )
+						encodedData.append( .conditionalPtr(keyID: keyID, objID: objID) )
 					} else {
-						encodedData.append( .objectSPtr(keyID: keyID, objID: objID) )
+						encodedData.append( .strongPtr(keyID: keyID, objID: objID) )
 					}
 				} else if conditional {
 					// Conditional Encoding: avrei la descrizione ma non la voglio usare
@@ -214,22 +210,56 @@ public final class GraphEncoder {
 					// Verifico comunque se l'oggetto è reificabile
 					try ClassData.throwIfNotConstructible( type: type(of:object) )
 					
-					let objID	= referenceID.createWeakID( identifier )
-					encodedData.append( .objectWPtr(keyID: keyID, objID: objID) )
+					let objID	= identifierMap.createWeakID( identifier )
+					encodedData.append( .conditionalPtr(keyID: keyID, objID: objID) )
 				} else {
-					//	memorizzo l'oggetto
+					//	memorizzo il reference type
 					let typeID	= try encodedData.createTypeIDIfNeeded(type: type(of:object))
-					let objID	= referenceID.createStrongID( identifier )
+					let objID	= identifierMap.createStrongID( identifier )
 					
-					encodedData.append( .objectType(keyID: keyID, typeID: typeID, objID: objID) )
+					encodedData.append( .referenceType(keyID: keyID, typeID: typeID, objID: objID) )
 					try encodeValue( object )
 					encodedData.append( .end )
 				}
 			} else if let value = value as? GCodable {
-				// value type
-				encodedData.append( .valueType( keyID: keyID ) )
-				try encodeValue( value )
-				encodedData.append( .end )
+				if let binaryValue = value as? NativeType {
+					//	i tipi nativi sono semplici: l'identità non serve
+					//	(e per le stringhe?)
+					encodedData.append( .binaryIN(keyID: keyID, value: binaryValue ) )
+				} else if let identifier = gIdentifier( value ) {
+					// il valore ha un identità
+					if let objID = identifierMap.strongID( identifier ) {
+						// l'oggetto è stato già memorizzato, basta un pointer
+						if conditional {
+							encodedData.append( .conditionalPtr(keyID: keyID, objID: objID) )
+						} else {
+							encodedData.append( .strongPtr(keyID: keyID, objID: objID) )
+						}
+					} else if conditional {
+						// Conditional Encoding: avrei la descrizione ma non la voglio usare
+						// perché servirà solo se dopo arriverà da uno strongRef
+						let objID	= identifierMap.createWeakID( identifier )
+						encodedData.append( .conditionalPtr(keyID: keyID, objID: objID) )
+					} else {
+						//	memorizzo il value type
+						let objID	= identifierMap.createStrongID( identifier )
+						
+						if encodeOptions == .allBinaryTypes, let binaryValue = value as? BinaryIOType {
+							encodedData.append( .iBinaryIN(keyID: keyID, objID: objID, value: binaryValue ) )
+						} else {
+							encodedData.append( .iValueType(keyID: keyID, objID: objID) )
+							try encodeValue( value )
+							encodedData.append( .end )
+						}
+					}
+				} else if encodeOptions == .allBinaryTypes, let binaryValue = value as? BinaryIOType {
+					encodedData.append( .binaryIN(keyID: keyID, value: binaryValue ) )
+				} else {
+					//	valore senza identità
+					encodedData.append( .valueType( keyID: keyID ) )
+					try encodeValue( value )
+					encodedData.append( .end )
+				}
 			} else {
 				throw GCodableError.internalInconsistency(
 					Self.self, GCodableError.Context(
@@ -238,7 +268,7 @@ public final class GraphEncoder {
 				)
 			}
 		}
-
+		
 		private func encodeValue( _ value:GCodable ) throws {
 			let savedKeys	= currentKeys
 			defer { currentKeys = savedKeys }
@@ -263,45 +293,68 @@ public final class GraphEncoder {
 			}
 		}
 
+		// -------------------------------------------------
+		// ----- AnyIdentifierMap
+		// -------------------------------------------------
 		
-		// -------------------------------------------------
-		// ----- ReferenceID
-		// -------------------------------------------------
+		fileprivate struct AnyIdentifierMap {
+			private struct Key : Hashable {
+				private let identifier : any Hashable
 
-		fileprivate struct ObjectMap {
+				init<T:Hashable>( _ identifier: T ) {
+					self.identifier		= identifier
+				}
+				
+				private static func equal<T,Q>( lhs: T, rhs: Q ) -> Bool where T:Equatable, Q:Equatable {
+					guard let rhs = rhs as? T else { return false }
+					return lhs == rhs
+				}
+				
+				static func == (lhs: Self, rhs: Self) -> Bool {
+					return equal(lhs: lhs.identifier, rhs: rhs.identifier)
+				}
+
+				func hash(into hasher: inout Hasher) {
+					hasher.combine( ObjectIdentifier( type( of:identifier) ) )
+					hasher.combine( identifier )
+				}
+			}
+
 			private	var actualId : IntID	= 1000	// <1000 reserved for future use
-			private var	strongObjDict		= [ObjectIdentifier:IntID]()
-			private var	weakObjDict			= [ObjectIdentifier:IntID]()
+			private var	strongObjDict		= [Key:IntID]()
+			private var	weakObjDict			= [Key:IntID]()
 			
-			func strongID( _ identifier: ObjectIdentifier ) -> IntID? {
-				strongObjDict[ identifier ]
+			func strongID<T:Hashable>( _ identifier: T ) -> IntID? {
+				strongObjDict[ Key(identifier) ]
 			}
 			
-			mutating func createWeakID( _ identifier: ObjectIdentifier ) -> IntID {
-				if let objID = weakObjDict[ identifier ] {
+			mutating func createWeakID<T:Hashable>( _ identifier: T ) -> IntID {
+				let box	= Key(identifier)
+				if let objID = weakObjDict[ box ] {
 					return objID
 				} else {
 					let objID = actualId
 					defer { actualId += 1 }
-					weakObjDict[ identifier ] = objID
+					weakObjDict[ box ] = objID
 					return objID
 				}
 			}
 			
-			mutating func createStrongID( _ identifier: ObjectIdentifier ) -> IntID {
-				if let objID = strongObjDict[ identifier ] {
+			mutating func createStrongID<T:Hashable>( _ identifier: T ) -> IntID {
+				let key	= Key(identifier)
+				if let objID = strongObjDict[ key ] {
 					return objID
-				} else if let objID = weakObjDict[identifier] {
+				} else if let objID = weakObjDict[key] {
 					// se è nel weak dict, lo prendo da lì
-					weakObjDict.removeValue(forKey: identifier)
+					weakObjDict.removeValue(forKey: key)
 					// e lo metto nello strong dict
-					strongObjDict[identifier] = objID
+					strongObjDict[key] = objID
 					return objID
 				} else {
 					// altrimenti creo uno nuovo
 					let objID = actualId
 					defer { actualId += 1 }
-					strongObjDict[identifier] = objID
+					strongObjDict[key] = objID
 					return objID
 				}
 			}
@@ -317,7 +370,6 @@ public final class GraphEncoder {
 			private var	keyMap			= KeyMap()
 			private (set) var blocks	= [FileBlock]()
 
-			
 			mutating func createTypeIDIfNeeded( type:(AnyObject & GCodable).Type ) throws -> IntID {
 				try typeMap.createTypeIDIfNeeded( type: type )
 			}
@@ -334,8 +386,8 @@ public final class GraphEncoder {
 				//	header:
 				try fileHeader.write(to: &writer)
 				// typeMap:
-				for (typeID,classInfo) in typeMap.typeIDtoClassInfo {
-					try FileBlock.inTypeMap( typeID: typeID, classInfo: classInfo ).write(to: &writer)
+				for (typeID,classData) in typeMap.typeIDtoClassData {
+					try FileBlock.typeMap( typeID: typeID, classData: classData ).write(to: &writer)
 				}
 				// body:
 				for block in blocks {
@@ -358,7 +410,7 @@ public final class GraphEncoder {
 			func readableOutput( options:DumpOptions ) -> String {
 				let info = DumpInfo(
 					options:		options,
-					classInfoMap:	options.contains( .resolveIDs ) ? typeMap.typeIDtoClassInfo : nil,
+					classDataMap:	options.contains( .resolveIDs ) ? typeMap.typeIDtoClassData : nil,
 					keyIDtoKey:		options.contains( .resolveIDs ) ? keyMap.keyIDtoKey : nil
 				)
 
@@ -374,11 +426,11 @@ public final class GraphEncoder {
 					if options.contains( .showSectionTitles ) {
 						output.append( "== TYPEMAP =======================================================\n" )
 					}
-					output = typeMap.typeIDtoClassInfo.reduce( into: output ) {
+					output = typeMap.typeIDtoClassData.reduce( into: output ) {
 						result, tuple in
 						result.append(
-							FileBlock.inTypeMap(
-								typeID: tuple.key, classInfo: tuple.value
+							FileBlock.typeMap(
+								typeID: tuple.key, classData: tuple.value
 							).readableOutput(info: info)
 						)
 						result.append( "\n" )
@@ -429,10 +481,10 @@ public final class GraphEncoder {
 			// -------------------------------------------------
 			// ----- TypeMap
 			// -------------------------------------------------
-			
+	
 			private struct TypeMap {
 				private	var			currentId : IntID	= 1000	// ATT! 0-999 future use
-				private (set) var	typeIDtoClassInfo	= [ IntID: ClassInfo ]()
+				private (set) var	typeIDtoClassData	= [ IntID: ClassData ]()
 				private var			typeToTypeID		= [ ObjectIdentifier: IntID ]()
 
 				mutating func createTypeIDIfNeeded( type:(AnyObject & GCodable).Type ) throws -> IntID {
@@ -444,13 +496,13 @@ public final class GraphEncoder {
 						defer { currentId += 1 }
 
 						let typeID = currentId
-						typeIDtoClassInfo[ typeID ]	= try ClassInfo( type: type )
+						typeIDtoClassData[ typeID ]	= try ClassData( type: type )
 						typeToTypeID[ objIdentifier ] = typeID
 						return typeID
 					}
 				}
 			}
-	
+
 			// -------------------------------------------------
 			// ----- KeyMap
 			// -------------------------------------------------
@@ -475,7 +527,6 @@ public final class GraphEncoder {
 		}
 	}
 }
-
 
 
 

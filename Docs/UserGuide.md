@@ -7,16 +7,18 @@
 		- [Keyed coding](#Keyed-coding)
 		- [Unkeyed coding](#Unkeyed-coding)
 	- [Reference types](#Reference-types)
-		- [No duplication of the same object](#No-duplication-of-the-same-object)
+		- [Identity](#Identity)
 		- [Inheritance](#Inheritance)
 		- [Conditional encode](#Conditional-encode)
 		- [Directed acyclic graphs](#Directed-acyclic-graphs)
 		- [Directed cyclic graphs](#Directed-cyclic-graphs)
-	- [Coding rules](#Coding-rules)
+	- [Encoding identity for value types](#Encoding-identity-for-value-types)
+	- [GraphCodable protocols](#GraphCodable-protocols)
 	- [Other features](#Other-features)
 		- [UserInfo dictionary](#UserInfo-dictionary)
 		- [Reference type version system](#Reference-type-version-system)
 		- [Reference type replacement system](#Reference-type-replacement-system)
+		- [Identity for Array and ContiguosArray](#Identity-for-Array-and-ContiguosArray)
 	
 ## Premise
 GraphCodable has been completely revised.
@@ -175,11 +177,13 @@ extension Array: GCodable where Element:GCodable {
 The `init( from:... )` method clearly shows that **values are removed from the decoder as they are decoded**.
 
 ### Reference types
-#### No duplication of the same object
+#### Identity
 
 Up to now the behavior of GraphCodable is similar to that of Codable. That changes with reference types.
-The same example with a reference type will show how GraphCodable don't duplicate the same reference. Codable duplicates it.
+GraphCodable uses the ObjectIdentifier of each reference type as its identity. If, while encoding, it encounters a reference type that it has already encoded, instead of encoding it normally, it simply encode a token that identifies it.
+This way reference types are not duplicated. Codable duplicates it.
 
+See the next example:
 ```swift
 import Foundation
 import GraphCodable
@@ -456,27 +460,6 @@ do {	// same thing with Codable
 	
 	print( e1 === e2 )	// prints: false --> we use '===': different references!
 	print( e1 === e3 )	// prints: false --> we use '===': different references!
-
-	/// This is the graph obtained from Codable:
-	///                ╭───╮   ╭───╮
-	///                │ d │──▶︎│ e │
-	///                ╰───╯   ╰───╯
-	///                  ▲
-	///                  │
-	///                ╭───╮   ╭───╮
-	///          ┌────▶︎│ c │──▶︎│ e │
-	///          │     ╰───╯   ╰───╯
-	///          │
-	///        ╭───╮   ╭───╮   ╭───╮   ╭───╮
-	/// root = │ a │──▶︎│ b │──▶︎│ d │──▶︎│ e │
-	///        ╰───╯   ╰───╯   ╰───╯   ╰───╯
-	///         │ │
-	///         │ │    ╭───╮   ╭───╮
-	///         │ └───▶︎│ d │──▶︎│ e │
-	///         │      ╰───╯   ╰───╯
-	///         │      ╭───╮
-	///         └─────▶︎│ e │
-	///                ╰───╯
 }
 ```
 GraphCodable decodes the original structure of the graph.
@@ -748,6 +731,110 @@ print( "decoded \( outModel ) " )
 print( "\( inModel == outModel ) " )
 ```
 
+### Encoding identity for value types
+
+GraphCodable now supports identity for value types via the following protocol:
+```swift
+public protocol GIdentifiable<GID> {
+	/// A type representing the stable identity ** over encoding/decoding **
+	/// of the entity associated with an instance.
+	associatedtype GID : Hashable
+
+	/// The stable identity ** over encoding/decoding ** of the entity associated
+	/// with this instance.
+	var gID: Self.GID? { get }
+}
+
+extension GIdentifiable where Self:Identifiable {
+	/// By default gID == id.
+	public var gID: Self.ID? { id }
+}
+```
+A value type conforming to the GIdentifiable protocol acquires the same ability as reference types to not be duplicated during storage.
+A value that already conforms to Identifiable, if made Identifiable, uses id as the gID.
+See the next example. 
+
+```swift
+import Foundation
+import GraphCodable
+
+struct Example : GCodable, Equatable, Codable, Identifiable, GIdentifiable {
+	var id = UUID()
+	
+	private(set) var name		: String
+	private(set) var examples	: [Example]
+	
+	init( name : String, examples : [Example] = [Example]()) {
+		self.name		= name
+		self.examples	= examples
+	}
+	
+	private enum Key: String {
+		case name, examples
+	}
+	
+	init(from decoder: GDecoder) throws {
+		self.name	= try decoder.decode( for: Key.name )
+		self.examples	= try decoder.decode( for: Key.examples )
+	}
+	
+	func encode(to encoder: GEncoder) throws {
+		try encoder.encode( name, for: Key.name )
+		try encoder.encode( examples, for: Key.examples )
+	}
+	
+	enum CodingKeys: String, CodingKey {
+		case name, examples
+	}
+	
+	// we dont want to save the ID
+	init(from decoder: Decoder) throws {
+		let values	= try decoder.container(keyedBy: CodingKeys.self)
+		name 		= try values.decode(String.self, forKey: .name)
+		examples	= try values.decode([Example].self, forKey: .examples)
+	}
+	
+	func encode(to encoder: Encoder) throws {
+		var container = encoder.container(keyedBy: CodingKeys.self)
+		try container.encode(name, forKey: .name)
+		try container.encode(examples, forKey: .examples)
+	}
+	
+	static func == (lhs: Example, rhs: Example) -> Bool {
+		// first check the id (same id than same data)
+		// then check data (different id but same data)
+		return (lhs === rhs) || (lhs.name == rhs.name && lhs.examples == rhs.examples)
+	}
+
+	static func === (lhs: Example, rhs: Example) -> Bool {
+		return lhs.id == rhs.id
+	}
+}
+
+let eA	= Example(name: "exampleA")
+let eB	= Example(name: "exampleB", examples: [eA,eA,eA] )
+
+let inRoot	= eB
+
+do {	//	GraphCodable
+	let data	= try GraphEncoder().encode( inRoot )
+	let outRoot	= try GraphDecoder().decode( type(of:inRoot), from: data )
+	
+	print( outRoot == inRoot )	// prints: true
+	print( outRoot.examples[0] === outRoot.examples[1] )	// prints: true --> we use '===': same id!
+	print( outRoot.examples[0] === outRoot.examples[2] )	// prints: true --> we use '===': same id!
+}
+
+do {	//	Codable
+	let data	= try JSONEncoder().encode( inRoot )
+	let outRoot	= try JSONDecoder().decode( type(of:inRoot), from: data )
+	
+	print( outRoot == inRoot )	// prints: true
+	print( outRoot.examples[0] === outRoot.examples[1] )	// prints: false --> we use '===': different id: value duplicated!
+	print( outRoot.examples[0] === outRoot.examples[2] )	// prints: false --> we use '===': different id: value duplicated!
+}
+```
+
 ### GraphCodable protocols
 
 All GraphCodable protocols are defined [here](/Sources/GraphCodable/GraphCodable.swift).
@@ -950,3 +1037,24 @@ print( outRoot2 )
 Multiple classes can be replaced by only one if necessary: use `decoder.replacedType` to find out which one was replaced during dearchiving.
 
 Version and replacement system can be combined.
+
+#### Identity for Array and ContiguosArray
+
+If you want avoid duplications of Arrays and ContiguousArrays, please, copy/paste in your code
+these two extensions.
+Note: works only with `.onlyNativeTypes` (default) option in `GraphEncoder()`
+ 
+```swift
+extension Array : GIdentifiable where Element:GCodable {
+	public var gID: ObjectIdentifier? {
+		withUnsafeBytes { unsafeBitCast( $0.baseAddress, to: ObjectIdentifier?.self) }
+	}
+}
+
+extension ContiguousArray : GIdentifiable where Element:GCodable {
+	public var gID: ObjectIdentifier? {
+		withUnsafeBytes { unsafeBitCast( $0.baseAddress, to: ObjectIdentifier?.self) }
+	}
+}
+```
+

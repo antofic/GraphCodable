@@ -265,7 +265,7 @@ final class StructEnumOptionTests: XCTestCase {
 		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 		
 		XCTAssertEqual( inRoot, outRoot, #function )
-	}	
+	}
 	
 	func testStringEnum() throws {
 		let inRoot	= DisneyString.paperino
@@ -300,3 +300,4 @@ final class StructEnumOptionTests: XCTestCase {
 		XCTAssertEqual( inRoot, outRoot, #function )
 	}
 }
+

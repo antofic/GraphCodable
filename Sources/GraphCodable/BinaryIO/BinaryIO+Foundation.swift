@@ -27,7 +27,7 @@ import Foundation
 
 extension Data : BinaryIOType {
 	public func write( to writer: inout BinaryWriter ) throws {
-		writer.writeData( self )
+		try writer.writeData( self )
 	}
 	public init( from reader: inout BinaryReader ) throws {
 		self = try reader.readData()
@@ -689,4 +689,5 @@ extension RunLoop.SchedulerTimeType.Stride : BinaryIOType {
 		self.init( try TimeInterval(from: &reader) )
 	}
 }
+
 

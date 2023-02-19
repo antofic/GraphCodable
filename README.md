@@ -6,6 +6,9 @@ GraphCodable is a Swift encode/decode package (similar to Codable at interface l
  
 With version **0.3.0** and later versions, the package has been completely revised. It now relies on `_mangledTypeName(...)` (when available) and `NSStringFromClass(...)` to generate the "type name" and on `_typeByName(...)` and `NSClassFromString(...)` to retrieve the class type from it.
 
+With version **0.4.0** and later versions, GraphCodable supports **identity for archiviving value types**, to avoid duplication of their data.
+See the `GIdentifiable` protocol.
+
 ## Features
 GraphCodable:
 - encodes type information (for reference types);
@@ -18,7 +21,7 @@ GraphCodable:
 - implements an userInfo dictionary;
 - implements a reference type version system;
 - implements a reference type substitution system during decode;
-
+- supports **value types with identities**, to avoid duplication of their data;
 Check code examples in the [User Guide](/Docs/UserGuide.md). Check the tests section, too.
 
 (*) Fully type checking at compile time is mutually exclusive with the ability to encode/decode heterogeneous collections (i.e. `[Any]`) containing 'codable' elements. I chose to support the first feature while giving up the second.
@@ -53,7 +56,7 @@ GraphCodable does not use containers.
 
 ## Supported technologies
 
-- Swift 5.3
+- Swift 5.6
 
 ## Changelog
 
@@ -62,5 +65,6 @@ Check it [here](/CHANGELOG.md).
 ## License
 
 GraphCodable is released under the MIT license. [See LICENSE](/LICENSE.txt) for more details.
+
 
 

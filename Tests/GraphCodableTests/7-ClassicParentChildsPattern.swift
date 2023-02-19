@@ -125,3 +125,4 @@ final class ClassicParentChildsPattern: XCTestCase {
 		XCTAssertEqual( outRoot, outRoot.childs.first?.childs.first?.parent?.parent! , #function)
 	}
 }
+

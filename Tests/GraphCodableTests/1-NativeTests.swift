@@ -110,13 +110,16 @@ final class NativeTests: XCTestCase {
 	}
 	
 	func testData() throws {
-		let inRoot	= ["Pippo".data(using: .utf8), "Paperino".data(using: .utf8),nil ]
+		let a		= "Pippo".data(using: .utf8)
+		let b		= "Paperino".data(using: .utf8)
+
+		let inRoot	= [a, b, a, nil]
 		let data	= try GraphEncoder().encode( inRoot )
 		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 
 		XCTAssertEqual( inRoot, outRoot, #function )
 	}
-	
+
 	func testSIMDVector() throws {
 		let a = SIMD8(repeating: 2.0)
 		let b = SIMD8(repeating: 4.0)
@@ -142,3 +145,4 @@ final class NativeTests: XCTestCase {
 	}
 	
 }
+

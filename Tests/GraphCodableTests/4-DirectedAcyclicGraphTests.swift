@@ -29,30 +29,26 @@ import XCTest
 // --------------------------------------------------------------------------------
 
 final class DirectedAcyclicGraphTests: XCTestCase {
-	class Node : Codable, GCodable {
-		private (set) var connections = [Node]()
+	class Node : Codable, GCodable, Equatable {
 		let name : String
-
-		func connect( to nodes: Node... ) {
-			connections.append( contentsOf: nodes)
-		}
+		var others = [Node]()
 		
 		init( _ name:String ) {
 			self.name	= name
 		}
 
 		private enum Key : String {
-			case name, connections
+			case name, others
 		}
 
 		required init(from decoder: GDecoder) throws {
-			name		= try decoder.decode( for: Key.name )
-			connections	= try decoder.decode( for: Key.connections )
+			name	= try decoder.decode( for: Key.name )
+			others	= try decoder.decode( for: Key.others )
 		}
 		
 		func encode(to encoder: GEncoder) throws {
-			try encoder.encode(name, 		for: Key.name )
-			try encoder.encode(connections, for: Key.connections )
+			try encoder.encode(name, 	for: Key.name )
+			try encoder.encode(others,	for: Key.others )
 		}
 	}
 
@@ -81,11 +77,12 @@ final class DirectedAcyclicGraphTests: XCTestCase {
 		///  │ └──────────────┘       │
 		///	 └────────────────────────┘
 
-		a.connect( to: b, c, d, e )
-		b.connect( to: d )
-		c.connect( to: d, e )
-		d.connect( to: e )	// Read the note (1)
-		
+		//	The order here is irrelevant:
+		a.others = [ b, c, d, e ]
+		b.others = [ d ]
+		c.others = [ d, e ]
+		d.others = [ e ]	// Read the note (1)
+
 		let inRoot	= a
 		let data	= try GraphEncoder().encode( inRoot )
 		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
@@ -93,21 +90,21 @@ final class DirectedAcyclicGraphTests: XCTestCase {
 		let outA	= outRoot
 		
 		//	Reconstruction test
-		XCTAssertEqual( outA.connections[0].name, "b" , #function)
-		XCTAssertEqual( outA.connections[1].name, "c" , #function)
-		XCTAssertEqual( outA.connections[2].name, "d" , #function)
-		XCTAssertEqual( outA.connections[3].name, "e" , #function)
+		XCTAssertEqual( outA.others[0].name, "b" , #function)
+		XCTAssertEqual( outA.others[1].name, "c" , #function)
+		XCTAssertEqual( outA.others[2].name, "d" , #function)
+		XCTAssertEqual( outA.others[3].name, "e" , #function)
 		
-		XCTAssertEqual( outA.connections[0].connections[0].name, "d" , #function)
-		XCTAssertEqual( outA.connections[1].connections[0].name, "d" , #function)
+		XCTAssertEqual( outA.others[0].others[0].name, "d" , #function)
+		XCTAssertEqual( outA.others[1].others[0].name, "d" , #function)
 		
 		//	No duplicates test
-		let d_from_a	= outA.connections[2]
-		let d_from_ab	= outA.connections[0].connections[0]
-		let d_from_ac	= outA.connections[1].connections[0]
+		let d_from_a	= outA.others[2]
+		let d_from_ab	= outA.others[0].others[0]
+		let d_from_ac	= outA.others[1].others[0]
 		
-		XCTAssertTrue( d_from_a === d_from_ab, #function )
-		XCTAssertTrue( d_from_a === d_from_ac, #function )
+		XCTAssertTrue( d_from_a == d_from_ab, #function )
+		XCTAssertTrue( d_from_a == d_from_ac, #function )
 
 		///	Note (1):
 		///	If we add:
@@ -117,7 +114,99 @@ final class DirectedAcyclicGraphTests: XCTestCase {
 		///	(and also GCodable cannot decode it)
 		/// Basically such graphs cannot exist in Swift without using weak
 		/// variables.
-		///	The next test will show an example
+		///	See "DirectedCyclicGraphTrest as esamples.
 	}
 	
+	struct NodeStruct : Identifiable, GCodable, GIdentifiable, CustomStringConvertible {
+		var id 		= UUID()
+		//	Note: Equality '===' defined as 'same Identity'.
+		//	It is the counterpart of the '===' equality
+		//	between reference types based on their
+		//	ObjectIdentifier
+		static func === (lhs:Self, rhs:Self) -> Bool {
+			return lhs.id == rhs.id
+		}
+		
+		let name	: String
+		var others	= [NodeStruct]() {
+			willSet { id = UUID() }
+		}
+		
+		init( _ name:String ) {
+			self.name	= name
+		}
+		
+		private enum Key : String {
+			case name, others
+		}
+		
+		func encode(to encoder: GEncoder) throws {
+			try encoder.encode( name, for: Key.name )
+			try encoder.encode( others, for: Key.others )
+		}
+		
+		init(from decoder: GDecoder) throws {
+			self.name	= try decoder.decode( for: Key.name )
+			self.others	= try decoder.decode( for: Key.others )
+		}
+		
+		var description: String {
+			return "\(name) \( others.map { $0.name } )"
+		}
+	}
+
+	func testDAGstruct() throws {
+		//	This test uses values with identities
+		var a = NodeStruct("a")
+		var b = NodeStruct("b")
+		var c = NodeStruct("c")
+		var d = NodeStruct("d")
+		let e = NodeStruct("e")
+
+		///                 ╭───╮
+		///	  ┌────────────▶︎│ c │─────┐
+		///	  │             ╰───╯     │
+		///   │               │       │
+		///   │               ▼       ▼
+		/// ╭───╮   ╭───╮   ╭───╮   ╭───╮
+		///	│ a │──▶︎│ b │──▶︎│ d │──▶︎│ e │
+		///	╰───╯   ╰───╯   ╰───╯   ╰───╯
+		///  │ │              ▲       ▲
+		///  │ │              │       │
+		///  │ └──────────────┘       │
+		///	 └────────────────────────┘
+
+		// Note: The order with value types is important!
+		d.others = [e, a]
+		c.others = [d, e]
+		b.others = [d]
+		a.others = [b, c, d, e]
+
+		let inRoot	= a
+		let data	= try GraphEncoder().encode( inRoot )
+		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
+		
+		let outA	= outRoot
+		
+		//	Reconstruction test
+		XCTAssertEqual( outA.others[0].name, "b" , #function)
+		XCTAssertEqual( outA.others[1].name, "c" , #function)
+		XCTAssertEqual( outA.others[2].name, "d" , #function)
+		XCTAssertEqual( outA.others[3].name, "e" , #function)
+		
+		XCTAssertEqual( outA.others[0].others[0].name, "d" , #function)
+		XCTAssertEqual( outA.others[1].others[0].name, "d" , #function)
+
+		//	Note: Equality defined as Identity.
+		//	It is the counterpart of the identity between
+		//	reference types based on ObjectIdentifier
+		//	No duplicates test. Codable fails this test.
+		let d_from_a	= outA.others[2]
+		let d_from_ab	= outA.others[0].others[0]
+		let d_from_ac	= outA.others[1].others[0]
+		
+		XCTAssertTrue( d_from_a === d_from_ab, #function )
+		XCTAssertTrue( d_from_a === d_from_ac, #function )
+	}
 }
+

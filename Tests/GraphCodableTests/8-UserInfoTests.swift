@@ -96,3 +96,4 @@ final class UserInfoTests: XCTestCase {
 	}
 	
 }
+

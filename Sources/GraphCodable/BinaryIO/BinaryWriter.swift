@@ -33,7 +33,8 @@ BinaryWriter data format uses always:
 //	typealias BinaryWriter = BinaryWriterBase<Data>
 
 public struct BinaryWriter{
-	private (set) var bytes = Array<UInt8>()
+	private (set) var 	bytes 		= Array<UInt8>()
+	private var 		_position	= 0
 
 	func data<Q>() -> Q where Q:MutableDataProtocol {
 		if let data = bytes as? Q {
@@ -43,20 +44,88 @@ public struct BinaryWriter{
 		}
 	}
 
-	mutating func writeBool( _ value:Bool )			{ writeValue( value ) }
-
-	mutating func writeInt8( _ value:Int8 )			{ writeValue( value ) }
-	mutating func writeInt16( _ value:Int16 )		{ writeValue( value.littleEndian ) }
-	mutating func writeInt32( _ value:Int32 )		{ writeValue( value.littleEndian ) }
-	mutating func writeInt64( _ value:Int64 )		{ writeValue( value.littleEndian ) }
+	var position: Int {
+		get { _position }
+		set {
+			precondition( (0...bytes.count).contains( newValue ),"\(Self.self): outOfBounds position." )
+			_position	= newValue
+		}
+	}
 	
-	mutating func writeUInt8(  _ value:UInt8 )		{ writeValue( value ) }
-	mutating func writeUInt16( _ value:UInt16 )		{ writeValue( value.littleEndian ) }
-	mutating func writeUInt32( _ value:UInt32 )		{ writeValue( value.littleEndian ) }
-	mutating func writeUInt64( _ value:UInt64 )		{ writeValue( value.littleEndian ) }
+	var eof : Int { bytes.count }
+	mutating func setEof() { _position = eof }
+	
+	private mutating func write<C>( contentsOf source:C ) throws
+	where C:RandomAccessCollection, C.Element == UInt8 {
+		if position == bytes.endIndex {
+			bytes.append( contentsOf: source )
+		} else if position >= bytes.startIndex {
+			let endIndex	= bytes.index( position, offsetBy: source.count )
+			let range		= position ..< Swift.min( bytes.endIndex, endIndex )
+			bytes.replaceSubrange( range, with: source )
+		} else {
+			throw BinaryIOError.outOfBounds(
+				Self.self, BinaryIOError.Context(
+					debugDescription: "\(Self.self): outOfBounds position."
+				)
+			)
+		}
+		_position += source.count
+	}
+	
+	private mutating func writeValue<T>( _ value:T ) throws {
+		guard _isPOD(T.self) else {
+			throw BinaryIOError.notPODType(
+				Self.self, BinaryIOError.Context(
+					debugDescription: "\(T.self) must be a POD type."
+				)
+			)
+		}
+		
+		try withUnsafePointer(to: value) { source in
+			let size = MemoryLayout<T>.size
+			try source.withMemoryRebound(to: UInt8.self, capacity: size ) {
+				try write( contentsOf: UnsafeBufferPointer( start: $0, count: size ) )
+			}
+		}
+	}
+	
+	mutating func writeData<T>( _ value:T ) throws where T:MutableDataProtocol, T:ContiguousBytes {
+		try writeInt64( Int64(value.count) )
+		try value.withUnsafeBytes { source in
+			try write(contentsOf: source)
+		}
+	}
 
-	mutating func writeFloat( _ value:Float )		{ writeUInt32( value.bitPattern ) }
-	mutating func writeDouble( _ value:Double )		{ writeUInt64( value.bitPattern ) }
+	// write a null terminated utf8 string
+	mutating func writeString( _ value:String ) throws {
+		// string saved as null-terminated sequence of utf8
+		try value.withCString() { ptr in
+			var endptr	= ptr
+			while endptr.pointee != 0 { endptr += 1 }	// null terminated
+			let size = endptr - ptr + 1
+			try ptr.withMemoryRebound(to: UInt8.self, capacity: size ) {
+				try write( contentsOf: UnsafeBufferPointer( start: $0, count: size ) )
+			}
+		}
+	}
+}
+
+extension BinaryWriter {
+	mutating func writeBool( _ value:Bool ) throws			{ try writeValue( value ) }
+
+	mutating func writeInt8( _ value:Int8 ) throws			{ try writeValue( value ) }
+	mutating func writeInt16( _ value:Int16 ) throws		{ try writeValue( value.littleEndian ) }
+	mutating func writeInt32( _ value:Int32 ) throws		{ try writeValue( value.littleEndian ) }
+	mutating func writeInt64( _ value:Int64 ) throws		{ try writeValue( value.littleEndian ) }
+
+	mutating func writeUInt8(  _ value:UInt8 ) throws		{ try writeValue( value ) }
+	mutating func writeUInt16( _ value:UInt16 ) throws		{ try writeValue( value.littleEndian ) }
+	mutating func writeUInt32( _ value:UInt32 ) throws		{ try writeValue( value.littleEndian ) }
+	mutating func writeUInt64( _ value:UInt64 ) throws		{ try writeValue( value.littleEndian ) }
+
+	mutating func writeFloat( _ value:Float ) throws		{ try writeUInt32( value.bitPattern ) }
+	mutating func writeDouble( _ value:Double ) throws		{ try writeUInt64( value.bitPattern ) }
 
 	mutating func writeInt( _ value:Int ) throws {
 		guard let value64 = Int64( exactly: value ) else {
@@ -66,7 +135,7 @@ public struct BinaryWriter{
 				)
 			)
 		}
-		writeInt64( value64 )
+		try writeInt64( value64 )
 	}
 
 	mutating func writeUInt( _ value:UInt ) throws {
@@ -77,36 +146,7 @@ public struct BinaryWriter{
 				)
 			)
 		}
-		writeUInt64( value64 )
-	}
-	
-	private mutating func writeValue<T>( _ value:T ) {
-		withUnsafePointer(to: value) { source in
-			bytes.append(
-				contentsOf: UnsafeBufferPointer(
-					start: UnsafePointer<UInt8>( OpaquePointer( source ) ),
-					count: MemoryLayout<T>.size
-				)
-			)
-		}
-	}
-	
-	mutating func writeData<T>( _ value:T ) where T:MutableDataProtocol, T:ContiguousBytes {
-		writeInt64( Int64(value.count) )
-		value.withUnsafeBytes { source in
-			bytes.append(contentsOf: source)
-		}
-	}
-
-	// write a null terminated utf8 string
-	mutating func writeString( _ value:String ) {
-		// string saved as null-terminated sequence of utf8
-		value.withCString() { ptr0 in
-			let ptr		= UnsafePointer<UInt8>( OpaquePointer( ptr0 ) )
-			var endptr	= ptr
-			while endptr.pointee != 0 { endptr += 1 }	// null terminated
-			bytes.append( contentsOf:UnsafeBufferPointer( start: ptr, count: endptr - ptr + 1 ) )
-		}
+		try writeUInt64( value64 )
 	}
 }
 

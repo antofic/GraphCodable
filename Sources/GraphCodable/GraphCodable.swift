@@ -170,18 +170,18 @@ public protocol GCodable {
 	static var currentVersion: UInt32 { get }
 }
 
-public extension GCodable {
-	static var currentVersion: UInt32 { 0 }
+extension GCodable {
+	public static var currentVersion: UInt32 { 0 }
 }
 
-public extension GCodable where Self:AnyObject {
-	/// Check if a class is really GCodable.
-	///
+extension GCodable where Self:AnyObject {
 	/// It depends on the ability to be created from its name.
-	static var supportsCodable: Bool {
+	public static var supportsCodable: Bool {
 		ClassData.isConstructible( type:self )
 	}
 }
+
+//-------------------------------------------------------------------------
 
 /// A protocol to mark GCodable obsolete class.
 public protocol GCodableObsolete : AnyObject {
@@ -190,6 +190,9 @@ public protocol GCodableObsolete : AnyObject {
 	/// Returns the class that replaces the class that adopt this protocol
 	static var replacementType : (AnyObject & GCodable).Type { get }
 }
+
+//-------------------------------------------------------------------------
+
 
 /// A type that can encode values into a native format for external
 /// representation.
@@ -217,7 +220,7 @@ public protocol GEncoder {
 	/// - parameter object: The object to encode.
 	/// - parameter key: The key to associate the object with.
 	func encodeConditional<Key,Value>(_ value: Value? , for key:Key ) throws where
-		Value : GCodable, Value:AnyObject, Key:RawRepresentable, Key.RawValue == String
+		Value : GCodable, Key:RawRepresentable, Key.RawValue == String
 	
 	/// Encodes the given value.
 	///
@@ -230,11 +233,11 @@ public protocol GEncoder {
 	///
 	/// - parameter object: The object to encode.
 	func encodeConditional<Value>(_ value: Value? ) throws where
-		Value : GCodable, Value : AnyObject
+		Value : GCodable
 }
 
 extension GEncoder {
-	func encodeIfPresent<Key,Value>(_ value: Value?, for key:Key ) throws where
+	public func encodeIfPresent<Key,Value>(_ value: Value?, for key:Key ) throws where
 		Value : GCodable, Key:RawRepresentable, Key.RawValue == String
 	{
 		if let value = value {
@@ -242,6 +245,8 @@ extension GEncoder {
 		}
 	}
 }
+
+//-------------------------------------------------------------------------
 
 /// A type that can decode values from a native format into in-memory
 /// representations.
@@ -333,9 +338,51 @@ public protocol GDecoder {
 }
 
 extension GDecoder {
-	func decodeIfPresent<Key, Value>(for key: Key) throws -> Value? where
+	public func decodeIfPresent<Key, Value>(for key: Key) throws -> Value? where
 		Key : RawRepresentable, Value : GCodable, Key.RawValue == String
 	{
 		contains(key) ? try decode(for: key) : nil
 	}
 }
+
+
+//-------------------------------------------------------------------------
+
+/// A class of types whose instances hold the value of an entity with stable
+/// identity ** over encoding/decoding **.
+
+public protocol GIdentifiable<GID> {
+	/// A type representing the stable identity ** over encoding/decoding **
+	/// of the entity associated with an instance.
+	associatedtype GID : Hashable
+
+	/// The stable identity ** over encoding/decoding ** of the entity associated
+	/// with this instance.
+	var gID: Self.GID? { get }
+}
+
+extension GIdentifiable where Self:Identifiable {
+	/// By default gID == id.
+	public var gID: Self.ID? { id }
+}
+
+/*
+ If you want avoid duplications of Arrays and ContiguousArrays, please, define in your code
+ theese two extensions.
+ Note: works only with .onlyNativeTypes (default) option in GraphEncoder()
+ 
+extension Array : GIdentifiable where Element:GCodable {
+	public var gID: ObjectIdentifier? {
+		withUnsafeBytes { unsafeBitCast( $0.baseAddress, to: ObjectIdentifier?.self) }
+	}
+}
+
+extension ContiguousArray : GIdentifiable where Element:GCodable {
+	public var gID: ObjectIdentifier? {
+		withUnsafeBytes { unsafeBitCast( $0.baseAddress, to: ObjectIdentifier?.self) }
+	}
+}
+*/
+
+
+

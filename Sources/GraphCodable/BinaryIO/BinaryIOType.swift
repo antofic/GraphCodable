@@ -22,22 +22,42 @@
 
 import Foundation
 
-public protocol BinaryIOType {
-	func write( to writer: inout BinaryWriter ) throws
+public protocol BinaryIType {
 	init( from reader: inout BinaryReader ) throws
 }
 
-extension BinaryIOType {
-	public func binaryData<Q>() throws -> Q where Q:MutableDataProtocol {
+public extension BinaryIType {
+	init<Q>( binaryData: Q ) throws where Q:Sequence, Q.Element==UInt8 {
+		var reader = BinaryReader( data:binaryData )
+		try self.init( from: &reader )
+	}
+	
+	static func peek( from reader: inout BinaryReader, _ accept:( Self ) -> Bool ) -> Self? {
+		let position	= reader.position
+		do {
+			let value = try Self(from: &reader)
+			if accept( value ) {
+				return value
+			}
+		}
+		catch {}
+
+		reader.position	= position
+		return nil
+	}
+}
+
+public protocol BinaryOType {
+	func write( to writer: inout BinaryWriter ) throws
+}
+
+public extension BinaryOType {
+	func binaryData<Q>() throws -> Q where Q:MutableDataProtocol {
 		var writer = BinaryWriter()
 		try write( to:&writer )
 		return writer.data()
 	}
-
-	public init<Q>( binaryData: Q ) throws where Q:Sequence, Q.Element==UInt8 {
-		var reader = BinaryReader( data:binaryData )
-		try self.init( from: &reader )
-	}
 }
 
+public typealias BinaryIOType = BinaryIType & BinaryOType
 

@@ -1,6 +1,6 @@
 //
 //  File.swift
-//  
+//
 //
 //  Created by Antonino Ficarra on 08/05/21.
 //
@@ -20,7 +20,7 @@ extension Data : GCodable {
 		
 		self.reserveCapacity( decoder.unkeyedCount )
 		while decoder.unkeyedCount > 0 {
-			self.append( try decoder.decode() )
+			self.append( try decoder.decode() as Self.Element )
 		}
 	}
 }

@@ -94,7 +94,6 @@ extension DispatchQueue.SchedulerTimeType : BinaryIOType {
 	}
 }
 
-
 extension DispatchQueue.SchedulerTimeType.Stride : BinaryIOType {
 	public func write(to writer: inout BinaryWriter) throws {
 		try timeInterval.write(to: &writer)
@@ -104,3 +103,4 @@ extension DispatchQueue.SchedulerTimeType.Stride : BinaryIOType {
 		self.init( try DispatchTimeInterval( from:&reader) )
 	}
 }
+

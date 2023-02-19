@@ -45,24 +45,119 @@ public struct BinaryReader {
 			self.init( bytes: Array<UInt8>(data) )
 		}
 	}
-
-	var eof : Bool {
-		bytes.count == 0
+	
+	var position: Int {
+		get { bytes.startIndex }
+		set {
+			precondition(
+				(base.startIndex...base.endIndex).contains( newValue ),
+				"\(Self.self): outOfRange position"
+			)
+			bytes	= base[ newValue... ]
+		}
 	}
 
+	var isEof	: Bool	{ bytes.count == 0 }
+	 
+	mutating func readData<T>() throws -> T where T:MutableDataProtocol, T:ContiguousBytes {
+		let count = try readInt64()
+
+		let inSize	= Int(count) * MemoryLayout<UInt8>.size
+		try checkRemainingSize( size: inSize )
+		defer { bytes.removeFirst( inSize ) }
+
+		return bytes.withUnsafeBytes { source in
+			return T( source.prefix( inSize ) )
+		}
+	}
+
+	// read a null terminated utf8 string
+	mutating func readString() throws -> String {
+		var inSize = 0
+
+		let string = try bytes.withUnsafeBytes {
+			try $0.withMemoryRebound( to: UInt8.self ) { buffer in
+				for char in buffer {
+					inSize += 1
+					if char == 0 {	// ho trovato NULL
+						return String( cString: buffer.baseAddress! )
+					}
+				}
+				
+				throw BinaryIOError.outOfBounds(
+					Self.self, BinaryIOError.Context(
+						debugDescription: "No more bytes available for a null terminated string."
+					)
+				)
+			}
+		}
+		// ci deve essere almeno un carattere: null
+		guard inSize > 0 else {
+			throw BinaryIOError.outOfBounds(
+				Self.self, BinaryIOError.Context(
+					debugDescription: "No more bytes available for a null terminated string."
+				)
+			)
+		}
+		bytes.removeFirst( inSize )
+		return string
+	}
+
+	// private section ---------------------------------------------------------
+	
+	private mutating func readValue<T>() throws  -> T {
+		guard _isPOD(T.self) else {
+			throw BinaryIOError.notPODType(
+				Self.self, BinaryIOError.Context(
+					debugDescription: "\(T.self) must be a POD type."
+				)
+			)
+		}
+		let inSize	= MemoryLayout<T>.size
+		try checkRemainingSize( size:inSize )
+		
+		defer { bytes.removeFirst( inSize ) }
+		
+		return bytes.withUnsafeBytes { source in
+#if swift(>=5.7)
+			source.loadUnaligned(as: T.self)
+#elseif swift(>=5.6)
+			withUnsafeTemporaryAllocation(of: T.self, capacity: 1) {
+				let temporary = $0.baseAddress!
+				memcpy( temporary, source.baseAddress, inSize )
+				return temporary.pointee
+			}
+#else
+#error("Minimum swift version = 5.6")
+#endif
+		}
+	}
+	
+	private func checkRemainingSize( size:Int ) throws {
+		if bytes.count < size {
+			throw BinaryIOError.outOfBounds(
+				Self.self, BinaryIOError.Context(
+					debugDescription: "\(size) bytes requested; \(bytes.count) bytes remaining."
+				)
+			)
+		}
+	}
+}
+
+extension BinaryReader {
 	mutating func readBool() throws -> Bool {
 		return try readValue()
 	}
 	
-	mutating func readInt8 () throws -> Int8 	{ try Int8 ( littleEndian: readInteger() ) }
-	mutating func readInt16() throws -> Int16	{ try Int16( littleEndian: readInteger() ) }
-	mutating func readInt32() throws -> Int32	{ try Int32( littleEndian: readInteger() ) }
-	mutating func readInt64() throws -> Int64	{ try Int64( littleEndian: readInteger() ) }
+	mutating func readInt8 () throws -> Int8 	{ try Int8 ( littleEndian: readValue() ) }
+	mutating func readInt16() throws -> Int16	{ try Int16( littleEndian: readValue() ) }
+	mutating func readInt32() throws -> Int32	{ try Int32( littleEndian: readValue() ) }
+	mutating func readInt64() throws -> Int64	{ try Int64( littleEndian: readValue() ) }
 
-	mutating func readUInt8 () throws -> UInt8  { try UInt8 ( littleEndian: readInteger() ) }
-	mutating func readUInt16() throws -> UInt16 { try UInt16( littleEndian: readInteger() ) }
-	mutating func readUInt32() throws -> UInt32 { try UInt32( littleEndian: readInteger() ) }
-	mutating func readUInt64() throws -> UInt64 { try UInt64( littleEndian: readInteger() ) }
+	mutating func readUInt8 () throws -> UInt8  { try UInt8 ( littleEndian: readValue() ) }
+	mutating func readUInt16() throws -> UInt16 { try UInt16( littleEndian: readValue() ) }
+	mutating func readUInt32() throws -> UInt32 { try UInt32( littleEndian: readValue() ) }
+	mutating func readUInt64() throws -> UInt64 { try UInt64( littleEndian: readValue() ) }
 
 	mutating func readFloat() throws -> Float	{ try Float(bitPattern: readUInt32()) }
 	mutating func readDouble() throws -> Double	{ try Double(bitPattern: readUInt64()) }
@@ -89,90 +184,6 @@ public struct BinaryReader {
 			)
 		}
 		return value
-	}
-	
-	// private section ---------------------------------------------------------
-	private func checkRemainingSize( size:Int ) throws {
-		if bytes.count < size {
-			throw BinaryIOError.outOfBounds(
-				Self.self, BinaryIOError.Context(
-					debugDescription: "\(size) bytes requested; \(bytes.count) bytes remaining."
-				)
-			)
-		}
-	}
-
-	private mutating func readInteger<T:BinaryInteger>() throws -> T {
-		return try readValue()
-	}
-
-	// usafe section ---------------------------------------------------------
-	mutating func skipValue<T>( _ type:T.Type ) throws {
-		let inSize	= MemoryLayout<T>.size
-		try checkRemainingSize( size:inSize )
-		bytes.removeFirst( MemoryLayout<T>.size )
-	}
-
-	func peekValue<T>() -> T? {
-		guard MemoryLayout<T>.size <= bytes.count else {
-			return nil
-		}
-		return bytes.withUnsafeBytes { source in
-			 source.loadUnaligned(as: T.self)
-		}
-	}
-	
-	private mutating func readValue<T>() throws  -> T {
-		let inSize	= MemoryLayout<T>.size
-		try checkRemainingSize( size:inSize )
-		defer { bytes.removeFirst( inSize ) }
-		
-		return bytes.withUnsafeBytes { source in
-			source.loadUnaligned(as: T.self)
-		}
-	}
-	
-	mutating func readData<T>() throws -> T where T:MutableDataProtocol, T:ContiguousBytes {
-		let count = try readInt64()
-
-		let inSize	= Int(count) * MemoryLayout<UInt8>.stride
-		try checkRemainingSize( size: inSize )
-		defer { bytes.removeFirst( inSize ) }
-
-		return bytes.withUnsafeBytes { source in
-			return T( source.prefix( inSize ) )
-		}
-	}
-
-	// read a null terminated utf8 string
-	mutating func readString() throws -> String {
-		var inSize = 0
-		let string = try bytes.withUnsafeBytes { source -> String in
-			let buffer = source.bindMemory(to: UInt8.self)
-			
-			for char in buffer {
-				inSize += 1
-				if char == 0 {	// ho trovato NULL
-					return String( cString: buffer.baseAddress! )
-				}
-			}
-			
-			throw BinaryIOError.outOfBounds(
-				Self.self, BinaryIOError.Context(
-					debugDescription: "No more bytes available for a null terminated string."
-				)
-			)
-		}
-		// ci deve essere almeno un carattere: null
-		guard inSize > 0 else {
-			throw BinaryIOError.outOfBounds(
-				Self.self, BinaryIOError.Context(
-					debugDescription: "No more bytes available for a null terminated string."
-				)
-			)
-		}
-		bytes.removeFirst( inSize )
-		return string
 	}
 }
 

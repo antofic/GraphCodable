@@ -171,3 +171,4 @@ final class PerformanceTests: XCTestCase {
 	}
 
 }
+

@@ -1,6 +1,6 @@
 //
 //  File.swift
-//  
+//
 //
 //  Created by Antonino Ficarra on 07/02/23.
 //
@@ -75,4 +75,5 @@ extension simd_double3x4: SimdMatrixBinaryIO { var _binaryNumCols: Int { 3 } }
 extension simd_double4x2: SimdMatrixBinaryIO { var _binaryNumCols: Int { 4 } }
 extension simd_double4x3: SimdMatrixBinaryIO { var _binaryNumCols: Int { 4 } }
 extension simd_double4x4: SimdMatrixBinaryIO { var _binaryNumCols: Int { 4 } }
+
 

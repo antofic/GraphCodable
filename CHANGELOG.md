@@ -1,3 +1,6 @@
+# 0.4.0
+With version **0.4.0** and later versions, GraphCodable supports **identity for archiviving value types**, to avoid duplication of their data.
+See the `GIdentifiable` protocol.
 
 # 0.3.0
 Reference type substitution system implemented. Internal changes.
@@ -68,3 +71,4 @@ This is the first minor, unstable release of GraphCodable. The public API for th
 
 ## Be aware
 **The data format may be subject to future changes.**
+

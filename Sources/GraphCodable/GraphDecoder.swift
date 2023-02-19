@@ -110,7 +110,7 @@ public final class GraphDecoder {
 		{
 			let	bodyElement = try constructor.popBodyElement( key:key.rawValue )
 			
-			return try constructor.decodeNode( bodyElement:bodyElement, from: self )
+			return try constructor.decode( element:bodyElement, from: self )
 		}
 		
 		func deferDecode<Key, Value>( for key: Key, _ setter: @escaping (Value) -> ()) throws
@@ -118,7 +118,7 @@ public final class GraphDecoder {
 		{
 			let	bodyElement = try constructor.popBodyElement( key:key.rawValue )
 
-			try constructor.deferDecodeNode( bodyElement:bodyElement, from: self, setter )
+			try constructor.deferDecode( element:bodyElement, from: self, setter )
 		}
 
 		// ------ unkeyed support
@@ -130,13 +130,13 @@ public final class GraphDecoder {
 		func decode<Value>() throws -> Value where Value : GCodable {
 			let	bodyElement = try constructor.popBodyElement()
 
-			return try constructor.decodeNode( bodyElement:bodyElement, from: self )
+			return try constructor.decode( element:bodyElement, from: self )
 		}
 		
 		func deferDecode<Value>(_ setter: @escaping (Value) -> ()) throws where Value : GCodable {
 			let	bodyElement = try constructor.popBodyElement()
 
-			try constructor.deferDecodeNode( bodyElement:bodyElement, from: self, setter )
+			try constructor.deferDecode( element:bodyElement, from: self, setter )
 		}
 
 		// ------ Private
@@ -156,7 +156,6 @@ public final class GraphDecoder {
 		private var _costructor : TypeConstructor?
 	}
 }
-
 
 // -------------------------------------------------
 // ----- DecodedData
@@ -206,9 +205,8 @@ fileprivate struct BlockDecoder {
 
 	private var reader				: BinaryReader
 	private var currentBlock		: FileBlock?
-	private var phase				: FileBlock.BlockType
+	private var phase				: FileBlock.Section
 
-	private var _fileVersion		= UInt32(0)
 	private var _classDataMap		= [IntID : ClassData]()
 	private var _bodyDataBlocks		= [FileBlock]()
 	private var _keyIDToKey			= [IntID:String]()
@@ -242,7 +240,7 @@ fileprivate struct BlockDecoder {
 	
 	private mutating func peek() throws -> FileBlock? {
 		if currentBlock == nil {
-			currentBlock	= reader.eof ? nil : try FileBlock(from: &reader, header: fileHeader)
+			currentBlock	= reader.isEof ? nil : try FileBlock(from: &reader, header: fileHeader)
 		}
 		return currentBlock
 	}
@@ -256,7 +254,7 @@ fileprivate struct BlockDecoder {
 
 		while let dataBlock	= try peek() {
 			switch dataBlock {
-			case .outTypeMap( let typeID, let classData ):
+			case .typeMap( let typeID, let classData ):
 				// ••• PHASE 1 •••
 				guard _classDataMap.index(forKey: typeID) == nil else {
 					throw GCodableError.duplicateTypeID(
@@ -278,7 +276,7 @@ fileprivate struct BlockDecoder {
 		guard phase == .body else { return }
 
 		while let dataBlock	= try peek() {
-			guard dataBlock.blockType == .body else {
+			guard dataBlock.section == .body else {
 				self.phase	= .keyMap
 				return
 			}
@@ -388,7 +386,7 @@ fileprivate final class BodyElement {
 			}
 			self.dataBlock	= dataBlock
 			
-			try Self.flatten( bodyElementMap: &map, bodyElement: self, lineIterator: &lineIterator, keyIDsToKey:keyIDToKey, reverse: reverse )
+			try Self.flatten( bodyElementMap: &map, bodyElement: self, lineIterator: &lineIterator, keyIDToKey:keyIDToKey, reverse: reverse )
 		} else {
 			return nil
 		}
@@ -399,10 +397,10 @@ fileprivate final class BodyElement {
 	}
 
 	private static func flatten<T>(
-		bodyElementMap map: inout [IntID : BodyElement], bodyElement:BodyElement, lineIterator: inout T, keyIDsToKey:[IntID:String], reverse:Bool
+		bodyElementMap map: inout [IntID : BodyElement], bodyElement:BodyElement, lineIterator: inout T, keyIDToKey:[IntID:String], reverse:Bool
 	) throws where T:IteratorProtocol, T.Element == FileBlock {
 		switch bodyElement.dataBlock {
-		case .objectType( let keyID, let typeID, let objID ):
+		case .referenceType( let keyID, let typeID, let objID ):
 			//	l'oggetto non può trovarsi nella map
 			guard map.index(forKey: objID) == nil else {
 				throw GCodableError.internalInconsistency(
@@ -411,26 +409,70 @@ fileprivate final class BodyElement {
 					)
 				)
 			}
-			
 			//	trasformo l'oggetto in uno strong pointer
 			//	così la procedura di lettura incontrerà quello al posto dell'oggetto
-			bodyElement.dataBlock	= .objectSPtr( keyID: keyID, objID: objID )
+			bodyElement.dataBlock	= .strongPtr( keyID: keyID, objID: objID )
 			
 			//	e per l'oggetto dovrà andare a vedere nella map, in modo che si possano
 			//	beccare gli oggetti memorizzati dopo!
-			let root		= BodyElement( dataBlock: .objectType(keyID: keyID, typeID: typeID, objID: objID) )
+			let root		= BodyElement( dataBlock: .referenceType(keyID: keyID, typeID: typeID, objID: objID) )
 			map[ objID ]	= root
 			
 			try subFlatten(
 				bodyElementMap: &map, parentElement:root, lineIterator:&lineIterator,
-				keyIDsToKey:keyIDsToKey, reverse:reverse
+				keyIDsToKey:keyIDToKey, reverse:reverse
+			)
+		case .iValueType( let keyID, let objID ):
+			//	l'oggetto non può trovarsi nella map
+			guard map.index(forKey: objID) == nil else {
+				throw GCodableError.internalInconsistency(
+					Self.self, GCodableError.Context(
+						debugDescription: "Object -\(bodyElement.dataBlock)- already exists."
+					)
+				)
+			}
+			//	trasformo l'oggetto in uno strong pointer
+			//	così la procedura di lettura incontrerà quello al posto dell'oggetto
+			bodyElement.dataBlock	= .strongPtr( keyID: keyID, objID: objID )
+			
+			//	e per l'oggetto dovrà andare a vedere nella map, in modo che si possano
+			//	beccare gli oggetti memorizzati dopo!
+			let root		= BodyElement( dataBlock: .iValueType(keyID: keyID, objID: objID) )
+			map[ objID ]	= root
+			
+			try subFlatten(
+				bodyElementMap: &map, parentElement:root, lineIterator:&lineIterator,
+				keyIDsToKey:keyIDToKey, reverse:reverse
+			)
+		case .iBinaryOUT( let keyID, let objID, let bytes ):
+			//	l'oggetto non può trovarsi nella map
+			guard map.index(forKey: objID) == nil else {
+				throw GCodableError.internalInconsistency(
+					Self.self, GCodableError.Context(
+						debugDescription: "Object -\(bodyElement.dataBlock)- already exists."
+					)
+				)
+			}
+			//	trasformo l'oggetto in uno strong pointer
+			//	così la procedura di lettura incontrerà quello al posto dell'oggetto
+			bodyElement.dataBlock	= .strongPtr( keyID: keyID, objID: objID )
+			
+			//	e per l'oggetto dovrà andare a vedere nella map, in modo che si possano
+			//	beccare gli oggetti memorizzati dopo!
+			let root		= BodyElement( dataBlock: .iBinaryOUT(keyID: keyID, objID: objID, bytes:bytes ) )
+			map[ objID ]	= root
+			
+			try subFlatten(
+				bodyElementMap: &map, parentElement:root, lineIterator:&lineIterator,
+				keyIDsToKey:keyIDToKey, reverse:reverse
 			)
 		case .valueType( _ ):
 			try subFlatten(
 				bodyElementMap: &map, parentElement:bodyElement, lineIterator:&lineIterator,
-				keyIDsToKey:keyIDsToKey, reverse:reverse
+				keyIDsToKey:keyIDToKey, reverse:reverse
 			)
 		default:
+			//	nothing to do
 			break
 		}
 	}
@@ -439,7 +481,7 @@ fileprivate final class BodyElement {
 		bodyElementMap map: inout [IntID : BodyElement], parentElement:BodyElement, lineIterator: inout T, keyIDsToKey:[IntID:String], reverse:Bool
 	) throws where T:IteratorProtocol, T.Element == FileBlock {
 		while let dataBlock = lineIterator.next() {
-			guard dataBlock.blockType == .body else {
+			guard dataBlock.section == .body else {
 				throw GCodableError.internalInconsistency(
 					Self.self, GCodableError.Context(
 						debugDescription: "Unespected graph -\(dataBlock)-."
@@ -474,7 +516,7 @@ fileprivate final class BodyElement {
 					parentElement.unkeyedValues.append( bodyElement )
 				}
 				
-				try flatten( bodyElementMap: &map, bodyElement: bodyElement, lineIterator: &lineIterator, keyIDsToKey: keyIDsToKey, reverse: reverse )
+				try flatten( bodyElementMap: &map, bodyElement: bodyElement, lineIterator: &lineIterator, keyIDToKey: keyIDsToKey, reverse: reverse )
 			}
 		}
 		if reverse {
@@ -488,17 +530,12 @@ fileprivate final class BodyElement {
 // -------------------------------------------------
 
 fileprivate final class TypeConstructor {
-	private enum SetterType {
-		case object	( objID:IntID, setter:(AnyObject) throws -> () )
-		case value	( setter:() throws -> () )
-	}
-
 	private var			decodedData			: DecodedData
 	private (set) var 	currentBodyElement 	: BodyElement
 	private (set) var 	currentInfo 		: ClassInfo?
-	private var			objectRepository 	= [ IntID :AnyObject ]()
-	private var			setterRepository 	= [ SetterType ]()
-
+	private var			objectRepository 	= [ IntID :Any ]()
+	private var			setterRepository 	= [ () throws -> () ]()
+	
 	init( decodedData:DecodedData ) {
 		self.decodedData	= decodedData
 		self.currentBodyElement	= decodedData.bodyRootElement
@@ -506,30 +543,17 @@ fileprivate final class TypeConstructor {
 	
 	func decodeRoot<T>( _ type: T.Type, from decoder:GDecoder ) throws -> T where T:GCodable {
 		let rootBlock		= currentBodyElement
-		let value : T		= try decodeNode( bodyElement:rootBlock, from: decoder )
-		try decodeDelayed()
+		let value : T		= try decode( element:rootBlock, from: decoder )
+		
+		// decode dalayed
+		while setterRepository.isEmpty == false {
+			let setter = setterRepository.removeLast()
+			try setter()
+		}
 
 		return value
 	}
 	
-	private func decodeDelayed() throws {
-		while setterRepository.isEmpty == false {
-			switch setterRepository.removeLast() {
-			case .object(objID: let objID, setter: let setter):
-				guard let object = objectRepository[objID] else {
-					throw GCodableError.internalInconsistency(
-						Self.self, GCodableError.Context(
-							debugDescription: "Object objID = \(objID) must exists."
-						)
-					)
-				}
-				try setter( object )
-			case .value(setter: let setter):
-				try setter()
-			}
-		}
-	}
-
 	func contains(key: String) -> Bool {
 		currentBodyElement.contains(key: key)
 	}
@@ -580,7 +604,7 @@ fileprivate final class TypeConstructor {
 			return classInfo.classData.encodeVersion
 		}
 	}
-
+	
 	var replacedType : GCodableObsolete.Type? {
 		get throws {
 			guard let classInfo = currentInfo else {
@@ -594,164 +618,156 @@ fileprivate final class TypeConstructor {
 		}
 	}
 	
-	func deferDecodeNode<T>( bodyElement:BodyElement, from decoder:GDecoder, _ setter: @escaping (T) -> () ) throws where T:GCodable {
-		let saved	= (currentBodyElement, currentInfo)
-		(currentBodyElement, currentInfo)	= (bodyElement, nil)
-		defer { (currentBodyElement, currentInfo) = saved }
-
-		switch bodyElement.dataBlock {
-		case .objectSPtr( _, let objID ):
-			//	con questo fallthrough scompare l'obbligo di impiegare
-			//	encodeConditional per le variabili weak e tutto funziona,
-			//	ma la cosa non ha logicamente senso perché se non sono
-			//	tenute in vita da qualche strong path, diventerebbero
-			//	comunque nulle non appena viene completato il decode.
-			NSLog("You should always use encodeConditional() to encode a weak variable (\(bodyElement.dataBlock)).")
-			fallthrough
-		case .objectWPtr( _, let objID ):
-			let anySetter : (AnyObject) throws -> () = {
-				anyObject in
-				guard let object = anyObject as? T else {
-					throw GCodableError.typeMismatch(
-						Self.self, GCodableError.Context(
-							debugDescription: "Block \(bodyElement.dataBlock) doesn't contains -\(T.self)-."
-						)
-					)
-				}
-				setter( object )
-			}
-			
-			setterRepository.append( .object(objID: objID, setter: anySetter) )
-		default:
-			let anySetter : () throws -> () = {
-				let value : T = try self.decodeNode( bodyElement:bodyElement, from:decoder )
-				setter( value )
-			}
-			setterRepository.append( .value(setter: anySetter) )
+	func deferDecode<T>( element:BodyElement, from decoder:GDecoder, _ setter: @escaping (T) -> () ) throws where T:GCodable {
+		let setter : () throws -> () = {
+			let value : T = try self.decode( element:element, from:decoder )
+			setter( value )
 		}
+		setterRepository.append( setter )
 	}
-
-	func decodeNode<T>( bodyElement:BodyElement, from decoder:GDecoder ) throws -> T where T:GCodable {
-		func decodeAnyNode( bodyElement:BodyElement, from decoder:GDecoder ) throws -> Any {
-			func decodeAnyObject( objID:IntID, from decoder:GDecoder ) throws -> AnyObject? {
-				//	tutti gli oggetti (reference types) inizialmente si trovano in decodedData.objBlockMap
-				//	quando arriva la prima richiesta di un particolare oggetto (da objID)
-				//	lo costruiamo (se esiste) e lo mettiamo nell'objectRepository in modo
-				//	che le richieste successive peschino di lì.
-				//	se l'oggetto non esiste (possibile, se memorizzato condizionalmente)
-				//	ritorniamo nil.
-				
-				if let object = objectRepository[ objID ] {
-					return object
-				} else if let bodyElement = decodedData.pop( objID: objID ) {
-					//	gli unici blocchi possibili sono di tipo .Object
-					switch bodyElement.dataBlock {
-					case .objectType( _, let typeID, let objID ):
-						let saved	= (currentBodyElement, currentInfo)
-						(currentBodyElement, currentInfo)	= (bodyElement, try classInfo( typeID:typeID ))
-						defer { (currentBodyElement, currentInfo) = saved }
-
-						let object		= try currentInfo!.codableType.init(from: decoder)
-						objectRepository[ objID ]	= object
-						return object
-					default:
-						throw GCodableError.internalInconsistency(
-							Self.self, GCodableError.Context(
-								debugDescription: "Inappropriate bodyElement \(bodyElement.dataBlock) here."
-							)
-						)
-					}
-				} else {
-					return nil
-				}
-			}
-			
-			switch bodyElement.dataBlock {
-			case .nilValue( _ ):
-				return Optional<Any>.none as Any
-			case .objectWPtr( _, let objID ):
-				// nessun controllo: può essere nil
-				return try decodeAnyObject( objID:objID, from:decoder ) as Any
-			case .objectSPtr( _, let objID ):
-				guard let object = try decodeAnyObject( objID:objID, from:decoder ) else {
-					throw GCodableError.decodingError(
-						Self.self, GCodableError.Context(
-							debugDescription:
-								"Object pointed from -\(bodyElement.dataBlock)- not found." +
-								"Use deferDecode to break the cycles."
-						)
-					)
-				}
-				return object
-			default:	// .Struct & .Object are inappropriate here!
-				throw GCodableError.internalInconsistency(
+	
+	func decode<T>( element:BodyElement, from decoder:GDecoder ) throws -> T where T:GCodable {
+		let saved	= (currentBodyElement, currentInfo)
+		defer { (currentBodyElement, currentInfo) = saved }
+		
+		(currentBodyElement, currentInfo)	= (element, nil)
+		
+		switch element.dataBlock {
+		case .valueType( _ ):
+			return try decodeValue( type:T.self, element:element, from: decoder )
+		case .binaryOUT( _ , let bytes ):
+			return try decodeBinaryIO( type:T.self, bytes: bytes, element:element, from: decoder )
+		default:
+			guard let value = try decodeAny( element:element, from:decoder, type:T.self ) as? T else {
+				throw GCodableError.typeMismatch(
 					Self.self, GCodableError.Context(
-						debugDescription: "Inappropriate bodyElement \(bodyElement.dataBlock) here."
+						debugDescription: "Block \(element) doesn't contains a -\(T.self)- type."
 					)
 				)
 			}
+			
+			return value
 		}
-		
-		let saved	= (currentBodyElement, currentInfo)
-		(currentBodyElement, currentInfo)	= (bodyElement, nil)
-		defer { (currentBodyElement, currentInfo) = saved }
-		
-		switch bodyElement.dataBlock {
-		case .valueType( _ ):
-			// if T is optional
-			if let optType = T.self as? OptionalProtocol.Type {
-				// get the inner non optional type
-				let wrapped	= optType.fullUnwrappedType
-				
-				// check if conforms to GCodable.Type,
-				// costruct the value and check if is T
-				guard
-					let decodableType = wrapped as? GCodable.Type,
-					let value = try decodableType.init(from: decoder) as? T
-				else {
-					throw GCodableError.typeMismatch(
-						Self.self, GCodableError.Context(
-							debugDescription: "Block \(bodyElement) wrapped type -\(wrapped)- not GCodable."
-						)
-					)
-				}
-				
-				return value
-			} else { //	if not, construct it:
-				return try T.init(from: decoder)
-			}
-		case .outBinType( _ , let bytes ):
-			let wrapped : Any.Type
-
-			if let optType = T.self as? OptionalProtocol.Type {
-				// get the inner non optional type
-				wrapped	= optType.fullUnwrappedType
-			} else {
-				wrapped	= T.self
-			}
-
+	}
+	
+	private func decodeValue<T>( type:T.Type, element:BodyElement, from decoder:GDecoder ) throws -> T where T:GCodable {
+		if let optType = T.self as? OptionalProtocol.Type {
+			// get the inner non optional type
+			let wrapped	= optType.fullUnwrappedType
+			
+			// check if conforms to GCodable.Type,
+			// costruct the value and check if is T
 			guard
-				let binaryIOType = wrapped as? BinaryIOType.Type,
-				let value = try binaryIOType.init(binaryData: bytes) as? T
+				let decodableType = wrapped as? GCodable.Type,
+				let value = try decodableType.init(from: decoder) as? T
 			else {
 				throw GCodableError.typeMismatch(
 					Self.self, GCodableError.Context(
-						debugDescription: "Block \(bodyElement) wrapped type -\(wrapped)- not BinaryIOType."
+						debugDescription: "Block \(element) wrapped type -\(wrapped)- not GCodable."
 					)
 				)
 			}
 			return value
-		default:
-			guard let value = try decodeAnyNode( bodyElement:bodyElement, from:decoder ) as? T else {
-				throw GCodableError.typeMismatch(
-					Self.self, GCodableError.Context(
-						debugDescription: "Block \(bodyElement) doesn't contains a -\(T.self)- type."
-					)
+		} else { //	if not, construct it:
+			return try T.init(from: decoder)
+		}
+	}
+	
+	private func decodeBinaryIO<T>( type:T.Type, bytes: [UInt8],element:BodyElement, from decoder:GDecoder ) throws -> T where T:GCodable {
+		let wrapped : Any.Type
+		
+		if let optType = T.self as? OptionalProtocol.Type {
+			// get the inner non optional type
+			wrapped	= optType.fullUnwrappedType
+		} else {
+			wrapped	= T.self
+		}
+		
+		guard
+			let binaryIOType = wrapped as? BinaryIOType.Type,
+			let value = try binaryIOType.init(binaryData: bytes) as? T
+		else {
+			throw GCodableError.typeMismatch(
+				Self.self, GCodableError.Context(
+					debugDescription: "Block \(element) wrapped type -\(wrapped)- not BinaryIOType."
 				)
-			}
+			)
+		}
+		return value
+	}
+	
+	private func decodeAny<T>( element:BodyElement, from decoder:GDecoder, type:T.Type ) throws -> Any where T:GCodable {
+		func decodeIdentifiables( type:T.Type, objID:IntID, element:BodyElement, from decoder:GDecoder ) throws -> Any? {
+			//	tutti gli oggetti (reference types) inizialmente si trovano in decodedData.objBlockMap
+			//	quando arriva la prima richiesta di un particolare oggetto (da objID)
+			//	lo costruiamo (se esiste) e lo mettiamo nell'objectRepository in modo
+			//	che le richieste successive peschino di lì.
+			//	se l'oggetto non esiste (possibile, se memorizzato condizionalmente)
+			//	ritorniamo nil.
 			
-			return value
+			if let object = objectRepository[ objID ] {
+				return object
+			} else if let bodyElement = decodedData.pop( objID: objID ) {
+				let saved	= (currentBodyElement, currentInfo)
+				defer { (currentBodyElement, currentInfo) = saved }
+				
+				switch bodyElement.dataBlock {
+				case .referenceType( _, let typeID, let objID ):
+					(currentBodyElement, currentInfo)	= (bodyElement, try classInfo( typeID:typeID ))
+					
+					let object		= try currentInfo!.codableType.init(from: decoder)
+					objectRepository[ objID ]	= object
+					return object
+				case .iValueType( _, let objID ):
+					(currentBodyElement, currentInfo)	= (bodyElement, nil)
+					
+					let object		= try decodeValue( type:T.self, element:bodyElement, from: decoder )
+					objectRepository[ objID ]	= object
+					return object
+				case .iBinaryOUT( _, let objID, let bytes):
+					(currentBodyElement, currentInfo)	= (bodyElement, nil)
+
+					let object		= try decodeBinaryIO( type:T.self, bytes: bytes,element:bodyElement, from:decoder )
+					objectRepository[ objID ]	= object
+					return object
+				default:
+					throw GCodableError.internalInconsistency(
+						Self.self, GCodableError.Context(
+							debugDescription: "Inappropriate bodyElement \(bodyElement.dataBlock) here."
+						)
+					)
+				}
+			} else {
+				return nil
+			}
+		}
+		
+		switch element.dataBlock {
+		case .nilValue( _ ):
+			return Optional<Any>.none as Any
+		case .conditionalPtr( _, let objID ):
+			// nessun controllo: può essere nil
+			return try decodeIdentifiables( type:T.self, objID:objID, element:element, from:decoder ) as Any
+		case .strongPtr( _, let objID ):
+			// controllo: NON può essere nil
+			guard let object = try decodeIdentifiables( type:T.self, objID:objID, element:element, from:decoder ) else {
+				throw GCodableError.decodingError(
+					Self.self, GCodableError.Context(
+						debugDescription:
+							"Object pointed from -\(element.dataBlock)- not found." +
+						"Use deferDecode to break the cycles."
+					)
+				)
+			}
+			return object
+		default:	// .Struct & .Object are inappropriate here!
+			throw GCodableError.internalInconsistency(
+				Self.self, GCodableError.Context(
+					debugDescription: "Inappropriate bodyElement \(element.dataBlock) here."
+				)
+			)
 		}
 	}
 }
+
 

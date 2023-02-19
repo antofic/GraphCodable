@@ -56,3 +56,4 @@ extension UTType : BinaryIOType {
 		}
 	}
 }
+

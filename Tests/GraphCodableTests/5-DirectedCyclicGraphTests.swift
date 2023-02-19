@@ -166,3 +166,4 @@ final class DirectedCyclicGraphTests: XCTestCase {
 		XCTAssertTrue( outA === a_from_ea, #function )
 	}
 }
+
