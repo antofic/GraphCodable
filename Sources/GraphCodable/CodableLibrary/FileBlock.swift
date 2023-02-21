@@ -51,10 +51,13 @@ typealias IntID	= UInt32
 struct FileHeader : CustomStringConvertible, BinaryIOType {
 	static var INITIAL_FILE_VERSION	: UInt32 { 0 }
 	static var VALUEID_FILE_VERSION	: UInt32 { 1 }
-	static var CURRENT_FILE_VERSION	: UInt32 { VALUEID_FILE_VERSION }
+	static var RMUNUS2_FILE_VERSION	: UInt32 { 2 }
+	static var SECTION_FILE_VERSION	: UInt32 { 3 }
+	static var CURRENT_FILE_VERSION	: UInt32 { SECTION_FILE_VERSION }
 
-	var currentVersionSupportsValueIDs : Bool { version >= Self.VALUEID_FILE_VERSION }
-	
+	var supportsValueIDs		: Bool { version >= Self.VALUEID_FILE_VERSION }
+	var supportsFileSections	: Bool { version >= Self.SECTION_FILE_VERSION }
+
 	// *******************************
 	
 	private enum HeaderID : UInt64 {
@@ -64,17 +67,15 @@ struct FileHeader : CustomStringConvertible, BinaryIOType {
 	let version : UInt32
 	let unused0 : UInt32
 	let unused1 : UInt64
-	let unused2 : UInt8
 	
 	var description: String {
-		"FILETYPE = \(HeaderID.gcodable) V\(version), U0 = \"\(unused0)\", U1 = \(unused1), U2 = \(unused2)"
+		"FILETYPE = \(HeaderID.gcodable) V\(version), U0 = \(unused0), U1 = \(unused1)"
 	}
 	
-	init( version: UInt32 = CURRENT_FILE_VERSION, unused0: UInt32 = 0, unused1: UInt64 = 0, unused2: UInt8 = 0 ) {
-		self.version = version
+	init( version: UInt32, unused0: UInt32 = 0, unused1: UInt64 = 0 ) {
+		self.version = version	// Self.CURRENT_FILE_VERSION
 		self.unused0 = unused0
 		self.unused1 = unused1
-		self.unused2 = unused2
 	}
 
 	private enum ObsoleteCode : UInt8, BinaryIOType {
@@ -98,7 +99,9 @@ struct FileHeader : CustomStringConvertible, BinaryIOType {
 		self.version	= try UInt32	( from: &reader )
 		self.unused0	= try UInt32	( from: &reader )
 		self.unused1	= try UInt64	( from: &reader )
-		self.unused2	= try UInt8		( from: &reader )
+		if version < Self.RMUNUS2_FILE_VERSION {
+			_	= try UInt8		( from: &reader )	// removed unused2 from SECTION_FILE_VERSION
+		}
 	}
 	
 	func write(to writer: inout BinaryWriter) throws {
@@ -106,7 +109,6 @@ struct FileHeader : CustomStringConvertible, BinaryIOType {
 		try version.write(to: &writer)
 		try unused0.write(to: &writer)
 		try unused1.write(to: &writer)
-		try unused2.write(to: &writer)
 	}
 }
 
@@ -149,7 +151,10 @@ enum FileBlock {
 }
 
 extension FileBlock {
-	enum Section { case body, typeMap, keyMap }
+	enum Section : UInt16, CaseIterable, BinaryIOType {
+		case body = 100, typeMap = 200, keyMap = 300
+	}
+	
 	var section : Section {
 		switch self {
 		case .typeMap:	return .typeMap

@@ -447,7 +447,9 @@ fileprivate struct BlockDecoder {
 
 fileprivate struct NewBlockDecoder {
 	let 		fileHeader			: FileHeader
+
 	private var reader				: BinaryReader
+	private var currentBlock		: FileBlock?
 
 	private var _classDataMap		= [IntID : ClassData]()
 	private var _bodyDataBlocks		= [FileBlock]()
@@ -458,6 +460,7 @@ fileprivate struct NewBlockDecoder {
 	private	var parsedTypeMap		= false
 	private	var parsedBody			= false
 	private	var parsedKeyMap		= false
+
 	
 	init( from reader:inout BinaryReader ) throws {
 		let header		= try FileHeader( from: &reader )
@@ -465,7 +468,7 @@ fileprivate struct NewBlockDecoder {
 			// read section map
 			sectionMap	= try type(of:sectionMap).init(from: &reader)
 		} else {
-			// OLD BLOCK DECODER
+			;	// OLD BLOCK DECODER
 		}
 		
 		self.reader		= reader
@@ -489,96 +492,197 @@ fileprivate struct NewBlockDecoder {
 		return try BodyElement.bodyRootElement( bodyDataBlocks:_bodyDataBlocks, keyIDToKey:_keyIDToKey, reverse:true )
 	}
 
+	// private section
+	
+	private mutating func peek() throws -> FileBlock? {
+		if currentBlock == nil {
+			currentBlock	= reader.isEof ? nil : try FileBlock(from: &reader, header: fileHeader)
+		}
+		return currentBlock
+	}
+
+	private mutating func step() {
+		currentBlock = nil
+	}
+
 	private mutating func parseTypeMap() throws {
 		if parsedTypeMap { return }
 		defer { parsedTypeMap = true }
 		
-		let saveRange	= try moveReaderTo(section: .typeMap)
-		defer { reader.readRange = saveRange }
-
-		while reader.isEof == false {
-			let dataBlock	= try FileBlock(from: &reader, header: fileHeader)
-			switch dataBlock {
-			case .typeMap( let typeID, let classData ):
-				guard _classDataMap.index(forKey: typeID) == nil else {
-					throw GCodableError.duplicateTypeID(
-						Self.self, GCodableError.Context(
-							debugDescription: "TypeID -\(typeID)- already used."
-						)
-					)
-				}
-				_classDataMap[typeID]	= classData
-			default:
+		if fileHeader.supportsFileSections {
+			guard let range = sectionMap[ FileBlock.Section.typeMap ] else {
 				throw GCodableError.decodingError(
 					Self.self, GCodableError.Context(
-						debugDescription: "\(dataBlock.self) encountered while parsing typeMap."
+						debugDescription: "fileRange not found while typeMap parsing."
 					)
 				)
 			}
+			let saveRange	= reader.readRange
+			defer { reader.readRange = saveRange }
+			reader.readRange = range
+			
+			while let dataBlock	= try peek() {
+				switch dataBlock {
+				case .typeMap( let typeID, let classData ):
+					// ••• PHASE 1 •••
+					guard _classDataMap.index(forKey: typeID) == nil else {
+						throw GCodableError.duplicateTypeID(
+							Self.self, GCodableError.Context(
+								debugDescription: "TypeID -\(typeID)- already used."
+							)
+						)
+					}
+					_classDataMap[typeID]	= classData
+				default:
+					throw GCodableError.decodingError(
+						Self.self, GCodableError.Context(
+							debugDescription: "\(dataBlock.self) encountered while typeMap parsing."
+						)
+					)
+				}
+				step()
+			}
+		} else if let phase = phase {
+			guard phase == .typeMap else { return }
+			
+			while let dataBlock	= try peek() {
+				switch dataBlock {
+				case .typeMap( let typeID, let classData ):
+					// ••• PHASE 1 •••
+					guard _classDataMap.index(forKey: typeID) == nil else {
+						throw GCodableError.duplicateTypeID(
+							Self.self, GCodableError.Context(
+								debugDescription: "TypeID -\(typeID)- already used."
+							)
+						)
+					}
+					_classDataMap[typeID]	= classData
+				default:
+					self.phase	= .body
+					return
+				}
+				step()
+			}
+		} else {
+			throw GCodableError.decodingError(
+				Self.self, GCodableError.Context(
+					debugDescription: "decodingError while typeMap parsing."
+				)
+			)
 		}
 	}
-
+	
 	private mutating func parseBody() throws {
 		if parsedBody { return }
 		defer { parsedBody = true }
 
-		let saveRange	= try moveReaderTo(section: .body)
-		defer { reader.readRange = saveRange }
-
-		while reader.isEof == false {
-			let dataBlock	= try FileBlock(from: &reader, header: fileHeader)
-			guard dataBlock.section == .body else {
+		if fileHeader.supportsFileSections {
+			guard let range = sectionMap[ FileBlock.Section.body ] else {
 				throw GCodableError.decodingError(
 					Self.self, GCodableError.Context(
-						debugDescription: "\(dataBlock.self) encountered while parsing body."
+						debugDescription: "fileRange not found while body parsing."
 					)
 				)
 			}
-			_bodyDataBlocks.append( dataBlock )
+			let saveRange	= reader.readRange
+			defer { reader.readRange = saveRange }
+			reader.readRange = range
+			
+			while let dataBlock	= try peek() {
+				guard dataBlock.section == .body else {
+					throw GCodableError.decodingError(
+						Self.self, GCodableError.Context(
+							debugDescription: "\(dataBlock.self) encountered while body parsing."
+						)
+					)
+				}
+				_bodyDataBlocks.append( dataBlock )
+				step()
+			}
+		} else if let phase = phase {
+			guard phase == .body else { return }
+			
+			while let dataBlock	= try peek() {
+				guard dataBlock.section == .body else {
+					self.phase	= .keyMap
+					return
+				}
+				_bodyDataBlocks.append( dataBlock )
+				step()
+			}
+		} else {
+			throw GCodableError.decodingError(
+				Self.self, GCodableError.Context(
+					debugDescription: "decodingError while body parsing."
+				)
+			)
 		}
 	}
-	
+
 	private mutating func parseKeyMap() throws {
 		if parsedKeyMap { return }
 		defer { parsedKeyMap = true }
 		
-		let saveRange	= try moveReaderTo(section: .keyMap)
-		defer { reader.readRange = saveRange }
-		
-		while reader.isEof == false {
-			let dataBlock	= try FileBlock(from: &reader, header: fileHeader)
-			switch dataBlock {
-			case .keyMap( let keyID, let key ):
-				guard _keyIDToKey.index(forKey: keyID) == nil else {
-					throw GCodableError.duplicateKey(
-						Self.self, GCodableError.Context(
-							debugDescription: "Key -\(key)- already used."
-						)
-					)
-				}
-				_keyIDToKey[keyID]	= key
-			default:
+		if fileHeader.supportsFileSections {
+			guard let range = sectionMap[ FileBlock.Section.keyMap ] else {
 				throw GCodableError.decodingError(
 					Self.self, GCodableError.Context(
-						debugDescription: "\(dataBlock.self) encountered while parsing keyMap."
+						debugDescription: "fileRange not found while body parsing."
 					)
 				)
 			}
-		}
-	}
-	
-	private mutating func moveReaderTo( section:FileBlock.Section ) throws -> Range<Int> {
-		guard let range = sectionMap[ FileBlock.Section.keyMap ] else {
+			let saveRange	= reader.readRange
+			defer { reader.readRange = saveRange }
+			reader.readRange = range
+			
+			while let dataBlock	= try peek() {
+				switch dataBlock {
+				case .keyMap( let keyID, let key ):
+					guard _keyIDToKey.index(forKey: keyID) == nil else {
+						throw GCodableError.duplicateKey(
+							Self.self, GCodableError.Context(
+								debugDescription: "Key -\(key)- already used."
+							)
+						)
+					}
+					_keyIDToKey[keyID]	= key
+				default:
+					throw GCodableError.decodingError(
+						Self.self, GCodableError.Context(
+							debugDescription: "\(dataBlock.self) encountered while keyMap parsing."
+						)
+					)
+				}
+				step()
+			}
+		} else if let phase = phase {
+			guard phase == .keyMap else { return }
+			
+			while let dataBlock	= try peek() {
+				switch dataBlock {
+				case .keyMap( let keyID, let key ):
+					guard _keyIDToKey.index(forKey: keyID) == nil else {
+						throw GCodableError.duplicateKey(
+							Self.self, GCodableError.Context(
+								debugDescription: "Key -\(key)- already used."
+							)
+						)
+					}
+					_keyIDToKey[keyID]	= key
+				default:
+					return
+				}
+				step()
+			}
+			
+		} else {
 			throw GCodableError.decodingError(
 				Self.self, GCodableError.Context(
-					debugDescription: "fileRange not found while body parsing."
+					debugDescription: "decodingError while keyMap parsing."
 				)
 			)
 		}
-		defer { reader.readRange = range }
-		return reader.readRange
 	}
-	
 }
 
 

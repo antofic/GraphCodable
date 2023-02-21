@@ -51,9 +51,21 @@ public struct BinaryReader {
 		set {
 			precondition(
 				(base.startIndex...base.endIndex).contains( newValue ),
-				"\(Self.self): outOfRange position"
+				"\(Self.self): invalid position \(newValue) in \(base.indices)"
 			)
 			bytes	= base[ newValue... ]
+		}
+	}
+	
+	var readRange: Range<Int> {
+		get { bytes.indices }
+		set {
+			precondition(
+				newValue.startIndex >= base.startIndex &&
+				newValue.endIndex <= base.endIndex,
+				"\(Self.self): invalid readRange \(newValue) in \(base.indices)"
+			)
+			bytes	= base[ newValue ]
 		}
 	}
 
