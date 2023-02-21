@@ -149,10 +149,10 @@ public final class GraphEncoder {
 			defer { reset() }
 			reset()
 			
-			dataEncoder	= ByteEncoder()
+			dataEncoder	= BinaryEncoder()
 			try encode( value )
 			
-			return try (dataEncoder as! ByteEncoder).data(typeMap: typeMap, keyMap: keyMap)
+			return try (dataEncoder as! BinaryEncoder).data(typeMap: typeMap, keyMap: keyMap)
 		}
 		
 		func dumpRoot<T>( _ value: T, options: GraphEncoder.DumpOptions ) throws -> String where T:GCodable {
@@ -405,7 +405,7 @@ public final class GraphEncoder {
 	// ----- ByteEncoder : DataEncoder
 	// -------------------------------------------------
 	
-	fileprivate final class ByteEncoder : DataEncoder {
+	fileprivate final class BinaryEncoder : DataEncoder {
 		let					fileHeader		= FileHeader(version: FileHeader.CURRENT_FILE_VERSION)
 		private			var sectionMap		= [FileBlock.Section : Range<Int>]()
 		private			var writer			= BinaryWriter()

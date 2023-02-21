@@ -147,7 +147,7 @@ enum FileBlock {
 	
 	case end
 	//	keyMap
-	case keyMap		( keyID:IntID, keyName:String )
+	case keyMap			( keyID:IntID, keyName:String )
 }
 
 extension FileBlock {
@@ -163,7 +163,7 @@ extension FileBlock {
 		}
 	}
 
-	enum Level : Int { case exit = -1, same, enter }
+	enum Level { case exit, same, enter }
 	var level : Level {
 		switch self {
 		case .valueType:		return .enter
@@ -173,7 +173,7 @@ extension FileBlock {
 		default:				return .same
 		}
 	}
-	
+
 	var keyID : IntID? {
 		switch self {
 		case .nilValue			( let keyID ):			return	keyID > 0 ? keyID : nil
@@ -187,13 +187,6 @@ extension FileBlock {
 		case .strongPtr			( let keyID, _ ):		return	keyID > 0 ? keyID : nil
 		case .conditionalPtr	( let keyID, _ ):		return	keyID > 0 ? keyID : nil
 		default:										return	nil
-		}
-	}
-	
-	var typeID : IntID? {
-		switch self {
-		case .referenceType	( _, let typeID, _ ):	return	typeID
-		default:									return	nil
 		}
 	}
 }

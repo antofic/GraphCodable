@@ -45,7 +45,9 @@ public struct BinaryReader {
 			self.init( bytes: Array<UInt8>(data) )
 		}
 	}
-	
+
+	var isEof	: Bool	{ bytes.count == 0 }
+
 	var position: Int {
 		get { bytes.startIndex }
 		set {
@@ -57,7 +59,7 @@ public struct BinaryReader {
 		}
 	}
 	
-	var readRange: Range<Int> {
+	var currentRegion: Range<Int> {
 		get { bytes.indices }
 		set {
 			precondition(
@@ -68,9 +70,11 @@ public struct BinaryReader {
 			bytes	= base[ newValue ]
 		}
 	}
+	
+	var fullRegion: Range<Int> {
+		base.indices
+	}
 
-	var isEof	: Bool	{ bytes.count == 0 }
-	 
 	mutating func readData<T>() throws -> T where T:MutableDataProtocol, T:ContiguousBytes {
 		let count = try readInt64()
 
