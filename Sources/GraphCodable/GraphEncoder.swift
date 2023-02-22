@@ -51,7 +51,7 @@ extension GraphEncoder {
 		public static let	showSectionTitles				= Self( rawValue: 1 << 7 )
 		///	disable truncation of too long nativeValues (over 48 characters - String or Data typically)
 		public static let	noTruncation					= Self( rawValue: 1 << 8 )
-		///	show NSStringFromClass name in TypeMap section
+		///	show typeName/NSStringFromClass name in TypeMap section
 		public static let	showMangledClassNames			= Self( rawValue: 1 << 9 )
 
 		public static let	displayNSStringFromClassNames: Self = [
