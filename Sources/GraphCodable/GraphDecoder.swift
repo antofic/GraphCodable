@@ -231,7 +231,7 @@ fileprivate struct BinaryDecoder {
 	}
 	
 	// -------------------------------------------------
-	// ----- SectionBinaryDecoder
+	// ----- SinglePassSectionBinaryDecoder
 	// -------------------------------------------------
 
 	private struct SectionBinaryDecoder {
@@ -264,8 +264,13 @@ fileprivate struct BinaryDecoder {
 			let saveRegion	= try setReaderRegionTo(section: .body)
 			defer { reader.currentRegion = saveRegion }
 
-			_bodyFileBlocks	= try BodyBlocks(from: &reader)
-			return _bodyFileBlocks!
+			var bodyBlocks	= [FileBlock]()
+			while reader.isEof == false {
+				bodyBlocks.append( try FileBlock(from: &reader) )
+			}
+			
+			_bodyFileBlocks	= bodyBlocks
+			return bodyBlocks
 		}
 
 		mutating func keyStringMap() throws -> KeyStringMap {

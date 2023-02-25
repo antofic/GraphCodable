@@ -36,7 +36,7 @@ extension GraphEncoder {
 		
 		///	four data sections:
 		public static let	showHeader						= Self( rawValue: 1 << 0 )
-		public static let	showTypeMap						= Self( rawValue: 1 << 1 )
+		public static let	showReferenceMap				= Self( rawValue: 1 << 1 )
 		public static let	showBody						= Self( rawValue: 1 << 2 )
 		public static let	showKeyMap						= Self( rawValue: 1 << 3 )
 		
@@ -54,7 +54,7 @@ extension GraphEncoder {
 		public static let	showMangledClassNames			= Self( rawValue: 1 << 9 )
 		
 		public static let	displayNSStringFromClassNames: Self = [
-			.showTypeMap, .showMangledClassNames, .showSectionTitles
+			.showReferenceMap, .showMangledClassNames, .showSectionTitles
 		]
 		public static let	readable: Self = [
 			.showBody, .indentLevel, .resolveIDs, .showSectionTitles
@@ -63,13 +63,13 @@ extension GraphEncoder {
 			.showHeader, .showBody, .indentLevel, .resolveIDs, .showSectionTitles, .noTruncation
 		]
 		public static let	binaryLike: Self = [
-			.showHeader, .showTypeMap, .showBody, .showKeyMap, .indentLevel, .showSectionTitles
+			.showHeader, .showReferenceMap, .showBody, .showKeyMap, .indentLevel, .showSectionTitles
 		]
 		public static let	binaryLikeNoTruncation: Self = [
-			.showHeader, .showTypeMap, .showBody, .showKeyMap, .indentLevel, .showSectionTitles, .noTruncation
+			.showHeader, .showReferenceMap, .showBody, .showKeyMap, .indentLevel, .showSectionTitles, .noTruncation
 		]
 		public static let	fullInfo: Self = [
-			.showHeader, .showTypeMap, .showBody, .showKeyMap, .indentLevel, .resolveIDs, .showTypeVersion, .showSectionTitles, .noTruncation
+			.showHeader, .showReferenceMap, .showBody, .showKeyMap, .indentLevel, .resolveIDs, .showTypeVersion, .showSectionTitles, .noTruncation
 		]
 	}
 	
@@ -79,6 +79,16 @@ extension GraphEncoder {
 	public func dump<T>( _ value: T, options: GraphEncoder.DumpOptions = .readable ) throws -> String where T:GCodable {
 		try encoder.dumpRoot( value, options:options )
 	}
+}
+
+// -------------------------------------------------
+// ----- BinaryEncoderDelegate
+// -------------------------------------------------
+
+fileprivate protocol BinaryEncoderDelegate : AnyObject {
+	var	classDataMap:	ClassDataMap { get }
+	var	keyStringMap:	KeyStringMap { get }
+	var dumpOptions:	GraphEncoder.DumpOptions { get }
 }
 
 // -------------------------------------------------
@@ -123,7 +133,7 @@ public final class GraphEncoder {
 	// ----- Encoder
 	// -------------------------------------------------
 	
-	private final class Encoder : GEncoder {
+	private final class Encoder : GEncoder, BinaryEncoderDelegate {
 		var userInfo							= [String:Any]()
 		typealias			IdentifierMap		= AnyIdentifierMap
 		
@@ -132,20 +142,27 @@ public final class GraphEncoder {
 		private var			identifierMap		= IdentifierMap()
 		private var			referenceMap		= ReferenceMap()
 		private var			keyMap				= KeyMap()
-		private (set) var	dataEncoder			= BinaryEncoder( dump:false )
+		private (set) var	dumpOptions			= GraphEncoder.DumpOptions.readable
+		private (set) var	dataEncoder			= BinaryEncoder<Encoder>(isDump: false)
 		
+		var classDataMap: ClassDataMap 	{ referenceMap.classDataMap }
+		var keyStringMap: KeyStringMap 	{ keyMap.keyStringMap }
 		
-		private func reset( dump: Bool = false ) {
-			self.currentKeys	= Set<String>()
-			self.identifierMap	= IdentifierMap()
-			self.referenceMap	= ReferenceMap()
-			self.keyMap			= KeyMap()
-			self.dataEncoder	= BinaryEncoder( dump:dump )
+		private func reset( dump: Bool = false, dumpOptions:GraphEncoder.DumpOptions = .readable ) {
+			self.currentKeys			= Set<String>()
+			self.identifierMap			= IdentifierMap()
+			self.referenceMap			= ReferenceMap()
+			self.keyMap					= KeyMap()
+			self.dumpOptions			= dumpOptions
+			self.dataEncoder			= BinaryEncoder<Encoder>(isDump: dump)
+			self.dataEncoder.delegate	= self
+			
 		}
 		
 		// --------------------------------------------------------
 		init( _ options: Options ) {
-			self.encodeOptions	= options
+			self.encodeOptions			= options
+			self.dataEncoder.delegate	= self
 		}
 		
 		func encodeRoot<T,Q>( _ value: T ) throws -> Q where T:GCodable, Q:MutableDataProtocol {
@@ -153,24 +170,17 @@ public final class GraphEncoder {
 			reset()
 			
 			try encode( value )
-			
-			return try dataEncoder.data(
-				classDataMap: referenceMap.classDataMap,
-				keyStringMap: keyMap.keyStringMap
-			)
+
+			return try dataEncoder.data()
 		}
 		
 		func dumpRoot<T>( _ value: T, options: GraphEncoder.DumpOptions ) throws -> String where T:GCodable {
 			defer { reset() }
-			reset( dump: true )
+			reset( dump: true, dumpOptions:options )
 			
 			try encode( value )
 			
-			return try dataEncoder.dump(
-				classDataMap:	referenceMap.classDataMap,
-				keyStringMap:	keyMap.keyStringMap,
-				options:		options
-			)
+			return try dataEncoder.dump()
 		}
 		
 		// --------------------------------------------------------
@@ -178,17 +188,17 @@ public final class GraphEncoder {
 		func encode<Value>(_ value: Value) throws where Value:GCodable {
 			try encodeAnyValue( value, forKey: nil, conditional:false )
 		}
-		
+
 		func encodeConditional<Value>(_ value: Value?) throws where Value:GCodable {
 			try encodeAnyValue( value as Any, forKey: nil, conditional:true )
 		}
-		
+
 		func encode<Key, Value>(_ value: Value, for key: Key) throws
 		where Key : RawRepresentable, Value : GCodable, Key.RawValue == String
 		{
 			try encodeAnyValue( value, forKey: key.rawValue, conditional:false )
 		}
-		
+
 		func encodeConditional<Key, Value>(_ value: Value?, for key: Key) throws
 		where Key : RawRepresentable, Value : GCodable, Key.RawValue == String
 		{
@@ -309,23 +319,19 @@ public final class GraphEncoder {
 			}
 		}
 	}
-		
+	
 	// -------------------------------------------------
-	// ----- BinaryEncoder
+	// ----- SinglePassBinaryEncoder
 	// -------------------------------------------------
+	fileprivate final class BinaryEncoder<Provider:BinaryEncoderDelegate> {
+		let					fileHeader	= FileHeader(version: FileHeader.CURRENT_FILE_VERSION)
+		let					isDump		: Bool
+		weak var			delegate	: Provider!
+		private var			writer		= BinaryWriter()
+		private var			output		= String()
 
-	fileprivate final class BinaryEncoder {
-		let				fileHeader		= FileHeader(version: FileHeader.CURRENT_FILE_VERSION)
-		private var		blocks			= BodyBlocks()
-		private	var		binaryValues	: [BinaryOType?]?
-
-		init( dump: Bool ) {
-			binaryValues	= dump ? [BinaryOType?]() : nil
-		}
-		
-		private func append( _ fileBlock: FileBlock, value:BinaryOType? ) throws {
-			blocks.append( fileBlock )
-			binaryValues?.append( value )
+		init( isDump: Bool ) {
+			self.isDump		= isDump
 		}
 		
 		func appendBinaryValue( keyID:UIntID, value:BinaryOType ) throws {
@@ -337,145 +343,135 @@ public final class GraphEncoder {
 			try append( .iBinaryData(keyID: keyID, objID: objID, bytes: bytes), value:value )
 		}
 		func appendNilValue( keyID:UIntID ) throws {
-			try append( .nilValue(keyID: keyID), value:nil )
+			try append( .nilValue(keyID: keyID) )
 		}
 		func appendValueType( keyID:UIntID ) throws {
-			try append( .valueType(keyID: keyID), value:nil )
+			try append( .valueType(keyID: keyID) )
 		}
 		func appendIValueType( keyID:UIntID, objID:UIntID ) throws {
-			try append( .iValueType(keyID: keyID, objID: objID), value:nil )
+			try append( .iValueType(keyID: keyID, objID: objID) )
 		}
 		func appendReferenceType( keyID:UIntID, typeID:UIntID, objID:UIntID )throws {
-			try append( .referenceType(keyID: keyID, typeID: typeID, objID: objID), value:nil )
+			try append( .referenceType(keyID: keyID, typeID: typeID, objID: objID) )
 		}
 		func appendStrongPtr( keyID:UIntID, objID:UIntID ) throws {
-			try append( .strongPtr(keyID: keyID, objID: objID), value:nil )
+			try append( .strongPtr(keyID: keyID, objID: objID) )
 		}
 		func appendConditionalPtr( keyID:UIntID, objID:UIntID ) throws {
-			try append( .conditionalPtr(keyID: keyID, objID: objID), value:nil )
+			try append( .conditionalPtr(keyID: keyID, objID: objID) )
 		}
 		func appendEnd() throws {
-			try append( .end, value:nil )
-		}
-
-		func data<Q>( classDataMap:ClassDataMap, keyStringMap:KeyStringMap ) throws -> Q where Q:MutableDataProtocol {
-			guard binaryValues == nil else {
-				throw GCodableError.internalInconsistency(
-					Self.self, GCodableError.Context(
-						debugDescription: "binaryValues must be nil"
-					)
-				)
-			}
-
-			var writer		= BinaryWriter()
-			var sectionMap	= SectionMap()
-			
-			for section in FileSection.allCases {
-				sectionMap[ section ] = Range(uncheckedBounds: (0,0))
-			}
-			try fileHeader.write(to: &writer)
-			try sectionMap.write(to: &writer)
-			
-			var bounds	= (writer.position,writer.position)
-			sectionMap[ FileSection.body ] = Range( uncheckedBounds:bounds )
-			
-			// body:
-			try blocks.write(to: &writer)
-			bounds	= ( bounds.1,writer.position )
-			sectionMap[ FileSection.body ] = Range( uncheckedBounds:bounds )
-
-			// keyMap:
-			try keyStringMap.write(to: &writer)
-			bounds	= ( bounds.1,writer.position )
-			sectionMap[ FileSection.keyStringMap ] = Range( uncheckedBounds:bounds )
-
-			// referenceMap:
-			//	for (typeID,classData) in referenceMap.typeIDtoClassData { try FileBlock.referenceMap( typeID: typeID, classData: classData ).write(to: &writer) }
-			try classDataMap.write(to: &writer)
-			bounds	= ( bounds.1,writer.position )
-			sectionMap[ FileSection.classDataMap ] = Range( uncheckedBounds:bounds )
-
-			do {
-				defer { writer.setEof() }
-				writer.position	= 0
-				try fileHeader.write(to: &writer)
-				try sectionMap.write(to: &writer)
-			}
-			
-			return writer.data()
+			try append( .end )
 		}
 		
-		func dump( classDataMap cDM:ClassDataMap, keyStringMap kSM:KeyStringMap, options:GraphEncoder.DumpOptions ) throws -> String {
-			guard let binaryValues = binaryValues, binaryValues.count == blocks.count else {
+		//	low level
+		private func append( _ fileBlock: FileBlock, value:BinaryOType? = nil ) throws {
+			if isDump	{ try appendDumpString( fileBlock, binaryValue:value ) }
+			else		{ try appendBinaryData( fileBlock ) }
+		}
+
+		//	------------------------------------------------------------
+		//	--	DUMP section
+		//	------------------------------------------------------------
+		private var dumpStart	= false
+		private var tabs		: String?
+		
+		private func dumpHeaderIfNeeded() throws {
+			if dumpStart == false {
+				dumpStart	= true
+				
+				let options	= delegate.dumpOptions
+				
+				if options.contains( .showHeader ) {
+					if options.contains( .showSectionTitles ) {
+						output.append( "== HEADER ========================================================\n" )
+					}
+					output.append( fileHeader.description )
+					output.append( "\n" )
+				}
+				
+				if options.contains( .showBody ) {
+					if options.contains( .showSectionTitles ) {
+						output.append( "== BODY ==========================================================\n" )
+					}
+					
+					tabs = options.contains( .indentLevel ) ? "" : nil
+				}
+			}
+		}
+		
+		private func appendDumpString( _ fileBlock: FileBlock, binaryValue:BinaryOType? ) throws {
+			try dumpHeaderIfNeeded()
+			let options	= delegate.dumpOptions
+
+			if options.contains( .showBody ) {
+				if case .exit = fileBlock.level { tabs?.removeLast() }
+				
+				if let tbs = tabs { output.append( tbs ) }
+				
+				output.append( fileBlock.readableOutput(
+					options: options,
+					binaryValue:binaryValue,
+					classDataMap: delegate.classDataMap,
+					keyStringMap: delegate.keyStringMap
+				) )
+				output.append( "\n" )
+				
+				if case .enter = fileBlock.level { tabs?.append("\t") }
+			}
+		}
+		
+		func dump() throws -> String {
+			guard isDump == true else {
 				throw GCodableError.internalInconsistency(
 					Self.self, GCodableError.Context(
-						debugDescription: "blocks and binaryValues out of sync."
+						debugDescription: "Invalis if isDump = \(isDump)."
 					)
 				)
 			}
 			
-			let	classDataMap	= options.contains( .resolveIDs ) ? cDM : nil
-			let	keyStringMap	= options.contains( .resolveIDs ) ? kSM : nil
-			
-			var output = ""
-			if options.contains( .showHeader ) {
-				if options.contains( .showSectionTitles ) {
-					output.append( "== HEADER ========================================================\n" )
-				}
-				output.append( fileHeader.description )
-				output.append( "\n" )
-			}
-			if options.contains( .showTypeMap ) {
+			try dumpHeaderIfNeeded()
+			let options	= delegate.dumpOptions
+
+			let	cDM	= options.contains( .resolveIDs ) ? delegate.classDataMap : nil
+			let	kSM	= options.contains( .resolveIDs ) ? delegate.keyStringMap : nil
+
+			if options.contains( .showReferenceMap ) {
 				if options.contains( .showSectionTitles ) {
 					output.append( "== REFERENCEMAP ==================================================\n" )
 				}
-				output = cDM.reduce( into: output ) {
+				output = delegate.classDataMap.reduce( into: output ) {
 					result, tuple in
 					result.append(
 						FileBlockObsolete.classDataMap(
 							typeID: tuple.key, classData: tuple.value
-						).readableOutput(options: options, binaryValue:nil, classDataMap: classDataMap, keyStringMap: keyStringMap)
+						).readableOutput(
+							options: 		options,
+							binaryValue:	nil,
+							classDataMap: 	cDM,
+							keyStringMap:	kSM
+						)
 					)
 					result.append( "\n" )
 				}
 			}
-			if options.contains( .showBody ) {
-				if options.contains( .showSectionTitles ) {
-					output.append( "== BODY ==========================================================\n" )
-				}
-				
-				var	tabs : String?	= options.contains( .indentLevel ) ? "" : nil
-				
-				let zipped = zip( blocks, binaryValues )
-				
-				output = zipped.reduce( into: output ) {
-					result, tuple in
-					let block		= tuple.0
-					let binaryValue	= tuple.1
-					
-					if case .exit = block.level { tabs?.removeLast() }
-					
-					if let tbs = tabs { result.append( tbs ) }
-					
-					result.append( block.readableOutput(
-						options: options, binaryValue:binaryValue, classDataMap: classDataMap, keyStringMap: keyStringMap
-					) )
-					result.append( "\n" )
-					
-					if case .enter = block.level { tabs?.append("\t") }
-				}
-			}
+			
 			if options.contains( .showKeyMap ) {
 				if options.contains( .showSectionTitles ) {
 					output.append( "== KEYMAP ========================================================\n" )
 				}
-				output = kSM.reduce( into: output ) {
+				output = delegate.keyStringMap.reduce( into: output ) {
 					result, tuple in
 					result.append(
 						FileBlockObsolete.keyStringMap(
 							keyID:		tuple.key,
 							keyName:	tuple.value
-						).readableOutput( options: options, binaryValue:nil, classDataMap: classDataMap, keyStringMap: keyStringMap )
+						).readableOutput(
+							options: 		options,
+							binaryValue:	nil,
+							classDataMap: 	cDM,
+							keyStringMap:	kSM
+						)
 					)
 					result.append( "\n" )
 				}
@@ -483,9 +479,77 @@ public final class GraphEncoder {
 			if options.contains( .showSectionTitles ) {
 				output.append( "==================================================================\n" )
 			}
+			
 			return output
 		}
+		//	------------------------------------------------------------
+		//	--	DATA section
+		//	------------------------------------------------------------
+		private var sectionMap			= SectionMap()
+		private var	sectionMapPosition	: Int { 24 }
+
+		private func writeHeaderIfNeeded() throws {
+			if sectionMap.isEmpty {
+				// entriamo la prima volta e quindi scriviamo header e section map.
+
+				// write header:
+				try fileHeader.write(to: &writer)
+				assert(
+					writer.position == sectionMapPosition,
+					"FileHeader write exactly \(sectionMapPosition) bytes"
+				)
+
+				// write section map:
+				for section in FileSection.allCases {
+					sectionMap[ section ] = Range(uncheckedBounds: (0,0))
+				}
+				try sectionMap.write(to: &writer)
+				let bounds	= (writer.position,writer.position)
+				sectionMap[ FileSection.body ] = Range( uncheckedBounds:bounds )
+			}
+		}
+		
+		private func appendBinaryData( _ fileBlock: FileBlock ) throws {
+			try writeHeaderIfNeeded()
+			try fileBlock.write(to: &writer)
+		}
+
+		func data<Q>() throws -> Q where Q:MutableDataProtocol {
+			guard isDump == false else {
+				throw GCodableError.internalInconsistency(
+					Self.self, GCodableError.Context(
+						debugDescription: "Invalis if isDump = \(isDump)."
+					)
+				)
+			}
+			
+			try writeHeaderIfNeeded()
+			
+			var bounds	= (sectionMap[.body]!.startIndex,writer.position)
+			sectionMap[.body]	= Range( uncheckedBounds:bounds )
+			
+			// referenceMap:
+			try delegate.classDataMap.write(to: &writer)
+			bounds	= ( bounds.1,writer.position )
+			sectionMap[ FileSection.classDataMap ] = Range( uncheckedBounds:bounds )
+
+			// keyStringMap:
+			try delegate.keyStringMap.write(to: &writer)
+			bounds	= ( bounds.1,writer.position )
+			sectionMap[ FileSection.keyStringMap ] = Range( uncheckedBounds:bounds )
+
+			do {
+				//	sovrascrivo la sectionMapPosition
+				//	ora che ho tutti i valori
+				defer { writer.setEof() }
+				writer.position	= sectionMapPosition
+				try sectionMap.write(to: &writer)
+			}
+			
+			return writer.data()
+		}
 	}
+	
 	// -------------------------------------------------
 	// ----- ReferenceMap
 	// -------------------------------------------------
@@ -536,12 +600,52 @@ public final class GraphEncoder {
 	// -------------------------------------------------
 	// ----- AnyIdentifierMap
 	// -------------------------------------------------
+	/* THE STANDARD WAY IS SLOWER:
+	fileprivate struct AnyIdentifierMap {
+		private	var actualId : UIntID	= 1000	// <1000 reserved for future use
+		private var	strongObjDict		= [AnyHashable:UIntID]()
+		private var	weakObjDict			= [AnyHashable:UIntID]()
+
+		func strongID<T:Hashable>( _ identifier: T ) -> UIntID? {
+			strongObjDict[ identifier ]
+		}
+
+		mutating func createWeakID<T:Hashable>( _ identifier: T ) -> UIntID {
+			if let objID = weakObjDict[ identifier ] {
+				return objID
+			} else {
+				let objID = actualId
+				defer { actualId += 1 }
+				weakObjDict[ identifier ] = objID
+				return objID
+			}
+		}
+
+		mutating func createStrongID<T:Hashable>( _ identifier: T ) -> UIntID {
+			if let objID = strongObjDict[ identifier ] {
+				return objID
+			} else if let objID = weakObjDict[identifier] {
+				// se è nel weak dict, lo prendo da lì
+				weakObjDict.removeValue(forKey: identifier)
+				// e lo metto nello strong dict
+				strongObjDict[identifier] = objID
+				return objID
+			} else {
+				// altrimenti creo uno nuovo
+				let objID = actualId
+				defer { actualId += 1 }
+				strongObjDict[identifier] = objID
+				return objID
+			}
+		}
+	}
+	*/
 	
 	fileprivate struct AnyIdentifierMap {
 		private struct Key : Hashable {
 			private let identifier : any Hashable
 			
-			init<T:Hashable>( _ identifier: T ) {
+			init( _ identifier: any Hashable ) {
 				self.identifier		= identifier
 			}
 			
@@ -602,6 +706,11 @@ public final class GraphEncoder {
 }
 
 
-
+/*
+public func ==<T,Q>( lhs: T, rhs: Q ) -> Bool where T:Equatable, Q:Equatable {
+	guard let rhs = rhs as? T else { return false }
+	return lhs == rhs
+}
+*/
 
 

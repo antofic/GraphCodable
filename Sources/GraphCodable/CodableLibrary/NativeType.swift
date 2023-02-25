@@ -68,7 +68,7 @@ extension Bool 		: NativeType {}
 extension String 	: NativeType {}
 
 // -- Data support ----------------------------------------------------------
-// extension Data 		: NativeType {}
+//	extension Data 		: NativeType {}
 
 /* Considerali nativi o no?
  // -- Collection support ----------------------------------------------------------

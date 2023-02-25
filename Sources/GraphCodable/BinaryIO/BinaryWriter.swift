@@ -39,7 +39,7 @@ public struct BinaryWriter{
 			return Q( bytes )
 		}
 	}
-
+	
 	var position: Int {
 		get { _position }
 		set {
