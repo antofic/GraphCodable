@@ -59,5 +59,11 @@ public extension BinaryOType {
 	}
 }
 
-public typealias BinaryIOType = BinaryIType & BinaryOType
+public typealias BinaryIOType	= BinaryIType & BinaryOType
+
+
+/// The bytes container used by BinaryReader and BinaryWriter
+///
+/// The container must conform to MutableDataProtocol, i.e Data, [UInt8], ContiguousArray<UInt8>
+public typealias Bytes 			= [UInt8]
 

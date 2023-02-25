@@ -29,20 +29,21 @@ BinaryReader:
 		(throws an error if it is not possible)
 */
 
+
 public struct BinaryReader {
-	private let base:	Array<UInt8>
-	private var bytes:	Array<UInt8>.SubSequence
+	private let base:	Bytes
+	private var bytes:	Bytes.SubSequence
 	
-	init( bytes: Array<UInt8> ) {
+	init( bytes: Bytes ) {
 		self.base	= bytes
 		self.bytes	= bytes[ ... ]
 	}
 
 	init<Q>( data: Q ) where Q:Sequence, Q.Element==UInt8 {
-		if let bytes = data as? Array<UInt8> {
+		if let bytes = data as? Bytes {
 			self.init( bytes: bytes )
 		} else {
-			self.init( bytes: Array<UInt8>(data) )
+			self.init( bytes: Bytes(data) )
 		}
 	}
 

@@ -28,12 +28,8 @@ BinaryWriter data format uses always:
 	• store Int, UInt as Int64, UInt64
 */
 
-//	faster than BinaryWriterBase<Data> even if you must generate a Data result
-//	public typealias BinaryWriter = BinaryWriterBase<Array<UInt8>>
-//	typealias BinaryWriter = BinaryWriterBase<Data>
-
 public struct BinaryWriter{
-	private (set) var 	bytes 		= Array<UInt8>()
+	private (set) var 	bytes 		= Bytes()
 	private var 		_position	= 0
 
 	func data<Q>() -> Q where Q:MutableDataProtocol {
@@ -100,6 +96,9 @@ public struct BinaryWriter{
 	// write a null terminated utf8 string
 	mutating func writeString( _ value:String ) throws {
 		// string saved as null-terminated sequence of utf8
+		//	let uint8array	= unsafeBitCast( value.utf8CString, to: ContiguousArray<UInt8>.self )
+		//	try write( contentsOf: uint8array )
+		
 		try value.withCString() { ptr in
 			var endptr	= ptr
 			while endptr.pointee != 0 { endptr += 1 }	// null terminated
@@ -108,6 +107,7 @@ public struct BinaryWriter{
 				try write( contentsOf: UnsafeBufferPointer( start: $0, count: size ) )
 			}
 		}
+		 
 	}
 }
 

@@ -54,6 +54,7 @@ enum GCodableError : Error {
 
 	case decodingError( Any.Type, GCodableError.Context )
 	case typeMismatch( Any.Type, GCodableError.Context )
+	case invalidHeader( Any.Type, GCodableError.Context )
 }
 
 

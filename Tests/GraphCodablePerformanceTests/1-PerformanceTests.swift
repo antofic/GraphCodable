@@ -103,7 +103,7 @@ final class PerformanceTests: XCTestCase {
 	func testBinaryWriter() throws {
 		measure {
 			do {
-				let _		= try input.binaryData() as [UInt8]
+				let _		= try input.binaryData() as Bytes
 			} catch {}
 		}
 	}
@@ -144,7 +144,7 @@ final class PerformanceTests: XCTestCase {
 	}
 
 	func testBinaryReader() throws {
-		let data	= try input.binaryData() as [UInt8]
+		let data	= try input.binaryData() as Bytes
 		measure {
 			do {
 				let	_		= try type(of:input).init( binaryData: data)
