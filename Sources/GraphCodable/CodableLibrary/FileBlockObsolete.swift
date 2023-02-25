@@ -37,10 +37,6 @@ enum FileBlockObsolete {
 	case classDataMap( typeID:UIntID, classData:ClassData )
 }
 
-extension FileBlockObsolete {
-	var level : FileBlock.Level { .same }
-}
-
 extension FileBlockObsolete : BinaryIType {
 	init(from reader: inout BinaryReader) throws {
 		let code = try Code(from: &reader)
@@ -54,32 +50,6 @@ extension FileBlockObsolete : BinaryIType {
 			let typeID	= try UIntID		( from: &reader )
 			let data	= try ClassData	( from: &reader )
 			self = .classDataMap(typeID: typeID, classData: data )
-		}
-	}
-}
-
-extension FileBlockObsolete {
-	func readableOutput(
-		options:			GraphEncoder.DumpOptions,
-		binaryValue: 		BinaryOType?,
-		classDataMap:		ClassDataMap?,
-				keyStringMap: 		KeyStringMap?
-		) -> String {
-	
-		func typeString( _ options:GraphEncoder.DumpOptions, _ classData:ClassData ) -> String {
-			var string	= "\(classData.readableTypeName) V\(classData.encodeVersion)"
-			if options.contains( .showMangledClassNames ) {
-				string.append( "\n\t\t\tMangledName = \( classData.mangledTypeName ?? "nil" )"  )
-				string.append( "\n\t\t\tNSTypeName  = \( classData.objcTypeName )"  )
-			}
-			return string
-		}
-		
-		switch self {
-		case .keyStringMap	( let keyID, let keyName ):
-			return "KEY\( keyID ):\t\"\( keyName )\""
-		case .classDataMap	( let typeID, let classData ):
-			return	"TYPE\( typeID ):\t\( typeString( options, classData ) )"
 		}
 	}
 }

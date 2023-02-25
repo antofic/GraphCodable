@@ -151,12 +151,16 @@ fileprivate struct DecodedData {
 	
 	init<Q>( from bytes:Q ) throws where Q:Sequence, Q.Element==UInt8 {
 		var binaryDecoder	= try BinaryDecoder( from: bytes )
+		let fileHeader		= binaryDecoder.fileHeader
+		let bodyBlocks		= try binaryDecoder.bodyFileBlocks()
+		let classInfoMap	= try binaryDecoder.classInfoMap()
+		let keyStringMap	= try binaryDecoder.keyStringMap()
 		
-		self.fileHeader		= binaryDecoder.fileHeader
-		self.classInfoMap	= try binaryDecoder.classInfoMap()
+		self.fileHeader		= fileHeader
+		self.classInfoMap	= classInfoMap
 		(self.rootElement,self.elementMap)	= try BodyElement.rootElement(
-			bodyBlocks:	try binaryDecoder.bodyFileBlocks(),
-			keyStringMap:		try binaryDecoder.keyStringMap(),
+			bodyBlocks:		bodyBlocks,
+			keyStringMap:	keyStringMap,
 			reverse:	true
 		)
 	}

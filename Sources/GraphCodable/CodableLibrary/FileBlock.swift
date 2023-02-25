@@ -25,21 +25,21 @@ import Foundation
 typealias UIntID = UInt32
 
 enum FileSection : UInt16, CaseIterable, BinaryIOType {
-	case body = 100, keyStringMap = 200, classDataMap = 300
+	case body = 0x0010, classDataMap = 0x0020, keyStringMap = 0x0030
 }
 
 //	NEW FILE FORMAT:
-//		1) fileHeader		= FileHeader
-//		2) sectionMap		= [FileSection : Range<Int>]
-//	the, in any order:
-//		C) bodyBlocks		= [FileBlock]
-//		D) keyTable			= [UIntID : String]
-//		E) classDataMap		= [UIntID : ClassData]
+//		A) fileHeader		= FileHeader
+//		B) sectionMap		= SectionMap	= [FileSection : Range<Int>]
+//		C) bodyBlocks		= BodyBlocks	= [FileBlock]
+//	then, in any order:
+//		D) classDataMap		= ClassDataMap	= [UIntID : ClassData]
+//		E) keyStringMap		= KeyStringMap	= [UIntID : String]
 //	sectionMap[section] contains the position of the related section in the file
 typealias SectionMap		= [FileSection : Range<Int>]
 typealias BodyBlocks		= [FileBlock]
-typealias KeyStringMap		= [UIntID : String]
 typealias ClassDataMap		= [UIntID : ClassData]
+typealias KeyStringMap		= [UIntID : String]
 
 struct FileHeader : CustomStringConvertible, BinaryIOType {
 	static var INITIAL_FILE_VERSION	: UInt32 { 0 }
@@ -65,7 +65,7 @@ struct FileHeader : CustomStringConvertible, BinaryIOType {
 		"FILETYPE = \(HeaderID.gcodable) V\(version), U0 = \(unused0), U1 = \(unused1)"
 	}
 	
-	init( version: UInt32, unused0: UInt32 = 0, unused1: UInt64 = 0 ) {
+	init( version: UInt32 = CURRENT_FILE_VERSION, unused0: UInt32 = 0, unused1: UInt64 = 0 ) {
 		self.version = version	// Self.CURRENT_FILE_VERSION
 		self.unused0 = unused0
 		self.unused1 = unused1
@@ -168,7 +168,7 @@ extension FileBlock {
 	}
 }
 
-extension FileBlock : BinaryIOType {
+extension FileBlock : BinaryOType {
 	func write( to writer: inout BinaryWriter ) throws {
 		switch self {
 		case .nilValue	( let keyID ):
@@ -207,7 +207,9 @@ extension FileBlock : BinaryIOType {
 			try Code.end.write(to: &writer)
 		}
 	}
+}
 
+extension FileBlock : BinaryIType {
 	init(from reader: inout BinaryReader) throws {
 		let code = try Code(from: &reader)
 
@@ -286,7 +288,7 @@ extension FileBlock {
 		
 		func objectString( _ typeID:UInt32, _ options:GraphEncoder.DumpOptions, _ classDataMap:[UIntID:ClassData]? ) -> String {
 			if let classData	= classDataMap?[typeID] {
-				if options.contains( .showTypeVersion ) {
+				if options.contains( .showReferenceVersion ) {
 					return "\(classData.readableTypeName) V\(classData.encodeVersion)"
 				} else {
 					return classData.readableTypeName

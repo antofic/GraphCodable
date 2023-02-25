@@ -45,7 +45,7 @@ extension GraphEncoder {
 		///	in the Body section, resolve typeIDs in typeNames, keyIDs in keyNames
 		public static let	resolveIDs						= Self( rawValue: 1 << 5 )
 		///	in the Body section, show type versions (they are in the ReferenceMap section)
-		public static let	showTypeVersion					= Self( rawValue: 1 << 6 )
+		public static let	showReferenceVersion					= Self( rawValue: 1 << 6 )
 		///	includes '=== SECTION TITLE =========================================='
 		public static let	showSectionTitles				= Self( rawValue: 1 << 7 )
 		///	disable truncation of too long nativeValues (over 48 characters - String or Data typically)
@@ -69,7 +69,7 @@ extension GraphEncoder {
 			.showHeader, .showReferenceMap, .showBody, .showKeyMap, .indentLevel, .showSectionTitles, .noTruncation
 		]
 		public static let	fullInfo: Self = [
-			.showHeader, .showReferenceMap, .showBody, .showKeyMap, .indentLevel, .resolveIDs, .showTypeVersion, .showSectionTitles, .noTruncation
+			.showHeader, .showReferenceMap, .showBody, .showKeyMap, .indentLevel, .resolveIDs, .showReferenceVersion, .showSectionTitles, .noTruncation
 		]
 	}
 	
@@ -324,9 +324,9 @@ public final class GraphEncoder {
 	// ----- SinglePassBinaryEncoder
 	// -------------------------------------------------
 	fileprivate final class BinaryEncoder<Provider:BinaryEncoderDelegate> {
-		let					fileHeader	= FileHeader(version: FileHeader.CURRENT_FILE_VERSION)
+		let					fileHeader	= FileHeader()
 		let					isDump		: Bool
-		weak var			delegate	: Provider!
+		weak var			delegate	: Provider?
 		private var			writer		= BinaryWriter()
 		private var			output		= String()
 
@@ -376,11 +376,11 @@ public final class GraphEncoder {
 		private var dumpStart	= false
 		private var tabs		: String?
 		
-		private func dumpHeaderIfNeeded() throws {
+		private func dumpInit() throws {
 			if dumpStart == false {
 				dumpStart	= true
 				
-				let options	= delegate.dumpOptions
+				let options	= delegate?.dumpOptions ?? .readable
 				
 				if options.contains( .showHeader ) {
 					if options.contains( .showSectionTitles ) {
@@ -394,34 +394,41 @@ public final class GraphEncoder {
 					if options.contains( .showSectionTitles ) {
 						output.append( "== BODY ==========================================================\n" )
 					}
-					
 					tabs = options.contains( .indentLevel ) ? "" : nil
 				}
 			}
 		}
 		
 		private func appendDumpString( _ fileBlock: FileBlock, binaryValue:BinaryOType? ) throws {
-			try dumpHeaderIfNeeded()
-			let options	= delegate.dumpOptions
+			try dumpInit()
+			let options	= delegate?.dumpOptions ?? .readable
 
 			if options.contains( .showBody ) {
 				if case .exit = fileBlock.level { tabs?.removeLast() }
-				
 				if let tbs = tabs { output.append( tbs ) }
 				
 				output.append( fileBlock.readableOutput(
-					options: options,
-					binaryValue:binaryValue,
-					classDataMap: delegate.classDataMap,
-					keyStringMap: delegate.keyStringMap
+						options:		options,
+						binaryValue:	binaryValue,
+						classDataMap:	delegate?.classDataMap,
+						keyStringMap:	delegate?.keyStringMap
 				) )
 				output.append( "\n" )
 				
 				if case .enter = fileBlock.level { tabs?.append("\t") }
 			}
 		}
-		
+
 		func dump() throws -> String {
+			func typeString( _ options:GraphEncoder.DumpOptions, _ classData:ClassData ) -> String {
+				var string	= "\(classData.readableTypeName) V\(classData.encodeVersion)"
+				if options.contains( .showMangledClassNames ) {
+					string.append( "\n\t\t\tMangledName = \( classData.mangledTypeName ?? "nil" )"  )
+					string.append( "\n\t\t\tNSTypeName  = \( classData.objcTypeName )"  )
+				}
+				return string
+			}
+			
 			guard isDump == true else {
 				throw GCodableError.internalInconsistency(
 					Self.self, GCodableError.Context(
@@ -430,51 +437,27 @@ public final class GraphEncoder {
 				)
 			}
 			
-			try dumpHeaderIfNeeded()
-			let options	= delegate.dumpOptions
-
-			let	cDM	= options.contains( .resolveIDs ) ? delegate.classDataMap : nil
-			let	kSM	= options.contains( .resolveIDs ) ? delegate.keyStringMap : nil
+			try dumpInit()
+			let options	= delegate?.dumpOptions ?? .readable
 
 			if options.contains( .showReferenceMap ) {
 				if options.contains( .showSectionTitles ) {
 					output.append( "== REFERENCEMAP ==================================================\n" )
 				}
-				output = delegate.classDataMap.reduce( into: output ) {
+				output = delegate?.classDataMap.reduce( into: output ) {
 					result, tuple in
-					result.append(
-						FileBlockObsolete.classDataMap(
-							typeID: tuple.key, classData: tuple.value
-						).readableOutput(
-							options: 		options,
-							binaryValue:	nil,
-							classDataMap: 	cDM,
-							keyStringMap:	kSM
-						)
-					)
-					result.append( "\n" )
-				}
+					result.append( "TYPE\( tuple.key ):\t\( typeString( options, tuple.value ) )\n")
+				} ?? "UNAVAILABLE DELEGATE \(#function)\n"
 			}
 			
 			if options.contains( .showKeyMap ) {
 				if options.contains( .showSectionTitles ) {
 					output.append( "== KEYMAP ========================================================\n" )
 				}
-				output = delegate.keyStringMap.reduce( into: output ) {
+				output = delegate?.keyStringMap.reduce( into: output ) {
 					result, tuple in
-					result.append(
-						FileBlockObsolete.keyStringMap(
-							keyID:		tuple.key,
-							keyName:	tuple.value
-						).readableOutput(
-							options: 		options,
-							binaryValue:	nil,
-							classDataMap: 	cDM,
-							keyStringMap:	kSM
-						)
-					)
-					result.append( "\n" )
-				}
+					result.append( "KEY\( tuple.key ):\t\"\( tuple.value )\"\n" )
+				} ?? "UNAVAILABLE DELEGATE \(#function)\n"
 			}
 			if options.contains( .showSectionTitles ) {
 				output.append( "==================================================================\n" )
@@ -486,18 +469,15 @@ public final class GraphEncoder {
 		//	--	DATA section
 		//	------------------------------------------------------------
 		private var sectionMap			= SectionMap()
-		private var	sectionMapPosition	: Int { 24 }
+		private var	sectionMapPosition	= 0
 
-		private func writeHeaderIfNeeded() throws {
+		private func writeInit() throws {
 			if sectionMap.isEmpty {
 				// entriamo la prima volta e quindi scriviamo header e section map.
 
 				// write header:
 				try fileHeader.write(to: &writer)
-				assert(
-					writer.position == sectionMapPosition,
-					"FileHeader write exactly \(sectionMapPosition) bytes"
-				)
+				sectionMapPosition	= writer.position
 
 				// write section map:
 				for section in FileSection.allCases {
@@ -510,7 +490,7 @@ public final class GraphEncoder {
 		}
 		
 		private func appendBinaryData( _ fileBlock: FileBlock ) throws {
-			try writeHeaderIfNeeded()
+			try writeInit()
 			try fileBlock.write(to: &writer)
 		}
 
@@ -523,18 +503,18 @@ public final class GraphEncoder {
 				)
 			}
 			
-			try writeHeaderIfNeeded()
+			try writeInit()
 			
 			var bounds	= (sectionMap[.body]!.startIndex,writer.position)
 			sectionMap[.body]	= Range( uncheckedBounds:bounds )
 			
 			// referenceMap:
-			try delegate.classDataMap.write(to: &writer)
+			try delegate!.classDataMap.write(to: &writer)
 			bounds	= ( bounds.1,writer.position )
 			sectionMap[ FileSection.classDataMap ] = Range( uncheckedBounds:bounds )
 
 			// keyStringMap:
-			try delegate.keyStringMap.write(to: &writer)
+			try delegate!.keyStringMap.write(to: &writer)
 			bounds	= ( bounds.1,writer.position )
 			sectionMap[ FileSection.keyStringMap ] = Range( uncheckedBounds:bounds )
 
@@ -548,6 +528,7 @@ public final class GraphEncoder {
 			
 			return writer.data()
 		}
+		
 	}
 	
 	// -------------------------------------------------
