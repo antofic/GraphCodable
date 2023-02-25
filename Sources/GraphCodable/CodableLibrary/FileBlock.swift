@@ -22,33 +22,26 @@
 
 import Foundation
 
-/*
-BINARY FILE FORMAT:
-••••••PHASE 1: Header	// only one!
-···code·|·Header···                              code = .header
-······0·|·1········|·2···········|·3······|·4······
-••••••PHASE 2: Types table
-···code·|·typeID···|·classData                   code = .referenceMap
-••••••PHASE 3: Bodycode =
-···code·|·keyID                                  code = .nilValue
-···code·|·keyID····|·VALUE                       code = .native( _ nativeCode:NativeCode )
-···code·|·keyID····|·[UInt8]                     code = .binaryType
-···code·|·keyID                                  code = .valueType
-···code·|·keyID····|·typeID······|·objID         code = .objectType
-···code·|·keyID····|·typeID······|·objID         code = .objectSPtr (STRONG POINTER)
-···code·|·keyID····|·objID                       code = .objectWPtr (WEAK POINTER)
-···code                                          code = .end
-••••••PHASE 4: Keys table
-···code·|·keyID·|·keyName                        code = .keyMap
+typealias UIntID = UInt32
 
-Note:
-Struct, Object open a new level, end closes it
-keyID = 0 -> unkeyed
-*/
+enum FileSection : UInt16, CaseIterable, BinaryIOType {
+	case body = 100, keyStringMap = 200, classDataMap = 300
+}
 
-typealias IntID	= UInt32
+//	NEW FILE FORMAT:
+//		1) fileHeader		= FileHeader
+//		2) sectionMap		= [FileSection : Range<Int>]
+//	the, in any order:
+//		C) bodyBlocks		= [FileBlock]
+//		D) keyTable			= [UIntID : String]
+//		E) classDataMap		= [UIntID : ClassData]
+//	sectionMap[section] contains the position of the related section in the file
+typealias SectionMap		= [FileSection : Range<Int>]
+typealias BodyBlocks		= [FileBlock]
+typealias KeyStringMap		= [UIntID : String]
+typealias ClassDataMap		= [UIntID : ClassData]
 
-struct FileHeader : CustomStringConvertible, BinaryIOType, Codable {
+struct FileHeader : CustomStringConvertible, BinaryIOType {
 	static var INITIAL_FILE_VERSION	: UInt32 { 0 }
 	static var VALUEID_FILE_VERSION	: UInt32 { 1 }
 	static var RMUNUS2_FILE_VERSION	: UInt32 { 2 }
@@ -121,12 +114,8 @@ struct FileHeader : CustomStringConvertible, BinaryIOType, Codable {
 	}
 }
 
-
-
-
-enum FileBlock: Codable {
+enum FileBlock {
 	private enum Code : UInt8 {
-		case referenceMap	= 0x24	// '$'
 		case nilValue		= 0x30	// '0'
 		case binaryData		= 0x3E	// '>'	// No Identity
 		case valueType		= 0x25	// '%'	// No Identity
@@ -136,40 +125,23 @@ enum FileBlock: Codable {
 		case strongPtr		= 0x21	// '!'	// Identity
 		case conditionalPtr	= 0x3F	// '?'	// Identity
 		case end			= 0x2E	// '.'
-		case keyMap			= 0x2A	// '*'
 	}
 	//	body
 	//	without Identity
-	case nilValue		( keyID:IntID )
-	case binaryData		( keyID:IntID, bytes:Bytes )						// binary
-	case valueType		( keyID:IntID )										// value type without identity
+	case nilValue		( keyID:UIntID )
+	case binaryData		( keyID:UIntID, bytes:Bytes )						// binary
+	case valueType		( keyID:UIntID )									// value type without identity
 	//	with Identity
-	case iBinaryData	( keyID:IntID, objID:IntID, bytes:Bytes )			// binary
-	case iValueType		( keyID:IntID, objID:IntID )						// value type with identity (iValue)
-	case referenceType	( keyID:IntID, typeID:IntID, objID:IntID )			// reference Type
-	case strongPtr		( keyID:IntID, objID:IntID )						// strong pointer to iValue/reference
-	case conditionalPtr	( keyID:IntID, objID:IntID )						// conditional pointer to iValue/reference
+	case iBinaryData	( keyID:UIntID, objID:UIntID, bytes:Bytes )			// binary
+	case iValueType		( keyID:UIntID, objID:UIntID )						// value type with identity (iValue)
+	case referenceType	( keyID:UIntID, typeID:UIntID, objID:UIntID )		// reference Type
+	case strongPtr		( keyID:UIntID, objID:UIntID )						// strong pointer to iValue/reference
+	case conditionalPtr	( keyID:UIntID, objID:UIntID )						// conditional pointer to iValue/reference
 	
 	case end
-	//	keyMap
-	case keyMap			( keyID:IntID, keyName:String )	
-	//	referenceMap
-	case referenceMap	( typeID:IntID, classData:ClassData )
 }
 
 extension FileBlock {
-	enum Section : UInt16, CaseIterable, BinaryIOType, Codable {
-		case body = 100, keyMap = 200, referenceMap = 300
-	}
-	
-	var section : Section {
-		switch self {
-		case .referenceMap:	return .referenceMap
-		case .keyMap:		return .keyMap
-		default:			return .body
-		}
-	}
-
 	enum Level { case exit, same, enter }
 	var level : Level {
 		switch self {
@@ -181,7 +153,7 @@ extension FileBlock {
 		}
 	}
 
-	var keyID : IntID? {
+	var keyID : UIntID? {
 		switch self {
 		case .nilValue			( let keyID ):			return	keyID > 0 ? keyID : nil
 		case .binaryData		( let keyID, _ ):		return	keyID > 0 ? keyID : nil
@@ -233,14 +205,6 @@ extension FileBlock : BinaryIOType {
 			try objID.write(to: &writer)
 		case .end:
 			try Code.end.write(to: &writer)
-		case .keyMap	( let keyID, let keyName ):
-			try Code.keyMap.write(to: &writer)
-			try keyID.write(to: &writer)
-			try keyName.write(to: &writer)
-		case .referenceMap( let typeID, let classData ):
-			try Code.referenceMap.write(to: &writer)
-			try typeID.write(to: &writer)
-			try classData.write(to: &writer)
 		}
 	}
 
@@ -249,47 +213,39 @@ extension FileBlock : BinaryIOType {
 
 		switch code {
 		case .nilValue:
-			let keyID	= try IntID		( from: &reader )
+			let keyID	= try UIntID		( from: &reader )
 			self = .nilValue(keyID: keyID)
 		case .binaryData:
-			let keyID	= try IntID		( from: &reader )
+			let keyID	= try UIntID		( from: &reader )
 			let bytes	= try reader.readData() as Bytes
 			self = .binaryData(keyID: keyID, bytes: bytes)
 		case .valueType:
-			let keyID	= try IntID		( from: &reader )
+			let keyID	= try UIntID		( from: &reader )
 			self = .valueType(keyID: keyID)
 		case .iBinaryData:
-			let keyID	= try IntID		( from: &reader )
-			let objID	= try IntID		( from: &reader )
+			let keyID	= try UIntID		( from: &reader )
+			let objID	= try UIntID		( from: &reader )
 			let bytes	= try reader.readData() as Bytes
 			self = .iBinaryData(keyID: keyID, objID: objID, bytes: bytes)
 		case .iValueType:
-			let keyID	= try IntID		( from: &reader )
-			let objID	= try IntID		( from: &reader )
+			let keyID	= try UIntID		( from: &reader )
+			let objID	= try UIntID		( from: &reader )
 			self = .iValueType(keyID: keyID, objID: objID)
 		case .referenceType:
-			let keyID	= try IntID		( from: &reader )
-			let typeID	= try IntID		( from: &reader )
-			let objID	= try IntID		( from: &reader )
+			let keyID	= try UIntID		( from: &reader )
+			let typeID	= try UIntID		( from: &reader )
+			let objID	= try UIntID		( from: &reader )
 			self = .referenceType(keyID: keyID, typeID: typeID, objID: objID)
 		case .strongPtr:
-			let keyID	= try IntID		( from: &reader )
-			let objID	= try IntID		( from: &reader )
+			let keyID	= try UIntID		( from: &reader )
+			let objID	= try UIntID		( from: &reader )
 			self = .strongPtr(keyID: keyID, objID: objID)
 		case .conditionalPtr:
-			let keyID	= try IntID		( from: &reader )
-			let objID	= try IntID		( from: &reader )
+			let keyID	= try UIntID		( from: &reader )
+			let objID	= try UIntID		( from: &reader )
 			self = .conditionalPtr(keyID: keyID, objID: objID)
 		case .end:
 			self = .end
-		case .keyMap:
-			let keyID	= try IntID		( from: &reader )
-			let keyName	= try String	( from: &reader )
-			self = .keyMap(keyID: keyID, keyName: keyName)
-		case .referenceMap:
-			let typeID	= try IntID		( from: &reader )
-			let data	= try ClassData	( from: &reader )
-			self = .referenceMap(typeID: typeID, classData: data )
 		}
 	}
 }
@@ -301,14 +257,14 @@ extension FileBlock : BinaryIOType {
 extension FileBlock {
 	func readableOutput(
 		options:			GraphEncoder.DumpOptions,
-		binaryValue: 		BinaryIOType?,
-		classDataMap:		[IntID:ClassData]?,
-		keyIDtoKey: 		[IntID:String]?
+		binaryValue: 		BinaryOType?,
+		classDataMap:		ClassDataMap?,
+		keyStringMap: 		KeyStringMap?
 		) -> String {
-		func format( _ keyID:IntID, _ keyIDtoKey: [IntID:String]?, _ string:String ) -> String {
+		func format( _ keyID:UIntID, _ keyStringMap: [UIntID:String]?, _ string:String ) -> String {
 			if keyID == 0 {	// unkeyed
 				return "- \(string)"
-			} else if let key = keyIDtoKey?[keyID] {
+			} else if let key = keyStringMap?[keyID] {
 				return "+ \"\(key)\": \(string)"
 			} else {
 				return "+ KEY\(keyID): \(string)"
@@ -328,7 +284,7 @@ extension FileBlock {
 			}
 		}
 		
-		func objectString( _ typeID:UInt32, _ options:GraphEncoder.DumpOptions, _ classDataMap:[IntID:ClassData]? ) -> String {
+		func objectString( _ typeID:UInt32, _ options:GraphEncoder.DumpOptions, _ classDataMap:[UIntID:ClassData]? ) -> String {
 			if let classData	= classDataMap?[typeID] {
 				if options.contains( .showTypeVersion ) {
 					return "\(classData.readableTypeName) V\(classData.encodeVersion)"
@@ -351,7 +307,7 @@ extension FileBlock {
 		
 		switch self {
 		case .nilValue	( let keyID ):
-			return format( keyID, keyIDtoKey, "nil")
+			return format( keyID, 		keyStringMap, "nil")
 		case .binaryData( let keyID, let bytes ):
 			let string : String
 			if let value = binaryValue {
@@ -359,10 +315,10 @@ extension FileBlock {
 			} else {
 				string	= "BIN \(bytes.count) bytes"
 			}
-			return format( keyID, keyIDtoKey, string )
+			return format( keyID, 		keyStringMap, string )
 		case .valueType	( let keyID ):
 			let string	= "VAL"
-			return format( keyID, keyIDtoKey, string )
+			return format( keyID, 		keyStringMap, string )
 		case .iBinaryData( let keyID, let objID, let bytes ):
 			let string : String
 			if let value = binaryValue {
@@ -370,25 +326,21 @@ extension FileBlock {
 			} else {
 				string	= "BIN\(objID) \(bytes.count) bytes"
 			}
-			return format( keyID, keyIDtoKey, string )
+			return format( keyID, 		keyStringMap, string )
 		case .iValueType( let keyID, let objID):
 			let string	= "VAL\(objID)"
-			return format( keyID, keyIDtoKey, string )
+			return format( keyID, 		keyStringMap, string )
 		case .referenceType( let keyID, let typeID, let objID ):
 			let string	= "REF\(objID) \( objectString( typeID,options,classDataMap ) )"
-			return format( keyID, keyIDtoKey, string )
+			return format( keyID, 		keyStringMap, string )
 		case .strongPtr( let keyID, let objID ):
 			let string	= "PTR\(objID)"
-			return format( keyID, keyIDtoKey, string )
+			return format( keyID, 		keyStringMap, string )
 		case .conditionalPtr( let keyID, let objID ):
 			let string	= "PTR\(objID)?"
-			return format( keyID, keyIDtoKey, string )
+			return format( keyID, 		keyStringMap, string )
 		case .end:
 			return 	"."
-		case .keyMap	( let keyID, let keyName ):
-			return "KEY\( keyID ):\t\"\( keyName )\""
-		case .referenceMap	( let typeID, let classData ):
-			return	"TYPE\( typeID ):\t\( typeString( options, classData ) )"
 		}
 	}
 }
@@ -396,12 +348,9 @@ extension FileBlock {
 extension FileBlock : CustomStringConvertible {
 	var description: String {
 		return readableOutput(
-			options: .readable, binaryValue: nil, classDataMap:nil, keyIDtoKey: nil
+			options: .readable, binaryValue: nil, classDataMap:nil, keyStringMap: nil
 		)
 	}
 }
 
-struct SwiftCodableFile : Codable {
-	let fileHeader	: FileHeader
-	let blockMap	: [FileBlock.Section : [FileBlock]]
-}
+

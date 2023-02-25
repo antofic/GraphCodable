@@ -145,72 +145,26 @@ public final class GraphDecoder {
 
 fileprivate struct DecodedData {
 	let fileHeader			: FileHeader
-	let	classInfoMap		: [IntID:ClassInfo]
+	let	classInfoMap		: [UIntID:ClassInfo]
 	let rootElement 		: BodyElement
-	private var	elementMap	: [IntID : BodyElement]
+	private var	elementMap	: [UIntID : BodyElement]
 	
 	init<Q>( from bytes:Q ) throws where Q:Sequence, Q.Element==UInt8 {
-		let bodyBlocks		: [FileBlock]
-		let keyMap			: [IntID:String]
-		let classInfoMap	: [IntID : ClassInfo]
-		let fileHeader		: FileHeader
-
-
-		do {
-		var reader 			= BinaryReader(data: bytes)
-		var binaryDecoder	= try BinaryDecoder( from: &reader )
-
-		bodyBlocks		= try binaryDecoder.bodyFileBlocks()
-		keyMap			= try binaryDecoder.keyMap()
-		classInfoMap	= try binaryDecoder.classInfoMap()
-		fileHeader		= binaryDecoder.fileHeader
-			
-		} catch GCodableError.invalidHeader( let type, let context ) {
-			throw GCodableError.invalidHeader( type,context )
-			
-			/*
-			let data : Data
-			if let bytes = bytes as? Data {
-				data	= bytes
-			} else {
-				data	=  Data( bytes )
-			}
-			let jsonFile	= try JSONDecoder().decode( SwiftCodableFile.self, from: data )
-			
-			fileHeader		= jsonFile.fileHeader
-			keyMap			= fileHeader
-			 */
-		}
+		var binaryDecoder	= try BinaryDecoder( from: bytes )
 		
-		self.fileHeader		= fileHeader
-		self.classInfoMap	= classInfoMap
+		self.fileHeader		= binaryDecoder.fileHeader
+		self.classInfoMap	= try binaryDecoder.classInfoMap()
 		(self.rootElement,self.elementMap)	= try BodyElement.rootElement(
-			bodyBlocks:	bodyBlocks,
-			keyMap:		keyMap,
+			bodyBlocks:	try binaryDecoder.bodyFileBlocks(),
+			keyStringMap:		try binaryDecoder.keyStringMap(),
 			reverse:	true
 		)
-
-		
 	}
 
-	mutating func pop( objID:IntID ) -> BodyElement? {
+	mutating func pop( objID:UIntID ) -> BodyElement? {
 		elementMap.removeValue( forKey: objID )
 	}
 }
-
-// -------------------------------------------------
-// ----- SwiftCodableDecoder
-// -------------------------------------------------
-
-fileprivate struct SwiftCodableDecoder {
-	private init<Q>( from bytes:Q ) throws where Q:Sequence, Q.Element==UInt8 {
-
-	}
-
-	
-	
-}
-
 
 // -------------------------------------------------
 // ----- DecodedNames
@@ -218,30 +172,14 @@ fileprivate struct SwiftCodableDecoder {
 
 fileprivate struct DecodedNames {
 	let fileHeader				: FileHeader
-	let	classDataMap			: [IntID:ClassData]
+	let	classDataMap			: ClassDataMap
 	
 	init<Q>( from data:Q ) throws where Q:Sequence, Q.Element==UInt8 {
-		var reader 			= BinaryReader(data: data)
-		var binaryDecoder	: BinaryDecoder
-		do {
-			binaryDecoder	= try BinaryDecoder( from: &reader )
-		} catch GCodableError.invalidHeader( let type, let context ) {
-			//	se fallisce la lettura dell'header in binary format
-			//	allora si può provare con Swift.Codable
-			
-			throw  GCodableError.invalidHeader( type, context )
-		}
-
-		try self.init( binaryDecoder: &binaryDecoder )
-	}
-	
-	private init( binaryDecoder: inout BinaryDecoder ) throws {
+		var binaryDecoder	= try BinaryDecoder( from: data )
 		fileHeader			= binaryDecoder.fileHeader
 		classDataMap		= try binaryDecoder.classDataMap()
 	}
-
 }
-
 
 // -------------------------------------------------
 // ----- BinaryDecoder
@@ -256,7 +194,9 @@ fileprivate struct BinaryDecoder {
 	let 			fileHeader	: FileHeader
 	private var  	decoder		: Decoder
 	
-	init( from reader:inout BinaryReader ) throws {
+	init<Q>( from data:Q ) throws where Q:Sequence, Q.Element==UInt8 {
+		var reader 	= BinaryReader(data: data)
+
 		fileHeader	= try FileHeader( from: &reader )
 		if fileHeader.supportsFileSections {
 			decoder	= .new( try SectionBinaryDecoder( from: &reader ) )
@@ -265,135 +205,80 @@ fileprivate struct BinaryDecoder {
 		}
 	}
 
-	mutating func classDataMap() throws -> [IntID : ClassData] {
+	mutating func classDataMap() throws -> ClassDataMap {
 		switch decoder {
 		case .new( var decoder ): return try decoder.classDataMap()
 		case .old( var decoder ): return try decoder.classDataMap()
 		}
 	}
 	
-	mutating func classInfoMap() throws -> [IntID : ClassInfo] {
+	mutating func classInfoMap() throws -> [UIntID : ClassInfo] {
 		try classDataMap().mapValues {  try ClassInfo(classData: $0)  }
 	}
 
-	mutating func bodyFileBlocks() throws -> [FileBlock] {
+	mutating func bodyFileBlocks() throws -> BodyBlocks {
 		switch decoder {
 		case .new( var decoder ): return try decoder.bodyFileBlocks()
 		case .old( var decoder ): return try decoder.bodyFileBlocks()
 		}
 	}
 
-	mutating func keyMap() throws -> [IntID:String] {
+	mutating func keyStringMap() throws -> KeyStringMap {
 		switch decoder {
-		case .new( var decoder ): return try decoder.keyMap()
-		case .old( var decoder ): return try decoder.keyMap()
+		case .new( var decoder ): return try decoder.keyStringMap()
+		case .old( var decoder ): return try decoder.keyStringMap()
 		}
 	}
-
+	
 	// -------------------------------------------------
 	// ----- SectionBinaryDecoder
 	// -------------------------------------------------
 
 	private struct SectionBinaryDecoder {
-		private	var sectionMap			: [FileBlock.Section : Range<Int>]
+		private	var sectionMap			: SectionMap
 		private var reader				: BinaryReader
 
-		private var _classDataMap		: [IntID : ClassData]?
-		private var _bodyFileBlocks		: [FileBlock]?
-		private var _keyMap				: [IntID:String]?
+		private var _classDataMap		: ClassDataMap?
+		private var _bodyFileBlocks		: BodyBlocks?
+		private var _keyStringMap		: KeyStringMap?
 		
 		init( from reader:inout BinaryReader ) throws {
 			self.sectionMap		= try type(of:sectionMap).init(from: &reader)
 			self.reader			= reader
 		}
 
-		mutating func classDataMap() throws -> [IntID : ClassData] {
+		mutating func classDataMap() throws -> ClassDataMap {
 			if let classMap = _classDataMap { return classMap }
 			
-			let saveRegion	= try setReaderRegionTo(section: .referenceMap)
+			let saveRegion	= try setReaderRegionTo(section: .classDataMap)
 			defer { reader.currentRegion = saveRegion }
 
-			var classMap	= [IntID : ClassData]()
-			while reader.isEof == false {
-				let dataBlock	= try FileBlock(from: &reader)
-				switch dataBlock {
-				case .referenceMap( let typeID, let classData ):
-					guard classMap.index(forKey: typeID) == nil else {
-						throw GCodableError.duplicateTypeID(
-							Self.self, GCodableError.Context(
-								debugDescription: "TypeID -\(typeID)- already used."
-							)
-						)
-					}
-					classMap[typeID]	= classData
-				default:
-					throw GCodableError.decodingError(
-						Self.self, GCodableError.Context(
-							debugDescription: "\(dataBlock.self) encountered while parsing referenceMap."
-						)
-					)
-				}
-			}
-			_classDataMap	= classMap
-			
-			return classMap
+			_classDataMap	= try ClassDataMap(from: &reader)
+			return _classDataMap!
 		}
 		
-		mutating func bodyFileBlocks() throws -> [FileBlock] {
+		
+		mutating func bodyFileBlocks() throws -> BodyBlocks {
 			if let bodyBlocks = _bodyFileBlocks { return bodyBlocks }
 
 			let saveRegion	= try setReaderRegionTo(section: .body)
 			defer { reader.currentRegion = saveRegion }
 
-			var bodyBlocks	= [FileBlock]()
-			while reader.isEof == false {
-				let dataBlock	= try FileBlock(from: &reader)
-				guard dataBlock.section == .body else {
-					throw GCodableError.decodingError(
-						Self.self, GCodableError.Context(
-							debugDescription: "\(dataBlock.self) encountered while parsing body."
-						)
-					)
-				}
-				bodyBlocks.append( dataBlock )
-			}
-
-			_bodyFileBlocks	= bodyBlocks
-			return bodyBlocks
+			_bodyFileBlocks	= try BodyBlocks(from: &reader)
+			return _bodyFileBlocks!
 		}
-		 
-		mutating func keyMap() throws -> [IntID:String] {
-			if let keyMap = _keyMap { return keyMap }
 
-			let saveRegion	= try setReaderRegionTo(section: .keyMap)
+		mutating func keyStringMap() throws -> KeyStringMap {
+			if let keyStringMap = _keyStringMap { return keyStringMap }
+
+			let saveRegion	= try setReaderRegionTo(section: .keyStringMap)
 			defer { reader.currentRegion = saveRegion }
 			
-			var keyMap	= [IntID:String]()
-			while reader.isEof == false {
-				let dataBlock	= try FileBlock(from: &reader)
-				switch dataBlock {
-				case .keyMap( let keyID, let key ):
-					guard keyMap.index(forKey: keyID) == nil else {
-						throw GCodableError.duplicateKey(
-							Self.self, GCodableError.Context(
-								debugDescription: "Key -\(key)- already used."
-							)
-						)
-					}
-					keyMap[keyID]	= key
-				default:
-					throw GCodableError.decodingError(
-						Self.self, GCodableError.Context(
-							debugDescription: "\(dataBlock.self) encountered while parsing keyMap."
-						)
-					)
-				}
-			}
-			_keyMap	= keyMap
-			return keyMap
+			_keyStringMap	= try KeyStringMap(from: &reader)
+			return _keyStringMap!
 		}
 		
-		private mutating func setReaderRegionTo( section:FileBlock.Section ) throws -> Range<Int> {
+		private mutating func setReaderRegionTo( section:FileSection ) throws -> Range<Int> {
 			guard let range = sectionMap[ section ] else {
 				throw GCodableError.decodingError(
 					Self.self, GCodableError.Context(
@@ -411,45 +296,64 @@ fileprivate struct BinaryDecoder {
 	// -------------------------------------------------
 
 	private struct OldBinaryDecoder {
+		enum CompatibleFileBlock : BinaryIType {
+			case current( fileBlock:FileBlock )
+			case obsolete( fileBlock:FileBlockObsolete )
+
+			init(from reader: inout BinaryReader) throws {
+				var obsolete	= false
+				let _ = FileBlockObsolete.peek(from: &reader) {
+					_ in
+					obsolete	= true
+					return false
+				}
+				if obsolete {
+					self	= .obsolete(fileBlock: try FileBlockObsolete(from: &reader))
+				} else {
+					self	= .current(fileBlock: try FileBlock(from: &reader))
+				}
+			}
+		}
+		
 		private var reader				: BinaryReader
 
-		private var _classDataMap		= [IntID : ClassData]()
-		private var _bodyFileBlocks		= [FileBlock]()
-		private var _keyMap				= [IntID:String]()
+		private var _classDataMap		= ClassDataMap()
+		private var _bodyFileBlocks		= BodyBlocks()
+		private var _keyStringMap		= KeyStringMap()
 
-		private var currentBlock		: FileBlock?
-		private var phase				: FileBlock.Section
+		private var currentBlock		: CompatibleFileBlock?
+		private var phase				: FileSection
 		
 		init( from reader:inout BinaryReader ) throws {
 			self.reader		= reader
-			self.phase		= .referenceMap
+			self.phase		= .classDataMap
 		}
 
-		mutating func classDataMap() throws -> [IntID : ClassData] {
+		mutating func classDataMap() throws -> ClassDataMap {
 			try parseTypeMap()
 			return _classDataMap
 		}
 
-		mutating func bodyFileBlocks() throws -> [FileBlock] {
+		mutating func bodyFileBlocks() throws -> BodyBlocks {
 			try parseTypeMap()
 			try parseBody()
 			
 			return _bodyFileBlocks
 		}
 
-		mutating func keyMap() throws -> [IntID:String] {
+		mutating func keyStringMap() throws -> KeyStringMap {
 			try parseTypeMap()
 			try parseBody()
 			try parseKeyMap()
 
-			return _keyMap
+			return _keyStringMap
 		}
 
 		// private section
 		
-		private mutating func peek() throws -> FileBlock? {
+		private mutating func peek() throws -> CompatibleFileBlock? {
 			if currentBlock == nil {
-				currentBlock	= reader.isEof ? nil : try FileBlock(from: &reader)
+				currentBlock	= reader.isEof ? nil : try CompatibleFileBlock(from: &reader)
 			}
 			return currentBlock
 		}
@@ -459,24 +363,32 @@ fileprivate struct BinaryDecoder {
 		}
 
 		private mutating func parseTypeMap() throws {
-			guard phase == .referenceMap else { return }
+			guard phase == .classDataMap else { return }
 
-			while let dataBlock	= try peek() {
-				switch dataBlock {
-				case .referenceMap( let typeID, let classData ):
-					// ••• PHASE 1 •••
-					guard _classDataMap.index(forKey: typeID) == nil else {
-						throw GCodableError.duplicateTypeID(
-							Self.self, GCodableError.Context(
-								debugDescription: "TypeID -\(typeID)- already used."
+			while let compatibleBlock	= try peek() {
+				switch compatibleBlock {
+				case .obsolete( let dataBlock ):
+					switch dataBlock {
+					case .classDataMap( let typeID, let classData ):
+						// ••• PHASE 1 •••
+						guard _classDataMap.index(forKey: typeID) == nil else {
+							throw GCodableError.duplicateTypeID(
+								Self.self, GCodableError.Context(
+									debugDescription: "TypeID -\(typeID)- already used."
+								)
 							)
-						)
+						}
+						_classDataMap[typeID]	= classData
+					default:
+						self.phase	= .body
+						return
 					}
-					_classDataMap[typeID]	= classData
 				default:
 					self.phase	= .body
 					return
 				}
+				
+				
 				step()
 			}
 		}
@@ -484,30 +396,37 @@ fileprivate struct BinaryDecoder {
 		private mutating func parseBody() throws {
 			guard phase == .body else { return }
 
-			while let dataBlock	= try peek() {
-				guard dataBlock.section == .body else {
-					self.phase	= .keyMap
+			while let compatibleBlock	= try peek() {
+				switch compatibleBlock {
+				case .current( let dataBlock ):
+					_bodyFileBlocks.append( dataBlock )
+				default:
+					self.phase	= .keyStringMap
 					return
 				}
-				_bodyFileBlocks.append( dataBlock )
 				step()
 			}
 		}
 
 		private mutating func parseKeyMap() throws {
-			guard phase == .keyMap else { return }
+			guard phase == .keyStringMap else { return }
 
-			while let dataBlock	= try peek() {
-				switch dataBlock {
-				case .keyMap( let keyID, let key ):
-					guard _keyMap.index(forKey: keyID) == nil else {
-						throw GCodableError.duplicateKey(
-							Self.self, GCodableError.Context(
-								debugDescription: "Key -\(key)- already used."
+			while let compatibleBlock	= try peek() {
+				switch compatibleBlock {
+				case .obsolete( let dataBlock ):
+					switch dataBlock {
+					case .keyStringMap( let keyID, let key ):
+						guard _keyStringMap.index(forKey: keyID) == nil else {
+							throw GCodableError.duplicateKey(
+								Self.self, GCodableError.Context(
+									debugDescription: "Key -\(key)- already used."
+								)
 							)
-						)
+						}
+						_keyStringMap[keyID]	= key
+					default:
+						return
 					}
-					_keyMap[keyID]	= key
 				default:
 					return
 				}
@@ -516,6 +435,7 @@ fileprivate struct BinaryDecoder {
 		}
 
 	}
+	
 }
 
 // ------------------------------------------------------
@@ -529,13 +449,13 @@ fileprivate final class BodyElement {
 	private		var 	unkeyedValues 	= [BodyElement]()
 	
 	static func rootElement<S>(
-		bodyBlocks:S, keyMap:[IntID:String], reverse:Bool
-	) throws -> ( rootElement: BodyElement, elementMap: [IntID : BodyElement] )
+		bodyBlocks:S, keyStringMap:KeyStringMap, reverse:Bool
+	) throws -> ( rootElement: BodyElement, elementMap: [UIntID : BodyElement] )
 	where S:Sequence, S.Element == FileBlock {
-		var elementMap	= [IntID : BodyElement]()
+		var elementMap	= [UIntID : BodyElement]()
 		
 		guard let root	= try BodyElement(
-			bodyBlocks: bodyBlocks, elementMap:&elementMap, keyMap:keyMap, reverse: true
+			bodyBlocks: bodyBlocks, elementMap:&elementMap, keyStringMap:keyStringMap, reverse: true
 		) else {
 			throw GCodableError.decodingError(
 				Self.self, GCodableError.Context(
@@ -582,7 +502,7 @@ fileprivate final class BodyElement {
 
 	//	----------------------------------------------------------------
 
-	private init?<S>( bodyBlocks:S, elementMap map: inout [IntID : BodyElement], keyMap:[IntID:String], reverse:Bool ) throws
+	private init?<S>( bodyBlocks:S, elementMap map: inout [UIntID : BodyElement], keyStringMap:KeyStringMap, reverse:Bool ) throws
 	where S:Sequence, S.Element == FileBlock {
 		var lineIterator = bodyBlocks.makeIterator()
 		
@@ -596,7 +516,7 @@ fileprivate final class BodyElement {
 			}
 			self.fileBlock	= dataBlock
 			
-			try Self.flatten( elementMap: &map, element: self, lineIterator: &lineIterator, keyMap:keyMap, reverse: reverse )
+			try Self.flatten( elementMap: &map, element: self, lineIterator: &lineIterator, keyStringMap:keyStringMap, reverse: reverse )
 		} else {
 			return nil
 		}
@@ -607,7 +527,7 @@ fileprivate final class BodyElement {
 	}
 
 	private static func flatten<T>(
-		elementMap map: inout [IntID : BodyElement], element:BodyElement, lineIterator: inout T, keyMap:[IntID:String], reverse:Bool
+		elementMap map: inout [UIntID : BodyElement], element:BodyElement, lineIterator: inout T, keyStringMap:KeyStringMap, reverse:Bool
 	) throws where T:IteratorProtocol, T.Element == FileBlock {
 		
 		switch element.fileBlock {
@@ -631,7 +551,7 @@ fileprivate final class BodyElement {
 			
 			try subFlatten(
 				elementMap: &map, parentElement:root, lineIterator:&lineIterator,
-				keyIDsToKey:keyMap, reverse:reverse
+				keyStringMap:keyStringMap, reverse:reverse
 			)
 		case .iValueType( let keyID, let objID ):
 			//	l'oggetto non può trovarsi nella map
@@ -653,7 +573,7 @@ fileprivate final class BodyElement {
 			
 			try subFlatten(
 				elementMap: &map, parentElement:root, lineIterator:&lineIterator,
-				keyIDsToKey:keyMap, reverse:reverse
+				keyStringMap:keyStringMap, reverse:reverse
 			)
 		case .iBinaryData( let keyID, let objID, let bytes ):
 			//	l'oggetto non può trovarsi nella map
@@ -675,12 +595,12 @@ fileprivate final class BodyElement {
 			
 			try subFlatten(
 				elementMap: &map, parentElement:root, lineIterator:&lineIterator,
-				keyIDsToKey:keyMap, reverse:reverse
+				keyStringMap:keyStringMap, reverse:reverse
 			)
 		case .valueType( _ ):
 			try subFlatten(
 				elementMap: &map, parentElement:element, lineIterator:&lineIterator,
-				keyIDsToKey:keyMap, reverse:reverse
+				keyStringMap:keyStringMap, reverse:reverse
 			)
 		default:
 			//	nothing to do
@@ -689,16 +609,9 @@ fileprivate final class BodyElement {
 	}
 	
 	private static func subFlatten<T>(
-		elementMap map: inout [IntID : BodyElement], parentElement:BodyElement, lineIterator: inout T, keyIDsToKey:[IntID:String], reverse:Bool
+		elementMap map: inout [UIntID : BodyElement], parentElement:BodyElement, lineIterator: inout T, keyStringMap:KeyStringMap, reverse:Bool
 	) throws where T:IteratorProtocol, T.Element == FileBlock {
 		while let dataBlock = lineIterator.next() {
-			guard dataBlock.section == .body else {
-				throw GCodableError.internalInconsistency(
-					Self.self, GCodableError.Context(
-						debugDescription: "Unespected graph -\(dataBlock)-."
-					)
-				)
-			}
 			let bodyElement = BodyElement( fileBlock: dataBlock )
 			
 			if case .end = dataBlock {
@@ -707,7 +620,7 @@ fileprivate final class BodyElement {
 				bodyElement.parentElement = parentElement
 				
 				if let keyID = dataBlock.keyID {
-					guard let key = keyIDsToKey[keyID] else {
+					guard let key = keyStringMap[keyID] else {
 						throw GCodableError.keyNotFound(
 							Self.self, GCodableError.Context(
 								debugDescription: "Key for keyID-\(keyID)- not found."
@@ -727,7 +640,7 @@ fileprivate final class BodyElement {
 					parentElement.unkeyedValues.append( bodyElement )
 				}
 				
-				try flatten( elementMap: &map, element: bodyElement, lineIterator: &lineIterator, keyMap: keyIDsToKey, reverse: reverse )
+				try flatten( elementMap: &map, element: bodyElement, lineIterator: &lineIterator, keyStringMap: keyStringMap, reverse: reverse )
 			}
 		}
 		if reverse {
@@ -740,12 +653,11 @@ fileprivate final class BodyElement {
 // ----- TypeConstructor
 // -------------------------------------------------
 
-
 fileprivate final class TypeConstructor {
 	private var			decodedData			: DecodedData
 	private (set) var 	currentElement 		: BodyElement
 	private (set) var 	currentInfo 		: ClassInfo?
-	private var			objectRepository 	= [ IntID :Any ]()
+	private var			objectRepository 	= [ UIntID :Any ]()
 	private var			setterRepository 	= [ () throws -> () ]()
 	
 	init( decodedData:DecodedData ) {
@@ -793,7 +705,7 @@ fileprivate final class TypeConstructor {
 		}
 	}
 	
-	private func classInfo( typeID:IntID ) throws -> ClassInfo {
+	private func classInfo( typeID:UIntID ) throws -> ClassInfo {
 		guard let classInfo = decodedData.classInfoMap[ typeID ] else {
 			throw GCodableError.internalInconsistency(
 				Self.self, GCodableError.Context(
@@ -912,7 +824,7 @@ fileprivate final class TypeConstructor {
 	}
 		
 	private func decodeAny<T>( element:BodyElement, from decoder:GDecoder, type:T.Type ) throws -> Any where T:GCodable {
-		func decodeIdentifiable( type:T.Type, objID:IntID, from decoder:GDecoder ) throws -> Any? {
+		func decodeIdentifiable( type:T.Type, objID:UIntID, from decoder:GDecoder ) throws -> Any? {
 			//	tutti gli oggetti (reference types) inizialmente si trovano in decodedData.objBlockMap
 			//	quando arriva la prima richiesta di un particolare oggetto (da objID)
 			//	lo costruiamo (se esiste) e lo mettiamo nell'objectRepository in modo
