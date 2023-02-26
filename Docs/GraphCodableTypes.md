@@ -11,13 +11,13 @@ To define identity and avoid duplications of Arrays and ContiguousArrays, copy/p
 these two extensions.
 ```swift
 extension Array : GIdentifiable where Element:GCodable {
-	public var gID: ObjectIdentifier? {
+	public var gcodableID: ObjectIdentifier? {
 		withUnsafeBytes { unsafeBitCast( $0.baseAddress, to: ObjectIdentifier?.self) }
 	}
 }
 
 extension ContiguousArray : GIdentifiable where Element:GCodable {
-	public var gID: ObjectIdentifier? {
+	public var gcodableID: ObjectIdentifier? {
 		withUnsafeBytes { unsafeBitCast( $0.baseAddress, to: ObjectIdentifier?.self) }
 	}
 }

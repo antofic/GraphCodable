@@ -66,7 +66,6 @@ public protocol GDecodable {
 	init(from decoder: GDecoder) throws
 }
 
-
 /// * **Make a type conform to the GCodable protocol**
 ///
 ///	To make a type archivable / unarchivable, it must be conformed

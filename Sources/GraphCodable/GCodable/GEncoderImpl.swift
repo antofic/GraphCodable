@@ -109,17 +109,27 @@ final class GEncoderImpl : GEncoder, BinaryEncoderDelegate {
 	}
 	
 	// --------------------------------------------------------
+	private func binaryValue( of value:GEncodable ) -> (BinaryOType)? {
+		if let value = value as? GBinaryEncodable { return value }
+		else if encodeOptions.contains( .enableLibraryBinaryIOTypes ), let value = value as? BinaryOType { return value }
+		else { return nil }
+	}
+
 	private func identifier( of value:GEncodable ) -> (any Hashable)? {
-		if encodeOptions.contains( .disableGIdentifiableProtocol ) {
-			if	encodeOptions.contains( .disableObjectIdentifierIdentity ) == false,
+		if encodeOptions.contains( .disableIdentity ) {
+			return nil
+		}
+		
+		if encodeOptions.contains( .ignoreGIdentifiableProtocol ) {
+			if	encodeOptions.contains( .disableAutoObjectIdentifierIdentityForReferences ) == false,
 				let object = value as? (GEncodable & AnyObject) {
 					return ObjectIdentifier( object )
 			}
 		} else {
 			if let identifiable	= value as? any GIdentifiable {
-				return identifiable.gID
+				return identifiable.gcodableID
 			} else if
-				encodeOptions.contains( .disableObjectIdentifierIdentity ) == false,
+				encodeOptions.contains( .disableAutoObjectIdentifierIdentityForReferences ) == false,
 				let object = value as? (GEncodable & AnyObject) {
 					  return ObjectIdentifier( object )
 			  }
@@ -127,12 +137,105 @@ final class GEncoderImpl : GEncoder, BinaryEncoderDelegate {
 		return nil
 	}
 
-	private func binaryValue( of value:GEncodable ) -> (BinaryOType)? {
-		if let value = value as? GBinaryEncodable { return value }
-		else if encodeOptions.contains( .enableLibraryBinaryIOTypes ), let value = value as? BinaryOType { return value }
-		else { return nil }
+	private func createTypeIDIfNeeded( for value:GEncodable ) throws -> UIntID? {
+		if encodeOptions.contains( .disableRefTypeInfo ) {
+			return nil
+		}
+		guard let object = value as? GEncodable & AnyObject else {
+			return nil
+		}
+		if encodeOptions.contains( .ignoreGTypeInfoProtocol ) == false,
+		   let inheritance = object as? (AnyObject & GTypeInfo),
+		   inheritance.disableInheritance {
+			return nil
+		}
+		return try referenceMap.createTypeIDIfNeeded( type: type(of:object) )
 	}
+	
+	private func encodeAnyValue(_ anyValue: Any, forKey key: String?, conditional:Bool ) throws {
+		// trasformo in un Optional<Any> di un solo livello:
+		let value	= Optional(fullUnwrapping: anyValue)
+		let keyID	= try createKeyID( key: key )
+		
+		guard let value = value else {
+			try dataEncoder.appendNil(keyID: keyID)
+			return
+		}
+		// now value if not nil!
+		if let binaryValue = value as? NativeEncodable {
+			//	i tipi nativi sono semplici: l'identità non serve
+			//	(e per le stringhe?)
+			//	in teoria possono essere reference, ma si comportano come value
+			try dataEncoder.appendBinValue(keyID: keyID, value: binaryValue )
+		} else if let value = value as? GEncodable {
+			if let identifier = identifier( of:value ) {	// IDENTITY
+				if let objID = identifierMap.strongID( identifier ) {
+					// l'oggetto è stato già memorizzato, basta un pointer
+					if conditional {
+						try dataEncoder.appendConditionalPtr(keyID: keyID, objID: objID)
+					} else {
+						try dataEncoder.appendStrongPtr(keyID: keyID, objID: objID)
+					}
+				} else if conditional {
+					// Conditional Encoding: avrei la descrizione ma non la voglio usare
+					// perché servirà solo se dopo arriverà da uno strongRef
+					
+					if let type	= type(of:value) as? AnyClass {
+						// se è un feference verifico che sia reificabile
+						try ClassData.throwIfNotConstructible( type: type )
+					}
+						
+					let objID	= identifierMap.createWeakID( identifier )
+					try dataEncoder.appendConditionalPtr(keyID: keyID, objID: objID)
+				} else {
+					let typeID	= try createTypeIDIfNeeded( for: value )
+					let objID	= identifierMap.createStrongID( identifier )
 
+					if let binaryValue = binaryValue( of:value ) {
+						if let typeID {	// INHERITANCE
+							try dataEncoder.appendIdBinRef(keyID: keyID, typeID: typeID, objID: objID, value: binaryValue )
+						} else {	// NO INHERITANCE
+							try dataEncoder.appendIdBinValue(keyID: keyID, objID: objID, value: binaryValue )
+						}
+					} else {
+						if let typeID {	// INHERITANCE
+							try dataEncoder.appendIdRef(keyID: keyID, typeID: typeID, objID: objID)
+						} else {	// NO INHERITANCE
+							try dataEncoder.appendIdValue(keyID: keyID, objID: objID)
+						}
+						try encodeValue( value )
+						try dataEncoder.appendEnd()
+					}
+				}
+			} else {	// NO IDENTITY
+				let typeID	= try createTypeIDIfNeeded( for: value )
+
+				if let binaryValue = binaryValue( of:value ) {
+					if let typeID {	// INHERITANCE
+						try dataEncoder.appendBinRef(keyID: keyID, typeID: typeID, value: binaryValue )
+					} else {
+						try dataEncoder.appendBinValue(keyID: keyID, value: binaryValue )
+					}
+				} else {
+					if let typeID {	// NO INHERITANCE
+						try dataEncoder.appendRef( keyID: keyID, typeID: typeID )
+					} else {
+						try dataEncoder.appendValue( keyID: keyID )
+					}
+					try encodeValue( value )
+					try dataEncoder.appendEnd()
+				}
+			}
+		} else {
+			throw GCodableError.internalInconsistency(
+				Self.self, GCodableError.Context(
+					debugDescription: "Not GEncodable value \(value)."
+				)
+			)
+		}
+	}
+	
+	/*
 	private func encodeAnyValue(_ anyValue: Any, forKey key: String?, conditional:Bool ) throws {
 		// trasformo in un Optional<Any> di un solo livello:
 		let value	= Optional(fullUnwrapping: anyValue)
@@ -222,7 +325,7 @@ final class GEncoderImpl : GEncoder, BinaryEncoderDelegate {
 			)
 		}
 	}
-
+	 */
 	private func encodeValue( _ value:GEncodable ) throws {
 		let savedKeys	= currentKeys
 		defer { currentKeys = savedKeys }
@@ -325,18 +428,18 @@ fileprivate final class BinaryEncoder<Provider:BinaryEncoderDelegate> {
 			let options	= delegate?.dumpOptions ?? .readable
 			
 			if options.contains( .showHeader ) {
-				if options.contains( .showSectionTitles ) {
+				if options.contains( .hideSectionTitles ) == false {
 					output.append( "== HEADER ========================================================\n" )
 				}
 				output.append( fileHeader.description )
 				output.append( "\n" )
 			}
 			
-			if options.contains( .showBody ) {
-				if options.contains( .showSectionTitles ) {
+			if options.contains( .hideBody ) == false {
+				if options.contains( .hideSectionTitles ) == false {
 					output.append( "== BODY ==========================================================\n" )
 				}
-				tabs = options.contains( .indentLevel ) ? "" : nil
+				tabs = options.contains( .dontIndentLevel ) ? nil : ""
 			}
 		}
 	}
@@ -345,7 +448,7 @@ fileprivate final class BinaryEncoder<Provider:BinaryEncoderDelegate> {
 		try dumpInit()
 		let options	= delegate?.dumpOptions ?? .readable
 
-		if options.contains( .showBody ) {
+		if options.contains( .hideBody ) == false {
 			if case .exit = fileBlock.level { tabs?.removeLast() }
 			if let tbs = tabs { output.append( tbs ) }
 			
@@ -383,7 +486,7 @@ fileprivate final class BinaryEncoder<Provider:BinaryEncoderDelegate> {
 		let options	= delegate?.dumpOptions ?? .readable
 
 		if options.contains( .showClassDataMap ) {
-			if options.contains( .showSectionTitles ) {
+			if options.contains( .hideSectionTitles ) == false {
 				output.append( "== REFERENCEMAP ==================================================\n" )
 			}
 			output = delegate?.classDataMap.reduce( into: output ) {
@@ -393,7 +496,7 @@ fileprivate final class BinaryEncoder<Provider:BinaryEncoderDelegate> {
 		}
 		
 		if options.contains( .showKeyStringMap ) {
-			if options.contains( .showSectionTitles ) {
+			if options.contains( .hideSectionTitles ) == false {
 				output.append( "== KEYMAP ========================================================\n" )
 			}
 			output = delegate?.keyStringMap.reduce( into: output ) {
@@ -401,7 +504,7 @@ fileprivate final class BinaryEncoder<Provider:BinaryEncoderDelegate> {
 				result.append( "KEY\( tuple.key ):\t\"\( tuple.value )\"\n" )
 			} ?? "UNAVAILABLE DELEGATE \(#function)\n"
 		}
-		if options.contains( .showSectionTitles ) {
+		if options.contains( .hideSectionTitles ) == false {
 			output.append( "==================================================================\n" )
 		}
 		

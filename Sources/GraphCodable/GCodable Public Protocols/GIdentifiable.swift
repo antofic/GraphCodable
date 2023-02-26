@@ -30,12 +30,12 @@ public protocol GIdentifiable<GID> {
 
 	/// The stable identity **over encoding/decoding** of the entity associated
 	/// with this instance.
-	var gID: Self.GID? { get }
+	var gcodableID: Self.GID? { get }
 }
 
 extension GIdentifiable where Self:Identifiable {
-	/// By default gID == id.
-	public var gID: Self.ID? { id }
+	/// By default gcodableID == id.
+	public var gcodableID: Self.ID? { id }
 }
 
 
@@ -44,13 +44,13 @@ extension GIdentifiable where Self:Identifiable {
 ///	 Note: works only with .onlyNativeTypes (default) option in GraphEncoder()
 ///
 ///	extension Array : GIdentifiable where Element:GCodable {
-///		public var gID: ObjectIdentifier? {
+///		public var gcodableID: ObjectIdentifier? {
 ///			withUnsafeBytes { unsafeBitCast( $0.baseAddress, to: ObjectIdentifier?.self) }
 ///		}
 ///	}
 ///
 ///	extension ContiguousArray : GIdentifiable where Element:GCodable {
-///		public var gID: ObjectIdentifier? {
+///		public var gcodableID: ObjectIdentifier? {
 ///			withUnsafeBytes { unsafeBitCast( $0.baseAddress, to: ObjectIdentifier?.self) }
 ///		}
 ///	}

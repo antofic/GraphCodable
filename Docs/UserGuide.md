@@ -739,22 +739,22 @@ print( "\( inModel == outModel ) " )
 GraphCodable now supports identity for value types via the following protocol:
 ```swift
 public protocol GIdentifiable<GID> {
-	/// A type representing the stable identity ** over encoding/decoding **
+	/// A type representing the stable identity **over encoding/decoding**
 	/// of the entity associated with an instance.
 	associatedtype GID : Hashable
 
-	/// The stable identity ** over encoding/decoding ** of the entity associated
+	/// The stable identity **over encoding/decoding** of the entity associated
 	/// with this instance.
-	var gID: Self.GID? { get }
+	var gcodableID: Self.GID? { get }
 }
 
 extension GIdentifiable where Self:Identifiable {
-	/// By default gID == id.
-	public var gID: Self.ID? { id }
+	/// By default gcodableID == id.
+	public var gcodableID: Self.ID? { id }
 }
 ```
 A value type conforming to the GIdentifiable protocol acquires the same ability as reference types to not be duplicated during storage.
-A value that already conforms to Identifiable, if made Identifiable, uses id as the gID.
+A value that already conforms to Identifiable, if made Identifiable, uses id as the gcodableID.
 See the next example. 
 
 ```swift
@@ -846,13 +846,13 @@ Note: works only with `.onlyNativeTypes` (default) option in `GraphEncoder()`
  
 ```swift
 extension Array : GIdentifiable where Element:GCodable {
-	public var gID: ObjectIdentifier? {
+	public var gcodableID: ObjectIdentifier? {
 		withUnsafeBytes { unsafeBitCast( $0.baseAddress, to: ObjectIdentifier?.self) }
 	}
 }
 
 extension ContiguousArray : GIdentifiable where Element:GCodable {
-	public var gID: ObjectIdentifier? {
+	public var gcodableID: ObjectIdentifier? {
 		withUnsafeBytes { unsafeBitCast( $0.baseAddress, to: ObjectIdentifier?.self) }
 	}
 }

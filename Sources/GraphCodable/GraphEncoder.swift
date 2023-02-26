@@ -85,19 +85,28 @@ extension GraphEncoder {
 		///	type identity.
 		///
 		/// - Note: This option is disabled by default
-		public static let	enableLibraryBinaryIOTypes			= Self( rawValue: 1 << 0 )
+		public static let	enableLibraryBinaryIOTypes							= Self( rawValue: 1 << 0 )
 		
-		///	Disable the `GIdentifiable` protocol
+		///	Ignore the `GIdentifiable` protocol
 		///
 		/// By default, reference types have the automatic identity defined by
 		/// `ObjectIdentifier(self)` and value types don't have an identity.
 		/// If the type adopts the `GIdentifiable` protocol, its identity is defined by the
-		/// `gID` property: if `gID` returns nil, the type has no identity even if it is
-		/// a reference type.
-		/// By activating this option, the encoder will ignore the `GIdentifiable` protocol.
+		/// `gcodableID` property: if `gcodableID` returns nil, the type has no identity
+		/// even if it is a reference type.
+		/// By activating this option, the encoder will ignore the `GIdentifiable` protocol
+		/// and values that adopt this protocol act as they have not adopted it.
 		///
 		/// - Note: This option is disabled by default
-		public static let	disableGIdentifiableProtocol		= Self( rawValue: 1 << 1 )
+		public static let	ignoreGIdentifiableProtocol							= Self( rawValue: 1 << 1 )
+
+		///	Ignore the `GInheritance` protocol
+		///
+		/// By activating this option, the encoder will ignore the `GInheritance` protocol
+		/// and values that adopt this protocol act as they have not adopted it.
+		///
+		/// - Note: This option is disabled by default
+		public static let	ignoreGTypeInfoProtocol								= Self( rawValue: 1 << 2 )
 		
 		///	Disable the automatic reference type identity
 		///
@@ -108,10 +117,26 @@ extension GraphEncoder {
 		/// `ObjectIdentifier(self)` protocol to define their identity.
 		///
 		/// - Note: This option is disabled by default
-		public static let	disableObjectIdentifierIdentity		= Self( rawValue: 1 << 2 )
+		public static let	disableAutoObjectIdentifierIdentityForReferences	= Self( rawValue: 1 << 3 )
 
-		public static let	onlyNativeTypes: Self 	= []
-		public static let	defaultOption: Self 	= onlyNativeTypes
+		///	Disable identity
+		///
+		/// All types will be encoded with no identity regardless of how they are defined.
+		///
+		/// - Note: This option is disabled by default
+		public static let	disableIdentity										= Self( rawValue: 1 << 4 )
+		
+		///	Disable reference type info
+		///
+		/// All types will be encoded with no type info of how they are defined.
+		///
+		/// - Note: This option is disabled by default
+		public static let	disableRefTypeInfo									= Self( rawValue: 1 << 5 )
+		
+		public static let	onlyNativeTypes:	Self 	= []
+		public static let	mimicSwiftCodable:	Self 	= [ disableIdentity, disableRefTypeInfo ]
+
+		public static let	defaultOption:		Self 	= onlyNativeTypes
 	}
 }
 
@@ -130,41 +155,41 @@ extension GraphEncoder {
 		///	show file header
 		public static let	showHeader						= Self( rawValue: 1 << 0 )
 		///	show file body
-		public static let	showBody						= Self( rawValue: 1 << 1 )
+		public static let	hideBody						= Self( rawValue: 1 << 1 )
 		///	show file header
 		public static let	showClassDataMap				= Self( rawValue: 1 << 2 )
 		///	show file header
 		public static let	showKeyStringMap				= Self( rawValue: 1 << 3 )
 		///	indent the data
-		public static let	indentLevel						= Self( rawValue: 1 << 4 )
+		public static let	dontIndentLevel					= Self( rawValue: 1 << 4 )
 		///	in the Body section, resolve typeIDs in typeNames, keyIDs in keyNames
 		public static let	resolveIDs						= Self( rawValue: 1 << 5 )
 		///	in the Body section, show type versions (they are in the ReferenceMap section)
-		public static let	showReferenceVersion					= Self( rawValue: 1 << 6 )
+		public static let	showReferenceVersion			= Self( rawValue: 1 << 6 )
 		///	includes '=== SECTION TITLE =========================================='
-		public static let	showSectionTitles				= Self( rawValue: 1 << 7 )
+		public static let	hideSectionTitles				= Self( rawValue: 1 << 7 )
 		///	disable truncation of too long nativeValues (over 48 characters - String or Data typically)
 		public static let	noTruncation					= Self( rawValue: 1 << 8 )
 		///	show typeName/NSStringFromClass name in ReferenceMap section
 		public static let	showMangledClassNames			= Self( rawValue: 1 << 9 )
 		
 		public static let	displayNSStringFromClassNames: Self = [
-			.showClassDataMap, .showMangledClassNames, .showSectionTitles
+			.hideBody, .showClassDataMap, .showMangledClassNames,
 		]
 		public static let	readable: Self = [
-			.showBody, .indentLevel, .resolveIDs, .showSectionTitles
+			.resolveIDs,
 		]
 		public static let	readableNoTruncation: Self = [
-			.showHeader, .showBody, .indentLevel, .resolveIDs, .showSectionTitles, .noTruncation
+			.showHeader, .resolveIDs, .noTruncation
 		]
 		public static let	binaryLike: Self = [
-			.showHeader, .showClassDataMap, .showBody, .showKeyStringMap, .indentLevel, .showSectionTitles
+			.showHeader, .showClassDataMap, .showKeyStringMap
 		]
 		public static let	binaryLikeNoTruncation: Self = [
-			.showHeader, .showClassDataMap, .showBody, .showKeyStringMap, .indentLevel, .showSectionTitles, .noTruncation
+			.showHeader, .showClassDataMap, .showKeyStringMap, .noTruncation
 		]
 		public static let	fullInfo: Self = [
-			.showHeader, .showClassDataMap, .showBody, .showKeyStringMap, .indentLevel, .resolveIDs, .showReferenceVersion, .showSectionTitles, .noTruncation
+			.showHeader, .showClassDataMap, .showKeyStringMap, .resolveIDs, .showReferenceVersion, .noTruncation
 		]
 	}
 	
