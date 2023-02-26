@@ -21,7 +21,7 @@
 //	SOFTWARE.
 
 /// A protocol to mark GCodable obsolete class.
-public protocol GCodableObsolete : AnyObject {
+public protocol GDecodableObsolete : AnyObject {
 	/// The class that replaces this obsoleted class.
 	///
 	/// Returns the class that replaces the class that adopt this protocol

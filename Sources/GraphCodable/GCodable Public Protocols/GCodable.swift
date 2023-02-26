@@ -29,6 +29,44 @@
 /// reason, GCodable does **not** allow you to encode heterogeneous
 /// collections, even if they contain encodable items.
 ///
+
+public protocol GEncodable {
+	/// Encodes this value into the given encoder.
+	///
+	/// This function throws an error if any values are invalid for the given
+	/// encoder's format.
+	///
+	/// - Parameter encoder: The encoder to write data to.
+	func encode(to encoder: GEncoder) throws
+	/// The version of the encoded reference type.
+	///
+	/// Only reference types support versioning.
+	/// Should really be 'class var' but Swift doesn't allow that
+	static var currentVersion: UInt32 { get }
+}
+
+extension GEncodable {
+	public static var currentVersion: UInt32 { 0 }
+}
+
+extension GEncodable where Self:AnyObject {
+	/// It depends on the ability to be created from its name.
+	public static var supportsCodable: Bool {
+		ClassData.isConstructible( type:self )
+	}
+}
+
+public protocol GDecodable {
+	/// Creates a new instance by decoding from the given decoder.
+	///
+	/// This initializer throws an error if reading from the decoder fails, or
+	/// if the data read is corrupted or otherwise invalid.
+	///
+	/// - Parameter decoder: The decoder to read data from.
+	init(from decoder: GDecoder) throws
+}
+
+
 /// * **Make a type conform to the GCodable protocol**
 ///
 ///	To make a type archivable / unarchivable, it must be conformed
@@ -146,42 +184,6 @@
 ///
 /// A type that can encode itself to an external representation.
 ///	and decode itself from an external representation.
-public protocol GEncodable {
-	/// Encodes this value into the given encoder.
-	///
-	/// This function throws an error if any values are invalid for the given
-	/// encoder's format.
-	///
-	/// - Parameter encoder: The encoder to write data to.
-	func encode(to encoder: GEncoder) throws
-	/// The version of the encoded reference type.
-	///
-	/// Only reference types support versioning.
-	/// Should really be 'class var' but Swift doesn't allow that
-	static var currentVersion: UInt32 { get }
-}
-
-extension GEncodable {
-	public static var currentVersion: UInt32 { 0 }
-}
-
-extension GEncodable where Self:AnyObject {
-	/// It depends on the ability to be created from its name.
-	public static var supportsCodable: Bool {
-		ClassData.isConstructible( type:self )
-	}
-}
-
-public protocol GDecodable {
-	/// Creates a new instance by decoding from the given decoder.
-	///
-	/// This initializer throws an error if reading from the decoder fails, or
-	/// if the data read is corrupted or otherwise invalid.
-	///
-	/// - Parameter decoder: The decoder to read data from.
-	init(from decoder: GDecoder) throws
-}
-
 public typealias GCodable	= GEncodable & GDecodable
 
 

@@ -44,7 +44,7 @@ final class GDecoderImpl : GDecoder {
 		get throws { try constructor.encodedVersion }
 	}
 
-	var replacedType : GCodableObsolete.Type?   {
+	var replacedType : GDecodableObsolete.Type?   {
 		get throws { try constructor.replacedType }
 	}
 	
@@ -709,7 +709,7 @@ fileprivate final class TypeConstructor {
 		}
 	}
 	
-	var replacedType : GCodableObsolete.Type? {
+	var replacedType : GDecodableObsolete.Type? {
 		get throws {
 			guard let classInfo = currentInfo else {
 				throw GCodableError.typeMismatch(

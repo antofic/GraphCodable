@@ -53,7 +53,7 @@ public final class GraphDecoder {
 	}
 
 	///	Returns all the obsolete classes encoded in the data byte buffer
-	public func obsoleteClasses<Q>( from data: Q ) throws -> [GCodableObsolete.Type]
+	public func obsoleteClasses<Q>( from data: Q ) throws -> [GDecodableObsolete.Type]
 		where Q:Sequence, Q.Element==UInt8 {
 		let types	= try decoder.allClassData( from: data ).compactMap { $0.obsoleteType }
 		let keys	= types.map { ObjectIdentifier($0) }

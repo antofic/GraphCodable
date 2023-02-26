@@ -41,7 +41,7 @@ public protocol GDecoder {
 	/// Can be used to decide on different decoding strategies.
 	///
 	/// Only reference types can have a version.
-	var replacedType : GCodableObsolete.Type?  { get throws }
+	var replacedType : GDecodableObsolete.Type?  { get throws }
 	
 	/// Returns a Boolean value indicating whether the decoder contains a value
 	/// associated with the given key.
