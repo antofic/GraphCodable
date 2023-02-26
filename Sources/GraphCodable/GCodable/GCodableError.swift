@@ -26,7 +26,7 @@ enum GCodableError : Error {
 		let underlyingError:	Error?
 		let function:			String
 		let file:				String
-
+		
 		init(
 			debugDescription: String,
 			underlyingError: Error? = nil,
@@ -44,15 +44,17 @@ enum GCodableError : Error {
 	
 	case internalInconsistency( Any.Type, GCodableError.Context )
 	case cantConstructClass( Any.Type, GCodableError.Context )
-
+	
 	case duplicateKey( Any.Type, GCodableError.Context )
 	case duplicateTypeID( Any.Type, GCodableError.Context )
 	case keyNotFound( Any.Type, GCodableError.Context )
 	case childNotFound( Any.Type, GCodableError.Context )
-
+	
 	case decodingError( Any.Type, GCodableError.Context )
 	case typeMismatch( Any.Type, GCodableError.Context )
 	case invalidHeader( Any.Type, GCodableError.Context )
+	
+	case versionError( Any.Type, GCodableError.Context )
 }
 
 

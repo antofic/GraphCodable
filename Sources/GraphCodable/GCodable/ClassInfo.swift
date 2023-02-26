@@ -85,11 +85,11 @@ struct ClassData : BinaryIOType, CustomStringConvertible {
 	
 	var decodableType: (AnyObject & GDecodable).Type? {
 		let type = encodedType
-		return type as? (AnyObject & GDecodable).Type ?? (type as? GDecodableObsolete.Type)?.replacementType
+		return type as? (AnyObject & GDecodable).Type ?? (type as? GObsolete.Type)?.replacementType
 	}
 	
-	var obsoleteType : GDecodableObsolete.Type? {
-		encodedType as? GDecodableObsolete.Type
+	var obsoleteType : GObsolete.Type? {
+		encodedType as? GObsolete.Type
 	}
 
 	var isConstructible : Bool {

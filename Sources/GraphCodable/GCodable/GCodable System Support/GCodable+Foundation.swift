@@ -480,7 +480,7 @@ extension PersonNameComponents : GCodable {
 	
 	public func encode(to encoder: GEncoder) throws {
 		try encoder.encodeIfPresent( namePrefix, for: Key.namePrefix)
-		try encoder.encodeIfPresent( givenName, 	for: Key.givenName)
+		try encoder.encodeIfPresent( givenName, for: Key.givenName)
 		try encoder.encodeIfPresent( middleName, for: Key.middleName)
 		try encoder.encodeIfPresent( familyName, for: Key.familyName)
 		try encoder.encodeIfPresent( nameSuffix, for: Key.nameSuffix)
