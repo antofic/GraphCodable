@@ -5,9 +5,6 @@
 //  Created by Antonino Ficarra on 29/04/21.
 //
 
-import Foundation
-
-
 protocol OptionalProtocol {
 	static var wrappedType: Any.Type { get }
 	// nested optional types unwrapping

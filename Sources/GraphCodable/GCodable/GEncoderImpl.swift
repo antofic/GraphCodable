@@ -139,7 +139,7 @@ final class GEncoderImpl : GEncoder, BinaryEncoderDelegate {
 		let keyID	= try createKeyID( key: key )
 		
 		guard let value = value else {
-			try dataEncoder.appendNilValue(keyID: keyID)
+			try dataEncoder.appendNil(keyID: keyID)
 			return
 		}
 		// now value if not nil!
@@ -149,8 +149,7 @@ final class GEncoderImpl : GEncoder, BinaryEncoderDelegate {
 			//	in teoria possono essere reference, ma si comportano come value
 			try dataEncoder.appendBinValue(keyID: keyID, value: binaryValue )
 		} else if let value = value as? GEncodable {
-			if let identifier = identifier( of:value ) {
-				// il valore ha un identità
+			if let identifier = identifier( of:value ) {	// IDENTITY
 				if let objID = identifierMap.strongID( identifier ) {
 					// l'oggetto è stato già memorizzato, basta un pointer
 					if conditional {
@@ -169,15 +168,15 @@ final class GEncoderImpl : GEncoder, BinaryEncoderDelegate {
 						
 					let objID	= identifierMap.createWeakID( identifier )
 					try dataEncoder.appendConditionalPtr(keyID: keyID, objID: objID)
-				} else if let object = value as? GEncodable & AnyObject {
+				} else if let object = value as? GEncodable & AnyObject {	// INHERITANCE
 					//	memorizzo il reference type
-					let typeID	= try referenceMap.createTypeIDIfNeeded(type:  type(of:object))
+					let typeID	= try referenceMap.createTypeIDIfNeeded( type: type(of:object) )
 					let objID	= identifierMap.createStrongID( identifier )
 					
 					if let binaryValue = binaryValue( of:value ) {
-						try dataEncoder.appendIBinRef(keyID: keyID, typeID: typeID, objID: objID, value: binaryValue )
+						try dataEncoder.appendIdBinRef(keyID: keyID, typeID: typeID, objID: objID, value: binaryValue )
 					} else {
-						try dataEncoder.appendReferenceType(keyID: keyID, typeID: typeID, objID: objID)
+						try dataEncoder.appendIdRef(keyID: keyID, typeID: typeID, objID: objID)
 						try encodeValue( object )
 						try dataEncoder.appendEnd()
 					}
@@ -186,20 +185,34 @@ final class GEncoderImpl : GEncoder, BinaryEncoderDelegate {
 					let objID	= identifierMap.createStrongID( identifier )
 					
 					if let binaryValue = binaryValue( of:value ) {
-						try dataEncoder.appendIBinValue(keyID: keyID, objID: objID, value: binaryValue )
+						try dataEncoder.appendIdBinValue(keyID: keyID, objID: objID, value: binaryValue )
 					} else {
-						try dataEncoder.appendIValueType(keyID: keyID, objID: objID)
+						try dataEncoder.appendIdValue(keyID: keyID, objID: objID)
 						try encodeValue( value )
 						try dataEncoder.appendEnd()
 					}
 				}
-			}  else if let binaryValue = binaryValue( of:value ) {
-				try dataEncoder.appendBinValue(keyID: keyID, value: binaryValue )
-			} else {
-				//	valore senza identità
-				try dataEncoder.appendValueType( keyID: keyID )
-				try encodeValue( value )
-				try dataEncoder.appendEnd()
+			} else {	// NO IDENTITY
+				if let object = value as? GEncodable & AnyObject {	// INHERITANCE
+					let typeID	= try referenceMap.createTypeIDIfNeeded( type: type(of:object) )
+					
+					if let binaryValue = binaryValue( of:value ) {
+						try dataEncoder.appendBinRef(keyID: keyID, typeID: typeID, value: binaryValue )
+					} else {
+						try dataEncoder.appendRef( keyID: keyID, typeID: typeID )
+						try encodeValue( value )
+						try dataEncoder.appendEnd()
+					}
+				} else { 	// NO INHERITANCE
+					if let binaryValue = binaryValue( of:value ) {
+						try dataEncoder.appendBinValue(keyID: keyID, value: binaryValue )
+					} else {
+						//	valore senza identità
+						try dataEncoder.appendValue( keyID: keyID )
+						try encodeValue( value )
+						try dataEncoder.appendEnd()
+					}
+				}
 			}
 		} else {
 			throw GCodableError.internalInconsistency(
@@ -208,7 +221,6 @@ final class GEncoderImpl : GEncoder, BinaryEncoderDelegate {
 				)
 			)
 		}
-		
 	}
 
 	private func encodeValue( _ value:GEncodable ) throws {
@@ -250,31 +262,40 @@ fileprivate final class BinaryEncoder<Provider:BinaryEncoderDelegate> {
 		self.isDump		= isDump
 	}
 	
+	func appendNil( keyID:UIntID ) throws {
+		try append( .Nil(keyID: keyID) )
+	}
+	func appendValue( keyID:UIntID ) throws {
+		try append( .value(keyID: keyID) )
+	}
 	func appendBinValue( keyID:UIntID, value:BinaryOType ) throws {
 		let bytes	= try value.binaryData() as Bytes
-		try append( .binValueRef(keyID: keyID, bytes: bytes), value:value  )
+		try append( .binValue(keyID: keyID, bytes: bytes), value:value  )
 	}
-	func appendIBinValue( keyID:UIntID, objID:UIntID, value:BinaryOType ) throws {
+	func appendRef( keyID:UIntID, typeID:UIntID ) throws {
+		try append( .ref(keyID: keyID, typeID:typeID ) )
+	}
+	func appendBinRef( keyID:UIntID, typeID:UIntID, value:BinaryOType ) throws {
+		let bytes	= try value.binaryData() as Bytes
+		try append( .binRef(keyID: keyID, typeID:typeID, bytes: bytes), value:value  )
+	}
+	func appendIdValue( keyID:UIntID, objID:UIntID ) throws {
+		try append( .idValue(keyID: keyID, objID: objID) )
+	}
+	func appendIdBinValue( keyID:UIntID, objID:UIntID, value:BinaryOType ) throws {
 		let bytes	= try value.binaryData() as Bytes
 		try append( .idBinValue(keyID: keyID, objID: objID, bytes: bytes), value:value )
 	}
-	func appendIBinRef( keyID:UIntID,  typeID:UIntID, objID:UIntID, value:BinaryOType ) throws {
+
+	func appendIdRef( keyID:UIntID, typeID:UIntID, objID:UIntID )throws {
+		try append( .idRef(keyID: keyID, typeID: typeID, objID: objID) )
+	}
+	func appendIdBinRef( keyID:UIntID,  typeID:UIntID, objID:UIntID, value:BinaryOType ) throws {
 		let bytes	= try value.binaryData() as Bytes
 		try append( .idBinRef(keyID: keyID, typeID:typeID, objID: objID, bytes: bytes), value:value )
 	}
+
 	
-	func appendNilValue( keyID:UIntID ) throws {
-		try append( .Nil(keyID: keyID) )
-	}
-	func appendValueType( keyID:UIntID ) throws {
-		try append( .valueRef(keyID: keyID) )
-	}
-	func appendIValueType( keyID:UIntID, objID:UIntID ) throws {
-		try append( .idValue(keyID: keyID, objID: objID) )
-	}
-	func appendReferenceType( keyID:UIntID, typeID:UIntID, objID:UIntID )throws {
-		try append( .idRef(keyID: keyID, typeID: typeID, objID: objID) )
-	}
 	func appendStrongPtr( keyID:UIntID, objID:UIntID ) throws {
 		try append( .strongPtr(keyID: keyID, objID: objID) )
 	}

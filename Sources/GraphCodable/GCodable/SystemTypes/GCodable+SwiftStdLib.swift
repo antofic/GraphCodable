@@ -20,8 +20,6 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
-import Foundation
-
 //	Optional SUPPORT ------------------------------------------------------
 extension Optional: GEncodable where Wrapped: GEncodable {
 	//	The encoder always unwraps optional values

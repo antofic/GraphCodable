@@ -65,7 +65,7 @@ public final class GraphEncoder {
 }
 
 // -------------------------------------------------
-// ----- GraphEncoder - flags!
+// ----- GraphEncoder.Options
 // -------------------------------------------------
 
 extension GraphEncoder {
@@ -114,6 +114,10 @@ extension GraphEncoder {
 		public static let	defaultOption: Self 	= onlyNativeTypes
 	}
 }
+
+// -------------------------------------------------
+// ----- GraphEncoder.DumpOptions
+// -------------------------------------------------
 
 extension GraphEncoder {
 	public struct DumpOptions: OptionSet {

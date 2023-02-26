@@ -62,6 +62,5 @@ public final class GraphDecoder {
 	}
 	
 	private let decoder = GDecoderImpl()
-	
 }
 

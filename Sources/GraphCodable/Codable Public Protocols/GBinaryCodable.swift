@@ -20,39 +20,28 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
-enum GCodableError : Error {
-	struct Context {
-		let debugDescription:	String
-		let underlyingError:	Error?
-		let function:			String
-		let file:				String
+public protocol	GBinaryEncodable : BinaryOType, GEncodable {}
+public protocol	GBinaryDecodable : BinaryIType, GDecodable {}
 
-		init(
-			debugDescription: String,
-			underlyingError: Error? = nil,
-			function: String = #function,
-			file: String = #fileID
-		) {
-			self.debugDescription	= debugDescription
-			self.underlyingError	= underlyingError
-			self.function			= function
-			self.file				= file
-		}
+public typealias GBinaryCodable = GBinaryEncodable & GBinaryDecodable
+
+extension GBinaryEncodable {
+	public func encode(to encoder: GEncoder) throws	{
+		throw GCodableError.internalInconsistency(
+			Self.self, GCodableError.Context(
+				debugDescription: "Program must not reach \(#function)."
+			)
+		)
 	}
-	
-	case initTypeError( Any.Type, GCodableError.Context )
-	
-	case internalInconsistency( Any.Type, GCodableError.Context )
-	case cantConstructClass( Any.Type, GCodableError.Context )
-
-	case duplicateKey( Any.Type, GCodableError.Context )
-	case duplicateTypeID( Any.Type, GCodableError.Context )
-	case keyNotFound( Any.Type, GCodableError.Context )
-	case childNotFound( Any.Type, GCodableError.Context )
-
-	case decodingError( Any.Type, GCodableError.Context )
-	case typeMismatch( Any.Type, GCodableError.Context )
-	case invalidHeader( Any.Type, GCodableError.Context )
+}
+extension GBinaryDecodable {
+	public init(from decoder: GDecoder) throws {
+		throw GCodableError.internalInconsistency(
+			Self.self, GCodableError.Context(
+				debugDescription: "Program must not reach \(#function)."
+			)
+		)
+	}
 }
 
 

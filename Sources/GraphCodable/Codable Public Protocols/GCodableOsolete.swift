@@ -20,36 +20,11 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
-import Foundation
-
-//	-------------------------------------------------
-//	-- ObsoleteFileBlock - only support for old file format
-//	-------------------------------------------------
-
-enum FileBlockObsolete {
-	enum Code : UInt8 {
-		case keyStringMap	= 0x2A	// '*'
-		case classDataMap	= 0x24	// '$'
-	}
-	//	keyStringMap
-	case keyStringMap( keyID:UIntID, keyName:String )
-	//	classDataMap
-	case classDataMap( typeID:UIntID, classData:ClassData )
+/// A protocol to mark GCodable obsolete class.
+public protocol GCodableObsolete : AnyObject {
+	/// The class that replaces this obsoleted class.
+	///
+	/// Returns the class that replaces the class that adopt this protocol
+	static var replacementType : (AnyObject & GDecodable).Type { get }
 }
 
-extension FileBlockObsolete : BinaryIType {
-	init(from reader: inout BinaryReader) throws {
-		let code = try Code(from: &reader)
-
-		switch code {
-		case .keyStringMap:
-			let keyID	= try UIntID	( from: &reader )
-			let keyName	= try String	( from: &reader )
-			self = .keyStringMap(keyID: keyID, keyName: keyName)
-		case .classDataMap:
-			let typeID	= try UIntID		( from: &reader )
-			let data	= try ClassData	( from: &reader )
-			self = .classDataMap(typeID: typeID, classData: data )
-		}
-	}
-}

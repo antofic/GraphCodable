@@ -20,12 +20,6 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
-import Foundation
-
-// -------------------------------------------------
-// ----- GDecoderImpl
-// -------------------------------------------------
-
 final class GDecoderImpl : GDecoder {
 	var	userInfo			= [String:Any]()
 	private var constructor : TypeConstructor!
@@ -582,7 +576,8 @@ fileprivate final class BodyElement {
 				elementMap: &map, parentElement:root, lineIterator:&lineIterator,
 				keyStringMap:keyStringMap, reverse:reverse
 			)
-		case .valueRef( _ ):
+		case .value( _ ):	fallthrough
+		case .ref( _, _ ):
 			try subFlatten(
 				elementMap: &map, parentElement:element, lineIterator:&lineIterator,
 				keyStringMap:keyStringMap, reverse:reverse
@@ -735,24 +730,6 @@ fileprivate final class TypeConstructor {
 		setterRepository.append( setter )
 	}
 	
-	func decode<T>( element:BodyElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
-		switch element.fileBlock {
-		case .valueRef( _ ):
-			return try decodeValue( type:T.self, element:element, from: decoder )
-		case .binValueRef( _ , let bytes ):
-			return try decodeBinaryIO( type:T.self, bytes: bytes, element:element, from: decoder )
-		default:
-			guard let value = try decodeAny( element:element, from:decoder, type:T.self ) as? T else {
-				throw GCodableError.typeMismatch(
-					Self.self, GCodableError.Context(
-						debugDescription: "Block \(element) doesn't contains a -\(T.self)- type."
-					)
-				)
-			}
-			
-			return value
-		}
-	}
 	
 	private func decodeValue<T>( type:T.Type, element:BodyElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
 		let saved	= currentElement
@@ -781,7 +758,7 @@ fileprivate final class TypeConstructor {
 		}
 	}
 	
-	private func decodeBinaryIO<T>( type:T.Type, bytes: Bytes,element:BodyElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
+	private func decodeBinValue<T>( type:T.Type, bytes: Bytes,element:BodyElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
 		let saved	= currentElement
 		defer { currentElement = saved }
 		currentElement	= element
@@ -807,7 +784,62 @@ fileprivate final class TypeConstructor {
 		}
 		return value
 	}
-		
+	
+	private func decodeRef<T>( type:T.Type, typeID:UIntID, element:BodyElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
+		let saved	= currentInfo
+		defer { currentInfo = saved }
+		currentInfo	= try classInfo( typeID:typeID )
+
+		let type	= currentInfo!.decodableType.self
+		guard let object = try decodeValue( type:type, element:element, from: decoder ) as? T else {
+			throw GCodableError.internalInconsistency(
+				Self.self, GCodableError.Context(
+					debugDescription: "\(type) must be a subtype of \(T.self)."
+				)
+			)
+		}
+		return object
+	}
+
+	private func decodeBinRef<T>( type:T.Type, typeID:UIntID, bytes: Bytes, element:BodyElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
+		let saved	= currentInfo
+		defer { currentInfo = saved }
+		currentInfo	= try classInfo( typeID:typeID )
+
+		let type	= currentInfo!.decodableType.self
+		guard let object = try decodeBinValue( type:type, bytes: bytes, element:element, from: decoder ) as? T else {
+			throw GCodableError.internalInconsistency(
+				Self.self, GCodableError.Context(
+					debugDescription: "\(type) must be a subtype of \(T.self)."
+				)
+			)
+		}
+		return object
+	}
+	
+	func decode<T>( element:BodyElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
+		switch element.fileBlock {
+		case .value( _ ):
+			return try decodeValue( type:T.self, element:element, from: decoder )
+		case .binValue( _ , let bytes ):
+			return try decodeBinValue( type:T.self, bytes: bytes, element:element, from: decoder )
+		case .ref( _ , let typeID ):
+			return try decodeRef( type:T.self, typeID:typeID , element:element, from: decoder )
+		case .binRef( _ , let typeID, let bytes ):
+			return try decodeBinRef( type:T.self, typeID:typeID , bytes: bytes, element:element, from: decoder )
+		default:
+			guard let value = try decodeAny( element:element, from:decoder, type:T.self ) as? T else {
+				throw GCodableError.typeMismatch(
+					Self.self, GCodableError.Context(
+						debugDescription: "Block \(element) doesn't contains a -\(T.self)- type."
+					)
+				)
+			}
+			
+			return value
+		}
+	}
+	
 	private func decodeAny<T>( element:BodyElement, from decoder:GDecoder, type:T.Type ) throws -> Any where T:GDecodable {
 		func decodeIdentifiable( type:T.Type, objID:UIntID, from decoder:GDecoder ) throws -> Any? {
 			//	tutti gli oggetti (reference types) inizialmente si trovano in decodedData.objBlockMap
@@ -822,21 +854,11 @@ fileprivate final class TypeConstructor {
 			} else if let element = decodedData.pop( objID: objID ) {
 				switch element.fileBlock {
 				case .idRef( _, let typeID, let objID ):
-					let saved	= currentInfo
-					defer { currentInfo = saved }
-					currentInfo	= try classInfo( typeID:typeID )
-	
-					let type	= currentInfo!.decodableType.self
-					let object	= try decodeValue( type:type, element:element, from: decoder )
+					let object	= try decodeRef(type: type, typeID: typeID, element: element, from: decoder)
 					objectRepository[ objID ]	= object
 					return object
 				case .idBinRef( _, let typeID, let objID, let bytes ):
-					let saved	= currentInfo
-					defer { currentInfo = saved }
-					currentInfo	= try classInfo( typeID:typeID )
-
-					let type	= currentInfo!.decodableType.self
-					let object	= try decodeBinaryIO( type:type, bytes: bytes, element:element, from:decoder )
+					let object	= try decodeBinRef( type:type, typeID: typeID, bytes: bytes, element:element, from:decoder )
 					objectRepository[ objID ]	= object
 					return object
 				case .idValue( _, let objID ):
@@ -844,7 +866,7 @@ fileprivate final class TypeConstructor {
 					objectRepository[ objID ]	= object
 					return object
 				case .idBinValue( _, let objID, let bytes):
-					let object		= try decodeBinaryIO( type:T.self, bytes: bytes, element:element, from:decoder )
+					let object		= try decodeBinValue( type:T.self, bytes: bytes, element:element, from:decoder )
 					objectRepository[ objID ]	= object
 					return object
 				default:
