@@ -820,12 +820,12 @@ fileprivate final class TypeConstructor {
 		}
 		
 		guard
-			let binaryIOType = wrapped as? BinaryIOType.Type,
-			let value = try binaryIOType.init(binaryData: bytes) as? T
+			let binaryIType = wrapped as? BinaryIType.Type,
+			let value = try binaryIType.init(binaryData: bytes) as? T
 		else {
 			throw GCodableError.typeMismatch(
 				Self.self, GCodableError.Context(
-					debugDescription: "Block \(element) wrapped type -\(wrapped)- not BinaryIOType."
+					debugDescription: "Block \(element) wrapped type -\(wrapped)- not BinaryIType."
 				)
 			)
 		}
