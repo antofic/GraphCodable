@@ -38,15 +38,6 @@ public protocol GEncodable {
 	///
 	/// - Parameter encoder: The encoder to write data to.
 	func encode(to encoder: GEncoder) throws
-	/// The version of the encoded reference type.
-	///
-	/// Only reference types support versioning.
-	/// Should really be 'class var' but Swift doesn't allow that
-	static var currentVersion: UInt32 { get }
-}
-
-extension GEncodable {
-	public static var currentVersion: UInt32 { 0 }
 }
 
 extension GEncodable where Self:AnyObject {

@@ -20,12 +20,17 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
-/// A protocol to mark GCodable obsolete class.
-public protocol GObsolete : AnyObject {
-	/// The class that replaces this obsoleted class.
+/// A protocol to implement the GCodable version system.
+public protocol GVersion : AnyObject {
+	/// The version of the encoded reference type.
 	///
-	/// Returns the class that replaces the class that adopt this protocol
-	static var replacementType : (AnyObject & GDecodable).Type { get }
+	/// Only reference types support versioning.
+	/// Reference types that not adopt this protocol
+	/// where encoded with a **encodeVersion = 0**
+	/// so you, adopting this protocol, should
+	/// really start with a minumum **encodeVersion = 1**
+	///
+	/// - Note: You should really adopt this protocol
+	/// with a class property and not a static property.
+	static var encodeVersion : UInt32 { get }
 }
-
-

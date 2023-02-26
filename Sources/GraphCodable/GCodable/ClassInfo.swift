@@ -54,7 +54,11 @@ struct ClassData : BinaryIOType, CustomStringConvertible {
 		self.readableTypeName	= _typeName( type, qualified:true )
 		self.mangledTypeName 	= _mangledTypeName( type )
 		self.objcTypeName		= NSStringFromClass( type )
-		self.encodeVersion		= type.currentVersion
+		if let versionedType = type as? GVersion.Type {
+			self.encodeVersion		= versionedType.encodeVersion
+		} else {
+			self.encodeVersion		= 0
+		}
 
 		guard Self.constructType(mangledTypeName: mangledTypeName, objcTypeName: objcTypeName ) != nil else {
 			throw GCodableError.cantConstructClass(
