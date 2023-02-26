@@ -224,7 +224,95 @@ public final class GraphEncoder {
 		}
 /*
 		private func binary( of value:GCodable ) -> (BinaryOType)? {
-			encodeOptions.contains( .disableGIdentifiable ) ? nil : (value as? any GIdentifiable)?.gID
+			if let value = value as? NativeType { return value }
+			else if encodeOptions.contains( .allBinaryTypes ), let value = value as? BinaryOType { return value }
+			else { return nil }
+		}
+
+		private func encodeAnyValue(_ anyValue: Any, forKey key: String?, conditional:Bool ) throws {
+			// trasformo in un Optional<Any> di un solo livello:
+			let value	= Optional(fullUnwrapping: anyValue)
+			let keyID	= try createKeyID( key: key )
+			
+			guard let value = value else {
+				try dataEncoder.appendNilValue(keyID: keyID)
+				return
+			}
+			// now value if not nil!
+			
+			if let object = value as? GCodable & AnyObject {	// reference type
+				let identifier = gIdentifier( of:object ) ?? ObjectIdentifier( object )
+				if let objID = identifierMap.strongID( identifier ) {
+					// l'oggetto è stato già memorizzato, basta un pointer
+					if conditional {
+						try dataEncoder.appendConditionalPtr(keyID: keyID, objID: objID)
+					} else {
+						try dataEncoder.appendStrongPtr(keyID: keyID, objID: objID)
+					}
+				} else if conditional {
+					// Conditional Encoding: avrei la descrizione ma non la voglio usare
+					// perché servirà solo se dopo arriverà da uno strongRef
+					
+					// Verifico comunque se l'oggetto è reificabile
+					try ClassData.throwIfNotConstructible( type: type(of:object) )
+					
+					let objID	= identifierMap.createWeakID( identifier )
+					try dataEncoder.appendConditionalPtr(keyID: keyID, objID: objID)
+				} else {
+					//	memorizzo il reference type
+					let typeID	= try referenceMap.createTypeIDIfNeeded(type:  type(of:object))
+					let objID	= identifierMap.createStrongID( identifier )
+					
+					try dataEncoder.appendReferenceType(keyID: keyID, typeID: typeID, objID: objID)
+					try encodeValue( object )
+					try dataEncoder.appendEnd()
+				}
+			} else if let value = value as? GCodable {
+				/* if let binaryValue = value as? NativeType {
+					//	i tipi nativi sono semplici: l'identità non serve
+					//	(e per le stringhe?)
+					try dataEncoder.appendBinaryValue(keyID: keyID, value: binaryValue )
+				} else */ if let identifier = gIdentifier( of:value ) {
+					// il valore ha un identità
+					if let objID = identifierMap.strongID( identifier ) {
+						// l'oggetto è stato già memorizzato, basta un pointer
+						if conditional {
+							try dataEncoder.appendConditionalPtr(keyID: keyID, objID: objID)
+						} else {
+							try dataEncoder.appendStrongPtr(keyID: keyID, objID: objID)
+						}
+					} else if conditional {
+						// Conditional Encoding: avrei la descrizione ma non la voglio usare
+						// perché servirà solo se dopo arriverà da uno strongRef
+						let objID	= identifierMap.createWeakID( identifier )
+						try dataEncoder.appendConditionalPtr(keyID: keyID, objID: objID)
+					} else {
+						//	memorizzo il value type
+						let objID	= identifierMap.createStrongID( identifier )
+						
+						if let binaryValue = binary(of: value) {
+							try dataEncoder.appendIBinaryValue(keyID: keyID, objID: objID, value: binaryValue )
+						} else {
+							try dataEncoder.appendIValueType(keyID: keyID, objID: objID)
+							try encodeValue( value )
+							try dataEncoder.appendEnd()
+						}
+					}
+				} else if let binaryValue = binary(of: value) {
+					try dataEncoder.appendBinaryValue(keyID: keyID, value: binaryValue )
+				} else {
+					//	valore senza identità
+					try dataEncoder.appendValueType( keyID: keyID )
+					try encodeValue( value )
+					try dataEncoder.appendEnd()
+				}
+			} else {
+				throw GCodableError.internalInconsistency(
+					Self.self, GCodableError.Context(
+						debugDescription: "Not GCodable value \(value)."
+					)
+				)
+			}
 		}
 */
 		private func encodeAnyValue(_ anyValue: Any, forKey key: String?, conditional:Bool ) throws {
@@ -312,7 +400,7 @@ public final class GraphEncoder {
 				)
 			}
 		}
-		
+
 		private func encodeValue( _ value:GCodable ) throws {
 			let savedKeys	= currentKeys
 			defer { currentKeys = savedKeys }
