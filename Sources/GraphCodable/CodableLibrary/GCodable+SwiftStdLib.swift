@@ -22,12 +22,39 @@
 
 import Foundation
 
+//	Optional SUPPORT ------------------------------------------------------
+extension Optional: GEncodable where Wrapped: GEncodable {
+	//	The encoder always unwraps optional values
+	//	and so this function is never called.
+	public func encode(to encoder: GEncoder) throws {
+		throw GCodableError.internalInconsistency(
+			Self.self, GCodableError.Context(
+				debugDescription: "Program must not reach \(#function)."
+			)
+		)
+	}
+}
+
+extension Optional: GDecodable where Wrapped: GDecodable {
+	//	The encoder always unwraps optional values
+	//	and so this function is never called.
+	public init(from decoder: GDecoder) throws {
+		throw GCodableError.internalInconsistency(
+			Self.self, GCodableError.Context(
+				debugDescription: "Program must not reach \(#function)."
+			)
+		)
+	}
+}
+
 //	RawRepresentable SUPPORT ------------------------------------------------------
 
-extension RawRepresentable where Self.RawValue : GCodable {
+extension RawRepresentable where Self.RawValue : GEncodable {
 	public func encode(to encoder: GEncoder) throws	{
 		try encoder.encode( self.rawValue )
 	}
+}
+extension RawRepresentable where Self.RawValue : GDecodable {
 	public init(from decoder: GDecoder) throws {
 		let rawValue = try decoder.decode() as RawValue
 		guard let value = Self.init(rawValue:rawValue ) else {
@@ -70,12 +97,14 @@ extension String: GCodable {
 
 
 //	Array SUPPORT ------------------------------------------------------
-extension Array: GCodable where Element:GCodable {
+extension Array: GEncodable where Element:GEncodable {
 	public func encode(to encoder: GEncoder) throws {
 		for element in self {
 			try encoder.encode( element )
 		}
 	}
+}
+extension Array: GDecodable where Element:GDecodable {
 	public init(from decoder: GDecoder) throws {
 		self.init()
 		
@@ -89,12 +118,14 @@ extension Array: GCodable where Element:GCodable {
 
 //	ContiguousArray SUPPORT ------------------------------------------------------
 
-extension ContiguousArray: GCodable where Element:GCodable {
+extension ContiguousArray: GEncodable where Element:GEncodable {
 	public func encode(to encoder: GEncoder) throws {
 		for element in self {
 			try encoder.encode( element )
 		}
 	}
+}
+extension ContiguousArray: GDecodable where Element:GDecodable {
 	public init(from decoder: GDecoder) throws {
 		self.init()
 		
@@ -105,14 +136,15 @@ extension ContiguousArray: GCodable where Element:GCodable {
 	}
 }
 
-
 //	Set SUPPORT ------------------------------------------------------
-extension Set: GCodable where Element:GCodable {
+extension Set: GEncodable where Element:GEncodable {
 	public func encode(to encoder: GEncoder) throws {
 		for element in self {
 			try encoder.encode( element )
 		}
 	}
+}
+extension Set: GDecodable where Element:GDecodable {
 	public init(from decoder: GDecoder) throws {
 		self.init()
 		
@@ -125,14 +157,15 @@ extension Set: GCodable where Element:GCodable {
 
 //	Dictionary SUPPORT ------------------------------------------------------
 
-extension Dictionary: GCodable where Key:GCodable, Value:GCodable {
+extension Dictionary: GEncodable where Key:GEncodable, Value:GEncodable {
 	public func encode(to encoder: GEncoder) throws {
 		for (key,value) in self {
 			try encoder.encode( key )
 			try encoder.encode( value )
 		}
 	}
-	
+}
+extension Dictionary: GDecodable where Key:GDecodable, Value:GDecodable {
 	public init(from decoder: GDecoder) throws {
 		self.init()
 		
@@ -147,13 +180,14 @@ extension Dictionary: GCodable where Key:GCodable, Value:GCodable {
 
 // Range ------------------------------------------------------
 
-extension Range: GCodable where Bound: GCodable {
+extension Range: GDecodable where Bound: GDecodable {
 	public init(from decoder: GDecoder) throws {
 		let lowerBound	= try decoder.decode() as Bound
 		let upperBound	= try decoder.decode() as Bound
 		self.init(uncheckedBounds: (lowerBound,upperBound) )
 	}
-	
+}
+extension Range: GEncodable where Bound: GEncodable {
 	public func encode(to encoder: GEncoder) throws {
 		try encoder.encode( lowerBound )
 		try encoder.encode( upperBound )
@@ -162,13 +196,14 @@ extension Range: GCodable where Bound: GCodable {
 
 // ClosedRange ------------------------------------------------------
 
-extension ClosedRange: GCodable where Bound: GCodable {
+extension ClosedRange: GDecodable where Bound: GDecodable {
 	public init(from decoder: GDecoder) throws {
 		let lowerBound	= try decoder.decode() as Bound
 		let upperBound	= try decoder.decode() as Bound
 		self.init(uncheckedBounds: (lowerBound,upperBound) )
 	}
-	
+}
+extension ClosedRange: GEncodable where Bound: GEncodable {
 	public func encode(to encoder: GEncoder) throws {
 		try encoder.encode( lowerBound )
 		try encoder.encode( upperBound )
@@ -178,11 +213,12 @@ extension ClosedRange: GCodable where Bound: GCodable {
 
 // PartialRangeFrom ------------------------------------------------------
 
-extension PartialRangeFrom: GCodable where Bound: GCodable {
+extension PartialRangeFrom: GDecodable where Bound: GDecodable {
 	public init(from decoder: GDecoder) throws {
 		self.init( try decoder.decode() as Bound )
 	}
-	
+}
+extension PartialRangeFrom: GEncodable where Bound: GEncodable {
 	public func encode(to encoder: GEncoder) throws {
 		try encoder.encode( lowerBound )
 	}
@@ -191,24 +227,25 @@ extension PartialRangeFrom: GCodable where Bound: GCodable {
 
 // PartialRangeUpTo ------------------------------------------------------
 
-extension PartialRangeUpTo: GCodable where Bound: GCodable {
+extension PartialRangeUpTo: GDecodable where Bound: GDecodable {
 	public init(from decoder: GDecoder) throws {
 		self.init( try decoder.decode() as Bound )
 	}
-	
+}
+extension PartialRangeUpTo: GEncodable where Bound: GEncodable {
 	public func encode(to encoder: GEncoder) throws {
 		try encoder.encode( upperBound )
 	}
 }
 
-
 // PartialRangeFrom ------------------------------------------------------
 
-extension PartialRangeThrough: GCodable where Bound: GCodable {
+extension PartialRangeThrough: GDecodable where Bound: GDecodable {
 	public init(from decoder: GDecoder) throws {
 		self.init( try decoder.decode() as Bound )
 	}
-	
+}
+extension PartialRangeThrough: GEncodable where Bound: GEncodable {
 	public func encode(to encoder: GEncoder) throws {
 		try encoder.encode( upperBound )
 	}
@@ -216,10 +253,12 @@ extension PartialRangeThrough: GCodable where Bound: GCodable {
 
 // CollectionDifference ------------------------------------------------------
 
-extension CollectionDifference.Change : GCodable where ChangeElement : GCodable {
+fileprivate extension CollectionDifference.Change {
 	private enum ChangeType : UInt8, GCodable { case insert, remove }
 	private enum Key : String { case changeType, offset, element, associatedWith }
-	
+}
+
+extension CollectionDifference.Change : GDecodable where ChangeElement : GDecodable {
 	public init(from decoder: GDecoder) throws {
 		let changeType		= try decoder.decode(for: Key.changeType) as ChangeType
 		let offset			= try decoder.decode(for: Key.offset) as Int
@@ -231,7 +270,9 @@ extension CollectionDifference.Change : GCodable where ChangeElement : GCodable 
 		case .remove:	self = .remove(offset: offset, element: element, associatedWith: associatedWith)
 		}
 	}
-	
+}
+
+extension CollectionDifference.Change : GEncodable where ChangeElement : GEncodable {
 	public func encode(to encoder: GEncoder) throws {
 		switch self {
 		case .insert(let offset, let element, let associatedWith ):
@@ -249,7 +290,7 @@ extension CollectionDifference.Change : GCodable where ChangeElement : GCodable 
 	}
 }
 
-extension CollectionDifference : GCodable where ChangeElement:GCodable {
+extension CollectionDifference : GDecodable where ChangeElement:GDecodable {
 	public init(from decoder: GDecoder) throws {
 		var changes	= [CollectionDifference<ChangeElement>.Change]()
 		while decoder.unkeyedCount > 0 {
@@ -265,7 +306,8 @@ extension CollectionDifference : GCodable where ChangeElement:GCodable {
 		
 		self = value
 	}
-	
+}
+extension CollectionDifference : GEncodable where ChangeElement:GEncodable {
 	public func encode(to encoder: GEncoder) throws {
 		for element in self {
 			try encoder.encode( element )

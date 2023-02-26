@@ -35,7 +35,7 @@ enum FileSection : UInt16, CaseIterable, BinaryIOType {
 //	then, in any order:
 //		D) classDataMap		= ClassDataMap	= [UIntID : ClassData]
 //		E) keyStringMap		= KeyStringMap	= [UIntID : String]
-//	sectionMap[section] contains the position of the related section in the file
+//	sectionMap[section] contains the range of the related section in the file
 typealias SectionMap		= [FileSection : Range<Int>]
 typealias BodyBlocks		= [FileBlock]
 typealias ClassDataMap		= [UIntID : ClassData]
@@ -114,30 +114,39 @@ struct FileHeader : CustomStringConvertible, BinaryIOType {
 	}
 }
 
+/// the body of a GCodable file is a sequence of FileBlock's
 enum FileBlock {
 	private enum Code : UInt8 {
-		case nilValue		= 0x30	// '0'
-		case binaryData		= 0x3E	// '>'	// No Identity
-		case valueType		= 0x25	// '%'	// No Identity
-		case iBinaryData	= 0x2B	// '+'	// Identity
-		case iValueType		= 0x2F	// '/'	// Identity
-		case referenceType	= 0x40	// '@'	// Identity
+		case Nil			= 0x30	// '0'
+		case valueRef		= 0x25	// '%'	// No Identity
+		case binValueRef	= 0x3E	// '>'	// No Identity
+		case idValue		= 0x2F	// '/'	// Identity
+		case idBinValue		= 0x2B	// '+'	// Identity
+		case idRef			= 0x40	// '@'	// Identity
+		case idBinRef		= 0x3D	// '='	// Identity
 		case strongPtr		= 0x21	// '!'	// Identity
 		case conditionalPtr	= 0x3F	// '?'	// Identity
 		case end			= 0x2E	// '.'
 	}
-	//	body
-	//	without Identity
-	case nilValue		( keyID:UIntID )
-	case binaryData		( keyID:UIntID, bytes:Bytes )						// binary
-	case valueType		( keyID:UIntID )									// value type without identity
-	//	with Identity
-	case iBinaryData	( keyID:UIntID, objID:UIntID, bytes:Bytes )			// binary
-	case iValueType		( keyID:UIntID, objID:UIntID )						// value type with identity (iValue)
-	case referenceType	( keyID:UIntID, typeID:UIntID, objID:UIntID )		// reference Type
-	case strongPtr		( keyID:UIntID, objID:UIntID )						// strong pointer to iValue/reference
-	case conditionalPtr	( keyID:UIntID, objID:UIntID )						// conditional pointer to iValue/reference
-	
+	///	a nil optional value or reference
+	case Nil			( keyID:UIntID )
+	///	store a value or reference without identity -- GCodable standard encoding/decoding
+	case valueRef		( keyID:UIntID )
+	///	store a value or reference without identity -- BinaryIO fast encoding/decoding
+	case binValueRef	( keyID:UIntID, bytes:Bytes )
+	///	store a value with identity -- GCodable standard encoding/decoding
+	case idValue		( keyID:UIntID, objID:UIntID )
+	///	store a value with identity -- BinaryIO fast encoding/decoding
+	case idBinValue		( keyID:UIntID, objID:UIntID, bytes:Bytes )
+	///	store a reference with identity, inheritance -- GCodable standard encoding/decoding
+	case idRef			( keyID:UIntID, typeID:UIntID, objID:UIntID )
+	///	store a reference with identity, inheritance -- BinaryIO fast encoding/decoding
+	case idBinRef		( keyID:UIntID, typeID:UIntID, objID:UIntID, bytes:Bytes )
+	///	store a string pointer to a value or reference type with identity
+	case strongPtr		( keyID:UIntID, objID:UIntID )
+	///	store a string pointer to a value or reference type with identity
+	case conditionalPtr	( keyID:UIntID, objID:UIntID )
+	///	end of encoding/decoding of a valueRef/idValue/idRef
 	case end
 }
 
@@ -145,25 +154,26 @@ extension FileBlock {
 	enum Level { case exit, same, enter }
 	var level : Level {
 		switch self {
-		case .valueType:		return .enter
-		case .iValueType:		return .enter
-		case .referenceType:	return .enter
-		case .end:				return .exit
-		default:				return .same
+		case .valueRef:		return .enter
+		case .idValue:		return .enter
+		case .idRef:		return .enter
+		case .end:			return .exit
+		default:			return .same
 		}
 	}
 
 	var keyID : UIntID? {
 		switch self {
-		case .nilValue			( let keyID ):			return	keyID > 0 ? keyID : nil
-		case .binaryData		( let keyID, _ ):		return	keyID > 0 ? keyID : nil
-		case .valueType			( let keyID ):			return	keyID > 0 ? keyID : nil
-		case .iBinaryData		( let keyID, _ , _ ):	return	keyID > 0 ? keyID : nil
-		case .iValueType		( let keyID, _ ):		return	keyID > 0 ? keyID : nil
-		case .referenceType		( let keyID, _, _ ):	return	keyID > 0 ? keyID : nil
-		case .strongPtr			( let keyID, _ ):		return	keyID > 0 ? keyID : nil
-		case .conditionalPtr	( let keyID, _ ):		return	keyID > 0 ? keyID : nil
-		default:										return	nil
+		case .Nil			( let keyID ):				return	keyID > 0 ? keyID : nil
+		case .binValueRef		( let keyID, _ ):			return	keyID > 0 ? keyID : nil
+		case .valueRef			( let keyID ):				return	keyID > 0 ? keyID : nil
+		case .idBinValue		( let keyID, _ , _ ):		return	keyID > 0 ? keyID : nil
+		case .idValue		( let keyID, _ ):			return	keyID > 0 ? keyID : nil
+		case .idBinRef		( let keyID, _ , _ , _):	return	keyID > 0 ? keyID : nil
+		case .idRef			( let keyID, _, _ ):		return	keyID > 0 ? keyID : nil
+		case .strongPtr			( let keyID, _ ):			return	keyID > 0 ? keyID : nil
+		case .conditionalPtr	( let keyID, _ ):			return	keyID > 0 ? keyID : nil
+		default:											return	nil
 		}
 	}
 }
@@ -171,27 +181,33 @@ extension FileBlock {
 extension FileBlock : BinaryOType {
 	func write( to writer: inout BinaryWriter ) throws {
 		switch self {
-		case .nilValue	( let keyID ):
-			try Code.nilValue.write(to: &writer)
+		case .Nil	( let keyID ):
+			try Code.Nil.write(to: &writer)
 			try keyID.write(to: &writer)
-		case .binaryData( let keyID, let bytes ):
-			try Code.binaryData.write(to: &writer)	// <----- ••••••
+		case .binValueRef( let keyID, let bytes ):
+			try Code.binValueRef.write(to: &writer)
 			try keyID.write(to: &writer)
 			try writer.writeData( bytes )
-		case .valueType	( let keyID ):
-			try Code.valueType.write(to: &writer)
+		case .valueRef	( let keyID ):
+			try Code.valueRef.write(to: &writer)
 			try keyID.write(to: &writer)
-		case .iBinaryData( let keyID,  let objID,  let bytes ):
-			try Code.iBinaryData.write(to: &writer)	// <----- ••••••
+		case .idBinValue( let keyID,  let objID,  let bytes ):
+			try Code.idBinValue.write(to: &writer)
 			try keyID.write(to: &writer)
 			try objID.write(to: &writer)
 			try writer.writeData( bytes )
-		case .iValueType( let keyID, let objID ):
-			try Code.iValueType.write(to: &writer)
+		case .idValue( let keyID, let objID ):
+			try Code.idValue.write(to: &writer)
 			try keyID.write(to: &writer)
 			try objID.write(to: &writer)
-		case .referenceType( let keyID, let typeID, let objID ):
-			try Code.referenceType.write(to: &writer)
+		case .idBinRef( let keyID, let typeID, let objID,  let bytes ):
+			try Code.idBinRef.write(to: &writer)
+			try keyID.write(to: &writer)
+			try typeID.write(to: &writer)
+			try objID.write(to: &writer)
+			try writer.writeData( bytes )
+		case .idRef( let keyID, let typeID, let objID ):
+			try Code.idRef.write(to: &writer)
 			try keyID.write(to: &writer)
 			try typeID.write(to: &writer)
 			try objID.write(to: &writer)
@@ -214,30 +230,36 @@ extension FileBlock : BinaryIType {
 		let code = try Code(from: &reader)
 
 		switch code {
-		case .nilValue:
+		case .Nil:
 			let keyID	= try UIntID		( from: &reader )
-			self = .nilValue(keyID: keyID)
-		case .binaryData:
+			self = .Nil(keyID: keyID)
+		case .binValueRef:
 			let keyID	= try UIntID		( from: &reader )
 			let bytes	= try reader.readData() as Bytes
-			self = .binaryData(keyID: keyID, bytes: bytes)
-		case .valueType:
+			self = .binValueRef(keyID: keyID, bytes: bytes)
+		case .valueRef:
 			let keyID	= try UIntID		( from: &reader )
-			self = .valueType(keyID: keyID)
-		case .iBinaryData:
+			self = .valueRef(keyID: keyID)
+		case .idBinValue:
 			let keyID	= try UIntID		( from: &reader )
 			let objID	= try UIntID		( from: &reader )
 			let bytes	= try reader.readData() as Bytes
-			self = .iBinaryData(keyID: keyID, objID: objID, bytes: bytes)
-		case .iValueType:
+			self = .idBinValue(keyID: keyID, objID: objID, bytes: bytes)
+		case .idValue:
 			let keyID	= try UIntID		( from: &reader )
 			let objID	= try UIntID		( from: &reader )
-			self = .iValueType(keyID: keyID, objID: objID)
-		case .referenceType:
+			self = .idValue(keyID: keyID, objID: objID)
+		case .idBinRef:
 			let keyID	= try UIntID		( from: &reader )
 			let typeID	= try UIntID		( from: &reader )
 			let objID	= try UIntID		( from: &reader )
-			self = .referenceType(keyID: keyID, typeID: typeID, objID: objID)
+			let bytes	= try reader.readData() as Bytes
+			self = .idBinRef(keyID: keyID, typeID: typeID, objID: objID, bytes: bytes)
+		case .idRef:
+			let keyID	= try UIntID		( from: &reader )
+			let typeID	= try UIntID		( from: &reader )
+			let objID	= try UIntID		( from: &reader )
+			self = .idRef(keyID: keyID, typeID: typeID, objID: objID)
 		case .strongPtr:
 			let keyID	= try UIntID		( from: &reader )
 			let objID	= try UIntID		( from: &reader )
@@ -308,39 +330,47 @@ extension FileBlock {
 		}
 		
 		switch self {
-		case .nilValue	( let keyID ):
-			return format( keyID, 		keyStringMap, "nil")
-		case .binaryData( let keyID, let bytes ):
+		case .Nil	( let keyID ):
+			return format( keyID, keyStringMap, "nil")
+		case .binValueRef( let keyID, let bytes ):
 			let string : String
 			if let value = binaryValue {
 				string	= small( value, options )
 			} else {
 				string	= "BIN \(bytes.count) bytes"
 			}
-			return format( keyID, 		keyStringMap, string )
-		case .valueType	( let keyID ):
+			return format( keyID, keyStringMap, string )
+		case .valueRef	( let keyID ):
 			let string	= "VAL"
-			return format( keyID, 		keyStringMap, string )
-		case .iBinaryData( let keyID, let objID, let bytes ):
+			return format( keyID, keyStringMap, string )
+		case .idBinValue( let keyID, let objID, let bytes ):
 			let string : String
 			if let value = binaryValue {
 				string	= "BIN\(objID) \( small( value, options ) )"
 			} else {
 				string	= "BIN\(objID) \(bytes.count) bytes"
 			}
-			return format( keyID, 		keyStringMap, string )
-		case .iValueType( let keyID, let objID):
+			return format( keyID, keyStringMap, string )
+		case .idValue( let keyID, let objID):
 			let string	= "VAL\(objID)"
 			return format( keyID, 		keyStringMap, string )
-		case .referenceType( let keyID, let typeID, let objID ):
+		case .idBinRef(keyID: let keyID, typeID: let typeID, objID: let objID, bytes: let bytes):
+			let string : String
+			if let value = binaryValue {
+				string	= "BIN\(objID) \( objectString( typeID,options,classDataMap ) ) \( small( value, options ) )"
+			} else {
+				string	= "BIN\(objID) \( objectString( typeID,options,classDataMap ) ) \(bytes.count) bytes"
+			}
+			return format( keyID, keyStringMap, string )
+		case .idRef( let keyID, let typeID, let objID ):
 			let string	= "REF\(objID) \( objectString( typeID,options,classDataMap ) )"
-			return format( keyID, 		keyStringMap, string )
+			return format( keyID, keyStringMap, string )
 		case .strongPtr( let keyID, let objID ):
 			let string	= "PTR\(objID)"
-			return format( keyID, 		keyStringMap, string )
+			return format( keyID, keyStringMap, string )
 		case .conditionalPtr( let keyID, let objID ):
 			let string	= "PTR\(objID)?"
-			return format( keyID, 		keyStringMap, string )
+			return format( keyID, keyStringMap, string )
 		case .end:
 			return 	"."
 		}
