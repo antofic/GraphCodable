@@ -383,7 +383,7 @@ extension FileBlock {
 			if let value = binaryValue {
 				string	= small( value, options )
 			} else {
-				string	= "BIN \(bytes.count) bytes"
+				string	= "BIV \(bytes.count) bytes"
 			}
 			return format( keyID, keyStringMap, string )
 		case .ref(keyID: let keyID, typeID: let typeID):
@@ -392,9 +392,9 @@ extension FileBlock {
 		case .binRef(keyID: let keyID, typeID: let typeID, bytes: let bytes):
 			let string : String
 			if let value = binaryValue {
-				string	= "BIN \( objectString( typeID,options,classDataMap ) ) \( small( value, options ) )"
+				string	= "BIR \( objectString( typeID,options,classDataMap ) ) \( small( value, options ) )"
 			} else {
-				string	= "BIN \( objectString( typeID,options,classDataMap ) ) \(bytes.count) bytes"
+				string	= "BIR \( objectString( typeID,options,classDataMap ) ) \(bytes.count) bytes"
 			}
 			return format( keyID, keyStringMap, string )
 		case .idValue( let keyID, let objID):
@@ -403,9 +403,9 @@ extension FileBlock {
 		case .idBinValue( let keyID, let objID, let bytes ):
 			let string : String
 			if let value = binaryValue {
-				string	= "BIN\(objID) \( small( value, options ) )"
+				string	= "BIV\(objID) \( small( value, options ) )"
 			} else {
-				string	= "BIN\(objID) \(bytes.count) bytes"
+				string	= "BIV\(objID) \(bytes.count) bytes"
 			}
 			return format( keyID, keyStringMap, string )
 		case .idRef( let keyID, let typeID, let objID ):
@@ -414,9 +414,9 @@ extension FileBlock {
 		case .idBinRef(keyID: let keyID, typeID: let typeID, objID: let objID, bytes: let bytes):
 			let string : String
 			if let value = binaryValue {
-				string	= "BIN\(objID) \( objectString( typeID,options,classDataMap ) ) \( small( value, options ) )"
+				string	= "BIR\(objID) \( objectString( typeID,options,classDataMap ) ) \( small( value, options ) )"
 			} else {
-				string	= "BIN\(objID) \( objectString( typeID,options,classDataMap ) ) \(bytes.count) bytes"
+				string	= "BIR\(objID) \( objectString( typeID,options,classDataMap ) ) \(bytes.count) bytes"
 			}
 			return format( keyID, keyStringMap, string )
 		case .strongPtr( let keyID, let objID ):

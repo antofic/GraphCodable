@@ -145,8 +145,8 @@ final class GEncoderImpl : GEncoder, BinaryEncoderDelegate {
 			return nil
 		}
 		if encodeOptions.contains( .ignoreGTypeInfoProtocol ) == false,
-		   let inheritance = object as? (AnyObject & GTypeInfo),
-		   inheritance.disableInheritance {
+		   let typeInfo = object as? (AnyObject & GTypeInfo),
+		   typeInfo.disableTypeInfo {
 			return nil
 		}
 		return try referenceMap.createTypeIDIfNeeded( type: type(of:object) )
@@ -235,97 +235,6 @@ final class GEncoderImpl : GEncoder, BinaryEncoderDelegate {
 		}
 	}
 	
-	/*
-	private func encodeAnyValue(_ anyValue: Any, forKey key: String?, conditional:Bool ) throws {
-		// trasformo in un Optional<Any> di un solo livello:
-		let value	= Optional(fullUnwrapping: anyValue)
-		let keyID	= try createKeyID( key: key )
-		
-		guard let value = value else {
-			try dataEncoder.appendNil(keyID: keyID)
-			return
-		}
-		// now value if not nil!
-		if let binaryValue = value as? NativeEncodable {
-			//	i tipi nativi sono semplici: l'identità non serve
-			//	(e per le stringhe?)
-			//	in teoria possono essere reference, ma si comportano come value
-			try dataEncoder.appendBinValue(keyID: keyID, value: binaryValue )
-		} else if let value = value as? GEncodable {
-			if let identifier = identifier( of:value ) {	// IDENTITY
-				if let objID = identifierMap.strongID( identifier ) {
-					// l'oggetto è stato già memorizzato, basta un pointer
-					if conditional {
-						try dataEncoder.appendConditionalPtr(keyID: keyID, objID: objID)
-					} else {
-						try dataEncoder.appendStrongPtr(keyID: keyID, objID: objID)
-					}
-				} else if conditional {
-					// Conditional Encoding: avrei la descrizione ma non la voglio usare
-					// perché servirà solo se dopo arriverà da uno strongRef
-					
-					if let type	= type(of:value) as? AnyClass {
-						// se è un feference verifico che sia reificabile
-						try ClassData.throwIfNotConstructible( type: type )
-					}
-						
-					let objID	= identifierMap.createWeakID( identifier )
-					try dataEncoder.appendConditionalPtr(keyID: keyID, objID: objID)
-				} else if let object = value as? GEncodable & AnyObject {	// INHERITANCE
-					//	memorizzo il reference type
-					let typeID	= try referenceMap.createTypeIDIfNeeded( type: type(of:object) )
-					let objID	= identifierMap.createStrongID( identifier )
-					
-					if let binaryValue = binaryValue( of:value ) {
-						try dataEncoder.appendIdBinRef(keyID: keyID, typeID: typeID, objID: objID, value: binaryValue )
-					} else {
-						try dataEncoder.appendIdRef(keyID: keyID, typeID: typeID, objID: objID)
-						try encodeValue( object )
-						try dataEncoder.appendEnd()
-					}
-				} else {
-					//	memorizzo il value type
-					let objID	= identifierMap.createStrongID( identifier )
-					
-					if let binaryValue = binaryValue( of:value ) {
-						try dataEncoder.appendIdBinValue(keyID: keyID, objID: objID, value: binaryValue )
-					} else {
-						try dataEncoder.appendIdValue(keyID: keyID, objID: objID)
-						try encodeValue( value )
-						try dataEncoder.appendEnd()
-					}
-				}
-			} else {	// NO IDENTITY
-				if let object = value as? GEncodable & AnyObject {	// INHERITANCE
-					let typeID	= try referenceMap.createTypeIDIfNeeded( type: type(of:object) )
-					
-					if let binaryValue = binaryValue( of:value ) {
-						try dataEncoder.appendBinRef(keyID: keyID, typeID: typeID, value: binaryValue )
-					} else {
-						try dataEncoder.appendRef( keyID: keyID, typeID: typeID )
-						try encodeValue( value )
-						try dataEncoder.appendEnd()
-					}
-				} else { 	// NO INHERITANCE
-					if let binaryValue = binaryValue( of:value ) {
-						try dataEncoder.appendBinValue(keyID: keyID, value: binaryValue )
-					} else {
-						//	valore senza identità
-						try dataEncoder.appendValue( keyID: keyID )
-						try encodeValue( value )
-						try dataEncoder.appendEnd()
-					}
-				}
-			}
-		} else {
-			throw GCodableError.internalInconsistency(
-				Self.self, GCodableError.Context(
-					debugDescription: "Not GEncodable value \(value)."
-				)
-			)
-		}
-	}
-	 */
 	private func encodeValue( _ value:GEncodable ) throws {
 		let savedKeys	= currentKeys
 		defer { currentKeys = savedKeys }
@@ -364,7 +273,6 @@ fileprivate final class BinaryEncoder<Provider:BinaryEncoderDelegate> {
 	init( isDump: Bool ) {
 		self.isDump		= isDump
 	}
-	
 	func appendNil( keyID:UIntID ) throws {
 		try append( .Nil(keyID: keyID) )
 	}
@@ -389,7 +297,6 @@ fileprivate final class BinaryEncoder<Provider:BinaryEncoderDelegate> {
 		let bytes	= try value.binaryData() as Bytes
 		try append( .idBinValue(keyID: keyID, objID: objID, bytes: bytes), value:value )
 	}
-
 	func appendIdRef( keyID:UIntID, typeID:UIntID, objID:UIntID )throws {
 		try append( .idRef(keyID: keyID, typeID: typeID, objID: objID) )
 	}
@@ -397,8 +304,6 @@ fileprivate final class BinaryEncoder<Provider:BinaryEncoderDelegate> {
 		let bytes	= try value.binaryData() as Bytes
 		try append( .idBinRef(keyID: keyID, typeID:typeID, objID: objID, bytes: bytes), value:value )
 	}
-
-	
 	func appendStrongPtr( keyID:UIntID, objID:UIntID ) throws {
 		try append( .strongPtr(keyID: keyID, objID: objID) )
 	}

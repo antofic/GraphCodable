@@ -26,58 +26,59 @@ import GraphCodable
 //	••••••• We compare GraphCoder() with Codable JSON and PropertyList Coders
 //	••••••• Use 'Release' build configuration
 
-struct RecursiveData : Codable, GCodable, BinaryIOType {
-	var larges	: [RecursiveData]
-	var string	: String
-	var array	: [Int]
-	
-	private enum Key : String {
-		case larges, string, array
-	}
-
-	// Create count! (factorial) RecursiveData struct, so keep this number down!!!
-	init( count:Int = 0 ) {
-		self.larges	= count > 0 ? [RecursiveData](repeating: RecursiveData( count: count - 1 ), count: count) : [RecursiveData]()
-		self.string	= "ABCDEFG"
-		self.array	= [Int](repeating: count, count:30)
-	}
-	
-	func encode(to encoder: GEncoder) throws {
-		try encoder.encode( larges, for: Key.larges )
-		try encoder.encode( string, for: Key.string )
-		try encoder.encode( array,  for: Key.array  )
-	}
-	
-	init(from decoder: GDecoder) throws {
-		larges	= try decoder.decode( for: Key.larges )
-		string	= try decoder.decode( for: Key.string )
-		array	= try decoder.decode( for: Key.array )
-	}
-	
-	func write(to writer: inout GraphCodable.BinaryWriter) throws {
-		try larges.write(to: &writer)
-		try string.write(to: &writer)
-		try array.write(to: &writer)
-	}
-	
-	init(from reader: inout GraphCodable.BinaryReader) throws {
-		larges	= try [RecursiveData](from: &reader)
-		string	= try String( from: &reader )
-		array	= try [Int]( from: &reader )
-	}
-}
 
 // --------------------------------------------------------------------------------
 
 final class PerformanceTests: XCTestCase {
+	struct RecursiveData : Codable, GCodable, BinaryIOType {
+		var larges	: [RecursiveData]
+		var string	: String
+		var array	: [Int]
+		
+		private enum Key : String {
+			case larges, string, array
+		}
+
+		// Create count! (factorial) RecursiveData struct, so keep this number down!!!
+		init( count:Int = 0 ) {
+			self.larges	= count > 0 ? [RecursiveData](repeating: RecursiveData( count: count - 1 ), count: count) : [RecursiveData]()
+			self.string	= "ABCDEFG"
+			self.array	= [Int](repeating: Int.max - count, count:30)
+		}
+		
+		func encode(to encoder: GEncoder) throws {
+			try encoder.encode( larges, for: Key.larges )
+			try encoder.encode( string, for: Key.string )
+			try encoder.encode( array,  for: Key.array  )
+		}
+		
+		init(from decoder: GDecoder) throws {
+			larges	= try decoder.decode( for: Key.larges )
+			string	= try decoder.decode( for: Key.string )
+			array	= try decoder.decode( for: Key.array )
+		}
+		
+		func write(to writer: inout GraphCodable.BinaryWriter) throws {
+			try larges.write(to: &writer)
+			try string.write(to: &writer)
+			try array.write(to: &writer)
+		}
+		
+		init(from reader: inout GraphCodable.BinaryReader) throws {
+			larges	= try [RecursiveData](from: &reader)
+			string	= try String( from: &reader )
+			array	= try [Int]( from: &reader )
+		}
+	}
+
 	
 	let input	= RecursiveData( count:7 )
 	
 	func testDataSize() throws {
 		// just to print generated file size.
 		print("\n\n\n- DATA SIZES ----------------------------------")
-		print("GraphEncoder           : \( try GraphEncoder().encode(input) )")
-		print("GraphEncoder (bin=off) : \( try GraphEncoder( .onlyNativeTypes ).encode(input) )")
+		print("GraphEncoder (bin=on)  : \( try GraphEncoder( .enableLibraryBinaryIOTypes ).encode(input) )")
+		print("GraphEncoder (bin=off) : \( try GraphEncoder( .disableLibraryBinaryIOTypes ).encode(input) )")
 		print("BinariIOReader         : \( try input.binaryData() as Data )")
 		print("JSONEncoder            : \( try JSONEncoder().encode(input) )")
 		print("PropertyListEncoder    : \( try PropertyListEncoder().encode(input) )")
@@ -87,7 +88,7 @@ final class PerformanceTests: XCTestCase {
 	func testGraphEncoder() throws {
 		measure {
 			do {
-				let _		= try GraphEncoder().encode(input)
+				let _		= try GraphEncoder( .enableLibraryBinaryIOTypes ).encode(input)
 			} catch {}
 		}
 	}
@@ -95,7 +96,7 @@ final class PerformanceTests: XCTestCase {
 	func testGraphEncoderBinOff() throws {
 		measure {
 			do {
-				let _		= try GraphEncoder( .onlyNativeTypes ).encode(input)
+				let _		= try GraphEncoder( .disableLibraryBinaryIOTypes ).encode(input)
 			} catch {}
 		}
 	}
@@ -135,7 +136,7 @@ final class PerformanceTests: XCTestCase {
 	}
 
 	func testGraphDecoderBinOff() throws {
-		let data	= try GraphEncoder( .onlyNativeTypes ).encode(input)
+		let data	= try GraphEncoder( .disableLibraryBinaryIOTypes ).encode(input)
 		measure {
 			do {
 				let	_		= try GraphDecoder().decode( type(of:input), from: data )

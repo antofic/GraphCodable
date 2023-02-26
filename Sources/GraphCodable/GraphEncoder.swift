@@ -22,12 +22,6 @@
 
 import Foundation
 
-
-
-// -------------------------------------------------
-// ----- GraphEncoder
-// -------------------------------------------------
-
 public final class GraphEncoder {
 	private let encoder	: GEncoderImpl
 
@@ -133,10 +127,9 @@ extension GraphEncoder {
 		/// - Note: This option is disabled by default
 		public static let	disableRefTypeInfo									= Self( rawValue: 1 << 5 )
 		
-		public static let	onlyNativeTypes:	Self 	= []
-		public static let	mimicSwiftCodable:	Self 	= [ disableIdentity, disableRefTypeInfo ]
-
-		public static let	defaultOption:		Self 	= onlyNativeTypes
+		public static let	disableLibraryBinaryIOTypes:	Self 	= []
+		public static let	mimicSwiftCodable:				Self 	= [ disableIdentity, disableRefTypeInfo ]
+		public static let	defaultOption:					Self 	= [ disableLibraryBinaryIOTypes ]
 	}
 }
 
