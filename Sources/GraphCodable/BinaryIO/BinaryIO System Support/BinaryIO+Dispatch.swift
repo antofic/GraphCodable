@@ -24,12 +24,12 @@ import Dispatch
 
 
 extension DispatchTime : BinaryIOType {
-	public init(from reader: inout BinaryReadBuffer) throws {
-		self.init( uptimeNanoseconds: try UInt64( from: &reader) )
+	public init(from rbuffer: inout BinaryReadBuffer) throws {
+		self.init( uptimeNanoseconds: try UInt64( from: &rbuffer) )
 	}
 	
-	public func write(to writer: inout BinaryWriteBuffer) throws {
-		try uptimeNanoseconds.write(to: &writer)
+	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
+		try uptimeNanoseconds.write(to: &wbuffer)
 	}
 }
 
@@ -38,22 +38,22 @@ extension DispatchTimeInterval : BinaryIOType {
 		case seconds,milliseconds,microseconds,nanoseconds,never
 	}
 	
-	public func write(to writer: inout BinaryWriteBuffer) throws {
+	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
 		switch self {
 		case .seconds( let value ):
-			try IntervalType.seconds.write(to: &writer)
-			try value.write(to: &writer)
+			try IntervalType.seconds.write(to: &wbuffer)
+			try value.write(to: &wbuffer)
 		case .milliseconds( let value ):
-			try IntervalType.milliseconds.write(to: &writer)
-			try value.write(to: &writer)
+			try IntervalType.milliseconds.write(to: &wbuffer)
+			try value.write(to: &wbuffer)
 		case .microseconds( let value ):
-			try IntervalType.microseconds.write(to: &writer)
-			try value.write(to: &writer)
+			try IntervalType.microseconds.write(to: &wbuffer)
+			try value.write(to: &wbuffer)
 		case .nanoseconds( let value ):
-			try IntervalType.nanoseconds.write(to: &writer)
-			try value.write(to: &writer)
+			try IntervalType.nanoseconds.write(to: &wbuffer)
+			try value.write(to: &wbuffer)
 		case .never:
-			try IntervalType.never.write(to: &writer)
+			try IntervalType.never.write(to: &wbuffer)
 		default:
 			throw BinaryIOError.versionError(
 				Self.self, BinaryIOError.Context(
@@ -63,20 +63,20 @@ extension DispatchTimeInterval : BinaryIOType {
 		}
 	}
 	
-	public init(from reader: inout BinaryReadBuffer) throws {
-		let intervalType	= try IntervalType.init(from: &reader)
+	public init(from rbuffer: inout BinaryReadBuffer) throws {
+		let intervalType	= try IntervalType.init(from: &rbuffer)
 		switch intervalType {
 		case .seconds:
-			let value = try Int( from: &reader )
+			let value = try Int( from: &rbuffer )
 			self = .seconds(value)
 		case .milliseconds:
-			let value = try Int( from: &reader )
+			let value = try Int( from: &rbuffer )
 			self = .milliseconds(value)
 		case .microseconds:
-			let value = try Int( from: &reader )
+			let value = try Int( from: &rbuffer )
 			self = .microseconds(value)
 		case .nanoseconds:
-			let value = try Int( from: &reader )
+			let value = try Int( from: &rbuffer )
 			self = .nanoseconds(value)
 		case .never:
 			self = .never
@@ -85,22 +85,22 @@ extension DispatchTimeInterval : BinaryIOType {
 }
 
 extension DispatchQueue.SchedulerTimeType : BinaryIOType {
-	public func write(to writer: inout BinaryWriteBuffer) throws {
-		try dispatchTime.write(to: &writer)
+	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
+		try dispatchTime.write(to: &wbuffer)
 	}
 	
-	public init(from reader: inout BinaryReadBuffer) throws {
-		self.init( try DispatchTime(from: &reader) )
+	public init(from rbuffer: inout BinaryReadBuffer) throws {
+		self.init( try DispatchTime(from: &rbuffer) )
 	}
 }
 
 extension DispatchQueue.SchedulerTimeType.Stride : BinaryIOType {
-	public func write(to writer: inout BinaryWriteBuffer) throws {
-		try timeInterval.write(to: &writer)
+	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
+		try timeInterval.write(to: &wbuffer)
 	}
 	
-	public init(from reader: inout BinaryReadBuffer) throws {
-		self.init( try DispatchTimeInterval( from:&reader) )
+	public init(from rbuffer: inout BinaryReadBuffer) throws {
+		self.init( try DispatchTimeInterval( from:&rbuffer) )
 	}
 }
 

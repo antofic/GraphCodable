@@ -54,13 +54,13 @@ struct FileHeader : CustomStringConvertible, BinaryIOType {
 		case header		= 0x5E	// '^'
 	}
 
-	init(from reader: inout BinaryReadBuffer) throws {
+	init(from rbuffer: inout BinaryReadBuffer) throws {
 		do {
-			_ = ObsoleteCode.peek( from: &reader ) {
+			_ = ObsoleteCode.peek( from: &rbuffer ) {
 				$0 == .header
 			}
 			
-			let headerID	= try HeaderID	( from: &reader )
+			let headerID	= try HeaderID	( from: &rbuffer )
 			guard headerID == .gcodable else {
 				throw GCodableError.decodingError(
 					Self.self, GCodableError.Context(
@@ -69,11 +69,11 @@ struct FileHeader : CustomStringConvertible, BinaryIOType {
 				)
 			}
 			
-			self.version	= try UInt32	( from: &reader )
-			self.unused0	= try UInt32	( from: &reader )
-			self.unused1	= try UInt64	( from: &reader )
+			self.version	= try UInt32	( from: &rbuffer )
+			self.unused0	= try UInt32	( from: &rbuffer )
+			self.unused1	= try UInt64	( from: &rbuffer )
 			if version < Self.RMUNUS2_FILE_VERSION {
-				_	= try UInt8( from: &reader )	// removed unused2 from SECTION_FILE_VERSION
+				_	= try UInt8( from: &rbuffer )	// removed unused2 from SECTION_FILE_VERSION
 			}
 		} catch( let error ) {
 			throw GCodableError.invalidHeader(
@@ -85,10 +85,10 @@ struct FileHeader : CustomStringConvertible, BinaryIOType {
 		}
 	}
 
-	func write(to writer: inout BinaryWriteBuffer) throws {
-		try HeaderID.gcodable.write(to: &writer)
-		try version.write(to: &writer)
-		try unused0.write(to: &writer)
-		try unused1.write(to: &writer)
+	func write(to wbuffer: inout BinaryWriteBuffer) throws {
+		try HeaderID.gcodable.write(to: &wbuffer)
+		try version.write(to: &wbuffer)
+		try unused0.write(to: &wbuffer)
+		try unused1.write(to: &wbuffer)
 	}
 }

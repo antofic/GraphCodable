@@ -40,10 +40,11 @@ public protocol GEncoder {
 	func encodeIfPresent<Key,Value>(_ value: Value?, for key:Key ) throws where
 		Value : GEncodable, Key:RawRepresentable, Key.RawValue == String
 
-	/// Encodes a reference to the given object only if it is encoded
+	/// Encodes an optional value **with identity** for the given key only if it is encoded
 	/// unconditionally elsewhere in the payload (previously, or in the future).
+	/// Throws an exception if the value don't have an identity.
 	///
-	/// - parameter object: The object to encode.
+	/// - parameter value: The optional value to encode.
 	/// - parameter key: The key to associate the object with.
 	func encodeConditional<Key,Value>(_ value: Value? , for key:Key ) throws where
 		Value : GEncodable, Key:RawRepresentable, Key.RawValue == String
@@ -54,15 +55,21 @@ public protocol GEncoder {
 	func encode<Value>(_ value: Value ) throws where
 		Value : GEncodable
 	
-	/// Encodes a reference to the given object only if it is encoded
+	/// Encodes an optional value **with identity** if it is encoded
 	/// unconditionally elsewhere in the payload (previously, or in the future).
+	/// Throws an exception if the value don't have an identity.
 	///
-	/// - parameter object: The object to encode.
+	/// - parameter value: The optional value to encode.
 	func encodeConditional<Value>(_ value: Value? ) throws where
 		Value : GEncodable
 }
 
 extension GEncoder {
+	/// Encodes an optional value for the given key only if
+	/// the value **is not** `nil`.
+	///
+	/// - parameter value: The optional value to encode.
+	/// - parameter key: The key to associate the object with.
 	public func encodeIfPresent<Key,Value>(_ value: Value?, for key:Key ) throws where
 		Value : GEncodable, Key:RawRepresentable, Key.RawValue == String
 	{

@@ -23,13 +23,14 @@
 import Foundation
 
 /*
-BinaryReader:
+BinaryReadBuffer:
 	• convert from file little-endian format to the machine format
 	• convert Int, UInt stored as Int64, UInt64 to Int, UInt in machine size
 		(throws an error if it is not possible)
 */
 
 
+/// Buffer to read instances of BinaryIType types from.
 public struct BinaryReadBuffer {
 	private let base:	Bytes
 	private var bytes:	Bytes.SubSequence

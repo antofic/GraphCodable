@@ -68,7 +68,7 @@ public protocol GDecoder {
 	/// Decodes a value/reference of the given type for the given key, if present.
 	///
 	/// This method returns `nil` if the container does not have a value
-	/// associated with `key`, or if the value is null. The difference between
+	/// associated with `key`, or if the value is `nil`. The difference between
 	/// these states can be distinguished with a `contains(_:)` call.
 	///
 	/// - parameter key: The key that the decoded value is associated with.

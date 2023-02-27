@@ -163,6 +163,13 @@ final class GEncoderImpl : GEncoder, BinaryEncoderDelegate {
 		}
 		// now value if not nil!
 		if let binaryValue = value as? NativeEncodable {
+			if conditional {
+				throw GCodableError.conditionalWithoutIdentity(
+					Self.self, GCodableError.Context(
+						debugDescription: "Can't conditionally encode a value \(value) without identity."
+					)
+				)
+			}
 			//	i tipi nativi sono semplici: l'identità non serve
 			//	(e per le stringhe?)
 			//	in teoria possono essere reference, ma si comportano come value
@@ -208,6 +215,14 @@ final class GEncoderImpl : GEncoder, BinaryEncoderDelegate {
 					}
 				}
 			} else {	// NO IDENTITY
+				if conditional {
+					throw GCodableError.conditionalWithoutIdentity(
+						Self.self, GCodableError.Context(
+							debugDescription: "Can't conditionally encode a value \(value) without identity."
+						)
+					)
+				}
+
 				let typeID	= try createTypeIDIfNeeded( for: value )
 
 				if let binaryValue = binaryValue( of:value ) {
@@ -267,7 +282,7 @@ fileprivate final class BinaryEncoder<Provider:BinaryEncoderDelegate> {
 	let					fileHeader	= FileHeader()
 	let					isDump		: Bool
 	weak var			delegate	: Provider?
-	private var			writer		= BinaryWriteBuffer()
+	private var			wbuffer		= BinaryWriteBuffer()
 	private var			output		= String()
 
 	init( isDump: Bool ) {
@@ -426,22 +441,22 @@ fileprivate final class BinaryEncoder<Provider:BinaryEncoderDelegate> {
 			// entriamo la prima volta e quindi scriviamo header e section map.
 
 			// write header:
-			try fileHeader.write(to: &writer)
-			sectionMapPosition	= writer.position
+			try fileHeader.write(to: &wbuffer)
+			sectionMapPosition	= wbuffer.position
 
 			// write section map:
 			for section in FileSection.allCases {
 				sectionMap[ section ] = Range(uncheckedBounds: (0,0))
 			}
-			try sectionMap.write(to: &writer)
-			let bounds	= (writer.position,writer.position)
+			try sectionMap.write(to: &wbuffer)
+			let bounds	= (wbuffer.position,wbuffer.position)
 			sectionMap[ FileSection.body ] = Range( uncheckedBounds:bounds )
 		}
 	}
 	
 	private func appendBinaryData( _ fileBlock: FileBlock ) throws {
 		try writeInit()
-		try fileBlock.write(to: &writer)
+		try fileBlock.write(to: &wbuffer)
 	}
 
 	func data<Q>() throws -> Q where Q:MutableDataProtocol {
@@ -455,28 +470,28 @@ fileprivate final class BinaryEncoder<Provider:BinaryEncoderDelegate> {
 		
 		try writeInit()
 		
-		var bounds	= (sectionMap[.body]!.startIndex,writer.position)
+		var bounds	= (sectionMap[.body]!.startIndex,wbuffer.position)
 		sectionMap[.body]	= Range( uncheckedBounds:bounds )
 		
 		// referenceMap:
-		try delegate!.classDataMap.write(to: &writer)
-		bounds	= ( bounds.1,writer.position )
+		try delegate!.classDataMap.write(to: &wbuffer)
+		bounds	= ( bounds.1,wbuffer.position )
 		sectionMap[ FileSection.classDataMap ] = Range( uncheckedBounds:bounds )
 
 		// keyStringMap:
-		try delegate!.keyStringMap.write(to: &writer)
-		bounds	= ( bounds.1,writer.position )
+		try delegate!.keyStringMap.write(to: &wbuffer)
+		bounds	= ( bounds.1,wbuffer.position )
 		sectionMap[ FileSection.keyStringMap ] = Range( uncheckedBounds:bounds )
 
 		do {
 			//	sovrascrivo la sectionMapPosition
 			//	ora che ho tutti i valori
-			defer { writer.setEof() }
-			writer.position	= sectionMapPosition
-			try sectionMap.write(to: &writer)
+			defer { wbuffer.setEof() }
+			wbuffer.position	= sectionMapPosition
+			try sectionMap.write(to: &wbuffer)
 		}
 		
-		return writer.data()
+		return wbuffer.data()
 	}
 	
 }

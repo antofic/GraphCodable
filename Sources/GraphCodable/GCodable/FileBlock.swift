@@ -213,46 +213,46 @@ extension FileBlock {
 }
 
 extension FileBlock : BinaryOType {
-	func write( to writer: inout BinaryWriteBuffer ) throws {
-		try code.write(to: &writer)
+	func write( to wbuffer: inout BinaryWriteBuffer ) throws {
+		try code.write(to: &wbuffer)
 		
 		switch self {
 		case .Nil	( let keyID ):
-			try keyID.write(to: &writer)
+			try keyID.write(to: &wbuffer)
 		case .value	( let keyID ):
-			try keyID.write(to: &writer)
+			try keyID.write(to: &wbuffer)
 		case .binValue( let keyID, let bytes ):
-			try keyID.write(to: &writer)
-			try writer.writeData( bytes )
+			try keyID.write(to: &wbuffer)
+			try wbuffer.writeData( bytes )
 		case .ref(keyID: let keyID, let typeID):
-			try keyID.write(to: &writer)
-			try typeID.write(to: &writer)
+			try keyID.write(to: &wbuffer)
+			try typeID.write(to: &wbuffer)
 		case .binRef(keyID: let keyID, let typeID, bytes: let bytes):
-			try keyID.write(to: &writer)
-			try typeID.write(to: &writer)
-			try writer.writeData( bytes )
+			try keyID.write(to: &wbuffer)
+			try typeID.write(to: &wbuffer)
+			try wbuffer.writeData( bytes )
 		case .idValue( let keyID, let objID ):
-			try keyID.write(to: &writer)
-			try objID.write(to: &writer)
+			try keyID.write(to: &wbuffer)
+			try objID.write(to: &wbuffer)
 		case .idBinValue( let keyID,  let objID,  let bytes ):
-			try keyID.write(to: &writer)
-			try objID.write(to: &writer)
-			try writer.writeData( bytes )
+			try keyID.write(to: &wbuffer)
+			try objID.write(to: &wbuffer)
+			try wbuffer.writeData( bytes )
 		case .idRef( let keyID, let typeID, let objID ):
-			try keyID.write(to: &writer)
-			try typeID.write(to: &writer)
-			try objID.write(to: &writer)
+			try keyID.write(to: &wbuffer)
+			try typeID.write(to: &wbuffer)
+			try objID.write(to: &wbuffer)
 		case .idBinRef( let keyID, let typeID, let objID,  let bytes ):
-			try keyID.write(to: &writer)
-			try typeID.write(to: &writer)
-			try objID.write(to: &writer)
-			try writer.writeData( bytes )
+			try keyID.write(to: &wbuffer)
+			try typeID.write(to: &wbuffer)
+			try objID.write(to: &wbuffer)
+			try wbuffer.writeData( bytes )
 		case .strongPtr( let keyID, let objID ):
-			try keyID.write(to: &writer)
-			try objID.write(to: &writer)
+			try keyID.write(to: &wbuffer)
+			try objID.write(to: &wbuffer)
 		case .conditionalPtr( let keyID, let objID ):
-			try keyID.write(to: &writer)
-			try objID.write(to: &writer)
+			try keyID.write(to: &wbuffer)
+			try objID.write(to: &wbuffer)
 		case .end:
 			break
 		}
@@ -260,56 +260,56 @@ extension FileBlock : BinaryOType {
 }
 
 extension FileBlock : BinaryIType {
-	init(from reader: inout BinaryReadBuffer) throws {
-		let code = try Code(from: &reader)
+	init(from rbuffer: inout BinaryReadBuffer) throws {
+		let code = try Code(from: &rbuffer)
 
 		switch code {
 		case .Nil:
-			let keyID	= try UIntID		( from: &reader )
+			let keyID	= try UIntID		( from: &rbuffer )
 			self = .Nil(keyID: keyID)
 		case .value:
-			let keyID	= try UIntID		( from: &reader )
+			let keyID	= try UIntID		( from: &rbuffer )
 			self = .value(keyID: keyID)
 		case .binValue:
-			let keyID	= try UIntID		( from: &reader )
-			let bytes	= try reader.readData() as Bytes
+			let keyID	= try UIntID		( from: &rbuffer )
+			let bytes	= try rbuffer.readData() as Bytes
 			self = .binValue(keyID: keyID, bytes: bytes)
 		case .ref:
-			let keyID	= try UIntID		( from: &reader )
-			let typeID	= try UIntID		( from: &reader )
+			let keyID	= try UIntID		( from: &rbuffer )
+			let typeID	= try UIntID		( from: &rbuffer )
 			self = .ref(keyID: keyID, typeID: typeID)
 		case .binRef:
-			let keyID	= try UIntID		( from: &reader )
-			let typeID	= try UIntID		( from: &reader )
-			let bytes	= try reader.readData() as Bytes
+			let keyID	= try UIntID		( from: &rbuffer )
+			let typeID	= try UIntID		( from: &rbuffer )
+			let bytes	= try rbuffer.readData() as Bytes
 			self = .binRef(keyID: keyID, typeID: typeID, bytes: bytes)
 		case .idValue:
-			let keyID	= try UIntID		( from: &reader )
-			let objID	= try UIntID		( from: &reader )
+			let keyID	= try UIntID		( from: &rbuffer )
+			let objID	= try UIntID		( from: &rbuffer )
 			self = .idValue(keyID: keyID, objID: objID)
 		case .idBinValue:
-			let keyID	= try UIntID		( from: &reader )
-			let objID	= try UIntID		( from: &reader )
-			let bytes	= try reader.readData() as Bytes
+			let keyID	= try UIntID		( from: &rbuffer )
+			let objID	= try UIntID		( from: &rbuffer )
+			let bytes	= try rbuffer.readData() as Bytes
 			self = .idBinValue(keyID: keyID, objID: objID, bytes: bytes)
 		case .idRef:
-			let keyID	= try UIntID		( from: &reader )
-			let typeID	= try UIntID		( from: &reader )
-			let objID	= try UIntID		( from: &reader )
+			let keyID	= try UIntID		( from: &rbuffer )
+			let typeID	= try UIntID		( from: &rbuffer )
+			let objID	= try UIntID		( from: &rbuffer )
 			self = .idRef(keyID: keyID, typeID: typeID, objID: objID)
 		case .idBinRef:
-			let keyID	= try UIntID		( from: &reader )
-			let typeID	= try UIntID		( from: &reader )
-			let objID	= try UIntID		( from: &reader )
-			let bytes	= try reader.readData() as Bytes
+			let keyID	= try UIntID		( from: &rbuffer )
+			let typeID	= try UIntID		( from: &rbuffer )
+			let objID	= try UIntID		( from: &rbuffer )
+			let bytes	= try rbuffer.readData() as Bytes
 			self = .idBinRef(keyID: keyID, typeID: typeID, objID: objID, bytes: bytes)
 		case .strongPtr:
-			let keyID	= try UIntID		( from: &reader )
-			let objID	= try UIntID		( from: &reader )
+			let keyID	= try UIntID		( from: &rbuffer )
+			let objID	= try UIntID		( from: &rbuffer )
 			self = .strongPtr(keyID: keyID, objID: objID)
 		case .conditionalPtr:
-			let keyID	= try UIntID		( from: &reader )
-			let objID	= try UIntID		( from: &reader )
+			let keyID	= try UIntID		( from: &rbuffer )
+			let objID	= try UIntID		( from: &rbuffer )
 			self = .conditionalPtr(keyID: keyID, objID: objID)
 		case .end:
 			self = .end
@@ -452,17 +452,17 @@ enum FileBlockObsolete {
 }
 
 extension FileBlockObsolete : BinaryIType {
-	init(from reader: inout BinaryReadBuffer) throws {
-		let code = try Code(from: &reader)
+	init(from rbuffer: inout BinaryReadBuffer) throws {
+		let code = try Code(from: &rbuffer)
 
 		switch code {
 		case .keyStringMap:
-			let keyID	= try UIntID	( from: &reader )
-			let keyName	= try String	( from: &reader )
+			let keyID	= try UIntID	( from: &rbuffer )
+			let keyName	= try String	( from: &rbuffer )
 			self = .keyStringMap(keyID: keyID, keyName: keyName)
 		case .classDataMap:
-			let typeID	= try UIntID		( from: &reader )
-			let data	= try ClassData	( from: &reader )
+			let typeID	= try UIntID		( from: &rbuffer )
+			let data	= try ClassData	( from: &rbuffer )
 			self = .classDataMap(typeID: typeID, classData: data )
 		}
 	}

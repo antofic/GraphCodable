@@ -22,45 +22,44 @@
 
 import Foundation
 
-/// The bytes container used by BinaryReader and BinaryWriter
+/// The bytes container used by BinaryReadBuffer and BinaryWriteBuffer
 ///
 /// The container must conform to MutableDataProtocol, i.e Data, [UInt8], ContiguousArray<UInt8>
 public typealias Bytes 			= [UInt8]
 
 /// A type that can write itself to a byte buffer
 public protocol BinaryOType {
-	/// Writes this value into the given writer.
+	/// Writes this value into the given wbuffer.
 	///
 	/// This function throws an error if any values are invalid for the given
-	/// writer.
+	/// wbuffer.
 	///
-	/// - Parameter writer: The BinaryWriter istance
+	/// - Parameter wbuffer: The BinaryWriteBuffer istance
 	/// to write data to.
-	func write( to writer: inout BinaryWriteBuffer ) throws
+	func write( to wbuffer: inout BinaryWriteBuffer ) throws
 }
 
 public extension BinaryOType {
-	///	Write the root value in a byte buffer
+	///	Write the value in a byte buffer
 	///
 	///	The root value must conform to the BinaryOType protocol
 	/// - returns: The byte buffer.
 	func binaryData<Q>() throws -> Q where Q:MutableDataProtocol {
-		var writer = BinaryWriteBuffer()
-		try write( to:&writer )
-		return writer.data()
+		var wbuffer = BinaryWriteBuffer()
+		try write( to:&wbuffer )
+		return wbuffer.data()
 	}
 }
 
 /// A type that can read itself from a byte buffer.
 public protocol BinaryIType {
-	/// Creates a new instance by reading it from the given reader.
+	/// Creates a new instance by reading it from the given rbuffer.
 	///
 	/// This initializer throws an error if reading fails, or
 	/// if the data read is corrupted or otherwise invalid.
-	///
-	/// - Parameter reader: The BinaryReader istance
+	/// - Parameter rbuffer: The BinaryReadBuffer istance
 	/// to read data from.
-	init( from reader: inout BinaryReadBuffer ) throws
+	init( from rbuffer: inout BinaryReadBuffer ) throws
 }
 
 public extension BinaryIType {
@@ -68,42 +67,41 @@ public extension BinaryIType {
 	///
 	///	The root value must conform to the BinaryIType protocol
 	init<Q>( binaryData: Q ) throws where Q:Sequence, Q.Element==UInt8 {
-		var reader = BinaryReadBuffer( data:binaryData )
-		try self.init( from: &reader )
+		var rbuffer = BinaryReadBuffer( data:binaryData )
+		try self.init( from: &rbuffer )
 	}
-	/// Try peeking a value of type Self from the reader.
+	
+	/// Try peeking a value of type `Self` from the `rbuffer`.
 	///
-	///	Peek try to read a value of type = **Self** from the reader.
-	///	If reading **throws**, the error is catched, the reader
-	///	cursor doesn't move and the function returns **nil**.
+	///	Peek try to read a value of type `Self` from the `rbuffer`.
+	///	If reading throws an error, the error is catched, the `rbuffer`
+	///	cursor doesn't move and the function returns `nil`.
 	/// If reading is successful, it pass the value to the `accept`
 	/// function.
-	/// If accept returns **true**, the value is considered read,
-	/// the reader cursor moves to the next value, and the function
+	/// If accept returns `true`, the value is considered good,
+	/// the `rbuffer` cursor moves to the next value, and the function
 	/// returns the value.
-	/// If accept returns **false**, the value is considered unread,
-	/// the reader cursor doesn't move, and the function returns **nil**.
+	/// If accept returns `false`, the value is not considered good,
+	/// the `rbuffer` cursor doesn't move, and the function returns `nil`.
 	///
-	/// - parameter reader: The BinaryReader istance to read data from.
+	/// - parameter rbuffer: The BinaryReadBuffer istance to read data from.
 	/// - parameter accept: A function to check the readed value
-	/// - returns: The accepted value, **nil** otherwise.
-	static func peek( from reader: inout BinaryReadBuffer, _ accept:( Self ) -> Bool ) -> Self? {
-		let position	= reader.position
+	/// - returns: The accepted value, `nil` otherwise.
+	static func peek( from rbuffer: inout BinaryReadBuffer, _ accept:( Self ) -> Bool ) -> Self? {
+		let position	= rbuffer.position
 		do {
-			let value = try Self(from: &reader)
-			if accept( value ) {
-				return value
-			}
+			let value = try Self(from: &rbuffer)
+			if accept( value ) { return value }
 		}
 		catch {}
 
-		reader.position	= position
+		rbuffer.position	= position
 		return nil
 	}
 }
 
 /// A type that can write itself to a byte buffer
-///	and read itself from that byte buffer.
+///	and read itself from a byte buffer.
 public typealias BinaryIOType	= BinaryIType & BinaryOType
 
 

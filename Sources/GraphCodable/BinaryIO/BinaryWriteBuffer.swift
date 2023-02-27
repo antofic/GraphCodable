@@ -23,11 +23,12 @@
 import Foundation
 
 /*
-BinaryWriter data format uses always:
+BinaryWriteBuffer data format uses always:
 	• little-endian
 	• store Int, UInt as Int64, UInt64
 */
 
+/// Buffer to write instances of BinaryOType types to.
 public struct BinaryWriteBuffer {
 	private (set) var 	bytes 		= Bytes()
 	private var 		_position	= 0

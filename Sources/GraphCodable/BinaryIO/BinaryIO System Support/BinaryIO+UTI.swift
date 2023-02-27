@@ -27,17 +27,17 @@ extension UTTagClass : BinaryIOType {}
 extension UTType : BinaryIOType {
 	private enum Version : UInt8 { case v0 }
 
-	public func write(to writer: inout BinaryWriteBuffer) throws {
-		try Version.v0.rawValue.write(to: &writer)
-		try identifier.write(to: &writer)
+	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
+		try Version.v0.rawValue.write(to: &wbuffer)
+		try identifier.write(to: &wbuffer)
 	}
 	
-	public init(from reader: inout BinaryReadBuffer) throws {
-		let versionRaw	= try Version.RawValue(from: &reader)
+	public init(from rbuffer: inout BinaryReadBuffer) throws {
+		let versionRaw	= try Version.RawValue(from: &rbuffer)
 
 		switch versionRaw {
 		case Version.v0.rawValue:
-			let identifier = try String( from: &reader )
+			let identifier = try String( from: &rbuffer )
 			
 			guard let uttype = Self.init( identifier ) else {
 				throw BinaryIOError.initTypeError(

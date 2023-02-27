@@ -151,13 +151,13 @@ fileprivate struct BinaryDecoder {
 	private var  	decoder		: Decoder
 	
 	init<Q>( from data:Q ) throws where Q:Sequence, Q.Element==UInt8 {
-		var reader 	= BinaryReadBuffer(data: data)
+		var rbuffer 	= BinaryReadBuffer(data: data)
 
-		fileHeader	= try FileHeader( from: &reader )
+		fileHeader	= try FileHeader( from: &rbuffer )
 		if fileHeader.supportsFileSections {
-			decoder	= .new( try SectionBinaryDecoder( from: &reader ) )
+			decoder	= .new( try SectionBinaryDecoder( from: &rbuffer ) )
 		} else {
-			decoder	= .old( try OldBinaryDecoder( from: &reader ) )
+			decoder	= .old( try OldBinaryDecoder( from: &rbuffer ) )
 		}
 	}
 
@@ -192,24 +192,24 @@ fileprivate struct BinaryDecoder {
 
 	private struct SectionBinaryDecoder {
 		private	var sectionMap			: SectionMap
-		private var reader				: BinaryReadBuffer
+		private var rbuffer				: BinaryReadBuffer
 
 		private var _classDataMap		: ClassDataMap?
 		private var _bodyFileBlocks		: BodyBlocks?
 		private var _keyStringMap		: KeyStringMap?
 		
-		init( from reader:inout BinaryReadBuffer ) throws {
-			self.sectionMap		= try type(of:sectionMap).init(from: &reader)
-			self.reader			= reader
+		init( from rbuffer:inout BinaryReadBuffer ) throws {
+			self.sectionMap		= try type(of:sectionMap).init(from: &rbuffer)
+			self.rbuffer			= rbuffer
 		}
 
 		mutating func classDataMap() throws -> ClassDataMap {
 			if let classMap = _classDataMap { return classMap }
 			
 			let saveRegion	= try setReaderRegionTo(section: .classDataMap)
-			defer { reader.currentRegion = saveRegion }
+			defer { rbuffer.currentRegion = saveRegion }
 
-			_classDataMap	= try ClassDataMap(from: &reader)
+			_classDataMap	= try ClassDataMap(from: &rbuffer)
 			return _classDataMap!
 		}
 		
@@ -217,11 +217,11 @@ fileprivate struct BinaryDecoder {
 			if let bodyBlocks = _bodyFileBlocks { return bodyBlocks }
 
 			let saveRegion	= try setReaderRegionTo(section: .body)
-			defer { reader.currentRegion = saveRegion }
+			defer { rbuffer.currentRegion = saveRegion }
 
 			var bodyBlocks	= [FileBlock]()
-			while reader.isEof == false {
-				bodyBlocks.append( try FileBlock(from: &reader) )
+			while rbuffer.isEof == false {
+				bodyBlocks.append( try FileBlock(from: &rbuffer) )
 			}
 			
 			_bodyFileBlocks	= bodyBlocks
@@ -232,9 +232,9 @@ fileprivate struct BinaryDecoder {
 			if let keyStringMap = _keyStringMap { return keyStringMap }
 
 			let saveRegion	= try setReaderRegionTo(section: .keyStringMap)
-			defer { reader.currentRegion = saveRegion }
+			defer { rbuffer.currentRegion = saveRegion }
 			
-			_keyStringMap	= try KeyStringMap(from: &reader)
+			_keyStringMap	= try KeyStringMap(from: &rbuffer)
 			return _keyStringMap!
 		}
 		
@@ -246,8 +246,8 @@ fileprivate struct BinaryDecoder {
 					)
 				)
 			}
-			defer { reader.currentRegion = range }
-			return reader.currentRegion
+			defer { rbuffer.currentRegion = range }
+			return rbuffer.currentRegion
 		}
 	}
 
@@ -260,22 +260,22 @@ fileprivate struct BinaryDecoder {
 			case current( fileBlock:FileBlock )
 			case obsolete( fileBlock:FileBlockObsolete )
 
-			init(from reader: inout BinaryReadBuffer) throws {
+			init(from rbuffer: inout BinaryReadBuffer) throws {
 				var obsolete	= false
-				let _ = FileBlockObsolete.peek(from: &reader) {
+				let _ = FileBlockObsolete.peek(from: &rbuffer) {
 					_ in
 					obsolete	= true
 					return false
 				}
 				if obsolete {
-					self	= .obsolete(fileBlock: try FileBlockObsolete(from: &reader))
+					self	= .obsolete(fileBlock: try FileBlockObsolete(from: &rbuffer))
 				} else {
-					self	= .current(fileBlock: try FileBlock(from: &reader))
+					self	= .current(fileBlock: try FileBlock(from: &rbuffer))
 				}
 			}
 		}
 		
-		private var reader				: BinaryReadBuffer
+		private var rbuffer				: BinaryReadBuffer
 
 		private var _classDataMap		= ClassDataMap()
 		private var _bodyFileBlocks		= BodyBlocks()
@@ -284,8 +284,8 @@ fileprivate struct BinaryDecoder {
 		private var currentBlock		: CompatibleFileBlock?
 		private var phase				: FileSection
 		
-		init( from reader:inout BinaryReadBuffer ) throws {
-			self.reader		= reader
+		init( from rbuffer:inout BinaryReadBuffer ) throws {
+			self.rbuffer		= rbuffer
 			self.phase		= .classDataMap
 		}
 
@@ -313,7 +313,7 @@ fileprivate struct BinaryDecoder {
 		
 		private mutating func peek() throws -> CompatibleFileBlock? {
 			if currentBlock == nil {
-				currentBlock	= reader.isEof ? nil : try CompatibleFileBlock(from: &reader)
+				currentBlock	= rbuffer.isEof ? nil : try CompatibleFileBlock(from: &rbuffer)
 			}
 			return currentBlock
 		}

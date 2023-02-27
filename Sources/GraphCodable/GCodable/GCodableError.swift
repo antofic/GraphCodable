@@ -44,7 +44,8 @@ enum GCodableError : Error {
 	
 	case internalInconsistency( Any.Type, GCodableError.Context )
 	case cantConstructClass( Any.Type, GCodableError.Context )
-	
+	case conditionalWithoutIdentity( Any.Type, GCodableError.Context )
+
 	case duplicateKey( Any.Type, GCodableError.Context )
 	case duplicateTypeID( Any.Type, GCodableError.Context )
 	case keyNotFound( Any.Type, GCodableError.Context )
