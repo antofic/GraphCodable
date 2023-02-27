@@ -20,16 +20,6 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
-///	GCodable allows you to store and decode value types and
-///	arbitrarily complex reference graphs.
-/// GCodable offers a special "deferDecode" method to decode
-/// cyclic graphs. Acyclic graph do not require any special
-/// treatment.
-/// Encoded and decoded variables are fully type checked. For this
-/// reason, GCodable does **not** allow you to encode heterogeneous
-/// collections, even if they contain encodable items.
-///
-
 public protocol GEncodable {
 	/// Encodes this value into the given encoder.
 	///
@@ -41,7 +31,7 @@ public protocol GEncodable {
 }
 
 extension GEncodable where Self:AnyObject {
-	/// It depends on the ability to be created from its name.
+	/// It depends on the ability to be constructed from its type name.
 	public static var supportsCodable: Bool {
 		ClassData.isConstructible( type:self )
 	}
@@ -57,6 +47,15 @@ public protocol GDecodable {
 	init(from decoder: GDecoder) throws
 }
 
+///	GCodable allows you to store and decode value types and
+///	arbitrarily complex reference graphs.
+/// GCodable offers a special "deferDecode" method to decode
+/// cyclic graphs. Acyclic graph do not require any special
+/// treatment.
+/// Encoded and decoded variables are fully type checked. For this
+/// reason, GCodable does **not** allow you to encode heterogeneous
+/// collections, even if they contain encodable items.
+///
 /// * **Make a type conform to the GCodable protocol**
 ///
 ///	To make a type archivable / unarchivable, it must be conformed

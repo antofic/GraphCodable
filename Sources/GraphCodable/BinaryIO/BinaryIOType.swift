@@ -22,16 +22,71 @@
 
 import Foundation
 
+/// The bytes container used by BinaryReader and BinaryWriter
+///
+/// The container must conform to MutableDataProtocol, i.e Data, [UInt8], ContiguousArray<UInt8>
+public typealias Bytes 			= [UInt8]
+
+/// A type that can write itself to a byte buffer
+public protocol BinaryOType {
+	/// Writes this value into the given writer.
+	///
+	/// This function throws an error if any values are invalid for the given
+	/// writer.
+	///
+	/// - Parameter writer: The BinaryWriter istance
+	/// to write data to.
+	func write( to writer: inout BinaryWriter ) throws
+}
+
+public extension BinaryOType {
+	///	Write the root value in a byte buffer
+	///
+	///	The root value must conform to the BinaryOType protocol
+	/// - returns: The byte buffer.
+	func binaryData<Q>() throws -> Q where Q:MutableDataProtocol {
+		var writer = BinaryWriter()
+		try write( to:&writer )
+		return writer.data()
+	}
+}
+
+/// A type that can read itself from a byte buffer.
 public protocol BinaryIType {
+	/// Creates a new instance by reading it from the given reader.
+	///
+	/// This initializer throws an error if reading fails, or
+	/// if the data read is corrupted or otherwise invalid.
+	///
+	/// - Parameter reader: The BinaryReader istance
+	/// to read data from.
 	init( from reader: inout BinaryReader ) throws
 }
 
 public extension BinaryIType {
+	///	Decode the root value from the byte buffer
+	///
+	///	The root value must conform to the BinaryIType protocol
 	init<Q>( binaryData: Q ) throws where Q:Sequence, Q.Element==UInt8 {
 		var reader = BinaryReader( data:binaryData )
 		try self.init( from: &reader )
 	}
-	
+	/// Try peeking a value of type Self from the reader.
+	///
+	///	Peek try to read a value of type = **Self** from the reader.
+	///	If reading **throws**, the error is catched, the reader
+	///	cursor doesn't move and the function returns **nil**.
+	/// If reading is successful, it pass the value to the `accept`
+	/// function.
+	/// If accept returns **true**, the value is considered read,
+	/// the reader cursor moves to the next value, and the function
+	/// returns the value.
+	/// If accept returns **false**, the value is considered unread,
+	/// the reader cursor doesn't move, and the function returns **nil**.
+	///
+	/// - parameter reader: The BinaryReader istance to read data from.
+	/// - parameter accept: A function to check the readed value
+	/// - returns: The accepted value, **nil** otherwise.
 	static func peek( from reader: inout BinaryReader, _ accept:( Self ) -> Bool ) -> Self? {
 		let position	= reader.position
 		do {
@@ -47,23 +102,8 @@ public extension BinaryIType {
 	}
 }
 
-public protocol BinaryOType {
-	func write( to writer: inout BinaryWriter ) throws
-}
-
-public extension BinaryOType {
-	func binaryData<Q>() throws -> Q where Q:MutableDataProtocol {
-		var writer = BinaryWriter()
-		try write( to:&writer )
-		return writer.data()
-	}
-}
-
+/// A type that can write itself to a byte buffer
+///	and read itself from that byte buffer.
 public typealias BinaryIOType	= BinaryIType & BinaryOType
 
-
-/// The bytes container used by BinaryReader and BinaryWriter
-///
-/// The container must conform to MutableDataProtocol, i.e Data, [UInt8], ContiguousArray<UInt8>
-public typealias Bytes 			= [UInt8]
 

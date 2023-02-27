@@ -23,6 +23,15 @@
 public protocol	GBinaryEncodable : BinaryOType, GEncodable {}
 public protocol	GBinaryDecodable : BinaryIType, GDecodable {}
 
+///	A protocol to use the `BinaryIOType` protocol
+///
+///	To bypass the standard coding mechanism and use the faster
+///	BinaryIO one, adopt the `GBinaryCodable` protocol and write
+///	the required methods of BinaryIOType protocol.
+///
+///	- Note: The BinaryIOType protocol does not support
+///	any of the GraphCodable features. Use it for simple types
+///	only when it's really necessary.
 public typealias GBinaryCodable = GBinaryEncodable & GBinaryDecodable
 
 extension GBinaryEncodable {

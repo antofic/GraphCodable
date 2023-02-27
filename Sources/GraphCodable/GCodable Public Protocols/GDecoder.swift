@@ -30,6 +30,8 @@ public protocol GDecoder {
 	///
 	/// Corresponds to the value of encodedVersion() when encoding the
 	/// data and can be used to decide on different decoding strategies.
+	/// To have a version a reference type must adopt the **GVersion** protocol
+	/// otherwise encodedVersion returns 0.
 	///
 	/// Only reference types can have a version.
 	var encodedVersion : UInt32  { get throws }
@@ -85,7 +87,7 @@ public protocol GDecoder {
 	/// - parameter key: The key that the decoded reference is associated with.
 	/// - parameter setter: A closure to which the required value is provided.
 	func deferDecode<Key, Value>( for key: Key, _ setter: @escaping (Value) -> ()) throws where
-		Key : RawRepresentable, Value : GDecodable, Key.RawValue == String
+	Key : RawRepresentable, Value : GDecodable, Key.RawValue == String
 
 	/// The number of elements still available for unkeyed decoding.
 	///
