@@ -22,19 +22,19 @@
 
 import Foundation
 
-/// The bytes container used by BinaryReadBuffer and BinaryWriteBuffer
+/// The bytes container used by `BinaryReadBuffer` and `BinaryWriteBuffer`
 ///
-/// The container must conform to MutableDataProtocol, i.e Data, [UInt8], ContiguousArray<UInt8>
-public typealias Bytes 			= [UInt8]
+/// The container must conform to `MutableDataProtocol`, i.e `Data`, `[UInt8]`, `ContiguousArray<UInt8>`
+public typealias Bytes	= [UInt8]
 
 /// A type that can write itself to a byte buffer
 public protocol BinaryOType {
-	/// Writes this value into the given wbuffer.
+	/// Writes this value into the given istance of `BinaryWriteBuffer`.
 	///
 	/// This function throws an error if any values are invalid for the given
-	/// wbuffer.
+	/// istance of `BinaryWriteBuffer`.
 	///
-	/// - Parameter wbuffer: The BinaryWriteBuffer istance
+	/// - Parameter wbuffer: The `BinaryWriteBuffer` istance
 	/// to write data to.
 	func write( to wbuffer: inout BinaryWriteBuffer ) throws
 }
@@ -53,11 +53,12 @@ public extension BinaryOType {
 
 /// A type that can read itself from a byte buffer.
 public protocol BinaryIType {
-	/// Creates a new instance by reading it from the given rbuffer.
+	/// Creates a new instance by reading it from the given
+	/// istance of `BinaryReadBuffer`.
 	///
 	/// This initializer throws an error if reading fails, or
 	/// if the data read is corrupted or otherwise invalid.
-	/// - Parameter rbuffer: The BinaryReadBuffer istance
+	/// - Parameter rbuffer: The `BinaryReadBuffer` istance
 	/// to read data from.
 	init( from rbuffer: inout BinaryReadBuffer ) throws
 }
@@ -65,7 +66,7 @@ public protocol BinaryIType {
 public extension BinaryIType {
 	///	Decode the root value from the byte buffer
 	///
-	///	The root value must conform to the BinaryIType protocol
+	///	The root value must conform to the `BinaryIType` protocol
 	init<Q>( binaryData: Q ) throws where Q:Sequence, Q.Element==UInt8 {
 		var rbuffer = BinaryReadBuffer( data:binaryData )
 		try self.init( from: &rbuffer )

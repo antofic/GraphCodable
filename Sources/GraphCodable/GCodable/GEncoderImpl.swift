@@ -123,7 +123,7 @@ final class GEncoderImpl : GEncoder, BinaryEncoderDelegate {
 		if encodeOptions.contains( .ignoreGIdentifiableProtocol ) {
 			if	encodeOptions.contains( .disableAutoObjectIdentifierIdentityForReferences ) == false,
 				let object = value as? (GEncodable & AnyObject) {
-					return ObjectIdentifier( object )
+				return ObjectIdentifier( object )
 			}
 		} else {
 			if let identifiable	= value as? any GIdentifiable {
@@ -131,8 +131,8 @@ final class GEncoderImpl : GEncoder, BinaryEncoderDelegate {
 			} else if
 				encodeOptions.contains( .disableAutoObjectIdentifierIdentityForReferences ) == false,
 				let object = value as? (GEncodable & AnyObject) {
-					  return ObjectIdentifier( object )
-			  }
+				return ObjectIdentifier( object )
+			}
 		}
 		return nil
 	}
@@ -153,7 +153,8 @@ final class GEncoderImpl : GEncoder, BinaryEncoderDelegate {
 	}
 	
 	private func encodeAnyValue(_ anyValue: Any, forKey key: String?, conditional:Bool ) throws {
-		// trasformo in un Optional<Any> di un solo livello:
+		//	anyValue cam really be a value, an Optional(value), an Optional(Optional(value)), etc…
+		//	Optional(fullUnwrapping:_) turns anyValue into an one-level Optional(value)
 		let value	= Optional(fullUnwrapping: anyValue)
 		let keyID	= try createKeyID( key: key )
 		
@@ -170,22 +171,40 @@ final class GEncoderImpl : GEncoder, BinaryEncoderDelegate {
 					)
 				)
 			}
-			//	i tipi nativi sono semplici: l'identità non serve
-			//	(e per le stringhe?)
-			//	in teoria possono essere reference, ma si comportano come value
+			//	NativeEncodable types are:
+			//		• Int
+			//		• Int8
+			//		• Int16
+			//		• Int32
+			//		• Int64
+			//		• UInt
+			//		• UInt8
+			//		• UInt16
+			//		• UInt32
+			//		• UInt64
+			//		---------
+			//		• Float
+			//		• Double
+			//		• CGFloat
+			//		---------
+			//		• Bool
+			//		---------
+			//		• String
+			//	String should not really be here, but the Encoder/Decoder
+			//	become too slow if String doesn't adopt the NativeEncodable
+			//	protocol
 			try dataEncoder.appendBinValue(keyID: keyID, value: binaryValue )
 		} else if let value = value as? GEncodable {
 			if let identifier = identifier( of:value ) {	// IDENTITY
 				if let objID = identifierMap.strongID( identifier ) {
-					// l'oggetto è stato già memorizzato, basta un pointer
+					// already encoded value: we encode a pointer
 					if conditional {
 						try dataEncoder.appendConditionalPtr(keyID: keyID, objID: objID)
 					} else {
 						try dataEncoder.appendStrongPtr(keyID: keyID, objID: objID)
 					}
 				} else if conditional {
-					// Conditional Encoding: avrei la descrizione ma non la voglio usare
-					// perché servirà solo se dopo arriverà da uno strongRef
+					// conditional encoding: we encode only a pointer
 					
 					if let type	= type(of:value) as? AnyClass {
 						// se è un feference verifico che sia reificabile
@@ -195,6 +214,7 @@ final class GEncoderImpl : GEncoder, BinaryEncoderDelegate {
 					let objID	= identifierMap.createWeakID( identifier )
 					try dataEncoder.appendConditionalPtr(keyID: keyID, objID: objID)
 				} else {
+					// not encoded value: we encode it
 					let typeID	= try createTypeIDIfNeeded( for: value )
 					let objID	= identifierMap.createStrongID( identifier )
 
