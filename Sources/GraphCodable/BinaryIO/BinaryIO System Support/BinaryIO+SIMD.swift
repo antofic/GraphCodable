@@ -23,13 +23,13 @@
 import simd
 
 extension SIMDStorage where Scalar:BinaryIOType {
-	public func write(to writer: inout BinaryWriter) throws {
+	public func write(to writer: inout BinaryWriteBuffer) throws {
 		for i in 0..<Self.scalarCount {
 			try self[i].write(to: &writer)
 		}
 	}
 
-	public init(from reader: inout BinaryReader) throws {
+	public init(from reader: inout BinaryReadBuffer) throws {
 		self.init()
 		for i in 0..<Self.scalarCount {
 			self[i]	= try Scalar(from: &reader)
@@ -56,13 +56,13 @@ protocol SimdMatrixBinaryIO : BinaryIOType {
 }
 
 extension SimdMatrixBinaryIO {
-	public func write(to writer: inout BinaryWriter) throws {
+	public func write(to writer: inout BinaryWriteBuffer) throws {
 		for c in 0..<_binaryNumCols {
 			try self[c].write(to: &writer)
 		}
 	}
 
-	public init(from reader: inout BinaryReader) throws {
+	public init(from reader: inout BinaryReadBuffer) throws {
 		self.init()
 		for c in 0..<_binaryNumCols {
 			self[c]	= try Vector(from: &reader)

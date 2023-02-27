@@ -213,7 +213,7 @@ extension FileBlock {
 }
 
 extension FileBlock : BinaryOType {
-	func write( to writer: inout BinaryWriter ) throws {
+	func write( to writer: inout BinaryWriteBuffer ) throws {
 		try code.write(to: &writer)
 		
 		switch self {
@@ -260,7 +260,7 @@ extension FileBlock : BinaryOType {
 }
 
 extension FileBlock : BinaryIType {
-	init(from reader: inout BinaryReader) throws {
+	init(from reader: inout BinaryReadBuffer) throws {
 		let code = try Code(from: &reader)
 
 		switch code {
@@ -452,7 +452,7 @@ enum FileBlockObsolete {
 }
 
 extension FileBlockObsolete : BinaryIType {
-	init(from reader: inout BinaryReader) throws {
+	init(from reader: inout BinaryReadBuffer) throws {
 		let code = try Code(from: &reader)
 
 		switch code {

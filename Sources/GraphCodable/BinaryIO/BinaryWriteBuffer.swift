@@ -28,7 +28,7 @@ BinaryWriter data format uses always:
 	• store Int, UInt as Int64, UInt64
 */
 
-public struct BinaryWriter{
+public struct BinaryWriteBuffer {
 	private (set) var 	bytes 		= Bytes()
 	private var 		_position	= 0
 
@@ -111,7 +111,7 @@ public struct BinaryWriter{
 	}
 }
 
-extension BinaryWriter {
+extension BinaryWriteBuffer {
 	mutating func writeBool( _ value:Bool ) throws			{ try writeValue( value ) }
 
 	mutating func writeInt8( _ value:Int8 ) throws			{ try writeValue( value ) }

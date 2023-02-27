@@ -54,7 +54,7 @@ struct FileHeader : CustomStringConvertible, BinaryIOType {
 		case header		= 0x5E	// '^'
 	}
 
-	init(from reader: inout BinaryReader) throws {
+	init(from reader: inout BinaryReadBuffer) throws {
 		do {
 			_ = ObsoleteCode.peek( from: &reader ) {
 				$0 == .header
@@ -85,7 +85,7 @@ struct FileHeader : CustomStringConvertible, BinaryIOType {
 		}
 	}
 
-	func write(to writer: inout BinaryWriter) throws {
+	func write(to writer: inout BinaryWriteBuffer) throws {
 		try HeaderID.gcodable.write(to: &writer)
 		try version.write(to: &writer)
 		try unused0.write(to: &writer)

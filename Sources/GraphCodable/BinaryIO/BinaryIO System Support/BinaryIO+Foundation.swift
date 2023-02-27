@@ -26,10 +26,10 @@ import Foundation
 //	Uses Version: NO
 
 extension Data : BinaryIOType {
-	public func write( to writer: inout BinaryWriter ) throws {
+	public func write( to writer: inout BinaryWriteBuffer ) throws {
 		try writer.writeData( self )
 	}
-	public init( from reader: inout BinaryReader ) throws {
+	public init( from reader: inout BinaryReadBuffer ) throws {
 		self = try reader.readData()
 	}
 }
@@ -40,11 +40,11 @@ extension Data : BinaryIOType {
 //	Salviamo sempre come Double 64bit
 
 extension CGFloat : BinaryIOType {
-	public init(from reader: inout BinaryReader) throws {
+	public init(from reader: inout BinaryReadBuffer) throws {
 		self.init( try Double( from: &reader ) )
 	}
 
-	public func write(to writer: inout BinaryWriter) throws {
+	public func write(to writer: inout BinaryWriteBuffer) throws {
 		try Double( self ).write(to: &writer)
 	}
 }
@@ -53,11 +53,11 @@ extension CGFloat : BinaryIOType {
 //	Uses Version: NO
 
 extension CharacterSet : BinaryIOType {
-	public init(from reader: inout BinaryReader) throws {
+	public init(from reader: inout BinaryReadBuffer) throws {
 		self.init( bitmapRepresentation: try Data( from: &reader) )
 	}
 	
-	public func write(to writer: inout BinaryWriter) throws {
+	public func write(to writer: inout BinaryWriteBuffer) throws {
 		try self.bitmapRepresentation.write(to: &writer)
 	}
 }
@@ -68,7 +68,7 @@ extension CharacterSet : BinaryIOType {
 extension AffineTransform : BinaryIOType {
 	// m11: CGFloat, m12: CGFloat, m21: CGFloat, m22: CGFloat, tX: CGFloat, tY: CGFloat
 	
-	public func write(to writer: inout BinaryWriter) throws {
+	public func write(to writer: inout BinaryWriteBuffer) throws {
 		try m11.write(to: &writer)
 		try m12.write(to: &writer)
 		try m21.write(to: &writer)
@@ -77,7 +77,7 @@ extension AffineTransform : BinaryIOType {
 		try tY.write(to: &writer)
 	}
 	
-	public init(from reader: inout BinaryReader) throws {
+	public init(from reader: inout BinaryReadBuffer) throws {
 		let m11	= try CGFloat( from: &reader )
 		let m12	= try CGFloat( from: &reader )
 		let m21	= try CGFloat( from: &reader )
@@ -92,11 +92,11 @@ extension AffineTransform : BinaryIOType {
 //	Uses Version: NO
 
 extension Locale : BinaryIOType {
-	public func write( to writer: inout BinaryWriter ) throws {
+	public func write( to writer: inout BinaryWriteBuffer ) throws {
 		try self.identifier.write(to: &writer)
 	}
 
-	public init( from reader: inout BinaryReader ) throws {
+	public init( from reader: inout BinaryReadBuffer ) throws {
 		self.init( identifier: try String( from: &reader) )
 	}
 }
@@ -105,11 +105,11 @@ extension Locale : BinaryIOType {
 //	Uses Version: NO
 
 extension TimeZone : BinaryIOType {
-	public func write( to writer: inout BinaryWriter ) throws {
+	public func write( to writer: inout BinaryWriteBuffer ) throws {
 		try self.identifier.write(to: &writer)
 	}
 
-	public init( from reader: inout BinaryReader ) throws {
+	public init( from reader: inout BinaryReadBuffer ) throws {
 		let identifier = try String( from: &reader)
 		guard let timeZone = TimeZone( identifier: identifier ) else {
 			throw BinaryIOError.initTypeError(
@@ -126,11 +126,11 @@ extension TimeZone : BinaryIOType {
 //	Uses Version: NO
 
 extension UUID : BinaryIOType  {
-	public func write(to writer: inout BinaryWriter) throws {
+	public func write(to writer: inout BinaryWriteBuffer) throws {
 		try uuidString.write(to: &writer)
 	}
 	
-	public init( from reader: inout BinaryReader ) throws {
+	public init( from reader: inout BinaryReadBuffer ) throws {
 		let uuidString	= try String( from: &reader)
 		
 		guard let uuid = UUID(uuidString: uuidString) else {
@@ -148,10 +148,10 @@ extension UUID : BinaryIOType  {
 //	Uses Version: NO
 
 extension Date : BinaryIOType {
-	public func write( to writer: inout BinaryWriter ) throws {
+	public func write( to writer: inout BinaryWriteBuffer ) throws {
 		try self.timeIntervalSince1970.write(to: &writer)
 	}
-	public init( from reader: inout BinaryReader ) throws {
+	public init( from reader: inout BinaryReadBuffer ) throws {
 		self.init( timeIntervalSince1970: try TimeInterval( from: &reader) )
 	}
 }
@@ -162,7 +162,7 @@ extension Date : BinaryIOType {
 //	Uses Version: NO
 
 extension IndexSet : BinaryIOType {
-	public init(from reader: inout BinaryReader) throws {
+	public init(from reader: inout BinaryReadBuffer) throws {
 		self.init()
 		let count	= try Int( from: &reader )
 		for _ in 0..<count {
@@ -170,7 +170,7 @@ extension IndexSet : BinaryIOType {
 		}
 	}
 	
-	public func write(to writer: inout BinaryWriter) throws {
+	public func write(to writer: inout BinaryWriteBuffer) throws {
 		try rangeView.count.write(to: &writer)
 		for range in rangeView {
 			try range.write(to: &writer)
@@ -182,7 +182,7 @@ extension IndexSet : BinaryIOType {
 //	Uses Version: NO
 
 extension IndexPath : BinaryIOType {
-	public init(from reader: inout BinaryReader) throws {
+	public init(from reader: inout BinaryReadBuffer) throws {
 		self.init()
 		let count	= try Int( from: &reader )
 		for _ in 0..<count {
@@ -190,7 +190,7 @@ extension IndexPath : BinaryIOType {
 		}
 	}
 	
-	public func write(to writer: inout BinaryWriter) throws {
+	public func write(to writer: inout BinaryWriteBuffer) throws {
 		try count.write(to: &writer)
 		for element in self {
 			try element.write(to: &writer)
@@ -203,12 +203,12 @@ extension IndexPath : BinaryIOType {
 //	Uses Version: NO
 
 extension CGSize : BinaryIOType {
-	public func write(to writer: inout BinaryWriter) throws {
+	public func write(to writer: inout BinaryWriteBuffer) throws {
 		try width.write(to: &writer)
 		try height.write(to: &writer)
 	}
 
-	public init(from reader: inout BinaryReader) throws {
+	public init(from reader: inout BinaryReadBuffer) throws {
 		let width	= try CGFloat( from: &reader )
 		let height	= try CGFloat( from: &reader )
 		self.init(width: width, height: height)
@@ -219,12 +219,12 @@ extension CGSize : BinaryIOType {
 //	Uses Version: NO
 
 extension CGPoint : BinaryIOType {
-	public func write(to writer: inout BinaryWriter) throws {
+	public func write(to writer: inout BinaryWriteBuffer) throws {
 		try x.write(to: &writer)
 		try y.write(to: &writer)
 	}
 
-	public init(from reader: inout BinaryReader) throws {
+	public init(from reader: inout BinaryReadBuffer) throws {
 		let x	= try CGFloat( from: &reader )
 		let y	= try CGFloat( from: &reader )
 		self.init(x: x, y: y)
@@ -235,11 +235,11 @@ extension CGPoint : BinaryIOType {
 //	Uses Version: NO
 
 extension CGVector : BinaryIOType {
-	public func write(to writer: inout BinaryWriter) throws {
+	public func write(to writer: inout BinaryWriteBuffer) throws {
 		try dx.write(to: &writer)
 		try dy.write(to: &writer)
 	}
-	public init(from reader: inout BinaryReader) throws {
+	public init(from reader: inout BinaryReadBuffer) throws {
 		let dx	= try CGFloat( from: &reader )
 		let dy	= try CGFloat( from: &reader )
 		self.init(dx: dx, dy: dy)
@@ -250,11 +250,11 @@ extension CGVector : BinaryIOType {
 //	Uses Version: NO
 
 extension CGRect : BinaryIOType {
-	public func write(to writer: inout BinaryWriter) throws {
+	public func write(to writer: inout BinaryWriteBuffer) throws {
 		try origin.write(to: &writer)
 		try size.write(to: &writer)
 	}
-	public init(from reader: inout BinaryReader) throws {
+	public init(from reader: inout BinaryReadBuffer) throws {
 		let origin	= try CGPoint( from: &reader )
 		let size	= try CGSize( from: &reader )
 		self.init(origin: origin, size: size)
@@ -265,11 +265,11 @@ extension CGRect : BinaryIOType {
 //	Uses Version: NO
 
 extension NSRange : BinaryIOType {
-	public func write(to writer: inout BinaryWriter) throws {
+	public func write(to writer: inout BinaryWriteBuffer) throws {
 		try location.write(to: &writer)
 		try length.write(to: &writer)
 	}
-	public init(from reader: inout BinaryReader) throws {
+	public init(from reader: inout BinaryReadBuffer) throws {
 		let location	= try Int( from: &reader )
 		let length		= try Int( from: &reader )
 		self.init(location: location, length: length)
@@ -284,7 +284,7 @@ extension Decimal : BinaryIOType {
 	
 	// CANDIDATO
 	
-	public func write( to writer: inout BinaryWriter ) throws {
+	public func write( to writer: inout BinaryWriteBuffer ) throws {
 		try Version.v0.rawValue.write(to: &writer)
 		
 		try _exponent.write(to: &writer)
@@ -301,7 +301,7 @@ extension Decimal : BinaryIOType {
 		try _mantissa.7.write(to: &writer)
 	}
 
-	public init( from reader: inout BinaryReader ) throws {
+	public init( from reader: inout BinaryReadBuffer ) throws {
 		let versionRaw	= try Version.RawValue(from: &reader)
 		
 		switch versionRaw {
@@ -342,7 +342,7 @@ extension NSCalendar.Identifier : BinaryIOType {}
 extension Calendar : BinaryIOType {
 	private enum Version : UInt8 { case v0 }
 
-	public func write(to writer: inout BinaryWriter) throws {
+	public func write(to writer: inout BinaryWriteBuffer) throws {
 		try Version.v0.rawValue.write(to: &writer)
 
 		let nsIdentifier = (self as NSCalendar).calendarIdentifier
@@ -353,7 +353,7 @@ extension Calendar : BinaryIOType {
 		try minimumDaysInFirstWeek.write(to: &writer)
 	}
 	
-	public init(from reader: inout BinaryReader) throws {
+	public init(from reader: inout BinaryReadBuffer) throws {
 		let versionRaw	= try Version.RawValue(from: &reader)
 
 		switch versionRaw {
@@ -388,7 +388,7 @@ extension Calendar : BinaryIOType {
 extension DateComponents : BinaryIOType {
 	private enum Version : UInt8 { case v0 }
 
-	public func write(to writer: inout BinaryWriter) throws {
+	public func write(to writer: inout BinaryWriteBuffer) throws {
 		try Version.v0.rawValue.write(to: &writer)
 
 
@@ -410,7 +410,7 @@ extension DateComponents : BinaryIOType {
 		try yearForWeekOfYear	.write(to: &writer)
 	}
 
-	public init(from reader: inout BinaryReader) throws {
+	public init(from reader: inout BinaryReadBuffer) throws {
 		let versionRaw	= try Version.RawValue(from: &reader)
 
 		switch versionRaw {
@@ -466,14 +466,14 @@ extension DateComponents : BinaryIOType {
 extension DateInterval : BinaryIOType {
 	private enum Version : UInt8 { case v0 }
 
-	public func write(to writer: inout BinaryWriter) throws {
+	public func write(to writer: inout BinaryWriteBuffer) throws {
 		try Version.v0.rawValue.write(to: &writer)
 
 		try start.write(to: &writer)
 		try duration.write(to: &writer)
 	}
 	
-	public init(from reader: inout BinaryReader) throws {
+	public init(from reader: inout BinaryReadBuffer) throws {
 		let versionRaw	= try Version.RawValue(from: &reader)
 
 		switch versionRaw {
@@ -497,7 +497,7 @@ extension DateInterval : BinaryIOType {
 extension PersonNameComponents : BinaryIOType {
 	private enum Version : UInt8 { case v0 }
 
-	public func write(to writer: inout BinaryWriter) throws {
+	public func write(to writer: inout BinaryWriteBuffer) throws {
 		try Version.v0.rawValue.write(to: &writer)
 
 		try namePrefix	.write(to: &writer)
@@ -508,7 +508,7 @@ extension PersonNameComponents : BinaryIOType {
 		try nickname	.write(to: &writer)
 	}
 	
-	public init(from reader: inout BinaryReader) throws {
+	public init(from reader: inout BinaryReadBuffer) throws {
 		let versionRaw	= try Version.RawValue(from: &reader)
 
 		switch versionRaw {
@@ -537,14 +537,14 @@ extension PersonNameComponents : BinaryIOType {
 extension URL : BinaryIOType {
 	private enum Version : UInt8 { case v0 }
 
-	public func write(to writer: inout BinaryWriter) throws {
+	public func write(to writer: inout BinaryWriteBuffer) throws {
 		try Version.v0.rawValue.write(to: &writer)
 
 		try relativeString	.write(to: &writer)
 		try baseURL			.write(to: &writer)
 	}
 	
-	public init(from reader: inout BinaryReader) throws {
+	public init(from reader: inout BinaryReadBuffer) throws {
 		let versionRaw	= try Version.RawValue(from: &reader)
 
 		switch versionRaw {
@@ -576,7 +576,7 @@ extension URL : BinaryIOType {
 extension URLComponents : BinaryIOType {
 	private enum Version : UInt8 { case v0 }
 
-	public func write(to writer: inout BinaryWriter) throws {
+	public func write(to writer: inout BinaryWriteBuffer) throws {
 		try Version.v0.rawValue.write(to: &writer)
 
 		try scheme		.write(to: &writer)
@@ -589,7 +589,7 @@ extension URLComponents : BinaryIOType {
 		try fragment	.write(to: &writer)
 	}
 	
-	public init(from reader: inout BinaryReader) throws {
+	public init(from reader: inout BinaryReadBuffer) throws {
 		let versionRaw	= try Version.RawValue(from: &reader)
 
 		switch versionRaw {
@@ -625,14 +625,14 @@ extension URLComponents : BinaryIOType {
 extension Measurement : BinaryIOType {
 	private enum Version : UInt8 { case v0 }
 
-	public func write(to writer: inout BinaryWriter) throws {
+	public func write(to writer: inout BinaryWriteBuffer) throws {
 		try Version.v0.rawValue.write(to: &writer)
 
 		try value		.write(to: &writer)
 		try unit.symbol	.write(to: &writer)
 	}
 
-	public init(from reader: inout BinaryReader) throws {
+	public init(from reader: inout BinaryReadBuffer) throws {
 		let versionRaw	= try Version.RawValue(from: &reader)
 
 		switch versionRaw {
@@ -651,41 +651,41 @@ extension Measurement : BinaryIOType {
 }
 
 extension OperationQueue.SchedulerTimeType : BinaryIOType {
-	public func write(to writer: inout BinaryWriter) throws {
+	public func write(to writer: inout BinaryWriteBuffer) throws {
 		try date.write(to: &writer)
 	}
 	
-	public init(from reader: inout BinaryReader) throws {
+	public init(from reader: inout BinaryReadBuffer) throws {
 		self.init( try Date(from: &reader) )
 	}
 }
 
 extension OperationQueue.SchedulerTimeType.Stride : BinaryIOType {
-	public func write(to writer: inout BinaryWriter) throws {
+	public func write(to writer: inout BinaryWriteBuffer) throws {
 		try timeInterval.write(to: &writer)
 	}
 	
-	public init(from reader: inout BinaryReader) throws {
+	public init(from reader: inout BinaryReadBuffer) throws {
 		self.init( try TimeInterval(from: &reader) )
 	}
 }
 
 extension RunLoop.SchedulerTimeType : BinaryIOType {
-	public func write(to writer: inout BinaryWriter) throws {
+	public func write(to writer: inout BinaryWriteBuffer) throws {
 		try date.write(to: &writer)
 	}
 	
-	public init(from reader: inout BinaryReader) throws {
+	public init(from reader: inout BinaryReadBuffer) throws {
 		self.init( try Date(from: &reader) )
 	}
 }
 
 extension RunLoop.SchedulerTimeType.Stride : BinaryIOType {
-	public func write(to writer: inout BinaryWriter) throws {
+	public func write(to writer: inout BinaryWriteBuffer) throws {
 		try timeInterval.write(to: &writer)
 	}
 	
-	public init(from reader: inout BinaryReader) throws {
+	public init(from reader: inout BinaryReadBuffer) throws {
 		self.init( try TimeInterval(from: &reader) )
 	}
 }

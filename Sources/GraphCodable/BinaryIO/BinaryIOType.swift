@@ -36,7 +36,7 @@ public protocol BinaryOType {
 	///
 	/// - Parameter writer: The BinaryWriter istance
 	/// to write data to.
-	func write( to writer: inout BinaryWriter ) throws
+	func write( to writer: inout BinaryWriteBuffer ) throws
 }
 
 public extension BinaryOType {
@@ -45,7 +45,7 @@ public extension BinaryOType {
 	///	The root value must conform to the BinaryOType protocol
 	/// - returns: The byte buffer.
 	func binaryData<Q>() throws -> Q where Q:MutableDataProtocol {
-		var writer = BinaryWriter()
+		var writer = BinaryWriteBuffer()
 		try write( to:&writer )
 		return writer.data()
 	}
@@ -60,7 +60,7 @@ public protocol BinaryIType {
 	///
 	/// - Parameter reader: The BinaryReader istance
 	/// to read data from.
-	init( from reader: inout BinaryReader ) throws
+	init( from reader: inout BinaryReadBuffer ) throws
 }
 
 public extension BinaryIType {
@@ -68,7 +68,7 @@ public extension BinaryIType {
 	///
 	///	The root value must conform to the BinaryIType protocol
 	init<Q>( binaryData: Q ) throws where Q:Sequence, Q.Element==UInt8 {
-		var reader = BinaryReader( data:binaryData )
+		var reader = BinaryReadBuffer( data:binaryData )
 		try self.init( from: &reader )
 	}
 	/// Try peeking a value of type Self from the reader.
@@ -87,7 +87,7 @@ public extension BinaryIType {
 	/// - parameter reader: The BinaryReader istance to read data from.
 	/// - parameter accept: A function to check the readed value
 	/// - returns: The accepted value, **nil** otherwise.
-	static func peek( from reader: inout BinaryReader, _ accept:( Self ) -> Bool ) -> Self? {
+	static func peek( from reader: inout BinaryReadBuffer, _ accept:( Self ) -> Bool ) -> Self? {
 		let position	= reader.position
 		do {
 			let value = try Self(from: &reader)

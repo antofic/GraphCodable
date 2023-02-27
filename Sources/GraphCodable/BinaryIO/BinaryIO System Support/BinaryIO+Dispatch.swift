@@ -24,11 +24,11 @@ import Dispatch
 
 
 extension DispatchTime : BinaryIOType {
-	public init(from reader: inout BinaryReader) throws {
+	public init(from reader: inout BinaryReadBuffer) throws {
 		self.init( uptimeNanoseconds: try UInt64( from: &reader) )
 	}
 	
-	public func write(to writer: inout BinaryWriter) throws {
+	public func write(to writer: inout BinaryWriteBuffer) throws {
 		try uptimeNanoseconds.write(to: &writer)
 	}
 }
@@ -38,7 +38,7 @@ extension DispatchTimeInterval : BinaryIOType {
 		case seconds,milliseconds,microseconds,nanoseconds,never
 	}
 	
-	public func write(to writer: inout BinaryWriter) throws {
+	public func write(to writer: inout BinaryWriteBuffer) throws {
 		switch self {
 		case .seconds( let value ):
 			try IntervalType.seconds.write(to: &writer)
@@ -63,7 +63,7 @@ extension DispatchTimeInterval : BinaryIOType {
 		}
 	}
 	
-	public init(from reader: inout BinaryReader) throws {
+	public init(from reader: inout BinaryReadBuffer) throws {
 		let intervalType	= try IntervalType.init(from: &reader)
 		switch intervalType {
 		case .seconds:
@@ -85,21 +85,21 @@ extension DispatchTimeInterval : BinaryIOType {
 }
 
 extension DispatchQueue.SchedulerTimeType : BinaryIOType {
-	public func write(to writer: inout BinaryWriter) throws {
+	public func write(to writer: inout BinaryWriteBuffer) throws {
 		try dispatchTime.write(to: &writer)
 	}
 	
-	public init(from reader: inout BinaryReader) throws {
+	public init(from reader: inout BinaryReadBuffer) throws {
 		self.init( try DispatchTime(from: &reader) )
 	}
 }
 
 extension DispatchQueue.SchedulerTimeType.Stride : BinaryIOType {
-	public func write(to writer: inout BinaryWriter) throws {
+	public func write(to writer: inout BinaryWriteBuffer) throws {
 		try timeInterval.write(to: &writer)
 	}
 	
-	public init(from reader: inout BinaryReader) throws {
+	public init(from reader: inout BinaryReadBuffer) throws {
 		self.init( try DispatchTimeInterval( from:&reader) )
 	}
 }

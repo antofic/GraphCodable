@@ -151,7 +151,7 @@ fileprivate struct BinaryDecoder {
 	private var  	decoder		: Decoder
 	
 	init<Q>( from data:Q ) throws where Q:Sequence, Q.Element==UInt8 {
-		var reader 	= BinaryReader(data: data)
+		var reader 	= BinaryReadBuffer(data: data)
 
 		fileHeader	= try FileHeader( from: &reader )
 		if fileHeader.supportsFileSections {
@@ -192,13 +192,13 @@ fileprivate struct BinaryDecoder {
 
 	private struct SectionBinaryDecoder {
 		private	var sectionMap			: SectionMap
-		private var reader				: BinaryReader
+		private var reader				: BinaryReadBuffer
 
 		private var _classDataMap		: ClassDataMap?
 		private var _bodyFileBlocks		: BodyBlocks?
 		private var _keyStringMap		: KeyStringMap?
 		
-		init( from reader:inout BinaryReader ) throws {
+		init( from reader:inout BinaryReadBuffer ) throws {
 			self.sectionMap		= try type(of:sectionMap).init(from: &reader)
 			self.reader			= reader
 		}
@@ -260,7 +260,7 @@ fileprivate struct BinaryDecoder {
 			case current( fileBlock:FileBlock )
 			case obsolete( fileBlock:FileBlockObsolete )
 
-			init(from reader: inout BinaryReader) throws {
+			init(from reader: inout BinaryReadBuffer) throws {
 				var obsolete	= false
 				let _ = FileBlockObsolete.peek(from: &reader) {
 					_ in
@@ -275,7 +275,7 @@ fileprivate struct BinaryDecoder {
 			}
 		}
 		
-		private var reader				: BinaryReader
+		private var reader				: BinaryReadBuffer
 
 		private var _classDataMap		= ClassDataMap()
 		private var _bodyFileBlocks		= BodyBlocks()
@@ -284,7 +284,7 @@ fileprivate struct BinaryDecoder {
 		private var currentBlock		: CompatibleFileBlock?
 		private var phase				: FileSection
 		
-		init( from reader:inout BinaryReader ) throws {
+		init( from reader:inout BinaryReadBuffer ) throws {
 			self.reader		= reader
 			self.phase		= .classDataMap
 		}

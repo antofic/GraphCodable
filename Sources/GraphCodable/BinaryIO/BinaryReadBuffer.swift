@@ -30,7 +30,7 @@ BinaryReader:
 */
 
 
-public struct BinaryReader {
+public struct BinaryReadBuffer {
 	private let base:	Bytes
 	private var bytes:	Bytes.SubSequence
 	
@@ -161,7 +161,7 @@ public struct BinaryReader {
 	}
 }
 
-extension BinaryReader {
+extension BinaryReadBuffer {
 	mutating func readBool() throws -> Bool {
 		return try readValue()
 	}

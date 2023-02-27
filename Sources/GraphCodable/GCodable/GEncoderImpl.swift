@@ -267,7 +267,7 @@ fileprivate final class BinaryEncoder<Provider:BinaryEncoderDelegate> {
 	let					fileHeader	= FileHeader()
 	let					isDump		: Bool
 	weak var			delegate	: Provider?
-	private var			writer		= BinaryWriter()
+	private var			writer		= BinaryWriteBuffer()
 	private var			output		= String()
 
 	init( isDump: Bool ) {

@@ -58,13 +58,13 @@ final class PerformanceTests: XCTestCase {
 			array	= try decoder.decode( for: Key.array )
 		}
 		
-		func write(to writer: inout GraphCodable.BinaryWriter) throws {
+		func write(to writer: inout GraphCodable.BinaryWriteBuffer) throws {
 			try larges.write(to: &writer)
 			try string.write(to: &writer)
 			try array.write(to: &writer)
 		}
 		
-		init(from reader: inout GraphCodable.BinaryReader) throws {
+		init(from reader: inout GraphCodable.BinaryReadBuffer) throws {
 			larges	= try [RecursiveData](from: &reader)
 			string	= try String( from: &reader )
 			array	= try [Int]( from: &reader )

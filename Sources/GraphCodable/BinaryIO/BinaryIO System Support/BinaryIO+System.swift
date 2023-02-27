@@ -34,12 +34,12 @@ extension FileDescriptor.SeekOrigin : BinaryIOType {}
 
 extension FilePath : BinaryIOType {
 	private enum Version : UInt8 { case v0 }
-	public func write(to writer: inout BinaryWriter) throws {
+	public func write(to writer: inout BinaryWriteBuffer) throws {
 		try Version.v0.rawValue.write(to: &writer)
 		try description.write(to: &writer)
 	}
 	
-	public init(from reader: inout BinaryReader) throws {
+	public init(from reader: inout BinaryReadBuffer) throws {
 		let versionRaw	= try Version.RawValue(from: &reader)
 
 		switch versionRaw {
