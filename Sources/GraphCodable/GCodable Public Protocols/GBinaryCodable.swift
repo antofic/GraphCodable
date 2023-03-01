@@ -35,6 +35,8 @@ public protocol	GBinaryDecodable : BinaryIType, GDecodable {}
 ///	only when it's really necessary.
 public typealias GBinaryCodable = GBinaryEncodable & GBinaryDecodable
 
+
+
 extension GBinaryEncodable {
 	public func encode(to encoder: GEncoder) throws	{
 		throw GCodableError.internalInconsistency(
@@ -54,8 +56,16 @@ extension GBinaryDecodable {
 	}
 }
 
+public protocol GTrivial {}
+
+public typealias GTrivialEncodable	= GBinaryEncodable & GTrivial
+public typealias GTrivialDecodable	= GBinaryDecodable & GTrivial
+public typealias GTrivialCodable	= GTrivialEncodable & GTrivialDecodable
+
 extension String : GIdentifiable {
-	public var gcodableID: String? { self }
+	public var gcodableID: String? {
+		self
+	}
 }
 
 extension Array : GIdentifiable where Element:GCodable {
@@ -70,101 +80,3 @@ extension ContiguousArray : GIdentifiable where Element:GCodable {
 	}
 }
 
-
-//	extension Int : GBinaryCodable {}
-//	extension Int8 : GBinaryCodable {}
-//	extension Int16 : GBinaryCodable {}
-//	extension Int32 : GBinaryCodable {}
-//	extension Int64 : GBinaryCodable {}
-//	extension UInt : GBinaryCodable {}
-//	extension UInt8 : GBinaryCodable {}
-//	extension UInt16 : GBinaryCodable {}
-//	extension UInt32 : GBinaryCodable {}
-//	extension UInt64 : GBinaryCodable {}
-//	extension Float : GBinaryCodable {}
-//	extension Double : GBinaryCodable {}
-//	extension Bool : GBinaryCodable {}
-
-extension String : GBinaryCodable {}
-
-extension Array : GBinaryCodable where Element : NativeCodable {}
-extension ContiguousArray : GBinaryCodable where Element : NativeCodable {}
-extension Set : GBinaryCodable where Element : NativeCodable {}
-extension Dictionary : GBinaryCodable where Key : NativeCodable, Value : NativeCodable {}
-
-
-/*
-extension RawRepresentable where Self.RawValue : GBinaryCodable {}
-extension Range: GBinaryCodable where Bound: GBinaryCodable {}
-extension ClosedRange: GBinaryCodable where Bound: GBinaryCodable {}
-extension PartialRangeFrom: GBinaryCodable where Bound: GBinaryCodable {}
-extension PartialRangeUpTo: GBinaryCodable where Bound: GBinaryCodable {}
-extension PartialRangeThrough: GBinaryCodable where Bound: GBinaryCodable {}
-extension CollectionDifference.Change : GBinaryCodable where ChangeElement : GBinaryCodable {}
-extension CollectionDifference : GBinaryCodable where ChangeElement:GBinaryCodable {}
-
-import Foundation
-
-extension Data : GBinaryCodable {}
-extension CGFloat : GBinaryCodable {}
-extension CharacterSet : GBinaryCodable {}
-extension AffineTransform : GBinaryCodable {}
-extension Locale : GBinaryCodable {}
-extension TimeZone : GBinaryCodable {}
-extension UUID : GBinaryCodable  {}
-extension Date : GBinaryCodable {}
-extension IndexSet : GBinaryCodable {}
-extension IndexPath : GBinaryCodable {}
-extension CGSize : GBinaryCodable {}
-extension CGPoint : GBinaryCodable {}
-extension CGVector : GBinaryCodable {}
-extension CGRect : GBinaryCodable {}
-extension NSRange : GBinaryCodable {}
-extension Decimal : GBinaryCodable {}
-//	extension NSCalendar.Identifier : GBinaryCodable {} // Why?
-extension Calendar : GBinaryCodable {}
-extension DateComponents : GBinaryCodable {}
-extension DateInterval : GBinaryCodable {}
-extension PersonNameComponents : GBinaryCodable {}
-extension URL : GBinaryCodable {}
-extension URLComponents : GBinaryCodable {}
-extension Measurement : GBinaryCodable {}
-extension OperationQueue.SchedulerTimeType : GBinaryCodable {}
-extension OperationQueue.SchedulerTimeType.Stride : GBinaryCodable {}
-extension RunLoop.SchedulerTimeType : GBinaryCodable {}
-extension RunLoop.SchedulerTimeType.Stride : GBinaryCodable {}
-
-import simd
-
-//	extension SIMDStorage where Scalar:GBinaryCodable {} // Why?
-extension SIMD2:GBinaryCodable where Scalar:GBinaryCodable {}
-extension SIMD3:GBinaryCodable where Scalar:GBinaryCodable {}
-extension SIMD4:GBinaryCodable where Scalar:GBinaryCodable {}
-extension SIMD8:GBinaryCodable where Scalar:GBinaryCodable {}
-extension SIMD16:GBinaryCodable where Scalar:GBinaryCodable {}
-extension SIMD32:GBinaryCodable where Scalar:GBinaryCodable {}
-extension SIMD64:GBinaryCodable where Scalar:GBinaryCodable {}
-//	extension SIMDMask:GBinaryCodable {} // Why?
-
-import System
-
-//	extension Errno : GBinaryCodable {}
-//	extension FileDescriptor : GBinaryCodable {}
-//	extension FileDescriptor.AccessMode : GBinaryCodable {}
-//	extension FileDescriptor.OpenOptions : GBinaryCodable {}
-//	extension FileDescriptor.SeekOrigin : GBinaryCodable {}
-extension FilePath : GBinaryCodable {}
-//	extension FilePermissions : GBinaryCodable {}
-
-import UniformTypeIdentifiers
-
-//	extension UTTagClass : GBinaryCodable {}
-extension UTType : GBinaryCodable {}
-
-import Dispatch
-
-extension DispatchTime : GBinaryCodable {}
-extension DispatchTimeInterval : GBinaryCodable {}
-extension DispatchQueue.SchedulerTimeType : GBinaryCodable {}
-extension DispatchQueue.SchedulerTimeType.Stride : GBinaryCodable {}
-*/

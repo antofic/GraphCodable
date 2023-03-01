@@ -64,18 +64,7 @@ extension GraphEncoder {
 		public init(rawValue: UInt) {
 			self.rawValue	= rawValue
 		}
-		
-		///	Enable fast binary encoding/decoding for some library types
-		///
-		/// The BinaryIO library implements the BinaryIOType protocol for many system types.
-		/// When this option is on, GraphCodable will store these types using the
-		/// BinaryIOType protocol instead of the GCodable protocol.
-		///	This makes storage faster but doesn't allow you to take full advantage of
-		///	type identity.
-		///
-		/// - Note: This option is disabled by default
-		public static let	enableLibraryBinaryIOTypes							= Self( rawValue: 1 << 0 )
-		
+				
 		///	Ignore the `GIdentifiable` protocol
 		///
 		/// By default, reference types have the automatic identity defined by
@@ -122,9 +111,8 @@ extension GraphEncoder {
 		/// - Note: This option is disabled by default
 		public static let	disableClassNames									= Self( rawValue: 1 << 5 )
 		
-		public static let	disableLibraryBinaryIOTypes:	Self 	= []
 		public static let	mimicSwiftCodable:				Self 	= [ disableIdentity, disableClassNames ]
-		public static let	defaultOption:					Self 	= [ disableLibraryBinaryIOTypes ]
+		public static let	defaultOption:					Self 	= []
 	}
 }
 

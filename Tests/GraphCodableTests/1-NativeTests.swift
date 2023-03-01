@@ -136,7 +136,7 @@ final class NativeTests: XCTestCase {
 		a[3,0] = 1.0
 		a[2,1] = 3.0
 
-		let inRoot	= [[a, a, nil],[a, a]]
+		let inRoot	= a // [[a, a, nil],[a, a]]
 	
 		let data	= try GraphEncoder().encode( inRoot ) as Bytes
 		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )

@@ -92,12 +92,18 @@ final class GEncoderImpl : GEncoder, DataEncoderDelegate {
 	}
 	
 	// --------------------------------------------------------
+	/*
 	private func binaryValue( of value:GEncodable ) -> (BinaryOType)? {
+		if let value = value as? BinaryOType { return value }
+		else { return nil }
+
+		/*
 		if let value = value as? GBinaryEncodable { return value }
 		else if encodeOptions.contains( .enableLibraryBinaryIOTypes ), let value = value as? BinaryOType { return value }
 		else { return nil }
+		*/
 	}
-
+	 */
 	private func identifier( of value:GEncodable ) -> (any Hashable)? {
 		if encodeOptions.contains( .disableIdentity ) {
 			return nil
@@ -146,7 +152,7 @@ final class GEncoderImpl : GEncoder, DataEncoderDelegate {
 			return
 		}
 		// now value if not nil!
-		if let binaryValue = value as? NativeEncodable {
+		if let binaryValue = value as? GTrivialEncodable {
 			if conditional {
 				throw GCodableError.conditionalWithoutIdentity(
 					Self.self, GCodableError.Context(
@@ -154,28 +160,6 @@ final class GEncoderImpl : GEncoder, DataEncoderDelegate {
 					)
 				)
 			}
-			//	NativeEncodable types are:
-			//		• Int
-			//		• Int8
-			//		• Int16
-			//		• Int32
-			//		• Int64
-			//		• UInt
-			//		• UInt8
-			//		• UInt16
-			//		• UInt32
-			//		• UInt64
-			//		---------
-			//		• Float
-			//		• Double
-			//		• CGFloat
-			//		---------
-			//		• Bool
-			//		---------
-			//		• String
-			//	String should not really be here, but the Encoder/Decoder
-			//	become too slow if String doesn't adopt the NativeEncodable
-			//	protocol
 			try dataEncoder.appendBinValue(keyID: keyID, binaryValue: binaryValue )
 		} else if let value = value as? GEncodable {
 			if let identifier = identifier( of:value ) {	// IDENTITY
@@ -201,7 +185,7 @@ final class GEncoderImpl : GEncoder, DataEncoderDelegate {
 					let typeID	= try createTypeIDIfNeeded( for: value )
 					let objID	= identifierMap.createStrongID( identifier )
 
-					if let binaryValue = binaryValue( of:value ) {
+					if let binaryValue = value as? GBinaryEncodable {
 						if let typeID {	// INHERITANCE
 							try dataEncoder.appendIdBinRef(keyID: keyID, typeID: typeID, objID: objID, binaryValue: binaryValue )
 						} else {	// NO INHERITANCE
@@ -228,7 +212,7 @@ final class GEncoderImpl : GEncoder, DataEncoderDelegate {
 
 				let typeID	= try createTypeIDIfNeeded( for: value )
 
-				if let binaryValue = binaryValue( of:value ) {
+				if let binaryValue = value as? GBinaryEncodable {
 					if let typeID {	// INHERITANCE
 						try dataEncoder.appendBinRef(keyID: keyID, typeID: typeID, binaryValue: binaryValue )
 					} else {
