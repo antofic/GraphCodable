@@ -66,6 +66,9 @@ extension Optional: GDecodable where Wrapped: GDecodable {
 	}
 }
 
+extension Optional: GBinaryCodable where Wrapped: GBinaryCodable {}
+extension Optional: GTrivial where Wrapped: GTrivial {}
+
 //	RawRepresentable SUPPORT ------------------------------------------------------
 
 extension RawRepresentable where Self.RawValue : GEncodable {
@@ -230,7 +233,6 @@ extension Range: GEncodable where Bound: GEncodable {
 
 extension Range: GTrivialCodable where Bound: GTrivialCodable {}
 
-
 // ClosedRange ------------------------------------------------------
 
 extension ClosedRange: GDecodable where Bound: GDecodable {
@@ -303,8 +305,6 @@ fileprivate extension CollectionDifference.Change {
 	private enum ChangeType : UInt8, GCodable { case insert, remove }
 	private enum Key : String { case changeType, offset, element, associatedWith }
 }
-
-
 
 extension CollectionDifference.Change : GDecodable where ChangeElement : GDecodable {
 	public init(from decoder: GDecoder) throws {

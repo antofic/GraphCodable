@@ -20,8 +20,6 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
-import Foundation
-
 final class StringEncoder : DataEncoder {
 	typealias			Output		= String
 	weak var			delegate	: DataEncoderDelegate?

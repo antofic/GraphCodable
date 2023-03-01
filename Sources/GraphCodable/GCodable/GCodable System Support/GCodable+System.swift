@@ -29,7 +29,6 @@ extension FileDescriptor.OpenOptions : GCodable {}
 extension FileDescriptor.SeekOrigin : GCodable {}
 extension FilePermissions : GCodable {}
 
-
 extension FilePath : GCodable {
 	private enum Key : String { case path }
 

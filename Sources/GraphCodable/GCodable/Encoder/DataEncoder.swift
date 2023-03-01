@@ -20,21 +20,12 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
-import Foundation
-
-// -------------------------------------------------
-// ----- DataEncoderDelegate
-// -------------------------------------------------
 
 protocol DataEncoderDelegate : AnyObject {
 	var	classDataMap:	ClassDataMap { get }
 	var	keyStringMap:	KeyStringMap { get }
 	var dumpOptions:	GraphDumpOptions { get }
 }
-
-// -------------------------------------------------
-// ----- DataEncoder protocol
-// -------------------------------------------------
 
 protocol DataEncoder : AnyObject {
 	associatedtype	Output

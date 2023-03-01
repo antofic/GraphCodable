@@ -20,8 +20,6 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
-import Foundation
-
 struct ReferenceMap {
 	private	var			currentId : UIntID	= 1000	// ATT! 0-999 future use
 	private (set) var	classDataMap	= ClassDataMap()

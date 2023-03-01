@@ -20,12 +20,6 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
-import Foundation
-
-// -------------------------------------------------
-// ----- KeyMap
-// -------------------------------------------------
-
 struct KeyMap  {
 	private	var			currentId : UIntID	= 1000	// ATT! 0 reserved for unkeyed coding / 1-999 future use
 	private (set) var	keyStringMap		= KeyStringMap()
