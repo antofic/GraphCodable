@@ -45,6 +45,3 @@ extension CGFloat	: NativeCodable {}
 
 // -- Bool support -------------------------------------------------------
 extension Bool 		: NativeCodable {}
-
-// -- String support --------------------------------------------
-//	extension String 	: NativeCodable {}

@@ -27,8 +27,7 @@ final class BodyElement {
 	private(set) var	fileBlock		: FileBlock
 	private		var		keyedValues		= [String:BodyElement]()
 	private		var 	unkeyedValues 	= [BodyElement]()
-	
-	
+		
 	static func rootElement<S>(
 		bodyBlocks:S, keyStringMap:KeyStringMap, reverse:Bool
 	) throws -> ( rootElement: BodyElement, elementMap: [UIntID : BodyElement] )
