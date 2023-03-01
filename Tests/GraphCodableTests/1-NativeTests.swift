@@ -30,7 +30,7 @@ final class NativeTests: XCTestCase {
 	func testString() throws {
 		let inRoot	= "Pippo"
 		
-		let data	= try GraphEncoder().encode( inRoot )
+		let data	= try GraphEncoder().encode( inRoot ) as Bytes
 		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 		
 		XCTAssertEqual( inRoot, outRoot, #function )
@@ -39,7 +39,7 @@ final class NativeTests: XCTestCase {
 	func testBool() throws {
 		let inRoot	= true
 		
-		let data	= try GraphEncoder().encode( inRoot )
+		let data	= try GraphEncoder().encode( inRoot ) as Bytes
 		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 		
 		XCTAssertEqual( inRoot, outRoot, #function )
@@ -48,7 +48,7 @@ final class NativeTests: XCTestCase {
 	func testOptional() throws {
 		let inRoot	: Double??? = 3
 		
-		let data	= try GraphEncoder().encode( inRoot )
+		let data	= try GraphEncoder().encode( inRoot ) as Bytes
 		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 		
 		XCTAssertEqual( inRoot, outRoot, #function )
@@ -57,7 +57,7 @@ final class NativeTests: XCTestCase {
 	func testIntArray() throws {
 		let inRoot	= [1,2,3]
 		
-		let data	= try GraphEncoder().encode( inRoot )
+		let data	= try GraphEncoder().encode( inRoot ) as Bytes
 		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 		
 		XCTAssertEqual( inRoot, outRoot, #function )
@@ -66,7 +66,7 @@ final class NativeTests: XCTestCase {
 	func testStringArray() throws {
 		let inRoot	= [["Io","Stringa molto molto molto lunga","Ma davvero"]:4, ["forse"]:17]
 		
-		let data	= try GraphEncoder().encode( inRoot )
+		let data	= try GraphEncoder().encode( inRoot ) as Bytes
 		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 		
 		XCTAssertEqual( inRoot, outRoot, #function )
@@ -76,7 +76,7 @@ final class NativeTests: XCTestCase {
 	func testComplexArray() throws {
 		let inRoot	= [[1,2,3,nil,5],nil,[nil]]
 		
-		let data	= try GraphEncoder().encode( inRoot )
+		let data	= try GraphEncoder().encode( inRoot ) as Bytes
 		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 		
 		XCTAssertEqual( inRoot, outRoot, #function )
@@ -85,7 +85,7 @@ final class NativeTests: XCTestCase {
 	func testComplexArrayDictSet() throws {
 		let inRoot	= Set( arrayLiteral: [ [1 : "Pi❤️po"], [2 : "Pluto"] , [3 : nil] ], [ [4 : "B❌u"], [5 : nil] ] )
 		
-		let data	= try GraphEncoder().encode( inRoot )
+		let data	= try GraphEncoder().encode( inRoot ) as Bytes
 		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 		
 		XCTAssertEqual( inRoot, outRoot, #function )
@@ -94,7 +94,7 @@ final class NativeTests: XCTestCase {
 	func testSet() throws {
 		let inRoot : Set<Int?> = [1,2,nil,3,4,5]
 
-		let data	= try GraphEncoder().encode( inRoot )
+		let data	= try GraphEncoder().encode( inRoot ) as Bytes
 		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 		
 		XCTAssertEqual( inRoot, outRoot, #function )
@@ -103,7 +103,7 @@ final class NativeTests: XCTestCase {
 	func testSet2() throws {
 		let inRoot : Set<String?> = ["1","2",nil,"3","4","😀"]
 		
-		let data	= try GraphEncoder().encode( inRoot )
+		let data	= try GraphEncoder().encode( inRoot ) as Bytes
 		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 		
 		XCTAssertEqual( inRoot, outRoot, #function )
@@ -114,7 +114,7 @@ final class NativeTests: XCTestCase {
 		let b		= "Paperino".data(using: .utf8)
 
 		let inRoot	= [a, b, a, nil]
-		let data	= try GraphEncoder().encode( inRoot )
+		let data	= try GraphEncoder().encode( inRoot ) as Bytes
 		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 
 		XCTAssertEqual( inRoot, outRoot, #function )
@@ -125,7 +125,7 @@ final class NativeTests: XCTestCase {
 		let b = SIMD8(repeating: 4.0)
 		let inRoot	= [a, b, nil]
 	
-		let data	= try GraphEncoder().encode( inRoot )
+		let data	= try GraphEncoder().encode( inRoot ) as Bytes
 		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 
 		XCTAssertEqual( inRoot, outRoot, #function )
@@ -138,7 +138,7 @@ final class NativeTests: XCTestCase {
 
 		let inRoot	= [[a, a, nil],[a, a]]
 	
-		let data	= try GraphEncoder().encode( inRoot )
+		let data	= try GraphEncoder().encode( inRoot ) as Bytes
 		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 
 		XCTAssertEqual( inRoot, outRoot, #function )

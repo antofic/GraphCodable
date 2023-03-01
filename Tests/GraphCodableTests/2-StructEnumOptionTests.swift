@@ -144,7 +144,7 @@ extension List: GCodable where Element:GCodable {
 
 //	testOptionSet
 //	we make 'DumpOptions' (defined in 'GraphEncoder.swift') gcodable!
-extension GraphEncoder.DumpOptions : GCodable {}
+extension GraphDumpOptions : GCodable {}
 
 // --------------------------------------------------------------------------------
 
@@ -154,7 +154,7 @@ final class StructEnumOptionTests: XCTestCase {
 	func testStruct() throws {
 		let inRoot	= Person(name: "Pippo", body: Body(height: 1.80, weight: 80.0))
 		
-		let data	= try GraphEncoder().encode( inRoot )
+		let data	= try GraphEncoder().encode( inRoot ) as Bytes
 		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 		
 		XCTAssertEqual( inRoot, outRoot, #function )
@@ -190,7 +190,7 @@ final class StructEnumOptionTests: XCTestCase {
 		}
 		let inRoot	= Test()
 		
-		let data = try GraphEncoder().encode( inRoot )
+		let data = try GraphEncoder().encode( inRoot ) as Bytes
 		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 		
 		XCTAssertEqual( inRoot, outRoot, #function )
@@ -223,7 +223,7 @@ final class StructEnumOptionTests: XCTestCase {
 		}
 		let inRoot	= Test()
 		
-		let data	= try GraphEncoder().encode( inRoot )
+		let data	= try GraphEncoder().encode( inRoot ) as Bytes
 		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 		
 		XCTAssertEqual( inRoot, outRoot, #function )
@@ -261,7 +261,7 @@ final class StructEnumOptionTests: XCTestCase {
 		}
 		let inRoot	= Test()
 		
-		let data	= try GraphEncoder().encode( inRoot )
+		let data	= try GraphEncoder().encode( inRoot ) as Bytes
 		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 		
 		XCTAssertEqual( inRoot, outRoot, #function )
@@ -270,7 +270,7 @@ final class StructEnumOptionTests: XCTestCase {
 	func testStringEnum() throws {
 		let inRoot	= DisneyString.paperino
 		
-		let data	= try GraphEncoder().encode( inRoot )
+		let data	= try GraphEncoder().encode( inRoot ) as Bytes
 		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 		
 		XCTAssertEqual( inRoot, outRoot, #function )
@@ -278,7 +278,7 @@ final class StructEnumOptionTests: XCTestCase {
 
 	func testIntEnum() throws {
 		let inRoot	= DisneyInt.paperino
-		let data	= try GraphEncoder().encode( inRoot )
+		let data	= try GraphEncoder().encode( inRoot ) as Bytes
 		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 		
 		XCTAssertEqual( inRoot, outRoot, #function )
@@ -286,15 +286,15 @@ final class StructEnumOptionTests: XCTestCase {
 	
 	func testIndirectLinkedListEnum() throws {
 		let inRoot	= List(arrayLiteral: "a","b","c")
-		let data	= try GraphEncoder().encode( inRoot )
+		let data	= try GraphEncoder().encode( inRoot ) as Bytes
 		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 		
 		XCTAssertEqual( inRoot, outRoot, #function )
 	}
 	
 	func testOptionSet() throws {
-		let inRoot	= GraphEncoder.DumpOptions.binaryLike
-		let data	= try GraphEncoder().encode( inRoot )
+		let inRoot	= GraphDumpOptions.binaryLike
+		let data	= try GraphEncoder().encode( inRoot ) as Bytes
 		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 
 		XCTAssertEqual( inRoot, outRoot, #function )

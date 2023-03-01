@@ -71,7 +71,7 @@ final class ReferenceTests: XCTestCase {
 	
 	func testInheritance() throws {
 		let inRoot	: SuperClass = SubClass()
-		let data	= try GraphEncoder().encode( inRoot )
+		let data	= try GraphEncoder().encode( inRoot ) as Bytes
 		let outRoot	= try GraphDecoder().decode( SuperClass.self, from:data )
 		
 		XCTAssert( outRoot is SubClass , #function )
@@ -83,7 +83,7 @@ final class ReferenceTests: XCTestCase {
 		let c = ConditionalList( b )
 		
 		let inRoot	= [ "a": a, "b": b, "c" : c ]
-		let data	= try GraphEncoder().encode( inRoot )
+		let data	= try GraphEncoder().encode( inRoot ) as Bytes
 		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 		
 		XCTAssertNil( outRoot["a"]!.next, #function )
@@ -97,7 +97,7 @@ final class ReferenceTests: XCTestCase {
 		let c = ConditionalList( b )
 		
 		let inRoot	= [ "b": b, "c": c ]
-		let data	= try GraphEncoder().encode( inRoot )
+		let data	= try GraphEncoder().encode( inRoot ) as Bytes
 		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 		
 		XCTAssertNil( outRoot["b"]!.next, #function )
@@ -110,7 +110,7 @@ final class ReferenceTests: XCTestCase {
 		let c = ConditionalList( b )
 		
 		let inRoot	= [ "a": a, "c" : c ]
-		let data	= try GraphEncoder().encode( inRoot )
+		let data	= try GraphEncoder().encode( inRoot ) as Bytes
 		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 		
 		XCTAssertNil( outRoot["a"]!.next, #function )
@@ -121,7 +121,7 @@ final class ReferenceTests: XCTestCase {
 		let a = Dummy()
 		
 		let inRoot	= ["a": [a,a,a], "b" : [a,nil,a]]
-		let data	= try GraphEncoder().encode( inRoot )
+		let data	= try GraphEncoder().encode( inRoot ) as Bytes
 		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 
 		let out_a_0	= outRoot["a"]![0]!

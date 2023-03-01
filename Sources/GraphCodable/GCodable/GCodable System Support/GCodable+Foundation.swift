@@ -316,7 +316,6 @@ extension Decimal : GCodable {
 	
 }
 
-
 //	Calendar SUPPORT ------------------------------------------------------
 
 extension NSCalendar.Identifier : GCodable {}

@@ -70,7 +70,7 @@ final class UserInfoTests: XCTestCase {
 		let encoder = GraphEncoder()
 		// change Pippo to Paperino during encode
 		encoder.userInfo	= ["Pippo":"Paperino"]
-		let data	= try encoder.encode( inRoot )
+		let data	= try encoder.encode( inRoot ) as Bytes
 
 		let decoder = GraphDecoder()
 		let outRoot	= try decoder.decode( type(of:inRoot), from: data )
@@ -85,7 +85,7 @@ final class UserInfoTests: XCTestCase {
 		let inRoot	= [pippo, pluto]
 		
 		let encoder = GraphEncoder()
-		let data	= try encoder.encode( inRoot )
+		let data	= try encoder.encode( inRoot ) as Bytes
 		
 		let decoder = GraphDecoder()
 		// change Pluto to Topolino during decode

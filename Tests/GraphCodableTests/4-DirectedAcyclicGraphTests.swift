@@ -84,7 +84,7 @@ final class DirectedAcyclicGraphTests: XCTestCase {
 		d.others = [ e ]	// Read the note (1)
 
 		let inRoot	= a
-		let data	= try GraphEncoder().encode( inRoot )
+		let data	= try GraphEncoder().encode( inRoot ) as Bytes
 		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 		
 		let outA	= outRoot
@@ -183,7 +183,7 @@ final class DirectedAcyclicGraphTests: XCTestCase {
 		a.others = [b, c, d, e]
 
 		let inRoot	= a
-		let data	= try GraphEncoder().encode( inRoot )
+		let data	= try GraphEncoder().encode( inRoot ) as Bytes
 		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 		
 		let outA	= outRoot

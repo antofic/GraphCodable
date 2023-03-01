@@ -23,20 +23,10 @@
 import Foundation
 
 // -------------------------------------------------
-// ----- BinaryEncoderDelegate
-// -------------------------------------------------
-
-protocol BinaryEncoderDelegate : AnyObject {
-	var	classDataMap:	ClassDataMap { get }
-	var	keyStringMap:	KeyStringMap { get }
-	var dumpOptions:	GraphEncoder.DumpOptions { get }
-}
-
-// -------------------------------------------------
 // ----- GEncoderImpl
 // -------------------------------------------------
 
-final class GEncoderImpl : GEncoder, BinaryEncoderDelegate {
+final class GEncoderImpl : GEncoder, DataEncoderDelegate {
 	var userInfo							= [String:Any]()
 	private typealias	IdentifierMap		= AnyIdentifierMap
 	
@@ -45,45 +35,42 @@ final class GEncoderImpl : GEncoder, BinaryEncoderDelegate {
 	private var			identifierMap		= IdentifierMap()
 	private var			referenceMap		= ReferenceMap()
 	private var			keyMap				= KeyMap()
-	private (set) var	dumpOptions			= GraphEncoder.DumpOptions.readable
-	private var			dataEncoder			= BinaryEncoder<GEncoderImpl>(isDump: false)
+	private (set) var	dumpOptions			= GraphDumpOptions.readable
+	private var			dataEncoder			: (any DataEncoder)! {
+		willSet {
+			self.dataEncoder?.delegate	= nil
+		}
+		didSet {
+			self.currentKeys			= Set<String>()
+			self.identifierMap			= IdentifierMap()
+			self.referenceMap			= ReferenceMap()
+			self.keyMap					= KeyMap()
+			self.dataEncoder?.delegate	= self
+		}
+	}
 	
 	var classDataMap: ClassDataMap 	{ referenceMap.classDataMap }
 	var keyStringMap: KeyStringMap 	{ keyMap.keyStringMap }
-	
-	private func reset( dump: Bool = false, dumpOptions:GraphEncoder.DumpOptions = .readable ) {
-		self.currentKeys			= Set<String>()
-		self.identifierMap			= IdentifierMap()
-		self.referenceMap			= ReferenceMap()
-		self.keyMap					= KeyMap()
-		self.dumpOptions			= dumpOptions
-		self.dataEncoder			= BinaryEncoder<GEncoderImpl>(isDump: dump)
-		self.dataEncoder.delegate	= self
-		
-	}
-	
-	// --------------------------------------------------------
+
 	init( _ options: GraphEncoder.Options ) {
 		self.encodeOptions			= options
-		self.dataEncoder.delegate	= self
 	}
 	
 	func encodeRoot<T,Q>( _ value: T ) throws -> Q where T:GEncodable, Q:MutableDataProtocol {
-		defer { reset() }
-		reset()
-		
+		defer { self.dataEncoder = nil }
+		let dataEncoder	= BinEncoder<Q>()
+		self.dataEncoder = dataEncoder
 		try encode( value )
-
-		return try dataEncoder.data()
+		return try dataEncoder.output()
 	}
 	
-	func dumpRoot<T>( _ value: T, options: GraphEncoder.DumpOptions ) throws -> String where T:GEncodable {
-		defer { reset() }
-		reset( dump: true, dumpOptions:options )
-		
+	func dumpRoot<T>( _ value: T, options: GraphDumpOptions ) throws -> String where T:GEncodable {
+		defer { self.dataEncoder = nil }
+		let dataEncoder	= StringEncoder()
+		self.dataEncoder = dataEncoder
+		self.dumpOptions = options
 		try encode( value )
-		
-		return try dataEncoder.dump()
+		return try dataEncoder.output()
 	}
 	
 	// --------------------------------------------------------
@@ -138,15 +125,15 @@ final class GEncoderImpl : GEncoder, BinaryEncoderDelegate {
 	}
 
 	private func createTypeIDIfNeeded( for value:GEncodable ) throws -> UIntID? {
-		if encodeOptions.contains( .disableRefTypeInfo ) {
+		if encodeOptions.contains( .disableClassNames ) {
 			return nil
 		}
 		guard let object = value as? GEncodable & AnyObject else {
 			return nil
 		}
-		if encodeOptions.contains( .ignoreGTypeInfoProtocol ) == false,
-		   let typeInfo = object as? (AnyObject & GTypeInfo),
-		   typeInfo.disableTypeInfo {
+		if encodeOptions.contains( .ignoreGClassNameProtocol ) == false,
+		   let typeInfo = object as? (AnyObject & GClassName),
+		   typeInfo.disableClassName {
 			return nil
 		}
 		return try referenceMap.createTypeIDIfNeeded( type: type(of:object) )
@@ -193,7 +180,7 @@ final class GEncoderImpl : GEncoder, BinaryEncoderDelegate {
 			//	String should not really be here, but the Encoder/Decoder
 			//	become too slow if String doesn't adopt the NativeEncodable
 			//	protocol
-			try dataEncoder.appendBinValue(keyID: keyID, value: binaryValue )
+			try dataEncoder.appendBinValue(keyID: keyID, binaryValue: binaryValue )
 		} else if let value = value as? GEncodable {
 			if let identifier = identifier( of:value ) {	// IDENTITY
 				if let objID = identifierMap.strongID( identifier ) {
@@ -220,9 +207,9 @@ final class GEncoderImpl : GEncoder, BinaryEncoderDelegate {
 
 					if let binaryValue = binaryValue( of:value ) {
 						if let typeID {	// INHERITANCE
-							try dataEncoder.appendIdBinRef(keyID: keyID, typeID: typeID, objID: objID, value: binaryValue )
+							try dataEncoder.appendIdBinRef(keyID: keyID, typeID: typeID, objID: objID, binaryValue: binaryValue )
 						} else {	// NO INHERITANCE
-							try dataEncoder.appendIdBinValue(keyID: keyID, objID: objID, value: binaryValue )
+							try dataEncoder.appendIdBinValue(keyID: keyID, objID: objID, binaryValue: binaryValue )
 						}
 					} else {
 						if let typeID {	// INHERITANCE
@@ -247,9 +234,9 @@ final class GEncoderImpl : GEncoder, BinaryEncoderDelegate {
 
 				if let binaryValue = binaryValue( of:value ) {
 					if let typeID {	// INHERITANCE
-						try dataEncoder.appendBinRef(keyID: keyID, typeID: typeID, value: binaryValue )
+						try dataEncoder.appendBinRef(keyID: keyID, typeID: typeID, binaryValue: binaryValue )
 					} else {
-						try dataEncoder.appendBinValue(keyID: keyID, value: binaryValue )
+						try dataEncoder.appendBinValue(keyID: keyID, binaryValue: binaryValue )
 					}
 				} else {
 					if let typeID {	// NO INHERITANCE
@@ -295,226 +282,6 @@ final class GEncoderImpl : GEncoder, BinaryEncoderDelegate {
 	}
 }
 
-// -------------------------------------------------
-// ----- SinglePassBinaryEncoder
-// -------------------------------------------------
-fileprivate final class BinaryEncoder<Provider:BinaryEncoderDelegate> {
-	let					fileHeader	= FileHeader()
-	let					isDump		: Bool
-	weak var			delegate	: Provider?
-	private var			wbuffer		= BinaryWriteBuffer()
-	private var			output		= String()
-
-	init( isDump: Bool ) {
-		self.isDump		= isDump
-	}
-	func appendNil( keyID:UIntID ) throws {
-		try append( .Nil(keyID: keyID) )
-	}
-	func appendValue( keyID:UIntID ) throws {
-		try append( .value(keyID: keyID) )
-	}
-	func appendBinValue( keyID:UIntID, value:BinaryOType ) throws {
-		let bytes	= try value.binaryData() as Bytes
-		try append( .binValue(keyID: keyID, bytes: bytes), value:value  )
-	}
-	func appendRef( keyID:UIntID, typeID:UIntID ) throws {
-		try append( .ref(keyID: keyID, typeID:typeID ) )
-	}
-	func appendBinRef( keyID:UIntID, typeID:UIntID, value:BinaryOType ) throws {
-		let bytes	= try value.binaryData() as Bytes
-		try append( .binRef(keyID: keyID, typeID:typeID, bytes: bytes), value:value  )
-	}
-	func appendIdValue( keyID:UIntID, objID:UIntID ) throws {
-		try append( .idValue(keyID: keyID, objID: objID) )
-	}
-	func appendIdBinValue( keyID:UIntID, objID:UIntID, value:BinaryOType ) throws {
-		let bytes	= try value.binaryData() as Bytes
-		try append( .idBinValue(keyID: keyID, objID: objID, bytes: bytes), value:value )
-	}
-	func appendIdRef( keyID:UIntID, typeID:UIntID, objID:UIntID )throws {
-		try append( .idRef(keyID: keyID, typeID: typeID, objID: objID) )
-	}
-	func appendIdBinRef( keyID:UIntID,  typeID:UIntID, objID:UIntID, value:BinaryOType ) throws {
-		let bytes	= try value.binaryData() as Bytes
-		try append( .idBinRef(keyID: keyID, typeID:typeID, objID: objID, bytes: bytes), value:value )
-	}
-	func appendStrongPtr( keyID:UIntID, objID:UIntID ) throws {
-		try append( .strongPtr(keyID: keyID, objID: objID) )
-	}
-	func appendConditionalPtr( keyID:UIntID, objID:UIntID ) throws {
-		try append( .conditionalPtr(keyID: keyID, objID: objID) )
-	}
-	func appendEnd() throws {
-		try append( .end )
-	}
-	
-	//	low level
-	private func append( _ fileBlock: FileBlock, value:BinaryOType? = nil ) throws {
-		if isDump	{ try appendDumpString( fileBlock, binaryValue:value ) }
-		else		{ try appendBinaryData( fileBlock ) }
-	}
-
-	//	------------------------------------------------------------
-	//	--	DUMP section
-	//	------------------------------------------------------------
-	private var dumpStart	= false
-	private var tabs		: String?
-	
-	private func dumpInit() throws {
-		if dumpStart == false {
-			dumpStart	= true
-			
-			let options	= delegate?.dumpOptions ?? .readable
-			
-			if options.contains( .showHeader ) {
-				if options.contains( .hideSectionTitles ) == false {
-					output.append( "== HEADER ========================================================\n" )
-				}
-				output.append( fileHeader.description )
-				output.append( "\n" )
-			}
-			
-			if options.contains( .hideBody ) == false {
-				if options.contains( .hideSectionTitles ) == false {
-					output.append( "== BODY ==========================================================\n" )
-				}
-				tabs = options.contains( .dontIndentLevel ) ? nil : ""
-			}
-		}
-	}
-	
-	private func appendDumpString( _ fileBlock: FileBlock, binaryValue:BinaryOType? ) throws {
-		try dumpInit()
-		let options	= delegate?.dumpOptions ?? .readable
-
-		if options.contains( .hideBody ) == false {
-			if case .exit = fileBlock.level { tabs?.removeLast() }
-			if let tbs = tabs { output.append( tbs ) }
-			
-			output.append( fileBlock.readableOutput(
-					options:		options,
-					binaryValue:	binaryValue,
-					classDataMap:	delegate?.classDataMap,
-					keyStringMap:	delegate?.keyStringMap
-			) )
-			output.append( "\n" )
-			
-			if case .enter = fileBlock.level { tabs?.append("\t") }
-		}
-	}
-
-	func dump() throws -> String {
-		func typeString( _ options:GraphEncoder.DumpOptions, _ classData:ClassData ) -> String {
-			var string	= "\(classData.readableTypeName) V\(classData.encodeVersion)"
-			if options.contains( .showMangledClassNames ) {
-				string.append( "\n\t\t\tMangledName = \( classData.mangledTypeName ?? "nil" )"  )
-				string.append( "\n\t\t\tNSTypeName  = \( classData.objcTypeName )"  )
-			}
-			return string
-		}
-		
-		guard isDump == true else {
-			throw GCodableError.internalInconsistency(
-				Self.self, GCodableError.Context(
-					debugDescription: "Invalis if isDump = \(isDump)."
-				)
-			)
-		}
-		
-		try dumpInit()
-		let options	= delegate?.dumpOptions ?? .readable
-
-		if options.contains( .showClassDataMap ) {
-			if options.contains( .hideSectionTitles ) == false {
-				output.append( "== REFERENCEMAP ==================================================\n" )
-			}
-			output = delegate?.classDataMap.reduce( into: output ) {
-				result, tuple in
-				result.append( "TYPE\( tuple.key ):\t\( typeString( options, tuple.value ) )\n")
-			} ?? "UNAVAILABLE DELEGATE \(#function)\n"
-		}
-		
-		if options.contains( .showKeyStringMap ) {
-			if options.contains( .hideSectionTitles ) == false {
-				output.append( "== KEYMAP ========================================================\n" )
-			}
-			output = delegate?.keyStringMap.reduce( into: output ) {
-				result, tuple in
-				result.append( "KEY\( tuple.key ):\t\"\( tuple.value )\"\n" )
-			} ?? "UNAVAILABLE DELEGATE \(#function)\n"
-		}
-		if options.contains( .hideSectionTitles ) == false {
-			output.append( "==================================================================\n" )
-		}
-		
-		return output
-	}
-	//	------------------------------------------------------------
-	//	--	DATA section
-	//	------------------------------------------------------------
-	private var sectionMap			= SectionMap()
-	private var	sectionMapPosition	= 0
-
-	private func writeInit() throws {
-		if sectionMap.isEmpty {
-			// entriamo la prima volta e quindi scriviamo header e section map.
-
-			// write header:
-			try fileHeader.write(to: &wbuffer)
-			sectionMapPosition	= wbuffer.position
-
-			// write section map:
-			for section in FileSection.allCases {
-				sectionMap[ section ] = Range(uncheckedBounds: (0,0))
-			}
-			try sectionMap.write(to: &wbuffer)
-			let bounds	= (wbuffer.position,wbuffer.position)
-			sectionMap[ FileSection.body ] = Range( uncheckedBounds:bounds )
-		}
-	}
-	
-	private func appendBinaryData( _ fileBlock: FileBlock ) throws {
-		try writeInit()
-		try fileBlock.write(to: &wbuffer)
-	}
-
-	func data<Q>() throws -> Q where Q:MutableDataProtocol {
-		guard isDump == false else {
-			throw GCodableError.internalInconsistency(
-				Self.self, GCodableError.Context(
-					debugDescription: "Invalis if isDump = \(isDump)."
-				)
-			)
-		}
-		
-		try writeInit()
-		
-		var bounds	= (sectionMap[.body]!.startIndex,wbuffer.position)
-		sectionMap[.body]	= Range( uncheckedBounds:bounds )
-		
-		// referenceMap:
-		try delegate!.classDataMap.write(to: &wbuffer)
-		bounds	= ( bounds.1,wbuffer.position )
-		sectionMap[ FileSection.classDataMap ] = Range( uncheckedBounds:bounds )
-
-		// keyStringMap:
-		try delegate!.keyStringMap.write(to: &wbuffer)
-		bounds	= ( bounds.1,wbuffer.position )
-		sectionMap[ FileSection.keyStringMap ] = Range( uncheckedBounds:bounds )
-
-		do {
-			//	sovrascrivo la sectionMapPosition
-			//	ora che ho tutti i valori
-			defer { wbuffer.setEof() }
-			wbuffer.position	= sectionMapPosition
-			try sectionMap.write(to: &wbuffer)
-		}
-		
-		return wbuffer.data()
-	}
-	
-}
 
 // -------------------------------------------------
 // ----- ReferenceMap

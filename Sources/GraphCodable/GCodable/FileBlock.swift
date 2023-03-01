@@ -42,34 +42,6 @@ typealias KeyStringMap		= [UIntID : String]
 
 /// the body of a GCodable file is a sequence of FileBlock's
 enum FileBlock {
-	/*
-	private struct IOFlags: OptionSet {
-		let rawValue: UInt8
-		
-		init(rawValue: UInt8) {
-			self.rawValue	= rawValue
-		}
-		
-		///	show file header
-		private static let	keyID			= Self( rawValue: 1 << 0 )
-		private static let	typeID			= Self( rawValue: 1 << 1 )
-		private static let	objID			= Self( rawValue: 1 << 2 )
-		private static let	bytes			= Self( rawValue: 1 << 3 )
-
-		static let	Nil				: Self = [ keyID ]
-		static let	value			: Self = [ keyID ]
-		static let	binValue		: Self = [ keyID, bytes ]
-		static let	ref				: Self = [ keyID, typeID ]
-		static let	binRef			: Self = [ keyID, typeID, bytes ]
-		static let	idValue			: Self = [ keyID, objID ]
-		static let	idBinValue		: Self = [ keyID, objID, bytes ]
-		static let	idRef			: Self = [ keyID, typeID, objID ]
-		static let	idBinRef		: Self = [ keyID, typeID, objID, bytes ]
-		static let	strongPtr		: Self = [ keyID, objID ]
-		static let	conditionalPtr	: Self = [ keyID, objID ]
-		static let	end				: Self = []
-	}
-	*/
 	private enum Code : UInt8 {
 		case Nil			= 0x30	// '0'
 		case value			= 0x25	// '%'	// No Identity, No Inheritance, No Binary
@@ -83,25 +55,8 @@ enum FileBlock {
 		case strongPtr		= 0x21	// '!'
 		case conditionalPtr	= 0x3F	// '?'
 		case end			= 0x2E	// '.'
-		/*
-		private var code : IOFlags {
-			switch self {
-			case .Nil				: return IOFlags.Nil
-			case .value				: return IOFlags.value
-			case .binValue			: return IOFlags.binValue
-			case .ref				: return IOFlags.ref
-			case .binRef			: return IOFlags.binRef
-			case .idValue			: return IOFlags.idValue
-			case .idBinValue		: return IOFlags.idBinValue
-			case .idRef				: return IOFlags.idRef
-			case .idBinRef			: return IOFlags.idBinRef
-			case .strongPtr			: return IOFlags.strongPtr
-			case .conditionalPtr	: return IOFlags.conditionalPtr
-			case .end				: return IOFlags.end
-			}
-		}
-		*/
 	}
+	
 	
 	private var code : Code {
 		switch self {
@@ -212,7 +167,103 @@ extension FileBlock {
 	}
 }
 
+extension FileBlock {
+	private struct Token : BinaryIOType {
+		let code	: Code
+		let keyID	: UIntID
+		
+		init( code : Code, keyID : UIntID = 0 ) {
+			self.code	= code
+			self.keyID	= keyID
+		}
+		
+		func write(to wbuffer: inout BinaryWriteBuffer) throws {
+			let rawValue	= code.rawValue
+			switch code {
+			case .end:
+				try rawValue.write(to: &wbuffer)
+			default:
+				if keyID == 0 {
+					try (rawValue | 0x80).write(to: &wbuffer)
+				} else {
+					try rawValue.write(to: &wbuffer)
+					try keyID.write(to: &wbuffer)
+				}
+			}
+		}
+		
+		init(from rbuffer: inout BinaryReadBuffer) throws {
+			let token	= try Code.RawValue.init(from: &rbuffer)
+			switch token {
+			case Code.end.rawValue:
+				self.code	= .end
+				self.keyID	= 0
+			default:
+				let rawValue	= token & ~0x80
+				guard let code = Code(rawValue: rawValue ) else {
+					throw GCodableError.decodingError(
+						Self.self, GCodableError.Context(
+							debugDescription: "Invalid code rawValue \(rawValue)"
+						)
+					)
+				}
+				self.code	= code
+				if (token & 0x80) == 0 {
+					self.keyID	= try UIntID(from: &rbuffer)
+				} else {
+					self.keyID	= 0
+				}
+			}
+		}
+	}
+}
+
 extension FileBlock : BinaryOType {
+	func write( to wbuffer: inout BinaryWriteBuffer ) throws {
+		switch self {
+		case .Nil	( let keyID ):
+			try Token(code: .Nil, keyID:keyID).write(to: &wbuffer)
+		case .value	( let keyID ):
+			try Token(code: .value, keyID:keyID).write(to: &wbuffer)
+		case .binValue( let keyID, let bytes ):
+			try Token(code: .binValue, keyID:keyID).write(to: &wbuffer)
+			try wbuffer.writeData( bytes )
+		case .ref(keyID: let keyID, let typeID):
+			try Token(code: .ref, keyID:keyID).write(to: &wbuffer)
+			try typeID.write(to: &wbuffer)
+		case .binRef(keyID: let keyID, let typeID, bytes: let bytes):
+			try Token(code: .binRef, keyID:keyID).write(to: &wbuffer)
+			try typeID.write(to: &wbuffer)
+			try wbuffer.writeData( bytes )
+		case .idValue( let keyID, let objID ):
+			try Token(code: .idValue, keyID:keyID).write(to: &wbuffer)
+			try objID.write(to: &wbuffer)
+		case .idBinValue( let keyID,  let objID,  let bytes ):
+			try Token(code: .idBinValue, keyID:keyID).write(to: &wbuffer)
+			try objID.write(to: &wbuffer)
+			try wbuffer.writeData( bytes )
+		case .idRef( let keyID, let typeID, let objID ):
+			try Token(code: .idRef, keyID:keyID).write(to: &wbuffer)
+			try typeID.write(to: &wbuffer)
+			try objID.write(to: &wbuffer)
+		case .idBinRef( let keyID, let typeID, let objID,  let bytes ):
+			try Token(code: .idBinRef, keyID:keyID).write(to: &wbuffer)
+			try typeID.write(to: &wbuffer)
+			try objID.write(to: &wbuffer)
+			try wbuffer.writeData( bytes )
+		case .strongPtr( let keyID, let objID ):
+			try Token(code: .strongPtr, keyID:keyID).write(to: &wbuffer)
+			try objID.write(to: &wbuffer)
+		case .conditionalPtr( let keyID, let objID ):
+			try Token(code: .conditionalPtr, keyID:keyID).write(to: &wbuffer)
+			try objID.write(to: &wbuffer)
+		case .end:
+			try Token(code: .end).write(to: &wbuffer)
+		}
+	}
+
+	
+	/*
 	func write( to wbuffer: inout BinaryWriteBuffer ) throws {
 		try code.write(to: &wbuffer)
 		
@@ -257,9 +308,58 @@ extension FileBlock : BinaryOType {
 			break
 		}
 	}
+	*/
 }
 
 extension FileBlock : BinaryIType {
+	init(from rbuffer: inout BinaryReadBuffer) throws {
+		let token	= try Token(from: &rbuffer)
+				
+		switch token.code {
+		case .Nil:
+			self = .Nil(keyID: token.keyID)
+		case .value:
+			self = .value(keyID: token.keyID)
+		case .binValue:
+			let bytes	= try rbuffer.readData() as Bytes
+			self = .binValue(keyID: token.keyID, bytes: bytes)
+		case .ref:
+			let typeID	= try UIntID		( from: &rbuffer )
+			self = .ref(keyID: token.keyID, typeID: typeID)
+		case .binRef:
+			let typeID	= try UIntID		( from: &rbuffer )
+			let bytes	= try rbuffer.readData() as Bytes
+			self = .binRef(keyID: token.keyID, typeID: typeID, bytes: bytes)
+		case .idValue:
+			let objID	= try UIntID		( from: &rbuffer )
+			self = .idValue(keyID: token.keyID, objID: objID)
+		case .idBinValue:
+			let objID	= try UIntID		( from: &rbuffer )
+			let bytes	= try rbuffer.readData() as Bytes
+			self = .idBinValue(keyID: token.keyID, objID: objID, bytes: bytes)
+		case .idRef:
+			let typeID	= try UIntID		( from: &rbuffer )
+			let objID	= try UIntID		( from: &rbuffer )
+			self = .idRef(keyID: token.keyID, typeID: typeID, objID: objID)
+		case .idBinRef:
+			let typeID	= try UIntID		( from: &rbuffer )
+			let objID	= try UIntID		( from: &rbuffer )
+			let bytes	= try rbuffer.readData() as Bytes
+			self = .idBinRef(keyID: token.keyID, typeID: typeID, objID: objID, bytes: bytes)
+		case .strongPtr:
+			let objID	= try UIntID		( from: &rbuffer )
+			self = .strongPtr(keyID: token.keyID, objID: objID)
+		case .conditionalPtr:
+			let objID	= try UIntID		( from: &rbuffer )
+			self = .conditionalPtr(keyID: token.keyID, objID: objID)
+		case .end:
+			self = .end
+		}
+	}
+
+	
+	
+	/*
 	init(from rbuffer: inout BinaryReadBuffer) throws {
 		let code = try Code(from: &rbuffer)
 
@@ -315,6 +415,7 @@ extension FileBlock : BinaryIType {
 			self = .end
 		}
 	}
+	*/
 }
 
 //	-------------------------------------------------
@@ -323,10 +424,10 @@ extension FileBlock : BinaryIType {
 
 extension FileBlock {
 	func readableOutput(
-		options:			GraphEncoder.DumpOptions,
+		options:			GraphDumpOptions,
 		binaryValue: 		BinaryOType?,
-		classDataMap:		ClassDataMap?,
-		keyStringMap: 		KeyStringMap?
+		classDataMap cdm:	ClassDataMap?,
+		keyStringMap ksm: 	KeyStringMap?
 		) -> String {
 		func format( _ keyID:UIntID, _ keyStringMap: [UIntID:String]?, _ string:String ) -> String {
 			if keyID == 0 {	// unkeyed
@@ -338,7 +439,7 @@ extension FileBlock {
 			}
 		}
 		
-		func small( _ value: Any, _ options:GraphEncoder.DumpOptions ) -> String {
+		func small( _ value: Any, _ options:GraphDumpOptions ) -> String {
 			let phase1 = String(describing: value)
 			if options.contains( .noTruncation ) {
 				return phase1
@@ -351,7 +452,7 @@ extension FileBlock {
 			}
 		}
 		
-		func objectString( _ typeID:UInt32, _ options:GraphEncoder.DumpOptions, _ classDataMap:[UIntID:ClassData]? ) -> String {
+		func objectString( _ typeID:UInt32, _ options:GraphDumpOptions, _ classDataMap:[UIntID:ClassData]? ) -> String {
 			if let classData	= classDataMap?[typeID] {
 				if options.contains( .showReferenceVersion ) {
 					return "\(classData.readableTypeName) V\(classData.encodeVersion)"
@@ -363,7 +464,7 @@ extension FileBlock {
 			}
 		}
 		
-		func typeString( _ options:GraphEncoder.DumpOptions, _ classData:ClassData ) -> String {
+		func typeString( _ options:GraphDumpOptions, _ classData:ClassData ) -> String {
 			var string	= "\(classData.readableTypeName) V\(classData.encodeVersion)"
 			if options.contains( .showMangledClassNames ) {
 				string.append( "\n\t\t\tMangledName = \( classData.mangledTypeName ?? "nil" )"  )
@@ -372,6 +473,9 @@ extension FileBlock {
 			return string
 		}
 		
+		let classDataMap = options.contains( .resolveTypeIDs ) ? cdm : nil
+		let keyStringMap = options.contains( .resolveKeyIDs ) ? ksm : nil
+			
 		switch self {
 		case .Nil	( let keyID ):
 			return format( keyID, keyStringMap, "nil")

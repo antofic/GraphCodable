@@ -110,7 +110,7 @@ final class ClassicParentChildsPattern: XCTestCase {
 		windowB.parent	= screen
 		
 		let inRoot	= screen as View	// we encode as View
-		let data	= try GraphEncoder().encode( inRoot )
+		let data	= try GraphEncoder().encode( inRoot ) as Bytes
 		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 		
 		// we obtain the true inRoot type:

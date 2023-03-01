@@ -137,7 +137,7 @@ final class DirectedCyclicGraphTests: XCTestCase {
 		e.connect( to: a,b,c,d,e )
 		
 		let inRoot	= model
-		let data	= try GraphEncoder().encode( inRoot )
+		let data	= try GraphEncoder().encode( inRoot ) as Bytes
 		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 
 		let outA	= outRoot.nodes[a.name]!

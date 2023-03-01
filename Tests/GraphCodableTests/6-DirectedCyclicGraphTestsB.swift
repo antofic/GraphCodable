@@ -114,7 +114,7 @@ final class DirectedCyclicGraphTestsB: XCTestCase {
 		d.connect( to: e,d,e,a,c,b )
 		e.connect( to: a,b,c,d,e,e )
 		
-		let data		= try GraphEncoder().encode( inModel )
+		let data		= try GraphEncoder().encode( inModel ) as Bytes
 		let outModel	= try GraphDecoder().decode( type(of:inModel), from:data )
 		
 		XCTAssertTrue( inModel == outModel, #function )

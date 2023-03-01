@@ -37,13 +37,18 @@ public final class GraphDecoder {
 	///
 	///	The root value must conform to the GDecodable protocol
 	public func decode<T,Q>( _ type: T.Type, from data: Q ) throws -> T
-		where T:GDecodable, Q:Sequence, Q.Element==UInt8 {
+	where T:GDecodable, Q:Sequence, Q.Element==UInt8 {
 		try decoder.decodeRoot( type, from: data)
 	}
 
+	public func dump<Q>( from data: Q, options: GraphDumpOptions = .readable ) throws -> String
+	where Q:Sequence, Q.Element==UInt8 {
+		try decoder.dumpRoot( from: data, options:options )
+	}
+	
 	///	Returns all the classes encoded in the data byte buffer
 	public func decodableClasses<Q>( from data: Q ) throws -> [(AnyObject & GDecodable).Type]
-		where Q:Sequence, Q.Element==UInt8 {
+	where Q:Sequence, Q.Element==UInt8 {
 		let types	= try decoder.allClassData( from: data ).compactMap { $0.decodableType }
 		let keys	= types.map { ObjectIdentifier($0) }
 		let map		= Dictionary( zip(keys,types) ) { v1,v2 in v1 }
@@ -52,7 +57,7 @@ public final class GraphDecoder {
 
 	///	Returns all the obsolete classes encoded in the data byte buffer
 	public func obsoleteClasses<Q>( from data: Q ) throws -> [GObsolete.Type]
-		where Q:Sequence, Q.Element==UInt8 {
+	where Q:Sequence, Q.Element==UInt8 {
 		let types	= try decoder.allClassData( from: data ).compactMap { $0.obsoleteType }
 		let keys	= types.map { ObjectIdentifier($0) }
 		let map		= Dictionary( zip(keys,types) ) { v1,v2 in v1 }
