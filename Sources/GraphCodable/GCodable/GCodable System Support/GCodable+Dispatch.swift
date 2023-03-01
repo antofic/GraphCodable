@@ -22,6 +22,7 @@
 
 import Dispatch
 
+/*
 extension DispatchTime : GCodable {
 	public func encode(to encoder: GEncoder) throws {
 		try encoder.encode( uptimeNanoseconds )
@@ -31,7 +32,10 @@ extension DispatchTime : GCodable {
 		self.init( uptimeNanoseconds: try decoder.decode() )
 	}
 }
+*/
+extension DispatchTime : GTrivialCodable {}
 
+/*
 extension DispatchTimeInterval : GCodable {
 	private enum IntervalType : UInt8, GCodable {
 		case seconds,milliseconds,microseconds,nanoseconds,never
@@ -82,7 +86,11 @@ extension DispatchTimeInterval : GCodable {
 		}
 	}
 }
+*/
 
+extension DispatchTimeInterval : GTrivialCodable {}
+
+/*
 extension DispatchQueue.SchedulerTimeType : GCodable {
 	public func encode(to encoder: GEncoder) throws {
 		try encoder.encode( dispatchTime )
@@ -92,7 +100,11 @@ extension DispatchQueue.SchedulerTimeType : GCodable {
 		self.init( try decoder.decode() )
 	}
 }
+*/
 
+extension DispatchQueue.SchedulerTimeType : GTrivialCodable {}
+
+/*
 extension DispatchQueue.SchedulerTimeType.Stride : GCodable {
 	public func encode(to encoder: GEncoder) throws {
 		try encoder.encode( timeInterval )
@@ -102,3 +114,6 @@ extension DispatchQueue.SchedulerTimeType.Stride : GCodable {
 		self.init( try decoder.decode() )
 	}
 }
+*/
+
+extension DispatchQueue.SchedulerTimeType.Stride : GTrivialCodable {}

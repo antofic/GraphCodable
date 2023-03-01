@@ -23,14 +23,12 @@
 import System
 
 extension Errno : GCodable {}
-
 extension FileDescriptor : GCodable {}
-
 extension FileDescriptor.AccessMode : GCodable {}
-
 extension FileDescriptor.OpenOptions : GCodable {}
-
 extension FileDescriptor.SeekOrigin : GCodable {}
+extension FilePermissions : GCodable {}
+
 
 extension FilePath : GCodable {
 	private enum Key : String { case path }
@@ -44,5 +42,5 @@ extension FilePath : GCodable {
 	}
 }
 
-extension FilePermissions : GCodable {}
+//	extension FilePath : GBinaryCodable {}
 

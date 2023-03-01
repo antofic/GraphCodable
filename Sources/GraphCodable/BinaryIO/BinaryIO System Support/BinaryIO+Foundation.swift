@@ -336,7 +336,7 @@ extension Decimal : BinaryIOType {
 
 //	Calendar SUPPORT ------------------------------------------------------
 //	Uses Version: YES
-
+/*
 extension NSCalendar.Identifier : BinaryIOType {}
 
 extension Calendar : BinaryIOType {
@@ -381,10 +381,10 @@ extension Calendar : BinaryIOType {
 		}
 	}
 }
-
+*/
 //	DateComponents SUPPORT ------------------------------------------------------
 //	Uses Version: YES
-
+/*
 extension DateComponents : BinaryIOType {
 	private enum Version : UInt8 { case v0 }
 
@@ -458,11 +458,11 @@ extension DateComponents : BinaryIOType {
 		}
 	}
 }
-
+*/
 
 //	DateInterval SUPPORT ------------------------------------------------------
 //	Uses Version: YES
-
+/*
 extension DateInterval : BinaryIOType {
 	private enum Version : UInt8 { case v0 }
 
@@ -490,10 +490,10 @@ extension DateInterval : BinaryIOType {
 		}
 	}
 }
-
+*/
 //	PersonNameComponents SUPPORT ------------------------------------------------------
 //	Uses Version: YES
-
+/*
 extension PersonNameComponents : BinaryIOType {
 	private enum Version : UInt8 { case v0 }
 
@@ -530,10 +530,11 @@ extension PersonNameComponents : BinaryIOType {
 		}
 	}
 }
+*/
 
 //	URL SUPPORT ------------------------------------------------------
 //	Uses Version: YES
-
+/*
 extension URL : BinaryIOType {
 	private enum Version : UInt8 { case v0 }
 
@@ -569,10 +570,10 @@ extension URL : BinaryIOType {
 		}
 	}
 }
-
+*/
 //	URLComponents SUPPORT ------------------------------------------------------
 //	Uses Version: YES
-
+/*
 extension URLComponents : BinaryIOType {
 	private enum Version : UInt8 { case v0 }
 
@@ -613,7 +614,7 @@ extension URLComponents : BinaryIOType {
 		}
 	}
 }
-
+*/
 //	----------------------------------------------------------------------------
 //	----------------------------------------------------------------------------
 //	----------------------------------------------------------------------------
@@ -621,7 +622,7 @@ extension URLComponents : BinaryIOType {
 //	----------------------------------------------------------------------------
 //	Measurement SUPPORT ------------------------------------------------------
 
-
+/*
 extension Measurement : BinaryIOType {
 	private enum Version : UInt8 { case v0 }
 
@@ -649,6 +650,7 @@ extension Measurement : BinaryIOType {
 		}
 	}
 }
+*/
 
 extension OperationQueue.SchedulerTimeType : BinaryIOType {
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws {

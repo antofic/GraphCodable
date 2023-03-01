@@ -50,289 +50,37 @@ extension SIMD16:GCodable where Scalar:GCodable {}
 extension SIMD32:GCodable where Scalar:GCodable {}
 extension SIMD64:GCodable where Scalar:GCodable {}
 
-
-extension SIMDStorage where Scalar:GBinaryCodable {}
-extension SIMDMask where Scalar:GBinaryCodable {}
-extension SIMD2:GBinaryCodable where Scalar:BinaryIOType, Scalar:GCodable {}
-extension SIMD3:GBinaryCodable where Scalar:GBinaryCodable {}
-extension SIMD4:GBinaryCodable where Scalar:GBinaryCodable {}
-extension SIMD8:GBinaryCodable where Scalar:GBinaryCodable {}
-extension SIMD16:GBinaryCodable where Scalar:GBinaryCodable {}
-extension SIMD32:GBinaryCodable where Scalar:GBinaryCodable {}
-extension SIMD64:GBinaryCodable where Scalar:GBinaryCodable {}
-
-extension SIMDStorage where Scalar:GTrivial {}
-extension SIMDMask where Scalar:GTrivial {}
-extension SIMD2: GTrivial {}
-extension SIMD3: GTrivial {}
-extension SIMD4: GTrivial {}
-extension SIMD8: GTrivial {}
-extension SIMD16: GTrivial {}
-extension SIMD32: GTrivial {}
-extension SIMD64: GTrivial {}
-
+extension SIMDStorage where Scalar:GTrivialCodable {}
+extension SIMDMask where Scalar:GTrivialCodable {}
+extension SIMD2:GTrivialCodable where Scalar:GTrivialCodable {}
+extension SIMD3:GTrivialCodable where Scalar:GTrivialCodable {}
+extension SIMD4:GTrivialCodable where Scalar:GTrivialCodable {}
+extension SIMD8:GTrivialCodable where Scalar:GTrivialCodable {}
+extension SIMD16:GTrivialCodable where Scalar:GTrivialCodable {}
+extension SIMD32:GTrivialCodable where Scalar:GTrivialCodable {}
+extension SIMD64:GTrivialCodable where Scalar:GTrivialCodable {}
 
 // Matrix support
 
+extension simd_float2x2: GTrivialCodable {}
+extension simd_float2x3: GTrivialCodable {}
+extension simd_float2x4: GTrivialCodable {}
+extension simd_float3x2: GTrivialCodable {}
+extension simd_float3x3: GTrivialCodable {}
+extension simd_float3x4: GTrivialCodable {}
+extension simd_float4x2: GTrivialCodable {}
+extension simd_float4x3: GTrivialCodable {}
+extension simd_float4x4: GTrivialCodable {}
 
-
-
-
-extension simd_float2x2 : GCodable {
-	var _codableNumCols: Int { 2 }
-	public func encode(to encoder: GraphCodable.GEncoder) throws {
-		for c in 0..<_codableNumCols {
-			try encoder.encode( self[c] )
-		}
-	}
-	public init(from decoder: GraphCodable.GDecoder) throws {
-		self.init()
-		for c in 0..<_codableNumCols {
-			self[c]	= try decoder.decode()
-		}
-	}
-}
-extension simd_float2x3 : GCodable {
-	var _codableNumCols: Int { 2 }
-	public func encode(to encoder: GraphCodable.GEncoder) throws {
-		for c in 0..<_codableNumCols {
-			try encoder.encode( self[c] )
-		}
-	}
-	public init(from decoder: GraphCodable.GDecoder) throws {
-		self.init()
-		for c in 0..<_codableNumCols {
-			self[c]	= try decoder.decode()
-		}
-	}
-}
-extension simd_float2x4 : GCodable {
-	var _codableNumCols: Int { 2 }
-	public func encode(to encoder: GraphCodable.GEncoder) throws {
-		for c in 0..<_codableNumCols {
-			try encoder.encode( self[c] )
-		}
-	}
-	public init(from decoder: GraphCodable.GDecoder) throws {
-		self.init()
-		for c in 0..<_codableNumCols {
-			self[c]	= try decoder.decode()
-		}
-	}
-}
-extension simd_float3x2 : GCodable {
-	var _codableNumCols: Int { 3 }
-	public func encode(to encoder: GraphCodable.GEncoder) throws {
-		for c in 0..<_codableNumCols {
-			try encoder.encode( self[c] )
-		}
-	}
-	public init(from decoder: GraphCodable.GDecoder) throws {
-		self.init()
-		for c in 0..<_codableNumCols {
-			self[c]	= try decoder.decode()
-		}
-	}
-}
-extension simd_float3x3 : GCodable {
-	var _codableNumCols: Int { 3 }
-	public func encode(to encoder: GraphCodable.GEncoder) throws {
-		for c in 0..<_codableNumCols {
-			try encoder.encode( self[c] )
-		}
-	}
-	public init(from decoder: GraphCodable.GDecoder) throws {
-		self.init()
-		for c in 0..<_codableNumCols {
-			self[c]	= try decoder.decode()
-		}
-	}
-}
-extension simd_float3x4 : GCodable {
-	var _codableNumCols: Int { 3 }
-	public func encode(to encoder: GraphCodable.GEncoder) throws {
-		for c in 0..<_codableNumCols {
-			try encoder.encode( self[c] )
-		}
-	}
-	public init(from decoder: GraphCodable.GDecoder) throws {
-		self.init()
-		for c in 0..<_codableNumCols {
-			self[c]	= try decoder.decode()
-		}
-	}
-}
-extension simd_float4x2 : GCodable {
-	var _codableNumCols: Int { 4 }
-	public func encode(to encoder: GraphCodable.GEncoder) throws {
-		for c in 0..<_codableNumCols {
-			try encoder.encode( self[c] )
-		}
-	}
-	public init(from decoder: GraphCodable.GDecoder) throws {
-		self.init()
-		for c in 0..<_codableNumCols {
-			self[c]	= try decoder.decode()
-		}
-	}
-}
-extension simd_float4x3 : GCodable {
-	var _codableNumCols: Int { 4 }
-	public func encode(to encoder: GraphCodable.GEncoder) throws {
-		for c in 0..<_codableNumCols {
-			try encoder.encode( self[c] )
-		}
-	}
-	public init(from decoder: GraphCodable.GDecoder) throws {
-		self.init()
-		for c in 0..<_codableNumCols {
-			self[c]	= try decoder.decode()
-		}
-	}
-}
-extension simd_float4x4 : GCodable {
-	var _codableNumCols: Int { 4 }
-	public func encode(to encoder: GraphCodable.GEncoder) throws {
-		for c in 0..<_codableNumCols {
-			try encoder.encode( self[c] )
-		}
-	}
-	public init(from decoder: GraphCodable.GDecoder) throws {
-		self.init()
-		for c in 0..<_codableNumCols {
-			self[c]	= try decoder.decode()
-		}
-	}
-}
-
-extension simd_double2x2 : GCodable {
-	var _codableNumCols: Int { 2 }
-	public func encode(to encoder: GraphCodable.GEncoder) throws {
-		for c in 0..<_codableNumCols {
-			try encoder.encode( self[c] )
-		}
-	}
-	public init(from decoder: GraphCodable.GDecoder) throws {
-		self.init()
-		for c in 0..<_codableNumCols {
-			self[c]	= try decoder.decode()
-		}
-	}
-}
-extension simd_double2x3 : GCodable {
-	var _codableNumCols: Int { 2 }
-	public func encode(to encoder: GraphCodable.GEncoder) throws {
-		for c in 0..<_codableNumCols {
-			try encoder.encode( self[c] )
-		}
-	}
-	public init(from decoder: GraphCodable.GDecoder) throws {
-		self.init()
-		for c in 0..<_codableNumCols {
-			self[c]	= try decoder.decode()
-		}
-	}
-}
-extension simd_double2x4 : GCodable {
-	var _codableNumCols: Int { 2 }
-	public func encode(to encoder: GraphCodable.GEncoder) throws {
-		for c in 0..<_codableNumCols {
-			try encoder.encode( self[c] )
-		}
-	}
-	public init(from decoder: GraphCodable.GDecoder) throws {
-		self.init()
-		for c in 0..<_codableNumCols {
-			self[c]	= try decoder.decode()
-		}
-	}
-}
-extension simd_double3x2 : GCodable {
-	var _codableNumCols: Int { 3 }
-	public func encode(to encoder: GraphCodable.GEncoder) throws {
-		for c in 0..<_codableNumCols {
-			try encoder.encode( self[c] )
-		}
-	}
-	public init(from decoder: GraphCodable.GDecoder) throws {
-		self.init()
-		for c in 0..<_codableNumCols {
-			self[c]	= try decoder.decode()
-		}
-	}
-}
-extension simd_double3x3 : GCodable {
-	var _codableNumCols: Int { 3 }
-	public func encode(to encoder: GraphCodable.GEncoder) throws {
-		for c in 0..<_codableNumCols {
-			try encoder.encode( self[c] )
-		}
-	}
-	public init(from decoder: GraphCodable.GDecoder) throws {
-		self.init()
-		for c in 0..<_codableNumCols {
-			self[c]	= try decoder.decode()
-		}
-	}
-}
-extension simd_double3x4 : GCodable {
-	var _codableNumCols: Int { 3 }
-	public func encode(to encoder: GraphCodable.GEncoder) throws {
-		for c in 0..<_codableNumCols {
-			try encoder.encode( self[c] )
-		}
-	}
-	public init(from decoder: GraphCodable.GDecoder) throws {
-		self.init()
-		for c in 0..<_codableNumCols {
-			self[c]	= try decoder.decode()
-		}
-	}
-}
-extension simd_double4x2 : GCodable {
-	var _codableNumCols: Int { 4 }
-	public func encode(to encoder: GraphCodable.GEncoder) throws {
-		for c in 0..<_codableNumCols {
-			try encoder.encode( self[c] )
-		}
-	}
-	public init(from decoder: GraphCodable.GDecoder) throws {
-		self.init()
-		for c in 0..<_codableNumCols {
-			self[c]	= try decoder.decode()
-		}
-	}
-}
-extension simd_double4x3 : GCodable {
-	var _codableNumCols: Int { 4 }
-	public func encode(to encoder: GraphCodable.GEncoder) throws {
-		for c in 0..<_codableNumCols {
-			try encoder.encode( self[c] )
-		}
-	}
-	public init(from decoder: GraphCodable.GDecoder) throws {
-		self.init()
-		for c in 0..<_codableNumCols {
-			self[c]	= try decoder.decode()
-		}
-	}
-}
-extension simd_double4x4 : GCodable{
-	var _codableNumCols: Int { 4 }
-	public func encode(to encoder: GraphCodable.GEncoder) throws {
-		for c in 0..<_codableNumCols {
-			try encoder.encode( self[c] )
-		}
-	}
-	public init(from decoder: GraphCodable.GDecoder) throws {
-		self.init()
-		for c in 0..<_codableNumCols {
-			self[c]	= try decoder.decode()
-		}
-	}
-}
-
-
+extension simd_double2x2: GTrivialCodable {}
+extension simd_double2x3: GTrivialCodable {}
+extension simd_double2x4: GTrivialCodable {}
+extension simd_double3x2: GTrivialCodable {}
+extension simd_double3x3: GTrivialCodable {}
+extension simd_double3x4: GTrivialCodable {}
+extension simd_double4x2: GTrivialCodable {}
+extension simd_double4x3: GTrivialCodable {}
+extension simd_double4x4: GTrivialCodable {}
 
 
 /*
@@ -377,23 +125,3 @@ extension simd_double4x2: SimdMatrixCodable { var _codableNumCols: Int { 4 } }
 extension simd_double4x3: SimdMatrixCodable { var _codableNumCols: Int { 4 } }
 extension simd_double4x4: SimdMatrixCodable { var _codableNumCols: Int { 4 } }
 */
-
-extension simd_float2x2: GBinaryCodable & GTrivial {}
-extension simd_float2x3: GBinaryCodable & GTrivial {}
-extension simd_float2x4: GBinaryCodable & GTrivial {}
-extension simd_float3x2: GBinaryCodable & GTrivial {}
-extension simd_float3x3: GBinaryCodable & GTrivial {}
-extension simd_float3x4: GBinaryCodable & GTrivial {}
-extension simd_float4x2: GBinaryCodable & GTrivial {}
-extension simd_float4x3: GBinaryCodable & GTrivial {}
-extension simd_float4x4: GBinaryCodable & GTrivial {}
-
-extension simd_double2x2: GBinaryCodable & GTrivial {}
-extension simd_double2x3: GBinaryCodable & GTrivial {}
-extension simd_double2x4: GBinaryCodable & GTrivial {}
-extension simd_double3x2: GBinaryCodable & GTrivial {}
-extension simd_double3x3: GBinaryCodable & GTrivial {}
-extension simd_double3x4: GBinaryCodable & GTrivial {}
-extension simd_double4x2: GBinaryCodable & GTrivial {}
-extension simd_double4x3: GBinaryCodable & GTrivial {}
-extension simd_double4x4: GBinaryCodable & GTrivial {}

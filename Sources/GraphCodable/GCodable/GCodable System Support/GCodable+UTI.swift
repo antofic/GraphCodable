@@ -47,3 +47,5 @@ extension UTType : GCodable {
 	}
 }
 
+
+//	extension UTType : GBinaryCodable {}

@@ -35,8 +35,6 @@ public protocol	GBinaryDecodable : BinaryIType, GDecodable {}
 ///	only when it's really necessary.
 public typealias GBinaryCodable = GBinaryEncodable & GBinaryDecodable
 
-
-
 extension GBinaryEncodable {
 	public func encode(to encoder: GEncoder) throws	{
 		throw GCodableError.internalInconsistency(

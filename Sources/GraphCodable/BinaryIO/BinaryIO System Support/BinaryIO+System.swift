@@ -22,14 +22,11 @@
 
 import System
 
+/*
 extension Errno : BinaryIOType {}
-
 extension FileDescriptor : BinaryIOType {}
-
 extension FileDescriptor.AccessMode : BinaryIOType {}
-
 extension FileDescriptor.OpenOptions : BinaryIOType {}
-
 extension FileDescriptor.SeekOrigin : BinaryIOType {}
 
 extension FilePath : BinaryIOType {
@@ -56,4 +53,4 @@ extension FilePath : BinaryIOType {
 }
 
 extension FilePermissions : BinaryIOType {}
-
+*/

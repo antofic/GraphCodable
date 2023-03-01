@@ -22,8 +22,10 @@
 
 import Foundation
 
-//	Data SUPPORT ------------------------------------------------------
+extension CGFloat	: GTrivialCodable {}
 
+//	Data SUPPORT ------------------------------------------------------
+/*
 extension Data : GCodable {
 	public func encode(to encoder: GEncoder) throws {
 		for element in self {
@@ -39,9 +41,12 @@ extension Data : GCodable {
 		}
 	}
 }
+*/
+extension Data : GBinaryCodable {}
+
 
 //	CharacterSet SUPPORT ------------------------------------------------------
-
+/*
 extension CharacterSet : GCodable {
 	public init(from decoder: GDecoder) throws {
 		self.init( bitmapRepresentation: try decoder.decode() )
@@ -51,9 +56,12 @@ extension CharacterSet : GCodable {
 		try encoder.encode( bitmapRepresentation )
 	}
 }
+*/
+extension CharacterSet : GBinaryCodable {}
+
 
 //	AffineTransform SUPPORT ------------------------------------------------------
-
+/*
 extension AffineTransform : GCodable {
 	public init(from decoder: GDecoder) throws {
 		let m11	= try decoder.decode() as CGFloat
@@ -74,9 +82,12 @@ extension AffineTransform : GCodable {
 		try encoder.encode( tY )
 	}
 }
+*/
+extension AffineTransform : GTrivialCodable {}
+
 
 //	Locale SUPPORT ------------------------------------------------------
-
+/*
 extension Locale : GCodable {
 	public init(from decoder: GDecoder) throws {
 		self.init( identifier: try decoder.decode() )
@@ -86,9 +97,12 @@ extension Locale : GCodable {
 		try encoder.encode( identifier )
 	}
 }
+*/
+
+extension Locale : GBinaryCodable {}
 
 //	TimeZone SUPPORT ------------------------------------------------------
-
+/*
 extension TimeZone : GCodable {
 	public init(from decoder: GDecoder) throws {
 		let identifier = try decoder.decode() as String
@@ -106,9 +120,11 @@ extension TimeZone : GCodable {
 		try encoder.encode( identifier )
 	}
 }
+*/
+extension TimeZone : GBinaryCodable {}
 
 // -- UUID support  -------------------------------------------------------
-
+/*
 extension UUID : GCodable  {
 	public init(from decoder: GDecoder) throws {
 		let uuidString	= try decoder.decode() as String
@@ -126,11 +142,13 @@ extension UUID : GCodable  {
 	public func encode(to encoder: GEncoder) throws {
 		try encoder.encode( uuidString )
 	}
-	
 }
+*/
+extension UUID : GTrivialCodable  {}
+
 
 //	Date SUPPORT ------------------------------------------------------
-
+/*
 extension Date : GCodable {
 	public init(from decoder: GDecoder) throws {
 		self.init( timeIntervalSince1970: try decoder.decode() )
@@ -139,11 +157,13 @@ extension Date : GCodable {
 	public func encode(to encoder: GEncoder) throws {
 		try encoder.encode( timeIntervalSince1970 )
 	}
-	
 }
+*/
+extension Date : GTrivialCodable {}
+
 
 //	IndexSet SUPPORT ------------------------------------------------------
-
+/*
 extension IndexSet : GCodable {
 	public init(from decoder: GDecoder) throws {
 		self.init()
@@ -158,9 +178,12 @@ extension IndexSet : GCodable {
 		}
 	}
 }
+*/
+extension IndexSet : GBinaryCodable {}
+
 
 // -- IndexPath support  -------------------------------------------------------
-
+/*
 extension IndexPath : GCodable {
 	public init(from decoder: GDecoder) throws {
 		self.init()
@@ -175,9 +198,12 @@ extension IndexPath : GCodable {
 		}
 	}
 }
+*/
+extension IndexPath : GBinaryCodable {}
+
 
 //	CGSize SUPPORT ------------------------------------------------------
-
+/*
 extension CGSize : GCodable {
 	private enum Key:String {
 		case width, height
@@ -194,9 +220,12 @@ extension CGSize : GCodable {
 		try encoder.encode( height,for: Key.height )
 	}
 }
+*/
+extension CGSize : GTrivialCodable {}
+
 
 //	CGPoint SUPPORT ------------------------------------------------------
-
+/*
 extension CGPoint : GCodable {
 	private enum Key:String {
 		case x, y
@@ -213,9 +242,12 @@ extension CGPoint : GCodable {
 		try encoder.encode( y,for: Key.y )
 	}
 }
+*/
+extension CGPoint : GTrivialCodable {}
+
 
 //	CGVector SUPPORT ------------------------------------------------------
-
+/*
 extension CGVector : GCodable {
 	private enum Key:String {
 		case dx, dy
@@ -232,9 +264,12 @@ extension CGVector : GCodable {
 		try encoder.encode( dy,for: Key.dy )
 	}
 }
+*/
+extension CGVector : GTrivialCodable {}
+
 
 //	CGRect SUPPORT ------------------------------------------------------
-
+/*
 extension CGRect : GCodable {
 	private enum Key:String {
 		case origin, size
@@ -251,9 +286,12 @@ extension CGRect : GCodable {
 		try encoder.encode( size,for: Key.size )
 	}
 }
+*/
+extension CGRect : GTrivialCodable {}
+
 
 //	NSRange SUPPORT ------------------------------------------------------
-
+/*
 extension NSRange : GCodable {
 	private enum Key:String {
 		case location, length
@@ -270,6 +308,9 @@ extension NSRange : GCodable {
 		try encoder.encode( length,for: Key.length )
 	}
 }
+*/
+extension NSRange : GTrivialCodable {}
+
 
 // -- Decimal support  -------------------------------------------------------
 
@@ -313,8 +354,10 @@ extension Decimal : GCodable {
 		try encoder.encode( _mantissa.6 )
 		try encoder.encode( _mantissa.7 )
 	}
-	
 }
+
+//	extension Decimal : GTrivialCodable {}
+
 
 //	Calendar SUPPORT ------------------------------------------------------
 
@@ -352,6 +395,11 @@ extension Calendar : GCodable {
 		self = calendar
 	}
 }
+
+
+//	extension NSCalendar.Identifier : GBinaryCodable {} // Why?
+//	extension Calendar : GBinaryCodable {}
+
 
 //	DateComponents SUPPORT ------------------------------------------------------
 
@@ -434,6 +482,9 @@ extension DateComponents : GCodable {
 	}
 }
 
+//	extension DateComponents : GBinaryCodable {}
+
+
 //	DateInterval SUPPORT ------------------------------------------------------
 
 extension DateInterval : GCodable {
@@ -453,6 +504,9 @@ extension DateInterval : GCodable {
 		try encoder.encode( duration, 	for: Key.duration)
 	}
 }
+
+//	extension DateInterval : GTrivialCodable {}
+
 
 //	PersonNameComponents SUPPORT ------------------------------------------------------
 
@@ -487,6 +541,9 @@ extension PersonNameComponents : GCodable {
 	}
 }
 
+// extension PersonNameComponents : GBinaryCodable {}
+
+
 //	URL SUPPORT ------------------------------------------------------
 
 extension URL : GCodable {
@@ -511,6 +568,9 @@ extension URL : GCodable {
 		try encoder.encodeIfPresent( baseURL, for: Key.baseURL )
 	}
 }
+
+//	extension URL : GBinaryCodable {}
+
 
 //	URLComponents SUPPORT ------------------------------------------------------
 
@@ -552,6 +612,8 @@ extension URLComponents : GCodable {
 	}
 }
 
+//	extension URLComponents : GBinaryCodable {}
+
 //	----------------------------------------------------------------------------
 //	----------------------------------------------------------------------------
 //	----------------------------------------------------------------------------
@@ -577,3 +639,10 @@ extension Measurement : GCodable {
 		self.init( value: value, unit: UnitType(symbol: symbol) )
 	}
 }
+
+//	extension Measurement : GBinaryCodable {}
+
+extension OperationQueue.SchedulerTimeType : GTrivialCodable {}
+extension OperationQueue.SchedulerTimeType.Stride : GTrivialCodable {}
+extension RunLoop.SchedulerTimeType : GTrivialCodable {}
+extension RunLoop.SchedulerTimeType.Stride : GTrivialCodable {}

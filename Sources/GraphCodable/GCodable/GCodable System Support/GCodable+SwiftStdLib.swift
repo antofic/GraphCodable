@@ -20,6 +20,27 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
+
+
+// -- BinaryInteger support -------------------------------------------------------
+extension Int		: GTrivialCodable {}
+extension Int8		: GTrivialCodable {}
+extension Int16		: GTrivialCodable {}
+extension Int32		: GTrivialCodable {}
+extension Int64		: GTrivialCodable {}
+extension UInt		: GTrivialCodable {}
+extension UInt8		: GTrivialCodable {}
+extension UInt16	: GTrivialCodable {}
+extension UInt32	: GTrivialCodable {}
+extension UInt64	: GTrivialCodable {}
+
+// -- BinaryFloatingPoint support -------------------------------------------------------
+extension Float		: GTrivialCodable {}
+extension Double	: GTrivialCodable {}
+
+// -- Bool support -------------------------------------------------------
+extension Bool 		: GTrivialCodable {}
+
 //	Optional SUPPORT ------------------------------------------------------
 extension Optional: GEncodable where Wrapped: GEncodable {
 	//	The encoder always unwraps optional values
@@ -66,7 +87,10 @@ extension RawRepresentable where Self.RawValue : GDecodable {
 	}
 }
 
+extension RawRepresentable where Self.RawValue : GBinaryCodable {}
+
 //	String SUPPORT ------------------------------------------------------
+/*
 extension String: GCodable {
 	public func encode(to encoder: GEncoder) throws	{
 		try withCString() { ptr0 in
@@ -92,7 +116,8 @@ extension String: GCodable {
 		self = string
 	}
 }
-
+*/
+extension String : GBinaryCodable {}
 
 //	Array SUPPORT ------------------------------------------------------
 extension Array: GEncodable where Element:GEncodable {
@@ -112,6 +137,8 @@ extension Array: GDecodable where Element:GDecodable {
 		}
 	}
 }
+
+extension Array : GBinaryCodable where Element : GTrivialCodable {}
 
 
 //	ContiguousArray SUPPORT ------------------------------------------------------
@@ -134,6 +161,8 @@ extension ContiguousArray: GDecodable where Element:GDecodable {
 	}
 }
 
+extension ContiguousArray : GBinaryCodable where Element : GTrivialCodable {}
+
 //	Set SUPPORT ------------------------------------------------------
 extension Set: GEncodable where Element:GEncodable {
 	public func encode(to encoder: GEncoder) throws {
@@ -142,6 +171,7 @@ extension Set: GEncodable where Element:GEncodable {
 		}
 	}
 }
+
 extension Set: GDecodable where Element:GDecodable {
 	public init(from decoder: GDecoder) throws {
 		self.init()
@@ -152,6 +182,8 @@ extension Set: GDecodable where Element:GDecodable {
 		}
 	}
 }
+
+extension Set : GBinaryCodable where Element : GTrivialCodable {}
 
 //	Dictionary SUPPORT ------------------------------------------------------
 
@@ -176,6 +208,9 @@ extension Dictionary: GDecodable where Key:GDecodable, Value:GDecodable {
 	}
 }
 
+extension Dictionary : GBinaryCodable where Key : GTrivialCodable, Value : GTrivialCodable {}
+
+
 // Range ------------------------------------------------------
 
 extension Range: GDecodable where Bound: GDecodable {
@@ -185,12 +220,16 @@ extension Range: GDecodable where Bound: GDecodable {
 		self.init(uncheckedBounds: (lowerBound,upperBound) )
 	}
 }
+
 extension Range: GEncodable where Bound: GEncodable {
 	public func encode(to encoder: GEncoder) throws {
 		try encoder.encode( lowerBound )
 		try encoder.encode( upperBound )
 	}
 }
+
+extension Range: GTrivialCodable where Bound: GTrivialCodable {}
+
 
 // ClosedRange ------------------------------------------------------
 
@@ -208,6 +247,8 @@ extension ClosedRange: GEncodable where Bound: GEncodable {
 	}
 }
 
+extension ClosedRange: GTrivialCodable where Bound: GTrivialCodable {}
+
 
 // PartialRangeFrom ------------------------------------------------------
 
@@ -222,6 +263,7 @@ extension PartialRangeFrom: GEncodable where Bound: GEncodable {
 	}
 }
 
+extension PartialRangeFrom: GTrivialCodable where Bound: GTrivialCodable {}
 
 // PartialRangeUpTo ------------------------------------------------------
 
@@ -236,6 +278,9 @@ extension PartialRangeUpTo: GEncodable where Bound: GEncodable {
 	}
 }
 
+extension PartialRangeUpTo: GTrivialCodable where Bound: GTrivialCodable {}
+
+
 // PartialRangeFrom ------------------------------------------------------
 
 extension PartialRangeThrough: GDecodable where Bound: GDecodable {
@@ -249,12 +294,17 @@ extension PartialRangeThrough: GEncodable where Bound: GEncodable {
 	}
 }
 
+extension PartialRangeThrough: GTrivialCodable where Bound: GTrivialCodable {}
+
+
 // CollectionDifference ------------------------------------------------------
 
 fileprivate extension CollectionDifference.Change {
 	private enum ChangeType : UInt8, GCodable { case insert, remove }
 	private enum Key : String { case changeType, offset, element, associatedWith }
 }
+
+
 
 extension CollectionDifference.Change : GDecodable where ChangeElement : GDecodable {
 	public init(from decoder: GDecoder) throws {
@@ -288,6 +338,9 @@ extension CollectionDifference.Change : GEncodable where ChangeElement : GEncoda
 	}
 }
 
+extension CollectionDifference.Change : GBinaryCodable where ChangeElement : GBinaryCodable {}
+
+
 extension CollectionDifference : GDecodable where ChangeElement:GDecodable {
 	public init(from decoder: GDecoder) throws {
 		var changes	= [CollectionDifference<ChangeElement>.Change]()
@@ -305,6 +358,7 @@ extension CollectionDifference : GDecodable where ChangeElement:GDecodable {
 		self = value
 	}
 }
+
 extension CollectionDifference : GEncodable where ChangeElement:GEncodable {
 	public func encode(to encoder: GEncoder) throws {
 		for element in self {
@@ -312,5 +366,7 @@ extension CollectionDifference : GEncodable where ChangeElement:GEncodable {
 		}
 	}
 }
+
+extension CollectionDifference : GBinaryCodable where ChangeElement:GBinaryCodable {}
 
 
