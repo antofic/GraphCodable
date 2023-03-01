@@ -1,6 +1,6 @@
 //	MIT License
 //
-//	Copyright (c) 2021 Antonino Ficarra
+//	Copyright (c) 2021-2023 Antonino Ficarra
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a copy
 //	of this software and associated documentation files (the "Software"), to deal
@@ -124,11 +124,7 @@ final class GEncoderImpl : GEncoder, DataEncoderDelegate {
 			)
 		}
 	}
-/*
-	private func isTrivial<T:GBinaryEncodable>( _ value:T ) -> Bool {
-		return _isPOD( T.self )
-	}
-*/
+
 	private func encodeAnyValue(_ anyValue: Any, forKey key: String?, conditional:Bool ) throws {
 		//	anyValue cam really be a value, an Optional(value), an Optional(Optional(value)), etc…
 		//	Optional(fullUnwrapping:_) turns anyValue into an one-level Optional(value)
@@ -142,7 +138,6 @@ final class GEncoderImpl : GEncoder, DataEncoderDelegate {
 		// now value if not nil!
 		if let trivialValue = value as? GTrivialEncodable {
 			try throwIfNotTrivial( trivialValue: trivialValue )
-//		if let trivialValue = value as? GBinaryEncodable, isTrivial( trivialValue ) {
 			if conditional {
 				throw GCodableError.conditionalWithoutIdentity(
 					Self.self, GCodableError.Context(

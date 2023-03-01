@@ -20,11 +20,9 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
-/// A protocol to disable reference type names.
-/// **You should never use it.**
-public protocol GClassName : AnyObject {
-	/// Encoding reference type name is enabled by default
-	///
-	/// Return `true` if you don't want encode the reference type name
-	var disableClassName : Bool { get }
-}
+public protocol GTrivial {}
+
+public typealias GTrivialEncodable	= GBinaryEncodable & GTrivial
+public typealias GTrivialDecodable	= GBinaryDecodable & GTrivial
+public typealias GTrivialCodable	= GTrivialEncodable & GTrivialDecodable
+
