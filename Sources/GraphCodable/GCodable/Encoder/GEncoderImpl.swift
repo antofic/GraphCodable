@@ -69,7 +69,7 @@ final class GEncoderImpl : GEncoder, DataEncoderDelegate {
 		return try dataEncoder.output()
 	}
 	
-	// --------------------------------------------------------
+	// - GEncoder protocol ----------------------------------------
 	
 	func encode<Value>(_ value: Value) throws where Value:GEncodable {
 		try encodeAnyValue( value, forKey: nil, conditional:false )
@@ -92,18 +92,7 @@ final class GEncoderImpl : GEncoder, DataEncoderDelegate {
 	}
 	
 	// --------------------------------------------------------
-	/*
-	private func binaryValue( of value:GEncodable ) -> (BinaryOType)? {
-		if let value = value as? BinaryOType { return value }
-		else { return nil }
 
-		/*
-		if let value = value as? GBinaryEncodable { return value }
-		else if encodeOptions.contains( .enableLibraryBinaryIOTypes ), let value = value as? BinaryOType { return value }
-		else { return nil }
-		*/
-	}
-	 */
 	private func identifier( of value:GEncodable ) -> (any Hashable)? {
 		if encodeOptions.contains( .disableIdentity ) {
 			return nil
@@ -125,20 +114,15 @@ final class GEncoderImpl : GEncoder, DataEncoderDelegate {
 		}
 		return nil
 	}
-
-	private func createTypeIDIfNeeded( for value:GEncodable ) throws -> UIntID? {
-		if encodeOptions.contains( .disableClassNames ) {
-			return nil
+	
+	private func throwIfNotTrivial<T:GTrivialEncodable>( trivialValue value:T ) throws {
+		guard _isPOD( T.self ) else {
+			throw GCodableError.notTrivialValue(
+				Self.self, GCodableError.Context(
+					debugDescription: "Not trivial type \( T.self ) marked as \(GTrivial.self)."
+				)
+			)
 		}
-		guard let object = value as? GEncodable & AnyObject else {
-			return nil
-		}
-		if encodeOptions.contains( .ignoreGClassNameProtocol ) == false,
-		   let typeInfo = object as? (AnyObject & GClassName),
-		   typeInfo.disableClassName {
-			return nil
-		}
-		return try referenceMap.createTypeIDIfNeeded( type: type(of:object) )
 	}
 	
 	private func encodeAnyValue(_ anyValue: Any, forKey key: String?, conditional:Bool ) throws {
@@ -152,7 +136,8 @@ final class GEncoderImpl : GEncoder, DataEncoderDelegate {
 			return
 		}
 		// now value if not nil!
-		if let binaryValue = value as? GTrivialEncodable {
+		if let trivialValue = value as? GTrivialEncodable {
+			try throwIfNotTrivial( trivialValue: trivialValue )
 			if conditional {
 				throw GCodableError.conditionalWithoutIdentity(
 					Self.self, GCodableError.Context(
@@ -160,7 +145,7 @@ final class GEncoderImpl : GEncoder, DataEncoderDelegate {
 					)
 				)
 			}
-			try dataEncoder.appendBinValue(keyID: keyID, binaryValue: binaryValue )
+			try dataEncoder.appendBinValue(keyID: keyID, binaryValue: trivialValue )
 		} else if let value = value as? GEncodable {
 			if let identifier = identifier( of:value ) {	// IDENTITY
 				if let objID = identifierMap.strongID( identifier ) {
@@ -259,6 +244,21 @@ final class GEncoderImpl : GEncoder, DataEncoderDelegate {
 		} else {
 			return 0	// unkeyed
 		}
+	}
+	
+	private func createTypeIDIfNeeded( for value:GEncodable ) throws -> UIntID? {
+		if encodeOptions.contains( .disableClassNames ) {
+			return nil
+		}
+		guard let object = value as? GEncodable & AnyObject else {
+			return nil
+		}
+		if encodeOptions.contains( .ignoreGClassNameProtocol ) == false,
+		   let typeInfo = object as? (AnyObject & GClassName),
+		   typeInfo.disableClassName {
+			return nil
+		}
+		return try referenceMap.createTypeIDIfNeeded( type: type(of:object) )
 	}
 }
 
