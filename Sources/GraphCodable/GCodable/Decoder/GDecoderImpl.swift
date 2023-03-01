@@ -35,7 +35,7 @@ final class GDecoderImpl : GDecoder {
 		where T:GDecodable, Q:Sequence, Q.Element==UInt8 {
 		defer { constructor = nil }
 		
-		constructor	= TypeConstructor(decodedData: try DataDecoder( from: data ))
+		constructor	= TypeConstructor(decodedData: try BinaryDecoder( from: data ))
 		
 		return try constructor.decodeRoot(type, from: self)
 	}

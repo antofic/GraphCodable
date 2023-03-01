@@ -30,7 +30,7 @@ final class StringDecoder : DataEncoderDelegate {
 	let dumpOptions		: GraphDumpOptions
 	
 	init<Q>( from bytes:Q, options:GraphDumpOptions ) throws where Q:Sequence, Q.Element==UInt8 {
-		var binaryDecoder	= try BinaryDecoder( from: bytes )
+		var binaryDecoder	= try FileReader( from: bytes )
 		
 		self.fileHeader		= binaryDecoder.fileHeader
 		self.bodyBlocks		= try binaryDecoder.bodyFileBlocks()

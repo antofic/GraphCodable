@@ -23,13 +23,13 @@
 import Foundation
 
 final class TypeConstructor {
-	private var			decodedData			: DataDecoder
+	private var			decodedData			: BinaryDecoder
 	private (set) var 	currentElement 		: BodyElement
 	private (set) var 	currentInfo 		: ClassInfo?
 	private var			objectRepository 	= [ UIntID :Any ]()
 	private var			setterRepository 	= [ () throws -> () ]()
 	
-	init( decodedData:DataDecoder ) {
+	init( decodedData:BinaryDecoder ) {
 		self.decodedData	= decodedData
 		self.currentElement	= decodedData.rootElement
 	}
