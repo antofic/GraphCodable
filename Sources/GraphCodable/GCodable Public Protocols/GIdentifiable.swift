@@ -39,20 +39,26 @@ extension GIdentifiable where Self:Identifiable {
 }
 
 
+
 ///	 If you want avoid duplications of Arrays and ContiguousArrays, please, define in your code
 ///	 theese two extensions.
 ///	 Note: works only with .onlyNativeTypes (default) option in GraphEncoder()
-///
-///	extension Array : GIdentifiable where Element:GCodable {
-///		public var gcodableID: ObjectIdentifier? {
-///			withUnsafeBytes { unsafeBitCast( $0.baseAddress, to: ObjectIdentifier?.self) }
-///		}
-///	}
-///
-///	extension ContiguousArray : GIdentifiable where Element:GCodable {
-///		public var gcodableID: ObjectIdentifier? {
-///			withUnsafeBytes { unsafeBitCast( $0.baseAddress, to: ObjectIdentifier?.self) }
-///		}
-///	}
 
+extension String : GIdentifiable {
+	public var gcodableID: String? {
+		self
+	}
+}
+
+extension Array : GIdentifiable where Element:GCodable {
+	public var gcodableID: ObjectIdentifier? {
+		withUnsafeBytes { unsafeBitCast( $0.baseAddress, to: ObjectIdentifier?.self) }
+	}
+}
+
+extension ContiguousArray : GIdentifiable where Element:GCodable {
+	public var gcodableID: ObjectIdentifier? {
+		withUnsafeBytes { unsafeBitCast( $0.baseAddress, to: ObjectIdentifier?.self) }
+	}
+}
 

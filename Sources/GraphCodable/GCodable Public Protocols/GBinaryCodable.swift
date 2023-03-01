@@ -60,21 +60,3 @@ public typealias GTrivialEncodable	= GBinaryEncodable & GTrivial
 public typealias GTrivialDecodable	= GBinaryDecodable & GTrivial
 public typealias GTrivialCodable	= GTrivialEncodable & GTrivialDecodable
 
-extension String : GIdentifiable {
-	public var gcodableID: String? {
-		self
-	}
-}
-
-extension Array : GIdentifiable where Element:GCodable {
-	public var gcodableID: ObjectIdentifier? {
-		withUnsafeBytes { unsafeBitCast( $0.baseAddress, to: ObjectIdentifier?.self) }
-	}
-}
-
-extension ContiguousArray : GIdentifiable where Element:GCodable {
-	public var gcodableID: ObjectIdentifier? {
-		withUnsafeBytes { unsafeBitCast( $0.baseAddress, to: ObjectIdentifier?.self) }
-	}
-}
-
