@@ -22,7 +22,6 @@
 
 /// A class of types whose instances hold the value of an entity with stable
 /// identity **over encoding/decoding**.
-
 public protocol GIdentifiable<GID> {
 	/// A type representing the stable identity **over encoding/decoding**
 	/// of the entity associated with an instance.
@@ -34,29 +33,32 @@ public protocol GIdentifiable<GID> {
 }
 
 extension GIdentifiable where Self:Identifiable {
-	/// By default gcodableID == id.
+	/// For Identifiable values `gcodableID == id` by default.
 	public var gcodableID: Self.ID? { id }
 }
 
-
-
-///	 If you want avoid duplications of Arrays and ContiguousArrays, please, define in your code
-///	 theese two extensions.
-///	 Note: works only with .onlyNativeTypes (default) option in GraphEncoder()
-
 extension String : GIdentifiable {
+	///	 String identity
+	///
+	///	 To avoid duplications of uqual strings.
 	public var gcodableID: String? {
 		self
 	}
 }
 
 extension Array : GIdentifiable where Element:GCodable {
+	///	 Array identity
+	///
+	///	 To avoid duplications of arrays with the same storage.
 	public var gcodableID: ObjectIdentifier? {
 		withUnsafeBytes { unsafeBitCast( $0.baseAddress, to: ObjectIdentifier?.self) }
 	}
 }
 
 extension ContiguousArray : GIdentifiable where Element:GCodable {
+	///	 ContiguousArray identity
+	///
+	///	 To avoid duplications of arrays with the same storage.
 	public var gcodableID: ObjectIdentifier? {
 		withUnsafeBytes { unsafeBitCast( $0.baseAddress, to: ObjectIdentifier?.self) }
 	}

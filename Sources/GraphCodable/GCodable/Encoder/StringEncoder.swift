@@ -82,9 +82,11 @@ final class StringEncoder : DataEncoder {
 			if case .exit = fileBlock.level { tabs?.removeLast() }
 			if let tbs = tabs { dump.append( tbs ) }
 			
+			let binValue = options.contains( .hideValueDescription ) ? nil : binaryValue
+			
 			dump.append( fileBlock.readableOutput(
 				options:		options,
-				binaryValue:	binaryValue,
+				binaryValue:	binValue,
 				classDataMap:	delegate?.classDataMap,
 				keyStringMap:	delegate?.keyStringMap
 			) )

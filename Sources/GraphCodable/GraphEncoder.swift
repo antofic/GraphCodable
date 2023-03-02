@@ -110,9 +110,25 @@ extension GraphEncoder {
 		///
 		/// - Note: This option is disabled by default
 		public static let	disableClassNames									= Self( rawValue: 1 << 5 )
+
+		///	Resort to hashable identity
+		///
+		/// If .disableIdentity == false, uses immediately the value as identity.
+		///
+		/// - Note: This option is disabled by default
+		/// - Note: The option can be expensive in certain situations
+		public static let	tryHashableIdentityAtFirst							= Self( rawValue: 1 << 6 )
+		///	Resort to hashable identity if any other fails
+		///
+		/// If .disableIdentity == false, any other tentative to aquire an identity
+		/// has failed, the value is Hashable, uses the value as identity.
+		///
+		/// - Note: This option is disabled by default
+		/// - Note: The option can be expensive in certain situations
+		public static let	tryHashableIdentityAtLast							= Self( rawValue: 1 << 7 )
 		
 		public static let	mimicSwiftCodable:				Self 	= [ disableIdentity, disableClassNames ]
-		public static let	defaultOption:					Self 	= []
+		public static let	defaultOption:					Self 	= [ ]
 	}
 }
 

@@ -51,6 +51,8 @@ public struct GraphDumpOptions: OptionSet {
 	public static let	showMangledClassNames			= Self( rawValue: 1 << 10 )
 	///	show the flattened body structure (Decoder dump only)
 	public static let	showDecodedFlattenedBody		= Self( rawValue: 1 << 11 )
+	///	show the flattened body structure (Decoder dump only)
+	public static let	hideValueDescription			= Self( rawValue: 1 << 12 )
 
 	public static let	showOnlyMangledClassNames: Self = [
 		.hideBody, .showClassDataMap, .showMangledClassNames,
@@ -62,10 +64,10 @@ public struct GraphDumpOptions: OptionSet {
 		.showHeader, .readable, .noTruncation
 	]
 	public static let	binaryLike: Self = [
-		.showHeader, .showClassDataMap, .showKeyStringMap
+		.showHeader, .showClassDataMap, .showKeyStringMap, .hideValueDescription
 	]
 	public static let	binaryLikeNoTruncation: Self = [
-		.showHeader, .showClassDataMap, .showKeyStringMap, .noTruncation
+		.binaryLike, .noTruncation
 	]
 	public static let	fullInfo: Self = [
 		.showHeader, .showClassDataMap, .showKeyStringMap, .readable, .showReferenceVersion, .showDecodedFlattenedBody

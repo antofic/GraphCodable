@@ -94,24 +94,36 @@ final class GEncoderImpl : GEncoder, DataEncoderDelegate {
 	// --------------------------------------------------------
 
 	private func identifier( of value:GEncodable ) -> (any Hashable)? {
-		if encodeOptions.contains( .disableIdentity ) {
+		if	encodeOptions.contains( .disableIdentity ) {
 			return nil
 		}
 		
-		if encodeOptions.contains( .ignoreGIdentifiableProtocol ) {
-			if	encodeOptions.contains( .disableAutoObjectIdentifierIdentityForReferences ) == false,
-				let object = value as? (GEncodable & AnyObject) {
-				return ObjectIdentifier( object )
-			}
-		} else {
-			if let identifiable	= value as? any GIdentifiable {
-				return identifiable.gcodableID
-			} else if
-				encodeOptions.contains( .disableAutoObjectIdentifierIdentityForReferences ) == false,
-				let object = value as? (GEncodable & AnyObject) {
-				return ObjectIdentifier( object )
+		if	encodeOptions.contains( .tryHashableIdentityAtFirst ) {
+			if let id = value as? (any Hashable) {
+				return id
 			}
 		}
+		if	encodeOptions.contains( .ignoreGIdentifiableProtocol ) {
+			if	!encodeOptions.contains( .disableAutoObjectIdentifierIdentityForReferences ),
+				let object = value as? (GEncodable & AnyObject) {
+				return ObjectIdentifier( object )
+			}
+		} else if let identifiable	= value as? any GIdentifiable {
+			if let id = identifiable.gcodableID {
+				return id
+			}
+		} else if
+			!encodeOptions.contains( .disableAutoObjectIdentifierIdentityForReferences ),
+			let object = value as? (GEncodable & AnyObject) {
+			return ObjectIdentifier( object )
+		}
+		
+		if encodeOptions.contains( .tryHashableIdentityAtLast ) {
+			if let id = value as? (any Hashable) {
+				return id
+			}
+		}
+		
 		return nil
 	}
 	
@@ -129,15 +141,20 @@ final class GEncoderImpl : GEncoder, DataEncoderDelegate {
 		//	anyValue cam really be a value, an Optional(value), an Optional(Optional(value)), etc…
 		//	Optional(fullUnwrapping:_) turns anyValue into an one-level Optional(value)
 		let value	= Optional(fullUnwrapping: anyValue)
+	
+		// if keyID != 0 only if key != nil (keyed values)
 		let keyID	= try createKeyID( key: key )
 		
+		// if value is nil, encode nil and return
 		guard let value = value else {
 			try dataEncoder.appendNil(keyID: keyID)
 			return
 		}
-		// now value if not nil!
+		// now value is not nil
 		if let trivialValue = value as? GTrivialEncodable {
 			try throwIfNotTrivial( trivialValue: trivialValue )
+			// note: only value types can be trivial
+			// trivial value don't have identity
 			if conditional {
 				throw GCodableError.conditionalWithoutIdentity(
 					Self.self, GCodableError.Context(
@@ -159,7 +176,7 @@ final class GEncoderImpl : GEncoder, DataEncoderDelegate {
 					// conditional encoding: we encode only a pointer
 					
 					if let type	= type(of:value) as? AnyClass {
-						// se è un feference verifico che sia reificabile
+						// check if the class type can be constructed from its name
 						try ClassData.throwIfNotConstructible( type: type )
 					}
 						
@@ -167,16 +184,19 @@ final class GEncoderImpl : GEncoder, DataEncoderDelegate {
 					try dataEncoder.appendConditionalPtr(keyID: keyID, objID: objID)
 				} else {
 					// not encoded value: we encode it
+					// INHERITANCE: only classes have a typeID != 0
 					let typeID	= try createTypeIDIfNeeded( for: value )
 					let objID	= identifierMap.createStrongID( identifier )
 
 					if let binaryValue = value as? GBinaryEncodable {
+						// BinaryEncodable type
 						if let typeID {	// INHERITANCE
 							try dataEncoder.appendIdBinRef(keyID: keyID, typeID: typeID, objID: objID, binaryValue: binaryValue )
 						} else {	// NO INHERITANCE
 							try dataEncoder.appendIdBinValue(keyID: keyID, objID: objID, binaryValue: binaryValue )
 						}
 					} else {
+						// Encodable type
 						if let typeID {	// INHERITANCE
 							try dataEncoder.appendIdRef(keyID: keyID, typeID: typeID, objID: objID)
 						} else {	// NO INHERITANCE
@@ -194,16 +214,18 @@ final class GEncoderImpl : GEncoder, DataEncoderDelegate {
 						)
 					)
 				}
-
+				// INHERITANCE: only classes have a typeID != 0
 				let typeID	= try createTypeIDIfNeeded( for: value )
 
 				if let binaryValue = value as? GBinaryEncodable {
+					// BinaryEncodable type
 					if let typeID {	// INHERITANCE
 						try dataEncoder.appendBinRef(keyID: keyID, typeID: typeID, binaryValue: binaryValue )
 					} else {
 						try dataEncoder.appendBinValue(keyID: keyID, binaryValue: binaryValue )
 					}
 				} else {
+					// Encodable type
 					if let typeID {	// NO INHERITANCE
 						try dataEncoder.appendRef( keyID: keyID, typeID: typeID )
 					} else {

@@ -24,15 +24,31 @@
 public protocol	GBinaryEncodable : BinaryOType, GEncodable {}
 public protocol	GBinaryDecodable : BinaryIType, GDecodable {}
 
-///	A protocol to use the `GBinaryCodable` protocol
-///
 ///	To bypass the standard coding mechanism and use the faster
-///	BinaryIO one, adopt the `GBinaryCodable` protocol and write
-///	the required methods of GBinaryCodable protocol.
+///	`BinaryIOType` one, adopt the `GBinaryCodable` protocol and write
+///	the required methods of `BinaryIOType` protocol to encode and decode
+///	the fields of the type.
 ///
-///	- Note: The GBinaryCodable protocol does not support
-///	any of the GraphCodable features. Use it for simple types
-///	only when it's really necessary.
+///	You can use GBinaryEncodable when you still want to give type
+///	identity and/or inheritance in case of reference types,
+///	but all its fields are trivial.
+///
+///	In the case of generic types, GBinaryEncodable can be applied
+///	when the generic fields are trivial, leaving the normal mechanism
+///	to operate when they are not.
+///
+///	For example, `Array` is defined as `GCodable` when its elements
+///	are `GCodable` and `GBinaryEncodable` when its elements are
+///	`GTrivialCodable`:
+/// ```
+///	extension Array: GCodable where Element:GCodable ...
+///
+///	extension Array: GBinaryCodable where Element: GTrivialCodable...
+/// ```
+/// In this way, an array of integers, for example, is stored quickly
+/// with the methods of `BinaryIO`, while an array of non-trivial elements,
+/// for example reference types, is stored with the methods of `GCodable`
+/// so that these elements continue to retain identity and inheritance.
 public typealias GBinaryCodable = GBinaryEncodable & GBinaryDecodable
 
 extension GBinaryEncodable {

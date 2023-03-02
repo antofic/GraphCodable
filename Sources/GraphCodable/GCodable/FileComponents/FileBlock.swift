@@ -467,7 +467,7 @@ extension FileBlock {
 			if let value = binaryValue {
 				string	= small( value, options )
 			} else {
-				string	= "BIV \(bytes.count) bytes"
+				string	= "BIV {\(bytes.count) bytes}"
 			}
 			return format( keyID, keyStringMap, string )
 		case .ref(keyID: let keyID, typeID: let typeID):
@@ -478,7 +478,7 @@ extension FileBlock {
 			if let value = binaryValue {
 				string	= "BIR \( objectString( typeID,options,classDataMap ) ) \( small( value, options ) )"
 			} else {
-				string	= "BIR \( objectString( typeID,options,classDataMap ) ) \(bytes.count) bytes"
+				string	= "BIR \( objectString( typeID,options,classDataMap ) ) {\(bytes.count) bytes}"
 			}
 			return format( keyID, keyStringMap, string )
 		case .idValue( let keyID, let objID):
@@ -489,7 +489,7 @@ extension FileBlock {
 			if let value = binaryValue {
 				string	= "BIV\(objID) \( small( value, options ) )"
 			} else {
-				string	= "BIV\(objID) \(bytes.count) bytes"
+				string	= "BIV\(objID) {\(bytes.count) bytes}"
 			}
 			return format( keyID, keyStringMap, string )
 		case .idRef( let keyID, let typeID, let objID ):
@@ -500,7 +500,7 @@ extension FileBlock {
 			if let value = binaryValue {
 				string	= "BIR\(objID) \( objectString( typeID,options,classDataMap ) ) \( small( value, options ) )"
 			} else {
-				string	= "BIR\(objID) \( objectString( typeID,options,classDataMap ) ) \(bytes.count) bytes"
+				string	= "BIR\(objID) \( objectString( typeID,options,classDataMap ) ) {\(bytes.count) bytes}"
 			}
 			return format( keyID, keyStringMap, string )
 		case .strongPtr( let keyID, let objID ):
