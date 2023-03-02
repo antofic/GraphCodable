@@ -21,7 +21,7 @@
 //	SOFTWARE.
 
 struct AnyIdentifierMap {
-	private struct Key : Hashable {
+	private struct AnyIdentifier : Hashable {
 		private let identifier : any Hashable
 		
 		init( _ identifier: any Hashable ) {
@@ -44,15 +44,15 @@ struct AnyIdentifierMap {
 	}
 	
 	private	var actualId : UIntID	= 1000	// <1000 reserved for future use
-	private var	strongObjDict		= [Key:UIntID]()
-	private var	weakObjDict			= [Key:UIntID]()
+	private var	strongObjDict		= [AnyIdentifier:UIntID]()
+	private var	weakObjDict			= [AnyIdentifier:UIntID]()
 	
 	func strongID<T:Hashable>( _ identifier: T ) -> UIntID? {
-		strongObjDict[ Key(identifier) ]
+		strongObjDict[ AnyIdentifier(identifier) ]
 	}
 	
 	mutating func createWeakID<T:Hashable>( _ identifier: T ) -> UIntID {
-		let box	= Key(identifier)
+		let box	= AnyIdentifier(identifier)
 		if let objID = weakObjDict[ box ] {
 			return objID
 		} else {
@@ -64,7 +64,7 @@ struct AnyIdentifierMap {
 	}
 	
 	mutating func createStrongID<T:Hashable>( _ identifier: T ) -> UIntID {
-		let key	= Key(identifier)
+		let key	= AnyIdentifier(identifier)
 		if let objID = strongObjDict[ key ] {
 			return objID
 		} else if let objID = weakObjDict[key] {

@@ -22,10 +22,6 @@
 
 import Foundation
 
-// -------------------------------------------------
-// ----- BinEncoder
-// -------------------------------------------------
-
 final class BinEncoder<Output:MutableDataProtocol> : DataEncoder {
 	weak var			delegate			: DataEncoderDelegate?
 	let					fileHeader			= FileHeader()

@@ -22,23 +22,52 @@
 
 import Foundation
 
-final class GEncoderImpl : GEncoder, DataEncoderDelegate {
+//---------------------------------------------------------------------------------------------
+//	Encoder Structure:
+//		GraphEncoder	public interface
+//		⤷	GEncoderImpl : GEncoder, DataEncoderDelegate
+//			⤷	AnyIdentifierMap	(ObjID → Identifier)
+//					• manage Identity
+//			⤷	ReferenceMap		(ObjectIdentifier → TypeID → ClassData )
+//					• manage Inheritance (reference types only)
+//			⤷	KeyMap				(KeyID ↔︎ keystring)
+//					• manage keystring (keyed encoding / KeyID==0 → unkeyed encoding)
+//			⤷	any DataEncoder
+//					• a protocol for converting values into their representation
+//
+//		DataEncoder protocol
+//			BinEncoder : DataEncoder
+//			⤷	delegate = GEncoderImpl
+//				• generate a binary rapresentation of values for encoding
+//
+//			StringEncoder : DataEncoder
+//			⤷	delegate = GEncoderImpl
+//				• generate readable/not decodable string rapresentation of values
+//
+//	Both data encoders produce their output as they receive the input values (single pass)
+//---------------------------------------------------------------------------------------------
+
+///	A class that implements the GEncoder protocol
+///
+/// GEncoderImpl produces:
+/// - a data representation of the rootValue to encode
+/// - eventualy, a readable string that described this data representation
+final class GEncoderImpl : DataEncoderDelegate {
 	var userInfo							= [String:Any]()
-	private typealias	IdentifierMap		= AnyIdentifierMap
-	
 	private let 		encodeOptions		: GraphEncoder.Options
 	private var 		currentKeys			= Set<String>()
-	private var			identifierMap		= IdentifierMap()
+	private var			identifierMap		= AnyIdentifierMap()
 	private var			referenceMap		= ReferenceMap()
 	private var			keyMap				= KeyMap()
 	private (set) var	dumpOptions			= GraphDumpOptions.readable
+	
 	private var			dataEncoder			: (any DataEncoder)! {
 		willSet {
 			self.dataEncoder?.delegate	= nil
 		}
 		didSet {
 			self.currentKeys			= Set<String>()
-			self.identifierMap			= IdentifierMap()
+			self.identifierMap			= AnyIdentifierMap()
 			self.referenceMap			= ReferenceMap()
 			self.keyMap					= KeyMap()
 			self.dataEncoder?.delegate	= self
@@ -47,11 +76,11 @@ final class GEncoderImpl : GEncoder, DataEncoderDelegate {
 	
 	var classDataMap: ClassDataMap 	{ referenceMap.classDataMap }
 	var keyStringMap: KeyStringMap 	{ keyMap.keyStringMap }
-
+	
 	init( _ options: GraphEncoder.Options ) {
 		self.encodeOptions			= options
 	}
-	
+
 	func encodeRoot<T,Q>( _ value: T ) throws -> Q where T:GEncodable, Q:MutableDataProtocol {
 		defer { self.dataEncoder = nil }
 		let dataEncoder	= BinEncoder<Q>()
@@ -68,74 +97,33 @@ final class GEncoderImpl : GEncoder, DataEncoderDelegate {
 		try encode( value )
 		return try dataEncoder.output()
 	}
-	
-	// - GEncoder protocol ----------------------------------------
-	
+}
+
+// MARK: GEncoderImpl conformance to GEncoder protocol
+extension GEncoderImpl : GEncoder {
 	func encode<Value>(_ value: Value) throws where Value:GEncodable {
 		try encodeAnyValue( value, forKey: nil, conditional:false )
 	}
-
+	
 	func encodeConditional<Value>(_ value: Value?) throws where Value:GEncodable {
 		try encodeAnyValue( value as Any, forKey: nil, conditional:true )
 	}
-
+	
 	func encode<Key, Value>(_ value: Value, for key: Key) throws
 	where Key : RawRepresentable, Value : GEncodable, Key.RawValue == String
 	{
 		try encodeAnyValue( value, forKey: key.rawValue, conditional:false )
 	}
-
+	
 	func encodeConditional<Key, Value>(_ value: Value?, for key: Key) throws
 	where Key : RawRepresentable, Value : GEncodable, Key.RawValue == String
 	{
 		try encodeAnyValue( value as Any, forKey: key.rawValue, conditional:true )
 	}
-	
-	// --------------------------------------------------------
+}
 
-	private func identifier( of value:GEncodable ) -> (any Hashable)? {
-		if	encodeOptions.contains( .disableIdentity ) {
-			return nil
-		}
-		
-		if	encodeOptions.contains( .tryHashableIdentityAtFirst ) {
-			if let id = value as? (any Hashable) {
-				return id
-			}
-		}
-		if	encodeOptions.contains( .ignoreGIdentifiableProtocol ) {
-			if	!encodeOptions.contains( .disableAutoObjectIdentifierIdentityForReferences ),
-				let object = value as? (GEncodable & AnyObject) {
-				return ObjectIdentifier( object )
-			}
-		} else if let identifiable	= value as? any GIdentifiable {
-			if let id = identifiable.gcodableID {
-				return id
-			}
-		} else if
-			!encodeOptions.contains( .disableAutoObjectIdentifierIdentityForReferences ),
-			let object = value as? (GEncodable & AnyObject) {
-			return ObjectIdentifier( object )
-		}
-		
-		if encodeOptions.contains( .tryHashableIdentityAtLast ) {
-			if let id = value as? (any Hashable) {
-				return id
-			}
-		}
-		
-		return nil
-	}
-	
-	private func throwIfNotTrivial<T:GTrivialEncodable>( trivialValue value:T ) throws {
-		guard _isPOD( T.self ) else {
-			throw GCodableError.notTrivialValue(
-				Self.self, GCodableError.Context(
-					debugDescription: "Not trivial type \( T.self ) marked as \(GTrivial.self)."
-				)
-			)
-		}
-	}
+// MARK: GEncoderImpl private section
+extension GEncoderImpl {
 
 	private func encodeAnyValue(_ anyValue: Any, forKey key: String?, conditional:Bool ) throws {
 		//	anyValue cam really be a value, an Optional(value), an Optional(Optional(value)), etc…
@@ -176,7 +164,7 @@ final class GEncoderImpl : GEncoder, DataEncoderDelegate {
 					// conditional encoding: we encode only a pointer
 					
 					if let type	= type(of:value) as? AnyClass {
-						// check if the class type can be constructed from its name
+						// check if the reference class can be constructed from its name
 						try ClassData.throwIfNotConstructible( type: type )
 					}
 						
@@ -250,6 +238,50 @@ final class GEncoderImpl : GEncoder, DataEncoderDelegate {
 		currentKeys.removeAll()
 		
 		try value.encode(to: self)
+	}
+	
+	private func identifier( of value:GEncodable ) -> (any Hashable)? {
+		if	encodeOptions.contains( .disableIdentity ) {
+			return nil
+		}
+		
+		if	encodeOptions.contains( .tryHashableIdentityAtFirst ) {
+			if let id = value as? (any Hashable) {
+				return id
+			}
+		}
+		if	encodeOptions.contains( .ignoreGIdentifiableProtocol ) {
+			if	!encodeOptions.contains( .disableAutoObjectIdentifierIdentityForReferences ),
+				let object = value as? (GEncodable & AnyObject) {
+				return ObjectIdentifier( object )
+			}
+		} else if let identifiable	= value as? any GIdentifiable {
+			if let id = identifiable.gcodableID {
+				return id
+			}
+		} else if
+			!encodeOptions.contains( .disableAutoObjectIdentifierIdentityForReferences ),
+			let object = value as? (GEncodable & AnyObject) {
+			return ObjectIdentifier( object )
+		}
+		
+		if encodeOptions.contains( .tryHashableIdentityAtLast ) {
+			if let id = value as? (any Hashable) {
+				return id
+			}
+		}
+		
+		return nil
+	}
+	
+	private func throwIfNotTrivial<T:GTrivialEncodable>( trivialValue value:T ) throws {
+		guard _isPOD( T.self ) else {
+			throw GCodableError.notTrivialValue(
+				Self.self, GCodableError.Context(
+					debugDescription: "Not trivial type \( T.self ) marked as \(GTrivial.self)."
+				)
+			)
+		}
 	}
 	
 	private func createKeyID( key: String? ) throws -> UIntID {

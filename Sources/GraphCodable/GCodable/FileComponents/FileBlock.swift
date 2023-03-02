@@ -77,7 +77,7 @@ enum FileBlock {
 	case strongPtr		( keyID:UIntID, objID:UIntID )
 	///	store a string pointer to a value or reference type with identity
 	case conditionalPtr	( keyID:UIntID, objID:UIntID )
-	///	end of encoding/decoding of a valueRef/idValue/idRef
+	///	end valueRef/idValue/idRef encoding/decoding fields
 	case end
 }
 

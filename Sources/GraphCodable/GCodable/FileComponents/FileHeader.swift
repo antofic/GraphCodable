@@ -20,6 +20,8 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
+
+///	FileHeader: the 24 bytes fixed size header of every gcodable file
 struct FileHeader : CustomStringConvertible, BinaryIOType {
 	static var INITIAL_FILE_VERSION	: UInt32 { 0 }
 	static var VALUEID_FILE_VERSION	: UInt32 { 1 }
