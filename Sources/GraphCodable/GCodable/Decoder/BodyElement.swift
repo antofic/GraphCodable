@@ -80,6 +80,9 @@ final class BodyElement {
 
 // MARK: BodyElement private flatten section
 extension BodyElement {
+	
+	
+	/*
 	private static func flatten<T>(
 		elementMap map: inout [UIntID : BodyElement], element:BodyElement, lineIterator: inout T, keyStringMap:KeyStringMap, reverse:Bool
 	) throws where T:IteratorProtocol, T.Element == FileBlock {
@@ -175,6 +178,44 @@ extension BodyElement {
 			break
 		}
 	}
+	*/
+	 
+	private static func flatten<T>(
+		elementMap map: inout [UIntID : BodyElement], element:BodyElement, lineIterator: inout T, keyStringMap:KeyStringMap, reverse:Bool
+	) throws where T:IteratorProtocol, T.Element == FileBlock {
+		
+		switch element.fileBlock {
+		case .Val( let keyID, let typeID, let objID, let bytes ):
+			if let objID {
+				//	l'oggetto non può trovarsi nella map
+				guard map.index(forKey: objID) == nil else {
+					throw GCodableError.internalInconsistency(
+						Self.self, GCodableError.Context(
+							debugDescription: "Object -\(element.fileBlock)- already exists."
+						)
+					)
+				}
+				//	trasformo l'oggetto in uno strong pointer
+				//	così la procedura di lettura incontrerà quello al posto dell'oggetto
+				element.fileBlock	= .Ptr( keyID: keyID, objID: objID, conditional: false )
+				
+				//	e per l'oggetto dovrà andare a vedere nella map, in modo che si possano
+				//	beccare gli oggetti memorizzati dopo!
+				let root		= BodyElement( fileBlock: .Val(keyID: keyID, typeID: typeID, objID: objID, bytes: bytes) )
+				map[ objID ]	= root
+			}
+			if bytes == nil {
+				try subFlatten(
+					elementMap: &map, parentElement:element, lineIterator:&lineIterator,
+					keyStringMap:keyStringMap, reverse:reverse
+				)
+			}
+		default:
+			//	nothing to do
+			break
+		}
+	}
+	
 	
 	private static func subFlatten<T>(
 		elementMap map: inout [UIntID : BodyElement], parentElement:BodyElement, lineIterator: inout T, keyStringMap:KeyStringMap, reverse:Bool
@@ -182,7 +223,7 @@ extension BodyElement {
 		while let fileBlock = lineIterator.next() {
 			let bodyElement = BodyElement( fileBlock: fileBlock )
 			
-			if case .end = fileBlock {
+			if case .End = fileBlock {
 				break
 			} else {
 				bodyElement.parentElement = parentElement

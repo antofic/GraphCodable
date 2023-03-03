@@ -35,61 +35,32 @@ protocol DataEncoder : AnyObject {
 	func append( _ fileBlock: FileBlock, binaryValue:BinaryOType? ) throws
 	func output() throws -> Output
 	
-	func appendNil( keyID:UIntID ) throws
-	func appendValue( keyID:UIntID ) throws
-	func appendBinValue( keyID:UIntID, binaryValue:BinaryOType ) throws
-	func appendRef( keyID:UIntID, typeID:UIntID ) throws
-	func appendBinRef( keyID:UIntID, typeID:UIntID, binaryValue:BinaryOType ) throws
-	func appendIdValue( keyID:UIntID, objID:UIntID ) throws
-	func appendIdBinValue( keyID:UIntID, objID:UIntID, binaryValue:BinaryOType ) throws
-	func appendIdRef( keyID:UIntID, typeID:UIntID, objID:UIntID ) throws
-	func appendIdBinRef( keyID:UIntID,  typeID:UIntID, objID:UIntID, binaryValue:BinaryOType ) throws
-	func appendStrongPtr( keyID:UIntID, objID:UIntID ) throws
-	func appendConditionalPtr( keyID:UIntID, objID:UIntID ) throws
 	func appendEnd() throws
-	
+	func appendNil( keyID:UIntID? ) throws
+	func appendPtr( keyID:UIntID?, objID:UIntID, conditional:Bool ) throws
+	func appendVal( keyID:UIntID?, typeID:UIntID?, objID:UIntID?, binaryValue:BinaryOType? ) throws
 }
 
 extension DataEncoder {
-	func appendNil( keyID:UIntID ) throws {
+	func appendEnd() throws {
+		try append( .End, binaryValue:nil )
+	}
+	func appendNil( keyID:UIntID? ) throws {
 		try append( .Nil(keyID: keyID), binaryValue:nil )
 	}
-	func appendValue( keyID:UIntID ) throws {
-		try append( .value(keyID: keyID), binaryValue:nil )
+	func appendPtr( keyID:UIntID?, objID:UIntID, conditional:Bool ) throws {
+		try append( .Ptr(keyID: keyID,objID:objID, conditional:conditional ), binaryValue:nil )
 	}
-	func appendBinValue( keyID:UIntID, binaryValue:BinaryOType ) throws {
-		let bytes	= try binaryValue.binaryData() as Bytes
-		try append( .binValue(keyID: keyID, bytes: bytes), binaryValue:binaryValue  )
-	}
-	func appendRef( keyID:UIntID, typeID:UIntID ) throws {
-		try append( .ref(keyID: keyID, typeID:typeID ), binaryValue:nil )
-	}
-	func appendBinRef( keyID:UIntID, typeID:UIntID, binaryValue:BinaryOType ) throws {
-		let bytes	= try binaryValue.binaryData() as Bytes
-		try append( .binRef(keyID: keyID, typeID:typeID, bytes: bytes), binaryValue:binaryValue  )
-	}
-	func appendIdValue( keyID:UIntID, objID:UIntID ) throws {
-		try append( .idValue(keyID: keyID, objID: objID), binaryValue:nil )
-	}
-	func appendIdBinValue( keyID:UIntID, objID:UIntID, binaryValue:BinaryOType ) throws {
-		let bytes	= try binaryValue.binaryData() as Bytes
-		try append( .idBinValue(keyID: keyID, objID: objID, bytes: bytes), binaryValue:binaryValue )
-	}
-	func appendIdRef( keyID:UIntID, typeID:UIntID, objID:UIntID )throws {
-		try append( .idRef(keyID: keyID, typeID: typeID, objID: objID), binaryValue:nil )
-	}
-	func appendIdBinRef( keyID:UIntID,  typeID:UIntID, objID:UIntID, binaryValue:BinaryOType ) throws {
-		let bytes	= try binaryValue.binaryData() as Bytes
-		try append( .idBinRef(keyID: keyID, typeID:typeID, objID: objID, bytes: bytes), binaryValue:binaryValue )
-	}
-	func appendStrongPtr( keyID:UIntID, objID:UIntID ) throws {
-		try append( .strongPtr(keyID: keyID, objID: objID), binaryValue:nil )
-	}
-	func appendConditionalPtr( keyID:UIntID, objID:UIntID ) throws {
-		try append( .conditionalPtr(keyID: keyID, objID: objID), binaryValue:nil )
-	}
-	func appendEnd() throws {
-		try append( .end, binaryValue:nil )
+	func appendVal( keyID:UIntID?, typeID:UIntID?, objID:UIntID?, binaryValue:BinaryOType? ) throws {
+		let bytes	: Bytes?
+
+		if let binaryValue {
+			bytes	= try binaryValue.binaryData() as Bytes
+		} else {
+			bytes	= nil
+		}
+
+		try append( .Val(keyID: keyID, typeID:typeID, objID:objID, bytes: bytes), binaryValue:binaryValue  )
 	}
 }
 

@@ -20,6 +20,8 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
+
+/*
 /// the body of a GCodable file is a sequence of FileBlock's
 enum FileBlock {
 	private enum Code : UInt8 {
@@ -443,4 +445,4 @@ extension FileBlockObsolete : BinaryIType {
 		}
 	}
 }
-
+*/

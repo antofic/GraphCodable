@@ -208,7 +208,46 @@ final class TypeConstructor {
 	}
 	
 	func decode<T>( element:BodyElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
-		//		print(T.self)
+		switch element.fileBlock {
+		case .Val( _, let typeID, let objID, let bytes):
+			if objID != nil {
+				guard let value = try decodeAny( element:element, from:decoder, type:T.self ) as? T else {
+					throw GCodableError.typeMismatch(
+						Self.self, GCodableError.Context(
+							debugDescription: "Block \(element) doesn't contains a -\(T.self)- type."
+						)
+					)
+				}
+				
+				return value
+			} else {
+				if let bytes {
+					if let typeID {
+						return try decodeBinRef( type:T.self, typeID:typeID , bytes: bytes, element:element, from: decoder )
+					} else {
+						return try decodeBinValue( type:T.self, bytes: bytes, element:element, from: decoder )
+					}
+				} else {
+					if let typeID {
+						return try decodeRef( type:T.self, typeID:typeID , element:element, from: decoder )
+					} else {
+						return try decodeValue( type:T.self, element:element, from: decoder )
+					}
+				}
+			}
+		default:
+			guard let value = try decodeAny( element:element, from:decoder, type:T.self ) as? T else {
+				throw GCodableError.typeMismatch(
+					Self.self, GCodableError.Context(
+						debugDescription: "Block \(element) doesn't contains a -\(T.self)- type."
+					)
+				)
+			}
+			
+			return value
+		}
+		
+		/*
 		switch element.fileBlock {
 		case .value( _ ):
 			return try decodeValue( type:T.self, element:element, from: decoder )
@@ -229,6 +268,7 @@ final class TypeConstructor {
 			
 			return value
 		}
+		*/
 	}
 	
 	private func decodeAny<T>( element:BodyElement, from decoder:GDecoder, type:T.Type ) throws -> Any where T:GDecodable {
@@ -244,6 +284,35 @@ final class TypeConstructor {
 				return object
 			} else if let element = decodedData.pop( objID: objID ) {
 				switch element.fileBlock {
+				case .Val( _, let typeID, let objID, let bytes):
+					if let objID {
+						let object : Any
+						if let bytes {
+							if let typeID {
+								object = try decodeBinRef( type:type, typeID:typeID , bytes: bytes, element:element, from: decoder )
+							} else {
+								object =  try decodeBinValue( type:T.self, bytes: bytes, element:element, from: decoder )
+							}
+						} else {
+							if let typeID {
+								object =  try decodeRef( type:type, typeID:typeID , element:element, from: decoder )
+							} else {
+								object =  try decodeValue( type:T.self, element:element, from: decoder )
+							}
+						}
+						objectRepository[ objID ]	= object
+						return object
+					} else {
+						throw GCodableError.internalInconsistency(
+							Self.self, GCodableError.Context(
+								debugDescription: "Inappropriate bodyElement \(element.fileBlock) here."
+							)
+						)
+					}
+
+					
+					
+				/*
 				case .idRef( _, let typeID, let objID ):
 					let object	= try decodeRef(type: type, typeID: typeID, element: element, from: decoder)
 					objectRepository[ objID ]	= object
@@ -260,6 +329,7 @@ final class TypeConstructor {
 					let object		= try decodeBinValue( type:T.self, bytes: bytes, element:element, from:decoder )
 					objectRepository[ objID ]	= object
 					return object
+				*/
 				default:
 					throw GCodableError.internalInconsistency(
 						Self.self, GCodableError.Context(
@@ -275,7 +345,22 @@ final class TypeConstructor {
 		switch element.fileBlock {
 		case .Nil( _ ):
 			return Optional<Any>.none as Any
-		case .conditionalPtr( _, let objID ):
+		case .Ptr( _, let objID, let conditional ):
+			if conditional {
+				return try decodeIdentifiable( type:T.self, objID:objID, from:decoder ) as Any
+			} else {
+				guard let object = try decodeIdentifiable( type:T.self, objID:objID, from:decoder ) else {
+					throw GCodableError.decodingError(
+						Self.self, GCodableError.Context(
+							debugDescription:
+								"Object pointed from -\(element.fileBlock)- not found." +
+							"Use deferDecode to break the cycles."
+						)
+					)
+				}
+				return object
+			}
+/*		case .conditionalPtr( _, let objID ):
 			// nessun controllo: può essere nil
 			return try decodeIdentifiable( type:T.self, objID:objID, from:decoder ) as Any
 		case .strongPtr( _, let objID ):
@@ -290,7 +375,7 @@ final class TypeConstructor {
 				)
 			}
 			return object
-		default:	// .Struct & .Object are inappropriate here!
+*/		default:	// .Struct & .Object are inappropriate here!
 			throw GCodableError.internalInconsistency(
 				Self.self, GCodableError.Context(
 					debugDescription: "Inappropriate bodyElement \(element.fileBlock) here."

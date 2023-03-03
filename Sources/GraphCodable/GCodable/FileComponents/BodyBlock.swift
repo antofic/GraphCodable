@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum BodyBlock {
+enum FileBlock {
 	private struct Code: OptionSet {
 		let rawValue: UInt8
 		
@@ -31,7 +31,7 @@ enum BodyBlock {
 		private static let	hasTypeID:		Self = [ b4 ]	// catVal
 		private static let	hasBytes:		Self = [ b6 ]	// catVal
 		
-		private static let	conditional:	Self = [ b4 ]	// catPtr
+		private static let	conditional:	Self = [ b4 ]	// conditional
 		
 		enum Category {
 			case End, Nil, Val, Ptr
@@ -66,24 +66,24 @@ enum BodyBlock {
 		}
 
 		static func Nil( keyID:UIntID? ) -> Self {
-			var code = catNil
-			if keyID != nil { code.formUnion( hasKeyID ) }
+			var code	= catNil
+			if keyID	!= nil { code.formUnion( hasKeyID ) }
 			return code
 		}
 		
 		static func Ptr( keyID:UIntID?, objID:UIntID, conditional:Bool ) -> Self {
-			var code = catPtr.union( hasObjID )
-			if keyID != nil { code.formUnion( hasKeyID ) }
+			var code	= catPtr.union( hasObjID )
+			if keyID	!= nil { code.formUnion( hasKeyID ) }
 			if conditional { code.formUnion( Self.conditional ) }
 			return code
 		}
 		
 		static func  Val( keyID:UIntID?, typeID:UIntID?, objID:UIntID?, bytes:Bytes? ) -> Self {
-			var code = catPtr
-			if keyID != nil { code.formUnion( hasKeyID ) }
-			if typeID != nil { code.formUnion( hasTypeID ) }
-			if objID != nil { code.formUnion( hasObjID ) }
-			if bytes != nil { code.formUnion( hasBytes ) }
+			var code	= catVal
+			if keyID	!= nil { code.formUnion( hasKeyID ) }
+			if typeID	!= nil { code.formUnion( hasTypeID ) }
+			if objID	!= nil { code.formUnion( hasObjID ) }
+			if bytes	!= nil { code.formUnion( hasBytes ) }
 			return code
 		}
 	}
@@ -94,7 +94,7 @@ enum BodyBlock {
 	case Val( keyID:UIntID?, typeID:UIntID?, objID:UIntID?, bytes:Bytes? )
 }
 
-extension BodyBlock {
+extension FileBlock {
 	var objID : UIntID? {
 		switch self {
 		case .Ptr( _, let objID, _ ):		return	objID
@@ -133,7 +133,7 @@ extension BodyBlock {
 	}
 }
 
-extension BodyBlock {
+extension FileBlock {
 	enum Level { case exit, same, enter }
 	var level : Level {
 		switch self {
@@ -144,7 +144,7 @@ extension BodyBlock {
 	}
 }
 
-extension BodyBlock : BinaryOType {
+extension FileBlock : BinaryOType {
 	func write( to wbuffer: inout BinaryWriteBuffer ) throws {
 		switch self {
 		case .End:
@@ -166,7 +166,7 @@ extension BodyBlock : BinaryOType {
 	}
 }
 
-extension BodyBlock {
+extension FileBlock {
 	init(from rbuffer: inout BinaryReadBuffer, fileHeader:FileHeader ) throws {
 		let code	= try Code(from: &rbuffer)
 
@@ -190,7 +190,7 @@ extension BodyBlock {
 	}
 }
 
-extension BodyBlock {
+extension FileBlock {
 	func readableOutput(
 		options:			GraphDumpOptions,
 		binaryValue: 		BinaryOType?,

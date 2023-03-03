@@ -27,7 +27,8 @@ struct FileHeader : CustomStringConvertible, BinaryIOType {
 	static var VALUEID_FILE_VERSION	: UInt32 { 1 }
 	static var RMUNUS2_FILE_VERSION	: UInt32 { 2 }
 	static var SECTION_FILE_VERSION	: UInt32 { 3 }
-	static var CURRENT_FILE_VERSION	: UInt32 { SECTION_FILE_VERSION }
+	static var NEWFILEBLOCK_VERSION	: UInt32 { 4 }
+	static var CURRENT_FILE_VERSION	: UInt32 { NEWFILEBLOCK_VERSION }
 
 	var supportsValueIDs		: Bool { version >= Self.VALUEID_FILE_VERSION }
 	var supportsFileSections	: Bool { version >= Self.SECTION_FILE_VERSION }
@@ -58,9 +59,7 @@ struct FileHeader : CustomStringConvertible, BinaryIOType {
 
 	init(from rbuffer: inout BinaryReadBuffer) throws {
 		do {
-			_ = ObsoleteCode.peek( from: &rbuffer ) {
-				$0 == .header
-			}
+			_ = ObsoleteCode.peek( from: &rbuffer ) { $0 == .header }
 			
 			let headerID	= try HeaderID	( from: &rbuffer )
 			guard headerID == .gcodable else {
@@ -76,6 +75,13 @@ struct FileHeader : CustomStringConvertible, BinaryIOType {
 			self.unused1	= try UInt64	( from: &rbuffer )
 			if version < Self.RMUNUS2_FILE_VERSION {
 				_	= try UInt8( from: &rbuffer )	// removed unused2 from SECTION_FILE_VERSION
+			}
+			if version < Self.NEWFILEBLOCK_VERSION {
+				throw GCodableError.decodingError(
+					Self.self, GCodableError.Context(
+						debugDescription: "GCodable file version < \(Self.NEWFILEBLOCK_VERSION) are non more supported."
+					)
+				)
 			}
 		} catch( let error ) {
 			throw GCodableError.invalidHeader(

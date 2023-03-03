@@ -150,16 +150,12 @@ extension GEncoderImpl {
 					)
 				)
 			}
-			try dataEncoder.appendBinValue(keyID: keyID, binaryValue: trivialValue )
+			try dataEncoder.appendVal(keyID: keyID, typeID:nil, objID:nil, binaryValue: trivialValue )
 		} else if let value = value as? GEncodable {
 			if let identifier = identifier( of:value ) {	// IDENTITY
 				if let objID = identifierMap.strongID( identifier ) {
 					// already encoded value: we encode a pointer
-					if conditional {
-						try dataEncoder.appendConditionalPtr(keyID: keyID, objID: objID)
-					} else {
-						try dataEncoder.appendStrongPtr(keyID: keyID, objID: objID)
-					}
+					try dataEncoder.appendPtr(keyID: keyID, objID: objID, conditional: conditional)
 				} else if conditional {
 					// conditional encoding: we encode only a pointer
 					
@@ -169,7 +165,7 @@ extension GEncoderImpl {
 					}
 						
 					let objID	= identifierMap.createWeakID( identifier )
-					try dataEncoder.appendConditionalPtr(keyID: keyID, objID: objID)
+					try dataEncoder.appendPtr(keyID: keyID, objID: objID, conditional: conditional)
 				} else {
 					// not encoded value: we encode it
 					// INHERITANCE: only classes have a typeID
@@ -178,18 +174,10 @@ extension GEncoderImpl {
 
 					if let binaryValue = value as? GBinaryEncodable {
 						// BinaryEncodable type
-						if let typeID {	// INHERITANCE
-							try dataEncoder.appendIdBinRef(keyID: keyID, typeID: typeID, objID: objID, binaryValue: binaryValue )
-						} else {	// NO INHERITANCE
-							try dataEncoder.appendIdBinValue(keyID: keyID, objID: objID, binaryValue: binaryValue )
-						}
+						try dataEncoder.appendVal(keyID: keyID, typeID: typeID, objID: objID, binaryValue: binaryValue)
 					} else {
 						// Encodable type
-						if let typeID {	// INHERITANCE
-							try dataEncoder.appendIdRef(keyID: keyID, typeID: typeID, objID: objID)
-						} else {	// NO INHERITANCE
-							try dataEncoder.appendIdValue(keyID: keyID, objID: objID)
-						}
+						try dataEncoder.appendVal(keyID: keyID, typeID: typeID, objID: objID, binaryValue: nil)
 						try encodeValue( value )
 						try dataEncoder.appendEnd()
 					}
@@ -207,18 +195,9 @@ extension GEncoderImpl {
 
 				if let binaryValue = value as? GBinaryEncodable {
 					// BinaryEncodable type
-					if let typeID {	// INHERITANCE
-						try dataEncoder.appendBinRef(keyID: keyID, typeID: typeID, binaryValue: binaryValue )
-					} else {
-						try dataEncoder.appendBinValue(keyID: keyID, binaryValue: binaryValue )
-					}
+					try dataEncoder.appendVal(keyID: keyID, typeID: typeID, objID: nil, binaryValue: binaryValue)
 				} else {
-					// Encodable type
-					if let typeID {	// NO INHERITANCE
-						try dataEncoder.appendRef( keyID: keyID, typeID: typeID )
-					} else {
-						try dataEncoder.appendValue( keyID: keyID )
-					}
+					try dataEncoder.appendVal(keyID: keyID, typeID: typeID, objID: nil, binaryValue: nil)
 					try encodeValue( value )
 					try dataEncoder.appendEnd()
 				}
@@ -284,7 +263,7 @@ extension GEncoderImpl {
 		}
 	}
 	
-	private func createKeyID( key: String? ) throws -> UIntID {
+	private func createKeyID( key: String? ) throws -> UIntID? {
 		if let key = key {
 			defer { currentKeys.insert( key ) }
 			if currentKeys.contains( key ) {
@@ -296,7 +275,7 @@ extension GEncoderImpl {
 			}
 			return keyMap.createKeyIDIfNeeded(key: key)
 		} else {
-			return 0	// unkeyed
+			return nil
 		}
 	}
 	
