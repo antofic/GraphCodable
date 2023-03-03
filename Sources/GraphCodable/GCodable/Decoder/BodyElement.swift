@@ -27,16 +27,19 @@ final class BodyElement {
 	private(set) var	fileBlock		: FileBlock
 	private		var		keyedValues		= [String:BodyElement]()
 	private		var 	unkeyedValues 	= [BodyElement]()
-		
+	
+	private init( fileBlock:FileBlock ) {
+		self.fileBlock	= fileBlock
+	}
+	
 	static func rootElement<S>(
 		bodyBlocks:S, keyStringMap:KeyStringMap, reverse:Bool
 	) throws -> ( rootElement: BodyElement, elementMap: [UIntID : BodyElement] )
 	where S:Sequence, S.Element == FileBlock {
 		var elementMap	= [UIntID : BodyElement]()
+		var lineIterator = bodyBlocks.makeIterator()
 		
-		guard let root	= try BodyElement(
-			bodyBlocks: bodyBlocks, elementMap:&elementMap, keyStringMap:keyStringMap, reverse: true
-		) else {
+		guard let fileBlock = lineIterator.next() else {
 			throw GCodableError.decodingError(
 				Self.self, GCodableError.Context(
 					debugDescription: "Root not found."
@@ -44,11 +47,18 @@ final class BodyElement {
 			)
 		}
 		
+		guard fileBlock.level != .exit else {
+			throw GCodableError.decodingError(
+				Self.self, GCodableError.Context(
+					debugDescription: "The archive begins with an end block."
+				)
+			)
+		}
+		
+		let root = Self.init(fileBlock: fileBlock)
+		try Self.flatten( elementMap: &elementMap, element: root, lineIterator: &lineIterator, keyStringMap:keyStringMap, reverse: reverse )
+		
 		return (root,elementMap)
-	}
-	
-	var keyedCount : Int {
-		keyedValues.count
 	}
 	
 	var unkeyedCount : Int {
@@ -59,99 +69,17 @@ final class BodyElement {
 		keyedValues.index(forKey: key) != nil
 	}
 	
-	func pop( key:String? ) -> BodyElement? {
-		if let key = key {
-			return keyedValues.removeValue(forKey: key)
-		} else if unkeyedValues.count > 0 {
-			return unkeyedValues.removeLast()
-		} else {
-			return nil
-		}
+	func pop( key:String ) -> BodyElement? {
+		keyedValues.removeValue(forKey: key)
 	}
 	
-	func popIfNil() -> Bool? {
-		guard unkeyedValues.count > 0 else {
-			return nil
-		}
-		guard unkeyedValues.last.isNil else {
-			return false
-		}
-		unkeyedValues.removeLast()
-		return true
+	func pop() -> BodyElement? {
+		unkeyedCount > 0 ? unkeyedValues.removeLast() : nil
 	}
-	
-	//	----------------------------------------------------------------
-	
-	private func subdump( elementMap: [UIntID : BodyElement], classDataMap: ClassDataMap?, keyStringMap: KeyStringMap?, options: GraphDumpOptions, level:Int ) -> String {
-		var dump = ""
-		
-		let string = fileBlock.readableOutput(
-			options: options, binaryValue: nil,
-			classDataMap: classDataMap, keyStringMap: keyStringMap
-		)
-		let tabs = String(repeating: "\t", count: level)
-		dump.append( "\(tabs)\(string)\n" )
-		var end	= false
-		for element in keyedValues.values {
-			end	= true
-			dump.append( element.subdump( elementMap:elementMap, classDataMap: classDataMap, keyStringMap: keyStringMap, options:options, level: level+1 ))
-		}
-		for element in unkeyedValues {
-			end	= true
-			dump.append( element.subdump( elementMap:elementMap, classDataMap: classDataMap, keyStringMap: keyStringMap, options:options, level: level+1 ))
-		}
-		if end {
-			dump.append( "\(tabs).\n" )
-		}
-		
-		return dump
-	}
-	
-	func dump( elementMap: [UIntID : BodyElement], classDataMap: ClassDataMap?, keyStringMap: KeyStringMap?, options: GraphDumpOptions ) -> String {
-		let level	= 0
-		var dump 	= ""
-		
-		dump.append( StringEncoder.titleString("FLATTENED BODY" ) )
-		dump.append( StringEncoder.titleString( "ROOT:", filler: "-") )
-		dump.append( subdump(elementMap: elementMap, classDataMap: classDataMap, keyStringMap: keyStringMap, options:options, level: level ))
-		
-		if elementMap.isEmpty == false {
-			dump.append( StringEncoder.titleString( "WHERE:", filler: "-") )
-			for (id,element) in elementMap {
-				dump.append( "# PTR\(id) is:\n")
-				dump.append( element.subdump( elementMap:elementMap, classDataMap: classDataMap, keyStringMap: keyStringMap, options:options, level: level ))
-			}
-		}
-		
-		return dump
-	}
-	
-	//	----------------------------------------------------------------
-	
-	private init?<S>( bodyBlocks:S, elementMap map: inout [UIntID : BodyElement], keyStringMap:KeyStringMap, reverse:Bool ) throws
-	where S:Sequence, S.Element == FileBlock {
-		var lineIterator = bodyBlocks.makeIterator()
-		
-		if let dataBlock = lineIterator.next() {
-			guard dataBlock.level != .exit else {
-				throw GCodableError.decodingError(
-					Self.self, GCodableError.Context(
-						debugDescription: "The archive begins with an end block."
-					)
-				)
-			}
-			self.fileBlock	= dataBlock
-			
-			try Self.flatten( elementMap: &map, element: self, lineIterator: &lineIterator, keyStringMap:keyStringMap, reverse: reverse )
-		} else {
-			return nil
-		}
-	}
-	
-	private init( fileBlock:FileBlock ) {
-		self.fileBlock	= fileBlock
-	}
-	
+}
+
+// MARK: BodyElement private flatten section
+extension BodyElement {
 	private static func flatten<T>(
 		elementMap map: inout [UIntID : BodyElement], element:BodyElement, lineIterator: inout T, keyStringMap:KeyStringMap, reverse:Bool
 	) throws where T:IteratorProtocol, T.Element == FileBlock {
@@ -251,15 +179,15 @@ final class BodyElement {
 	private static func subFlatten<T>(
 		elementMap map: inout [UIntID : BodyElement], parentElement:BodyElement, lineIterator: inout T, keyStringMap:KeyStringMap, reverse:Bool
 	) throws where T:IteratorProtocol, T.Element == FileBlock {
-		while let dataBlock = lineIterator.next() {
-			let bodyElement = BodyElement( fileBlock: dataBlock )
+		while let fileBlock = lineIterator.next() {
+			let bodyElement = BodyElement( fileBlock: fileBlock )
 			
-			if case .end = dataBlock {
+			if case .end = fileBlock {
 				break
 			} else {
 				bodyElement.parentElement = parentElement
 				
-				if let keyID = dataBlock.keyID {
+				if let keyID = fileBlock.keyID {
 					guard let key = keyStringMap[keyID] else {
 						throw GCodableError.keyNotFound(
 							Self.self, GCodableError.Context(
@@ -267,15 +195,14 @@ final class BodyElement {
 							)
 						)
 					}
-					if parentElement.keyedValues.index(forKey: key) == nil {
-						parentElement.keyedValues[ key ] = bodyElement
-					} else {
+					guard parentElement.keyedValues.index(forKey: key) == nil else {
 						throw GCodableError.duplicateKey(
 							Self.self, GCodableError.Context(
 								debugDescription: "Key -\(key)- already used."
 							)
 						)
 					}
+					parentElement.keyedValues[ key ] = bodyElement
 				} else {
 					parentElement.unkeyedValues.append( bodyElement )
 				}
@@ -286,5 +213,52 @@ final class BodyElement {
 		if reverse {
 			parentElement.unkeyedValues.reverse()
 		}
+	}
+}
+
+// MARK: BodyElement dump section
+extension BodyElement {
+	func dump( elementMap: [UIntID : BodyElement], classDataMap: ClassDataMap?, keyStringMap: KeyStringMap?, options: GraphDumpOptions ) -> String {
+		let level	= 0
+		var dump 	= ""
+		
+		dump.append( StringEncoder.titleString("FLATTENED BODY" ) )
+		dump.append( StringEncoder.titleString( "ROOT:", filler: "-") )
+		dump.append( subdump(elementMap: elementMap, classDataMap: classDataMap, keyStringMap: keyStringMap, options:options, level: level ))
+		
+		if elementMap.isEmpty == false {
+			dump.append( StringEncoder.titleString( "WHERE:", filler: "-") )
+			for (id,element) in elementMap {
+				dump.append( "# PTR\(id) is:\n")
+				dump.append( element.subdump( elementMap:elementMap, classDataMap: classDataMap, keyStringMap: keyStringMap, options:options, level: level ))
+			}
+		}
+		
+		return dump
+	}
+	
+	private func subdump( elementMap: [UIntID : BodyElement], classDataMap: ClassDataMap?, keyStringMap: KeyStringMap?, options: GraphDumpOptions, level:Int ) -> String {
+		var dump = ""
+		
+		let string = fileBlock.readableOutput(
+			options: options, binaryValue: nil,
+			classDataMap: classDataMap, keyStringMap: keyStringMap
+		)
+		let tabs = String(repeating: "\t", count: level)
+		dump.append( "\(tabs)\(string)\n" )
+		var end	= false
+		for element in keyedValues.values {
+			end	= true
+			dump.append( element.subdump( elementMap:elementMap, classDataMap: classDataMap, keyStringMap: keyStringMap, options:options, level: level+1 ))
+		}
+		for element in unkeyedValues {
+			end	= true
+			dump.append( element.subdump( elementMap:elementMap, classDataMap: classDataMap, keyStringMap: keyStringMap, options:options, level: level+1 ))
+		}
+		if end {
+			dump.append( "\(tabs).\n" )
+		}
+		
+		return dump
 	}
 }

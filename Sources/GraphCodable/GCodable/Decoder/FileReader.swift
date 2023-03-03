@@ -272,7 +272,6 @@ struct FileReader {
 				step()
 			}
 		}
-
 	}
 }
 

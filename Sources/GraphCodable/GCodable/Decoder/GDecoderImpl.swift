@@ -20,10 +20,10 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
-final class GDecoderImpl : GDecoder {
+final class GDecoderImpl {
 	var	userInfo			= [String:Any]()
 	private var constructor : TypeConstructor!
-
+	
 	func allClassData<Q>( from data: Q ) throws -> [ClassData]
 	where Q:Sequence, Q.Element==UInt8 {
 		let decodedNames		= try ClassNamesDecoder(from: data)
@@ -32,21 +32,24 @@ final class GDecoderImpl : GDecoder {
 	}
 	
 	func decodeRoot<T,Q>( _ type: T.Type, from data: Q ) throws -> T
-		where T:GDecodable, Q:Sequence, Q.Element==UInt8 {
+	where T:GDecodable, Q:Sequence, Q.Element==UInt8 {
 		defer { constructor = nil }
 		
-		constructor	= TypeConstructor(decodedData: try BinaryDecoder( from: data ))
+		constructor	= TypeConstructor(decodedData: try BinDecoder( from: data ))
 		
 		return try constructor.decodeRoot(type, from: self)
 	}
-
+	
 	func dumpRoot<Q>( from data: Q, options: GraphDumpOptions ) throws -> String
 	where Q:Sequence, Q.Element==UInt8 {
 		let decodedDump	= try StringDecoder(from: data, options: options)
 		
 		return try decodedDump.dump()
 	}
-	
+}
+
+// MARK: GDecoderImpl conformance to GDecoder protocol
+extension GDecoderImpl : GDecoder {
 	var encodedVersion : UInt32 {
 		get throws { try constructor.encodedVersion }
 	}
@@ -66,17 +69,17 @@ final class GDecoderImpl : GDecoder {
 	func decode<Key, Value>(for key: Key) throws -> Value
 	where Key : RawRepresentable, Value : GDecodable, Key.RawValue == String
 	{
-		let	bodyElement = try constructor.popBodyElement( key:key.rawValue )
+		let	element = try constructor.popBodyElement( key:key.rawValue )
 		
-		return try constructor.decode( element:bodyElement, from: self )
+		return try constructor.decode( element:element, from: self )
 	}
 	
 	func deferDecode<Key, Value>( for key: Key, _ setter: @escaping (Value) -> ()) throws
 	where Key : RawRepresentable, Value : GDecodable, Key.RawValue == String
 	{
-		let	bodyElement = try constructor.popBodyElement( key:key.rawValue )
+		let	element = try constructor.popBodyElement( key:key.rawValue )
 
-		try constructor.deferDecode( element:bodyElement, from: self, setter )
+		try constructor.deferDecode( element:element, from: self, setter )
 	}
 
 	// ------ unkeyed support
@@ -86,9 +89,9 @@ final class GDecoderImpl : GDecoder {
 	}
 	
 	func decode<Value>() throws -> Value where Value : GDecodable {
-		let	bodyElement = try constructor.popBodyElement()
+		let	element = try constructor.popBodyElement()
 
-		return try constructor.decode( element:bodyElement, from: self )
+		return try constructor.decode( element:element, from: self )
 	}
 	
 	func deferDecode<Value>(_ setter: @escaping (Value) -> ()) throws where Value : GDecodable {

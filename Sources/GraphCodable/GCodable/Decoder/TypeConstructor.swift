@@ -23,13 +23,13 @@
 import Foundation
 
 final class TypeConstructor {
-	private var			decodedData			: BinaryDecoder
+	private var			decodedData			: BinDecoder
 	private (set) var 	currentElement 		: BodyElement
 	private (set) var 	currentInfo 		: ClassInfo?
 	private var			objectRepository 	= [ UIntID :Any ]()
 	private var			setterRepository 	= [ () throws -> () ]()
 	
-	init( decodedData:BinaryDecoder ) {
+	init( decodedData:BinDecoder ) {
 		self.decodedData	= decodedData
 		self.currentElement	= decodedData.rootElement
 	}
@@ -51,29 +51,30 @@ final class TypeConstructor {
 		currentElement.contains(key: key)
 	}
 	
-	func popBodyElement( key:String? = nil ) throws -> BodyElement {
-		if let key = key {
-			// keyed case
-			guard let element = currentElement.pop(key: key) else {
-				throw GCodableError.childNotFound(
-					Self.self, GCodableError.Context(
-						debugDescription: "Keyed child for key-\(key)- not found in \(currentElement.fileBlock)."
-					)
+	func popBodyElement( key:String ) throws -> BodyElement {
+		// keyed case
+		guard let element = currentElement.pop(key: key) else {
+			throw GCodableError.childNotFound(
+				Self.self, GCodableError.Context(
+					debugDescription: "Keyed child for key-\(key)- not found in \(currentElement.fileBlock)."
 				)
-			}
-			return element
-		} else {
-			guard let element = currentElement.pop(key: nil) else {
-				throw GCodableError.childNotFound(
-					Self.self, GCodableError.Context(
-						debugDescription: "Unkeyed child not found in \(currentElement.fileBlock)."
-					)
-				)
-			}
-			return element
+			)
 		}
+		return element
 	}
-	
+
+	func popBodyElement() throws -> BodyElement {
+		// keyed case
+		guard let element = currentElement.pop() else {
+			throw GCodableError.childNotFound(
+				Self.self, GCodableError.Context(
+					debugDescription: "Unkeyed child not found in \(currentElement.fileBlock)."
+				)
+			)
+		}
+		return element
+	}
+
 	private func classInfo( typeID:UIntID ) throws -> ClassInfo {
 		guard let classInfo = decodedData.classInfoMap[ typeID ] else {
 			throw GCodableError.internalInconsistency(

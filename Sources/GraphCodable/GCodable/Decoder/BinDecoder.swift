@@ -22,7 +22,7 @@
 
 import Foundation
 
-struct BinaryDecoder {
+struct BinDecoder {
 	let fileHeader			: FileHeader
 	let	classInfoMap		: [UIntID:ClassInfo]
 	let rootElement 		: BodyElement

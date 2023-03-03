@@ -22,7 +22,7 @@
 
 import Foundation
 
-final class StringDecoder : DataEncoderDelegate {
+final class StringDecoder: DataEncoderDelegate {
 	let fileHeader		: FileHeader
 	let bodyBlocks		: BodyBlocks
 	let classDataMap	: ClassDataMap
