@@ -203,8 +203,15 @@ extension BodyElement {
 				//	beccare gli oggetti memorizzati dopo!
 				let root		= BodyElement( fileBlock: .Val(keyID: keyID, typeID: typeID, objID: objID, bytes: bytes) )
 				map[ objID ]	= root
-			}
-			if bytes == nil {
+				if bytes == nil {
+					// ATT! NO subFlatten for BinValue's
+					try subFlatten(
+						elementMap: &map, parentElement:root, lineIterator:&lineIterator,
+						keyStringMap:keyStringMap, reverse:reverse
+					)
+				}
+			} else if bytes == nil {
+				// ATT! NO subFlatten for BinValue's
 				try subFlatten(
 					elementMap: &map, parentElement:element, lineIterator:&lineIterator,
 					keyStringMap:keyStringMap, reverse:reverse
