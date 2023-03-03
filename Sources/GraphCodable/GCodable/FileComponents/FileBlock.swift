@@ -20,9 +20,6 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
-extension FileBlock : Codable {}
-
-
 /// the body of a GCodable file is a sequence of FileBlock's
 enum FileBlock {
 	private struct Code: OptionSet {
@@ -43,12 +40,12 @@ enum FileBlock {
 		private static let	catVal:			Self = [ b1 ]
 		private static let	catPtr:			Self = [ b0, b1 ]
 		
-		private static let	hasKeyID:		Self = [ b3 ]	// catNil, catVal, catPtr
-		private static let	hasObjID:		Self = [ b5 ]	// catVal, catPtr
-		private static let	hasTypeID:		Self = [ b4 ]	// catVal
-		private static let	hasBytes:		Self = [ b6 ]	// catVal
+		private static let	hasKeyID:		Self = [ b3 ]		// catNil, catVal, catPtr
+		private static let	hasObjID:		Self = [ b4 ]		// catVal, catPtr
+		private static let	hasTypeID:		Self = [ b5 ]		// catVal
+		private static let	hasBytes:		Self = [ b6 ]		// catVal
 		
-		private static let	conditional:	Self = [ b4 ]	// conditional
+		private static let	conditional:	Self = hasTypeID	// conditional (!= hasObjID,hasKeyID )
 		
 		//	b2, b7	= future use
 		
@@ -183,7 +180,7 @@ extension FileBlock {
 	//	Compact UInt32 to reduce file size
 	//	if value <= Int16.max only 2 bytes are archived
 	//	value > Int32.max generate a failure
-	private struct Pack32 : BinaryIOType {
+	private struct Pack32B : BinaryIOType {
 		let value	: UInt32
 		
 		init( _ value: UInt32 ) {
@@ -193,18 +190,27 @@ extension FileBlock {
 		
 		init(from rbuffer: inout BinaryReadBuffer) throws {
 			let lo		= try UInt16( from: &rbuffer)
-			let hi		= (lo & 0x8000) != 0 ? try UInt16( from: &rbuffer) : 0
-			self.value	= Self.expand( (hi,lo) )
+			if lo <= Int16.max {
+				self.value	= UInt32( lo )
+			} else {
+				let hi	= try UInt16( from: &rbuffer )
+				self.value	= ( UInt32( lo ) & 0x00007FFF ) | ( UInt32( hi ) &<< 15 )
+			}
 		}
 		
 		func write(to wbuffer: inout BinaryWriteBuffer) throws {
-			let (hi,lo) = Self.compact( value )
-			try lo.write(to: &wbuffer)
-			if hi != 0 { try hi.write(to: &wbuffer) }
+			if value <= Int16.max {
+				try UInt16( value ).write( to: &wbuffer )
+			} else {
+				let lo	= UInt16( (value & 0x00007FFF) | 0x8000 )
+				try lo.write( to: &wbuffer )
+				let hi	= UInt16( (value & 0x7FFF8000) &>> 15 )
+				try hi.write( to: &wbuffer )
+			}
 		}
-		
+		/*
 		static private func compact( _ value:UInt32 ) -> (hi:UInt16,lo:UInt16) {
-			if value & 0x7FFF8000 == 0 {
+			if value <= Int16.max {
 				return (
 					hi:0,
 					lo:UInt16( value )
@@ -220,7 +226,27 @@ extension FileBlock {
 		static private func expand( _ v : (hi:UInt16,lo:UInt16) ) -> UInt32 {
 			( UInt32( v.lo ) & 0x00007FFF ) &+ ( UInt32( v.hi ) &<< 15 )
 		}
+		*/
 	}
+
+	private struct Pack32 : BinaryIOType {
+		let value	: UInt32
+		
+		init( _ value: UInt32 ) {
+			self.value = value
+		}
+		
+		init(from rbuffer: inout BinaryReadBuffer) throws {
+			self.value	= try UInt32( from: &rbuffer)
+		}
+		
+		func write(to wbuffer: inout BinaryWriteBuffer) throws {
+			try value.write(to: &wbuffer)
+		}
+	}
+
+	
+	
 }
 
 extension FileBlock : BinaryOType {
