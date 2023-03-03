@@ -20,6 +20,7 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
+extension FileBlock : Codable {}
 
 
 /// the body of a GCodable file is a sequence of FileBlock's
@@ -123,6 +124,7 @@ enum FileBlock {
 	case Ptr( keyID:UIntID?, objID:UIntID, conditional:Bool )
 	case Val( keyID:UIntID?, typeID:UIntID?, objID:UIntID?, bytes:Bytes? )
 }
+
 
 extension FileBlock {
 	var keyID : UIntID? {

@@ -20,13 +20,15 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
+extension FileHeader : Codable {}
+
 
 ///	FileHeader: the 24 bytes fixed size header of every gcodable file
 struct FileHeader : CustomStringConvertible, BinaryIOType {
-	static var INITIAL_FILE_VERSION	: UInt32 { 0 }
-	static var VALUEID_FILE_VERSION	: UInt32 { 1 }
-	static var RMUNUS2_FILE_VERSION	: UInt32 { 2 }
-	static var SECTION_FILE_VERSION	: UInt32 { 3 }
+	static var INITIAL_FILE_VERSION	: UInt32 { 0 }	// no more supported
+	static var VALUEID_FILE_VERSION	: UInt32 { 1 }	// no more supported
+	static var RMUNUS2_FILE_VERSION	: UInt32 { 2 }	// no more supported
+	static var SECTION_FILE_VERSION	: UInt32 { 3 }	// no more supported
 	static var NEWFILEBLOCK_VERSION	: UInt32 { 4 }
 	static var CURRENT_FILE_VERSION	: UInt32 { NEWFILEBLOCK_VERSION }
 

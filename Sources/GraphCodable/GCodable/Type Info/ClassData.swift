@@ -22,6 +22,8 @@
 
 import Foundation
 
+extension ClassData : Codable {}
+
 struct ClassData : BinaryIOType, CustomStringConvertible {
 	let	readableTypeName:	String	// the TypeName Generated _typeName( type, qualified:true )
 	let	mangledTypeName:	String?	// the TypeName Generated _mangledTypeName( type )
