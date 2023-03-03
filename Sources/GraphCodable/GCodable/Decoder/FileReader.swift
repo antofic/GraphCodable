@@ -45,7 +45,7 @@ struct FileReader {
 	mutating func classDataMap() throws -> ClassDataMap {
 		switch decoder {
 		case .new( var decoder ): return try decoder.classDataMap()
-		case .old( var decoder ): return try decoder.classDataMap()
+		case .old( var decoder ): return try decoder.classDataMap(fileHeader: fileHeader)
 		}
 	}
 	
@@ -55,15 +55,15 @@ struct FileReader {
 
 	mutating func bodyFileBlocks() throws -> BodyBlocks {
 		switch decoder {
-		case .new( var decoder ): return try decoder.bodyFileBlocks()
-		case .old( var decoder ): return try decoder.bodyFileBlocks()
+		case .new( var decoder ): return try decoder.bodyFileBlocks(fileHeader: fileHeader)
+		case .old( var decoder ): return try decoder.bodyFileBlocks(fileHeader: fileHeader)
 		}
 	}
 
 	mutating func keyStringMap() throws -> KeyStringMap {
 		switch decoder {
 		case .new( var decoder ): return try decoder.keyStringMap()
-		case .old( var decoder ): return try decoder.keyStringMap()
+		case .old( var decoder ): return try decoder.keyStringMap(fileHeader: fileHeader)
 		}
 	}
 	
@@ -81,7 +81,7 @@ struct FileReader {
 		
 		init( from rbuffer:inout BinaryReadBuffer ) throws {
 			self.sectionMap		= try type(of:sectionMap).init(from: &rbuffer)
-			self.rbuffer			= rbuffer
+			self.rbuffer		= rbuffer
 		}
 
 		mutating func classDataMap() throws -> ClassDataMap {
@@ -94,7 +94,7 @@ struct FileReader {
 			return _classDataMap!
 		}
 		
-		mutating func bodyFileBlocks() throws -> BodyBlocks {
+		mutating func bodyFileBlocks( fileHeader:FileHeader ) throws -> BodyBlocks {
 			if let bodyBlocks = _bodyFileBlocks { return bodyBlocks }
 
 			let saveRegion	= try setReaderRegionTo(section: .body)
@@ -102,7 +102,7 @@ struct FileReader {
 
 			var bodyBlocks	= [FileBlock]()
 			while rbuffer.isEof == false {
-				bodyBlocks.append( try FileBlock(from: &rbuffer) )
+				bodyBlocks.append( try FileBlock(from: &rbuffer, fileHeader: fileHeader) )
 			}
 			
 			_bodyFileBlocks	= bodyBlocks
@@ -137,11 +137,11 @@ struct FileReader {
 	// -------------------------------------------------
 
 	private struct OldBinaryDecoder {
-		enum CompatibleFileBlock : BinaryIType {
+		enum CompatibleFileBlock {
 			case current( fileBlock:FileBlock )
 			case obsolete( fileBlock:FileBlockObsolete )
 
-			init(from rbuffer: inout BinaryReadBuffer) throws {
+			init(from rbuffer: inout BinaryReadBuffer, fileHeader:FileHeader ) throws {
 				var obsolete	= false
 				let _ = FileBlockObsolete.peek(from: &rbuffer) {
 					_ in
@@ -151,7 +151,7 @@ struct FileReader {
 				if obsolete {
 					self	= .obsolete(fileBlock: try FileBlockObsolete(from: &rbuffer))
 				} else {
-					self	= .current(fileBlock: try FileBlock(from: &rbuffer))
+					self	= .current(fileBlock: try FileBlock(from: &rbuffer, fileHeader:fileHeader ))
 				}
 			}
 		}
@@ -166,35 +166,35 @@ struct FileReader {
 		private var phase				: FileSection
 		
 		init( from rbuffer:inout BinaryReadBuffer ) throws {
-			self.rbuffer		= rbuffer
+			self.rbuffer	= rbuffer
 			self.phase		= .classDataMap
 		}
 
-		mutating func classDataMap() throws -> ClassDataMap {
-			try parseTypeMap()
+		mutating func classDataMap( fileHeader:FileHeader ) throws -> ClassDataMap {
+			try parseTypeMap(fileHeader: fileHeader)
 			return _classDataMap
 		}
 
-		mutating func bodyFileBlocks() throws -> BodyBlocks {
-			try parseTypeMap()
-			try parseBody()
+		mutating func bodyFileBlocks( fileHeader:FileHeader ) throws -> BodyBlocks {
+			try parseTypeMap(fileHeader: fileHeader)
+			try parseBody(fileHeader: fileHeader)
 			
 			return _bodyFileBlocks
 		}
 
-		mutating func keyStringMap() throws -> KeyStringMap {
-			try parseTypeMap()
-			try parseBody()
-			try parseKeyMap()
+		mutating func keyStringMap( fileHeader:FileHeader ) throws -> KeyStringMap {
+			try parseTypeMap(fileHeader: fileHeader)
+			try parseBody(fileHeader: fileHeader)
+			try parseKeyMap(fileHeader: fileHeader)
 
 			return _keyStringMap
 		}
 
 		// private section
 		
-		private mutating func peek() throws -> CompatibleFileBlock? {
+		private mutating func peek( fileHeader:FileHeader ) throws -> CompatibleFileBlock? {
 			if currentBlock == nil {
-				currentBlock	= rbuffer.isEof ? nil : try CompatibleFileBlock(from: &rbuffer)
+				currentBlock	= rbuffer.isEof ? nil : try CompatibleFileBlock(from: &rbuffer, fileHeader: fileHeader)
 			}
 			return currentBlock
 		}
@@ -203,10 +203,10 @@ struct FileReader {
 			currentBlock = nil
 		}
 
-		private mutating func parseTypeMap() throws {
+		private mutating func parseTypeMap( fileHeader:FileHeader ) throws {
 			guard phase == .classDataMap else { return }
 
-			while let compatibleBlock	= try peek() {
+			while let compatibleBlock	= try peek(fileHeader: fileHeader) {
 				switch compatibleBlock {
 				case .obsolete( let dataBlock ):
 					switch dataBlock {
@@ -232,10 +232,10 @@ struct FileReader {
 			}
 		}
 		
-		private mutating func parseBody() throws {
+		private mutating func parseBody( fileHeader:FileHeader ) throws {
 			guard phase == .body else { return }
 
-			while let compatibleBlock	= try peek() {
+			while let compatibleBlock	= try peek(fileHeader: fileHeader) {
 				switch compatibleBlock {
 				case .current( let dataBlock ):
 					_bodyFileBlocks.append( dataBlock )
@@ -247,10 +247,10 @@ struct FileReader {
 			}
 		}
 
-		private mutating func parseKeyMap() throws {
+		private mutating func parseKeyMap( fileHeader:FileHeader ) throws {
 			guard phase == .keyStringMap else { return }
 
-			while let compatibleBlock	= try peek() {
+			while let compatibleBlock	= try peek(fileHeader: fileHeader) {
 				switch compatibleBlock {
 				case .obsolete( let dataBlock ):
 					switch dataBlock {
