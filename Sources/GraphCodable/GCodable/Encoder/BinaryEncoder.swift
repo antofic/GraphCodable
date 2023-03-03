@@ -22,8 +22,8 @@
 
 import Foundation
 
-final class BinEncoder<Output:MutableDataProtocol> : DataEncoder {
-	weak var			delegate			: DataEncoderDelegate?
+final class BinaryEncoder<Output:MutableDataProtocol> : FileBlockEncoder {
+	weak var			delegate			: FileBlockEncoderDelegate?
 	let					fileHeader			= FileHeader()
 	private var			wbuffer				= BinaryWriteBuffer()
 	private var 		sectionMap			= SectionMap()

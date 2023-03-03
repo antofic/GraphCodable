@@ -20,9 +20,9 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
-final class StringEncoder : DataEncoder {
+final class StringEncoder : FileBlockEncoder {
 	typealias			Output		= String
-	weak var			delegate	: DataEncoderDelegate?
+	weak var			delegate	: FileBlockEncoderDelegate?
 	let					fileHeader	= FileHeader()
 	private var			dump		= String()
 	private var 		dumpStart	= false
@@ -84,7 +84,7 @@ final class StringEncoder : DataEncoder {
 			
 			let binValue = options.contains( .hideValueDescription ) ? nil : binaryValue
 			
-			dump.append( fileBlock.readableOutput(
+			dump.append( fileBlock.description(
 				options:		options,
 				binaryValue:	binValue,
 				classDataMap:	delegate?.classDataMap,

@@ -49,6 +49,8 @@ enum FileBlock {
 		
 		private static let	conditional:	Self = [ b4 ]	// conditional
 		
+		//	b2, b7	= future use
+		
 		enum Category {
 			case End, Nil, Val, Ptr
 		}
@@ -77,6 +79,18 @@ enum FileBlock {
 		var hasBytes		: Bool { self.contains( Self.hasBytes ) }
 		var isConditional	: Bool { self.contains( Self.conditional ) }
 	
+		//	-----------------------------------------------------------------------
+		//	keyID == nil	fileBlock is an unkeyed field of its parent value
+		//	keyID != nil	fileBlock is a keyed field of its parent value
+		//	objID == nil	fileBlock don't have Identity
+		//	objID != nil	fileBlock have Identity
+		//	typeID == nil	fileBlock don't supports inheritance (value type)
+		//	typeID != nil	fileBlock supports inheritance (reference type) (*)
+		//
+		//	(*) a reference can disable inheritance with the GClassName protocol
+		//	(*) inheritance can be disabled globally with a GraphEncoder option
+		//	-----------------------------------------------------------------------
+
 		static func End() -> Self {
 			return catEnd
 		}
@@ -253,8 +267,12 @@ extension FileBlock {
 	}
 }
 
-extension FileBlock {
-	func readableOutput(
+extension FileBlock : CustomStringConvertible {
+	var description: String {
+		description(options: .readable, binaryValue: nil, classDataMap: nil, keyStringMap: nil)
+	}
+	
+	func description(
 		options:			GraphDumpOptions,
 		binaryValue: 		BinaryOType?,
 		classDataMap cdm:	ClassDataMap?,
@@ -310,22 +328,22 @@ extension FileBlock {
 				conditional ? "PTR\(objID)?" : "PTR\(objID)"
 			)
 		case .Val( let keyID, let typeID, let objID, let bytes ):
-			//	VAL			= value		= []
-			//	BIV			= binValue	= [bytes]
-			//	REF			= ref		= [typeID]
-			//	BIR			= binRef	= [typeID,bytes]
-			//	VAL_objID	= iValue	= [objID]
-			//	BIV_objID	= iBinValue	= [objID,bytes]
-			//	REF_objID	= iRef		= [objID,typeID]
-			//	BIR_objID	= iBinRef	= [objID,typeID,bytes]
+			//	VAL			= []
+			//	BIV			= [bytes]
+			//	REF			= [typeID]
+			//	BIR			= [typeID,bytes]
+			//	VAL_objID	= [objID]
+			//	BIV_objID	= [objID,bytes]
+			//	REF_objID	= [objID,typeID]
+			//	BIR_objID	= [objID,typeID,bytes]
 
 			var string = keyName( keyID, keyStringMap )
 			
 			switch (typeID != nil,bytes != nil) {
-			case (false, false)	: string = "VAL"
-			case (false, true)	: string = "BIV"
-			case (true,  false)	: string = "REF"
-			case (true,  true)	: string = "BIR"
+			case (false, false)	: string = "VAL"	//	Codable value
+			case (false, true)	: string = "BIV"	//	BinaryCodable value
+			case (true,  false)	: string = "REF"	//	Codable reference
+			case (true,  true)	: string = "BIR"	//	BinaryCodable reference
 			}
 			if let objID {
 				string.append( "\(objID)" )

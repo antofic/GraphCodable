@@ -22,22 +22,24 @@
 
 import Foundation
 
-final class BodyElement {
-	private weak var	parentElement 	: BodyElement?
+///	Reorder FileBlock's in a `rootElement` and a `[objID : FlattenedElement]` dictionary
+///	to allow dearchiving of acyclic graphs without requiring deferDecode
+final class FlattenedElement {
+	private weak var	parentElement 	: FlattenedElement?
 	private(set) var	fileBlock		: FileBlock
-	private		var		keyedValues		= [String:BodyElement]()
-	private		var 	unkeyedValues 	= [BodyElement]()
+	private		var		keyedValues		= [String:FlattenedElement]()
+	private		var 	unkeyedValues 	= [FlattenedElement]()
 	
 	private init( fileBlock:FileBlock ) {
 		self.fileBlock	= fileBlock
 	}
 	
 	static func rootElement<S>(
-		bodyBlocks:S, keyStringMap:KeyStringMap, reverse:Bool
-	) throws -> ( rootElement: BodyElement, elementMap: [UIntID : BodyElement] )
+		fileBlocks:S, keyStringMap:KeyStringMap, reverse:Bool
+	) throws -> ( rootElement: FlattenedElement, elementMap: [UIntID : FlattenedElement] )
 	where S:Sequence, S.Element == FileBlock {
-		var elementMap	= [UIntID : BodyElement]()
-		var lineIterator = bodyBlocks.makeIterator()
+		var elementMap	= [UIntID : FlattenedElement]()
+		var lineIterator = fileBlocks.makeIterator()
 		
 		guard let fileBlock = lineIterator.next() else {
 			throw GCodableError.decodingError(
@@ -69,19 +71,19 @@ final class BodyElement {
 		keyedValues.index(forKey: key) != nil
 	}
 	
-	func pop( key:String ) -> BodyElement? {
+	func pop( key:String ) -> FlattenedElement? {
 		keyedValues.removeValue(forKey: key)
 	}
 	
-	func pop() -> BodyElement? {
+	func pop() -> FlattenedElement? {
 		unkeyedCount > 0 ? unkeyedValues.removeLast() : nil
 	}
 }
 
 // MARK: BodyElement private flatten section
-extension BodyElement {
+extension FlattenedElement {
 	private static func flatten<T>(
-		elementMap map: inout [UIntID : BodyElement], element:BodyElement, lineIterator: inout T, keyStringMap:KeyStringMap, reverse:Bool
+		elementMap map: inout [UIntID : FlattenedElement], element:FlattenedElement, lineIterator: inout T, keyStringMap:KeyStringMap, reverse:Bool
 	) throws where T:IteratorProtocol, T.Element == FileBlock {
 		
 		switch element.fileBlock {
@@ -101,7 +103,7 @@ extension BodyElement {
 				
 				//	e per l'oggetto dovrà andare a vedere nella map, in modo che si possano
 				//	beccare gli oggetti memorizzati dopo!
-				let root		= BodyElement( fileBlock: .Val(keyID: keyID, typeID: typeID, objID: objID, bytes: bytes) )
+				let root		= FlattenedElement( fileBlock: .Val(keyID: keyID, typeID: typeID, objID: objID, bytes: bytes) )
 				map[ objID ]	= root
 				if bytes == nil {	// ATT! NO subFlatten for BinValue's
 					try subFlatten(
@@ -123,15 +125,15 @@ extension BodyElement {
 	
 	
 	private static func subFlatten<T>(
-		elementMap map: inout [UIntID : BodyElement], parentElement:BodyElement, lineIterator: inout T, keyStringMap:KeyStringMap, reverse:Bool
+		elementMap map: inout [UIntID : FlattenedElement], parentElement:FlattenedElement, lineIterator: inout T, keyStringMap:KeyStringMap, reverse:Bool
 	) throws where T:IteratorProtocol, T.Element == FileBlock {
 		while let fileBlock = lineIterator.next() {
-			let bodyElement = BodyElement( fileBlock: fileBlock )
+			let element = FlattenedElement( fileBlock: fileBlock )
 			
 			if case .End = fileBlock {
 				break
 			} else {
-				bodyElement.parentElement = parentElement
+				element.parentElement = parentElement
 				
 				if let keyID = fileBlock.keyID {
 					guard let key = keyStringMap[keyID] else {
@@ -148,12 +150,12 @@ extension BodyElement {
 							)
 						)
 					}
-					parentElement.keyedValues[ key ] = bodyElement
+					parentElement.keyedValues[ key ] = element
 				} else {
-					parentElement.unkeyedValues.append( bodyElement )
+					parentElement.unkeyedValues.append( element )
 				}
 				
-				try flatten( elementMap: &map, element: bodyElement, lineIterator: &lineIterator, keyStringMap: keyStringMap, reverse: reverse )
+				try flatten( elementMap: &map, element: element, lineIterator: &lineIterator, keyStringMap: keyStringMap, reverse: reverse )
 			}
 		}
 		if reverse {
@@ -163,8 +165,8 @@ extension BodyElement {
 }
 
 // MARK: BodyElement dump section
-extension BodyElement {
-	func dump( elementMap: [UIntID : BodyElement], classDataMap: ClassDataMap?, keyStringMap: KeyStringMap?, options: GraphDumpOptions ) -> String {
+extension FlattenedElement {
+	func dump( elementMap: [UIntID : FlattenedElement], classDataMap: ClassDataMap?, keyStringMap: KeyStringMap?, options: GraphDumpOptions ) -> String {
 		let level	= 0
 		var dump 	= ""
 		
@@ -183,10 +185,10 @@ extension BodyElement {
 		return dump
 	}
 	
-	private func subdump( elementMap: [UIntID : BodyElement], classDataMap: ClassDataMap?, keyStringMap: KeyStringMap?, options: GraphDumpOptions, level:Int ) -> String {
+	private func subdump( elementMap: [UIntID : FlattenedElement], classDataMap: ClassDataMap?, keyStringMap: KeyStringMap?, options: GraphDumpOptions, level:Int ) -> String {
 		var dump = ""
 		
-		let string = fileBlock.readableOutput(
+		let string = fileBlock.description(
 			options: options, binaryValue: nil,
 			classDataMap: classDataMap, keyStringMap: keyStringMap
 		)

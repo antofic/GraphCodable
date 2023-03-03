@@ -15,14 +15,14 @@ typealias UIntID = UInt32
 //		A) fileHeader		= FileHeader
 //			contains
 //		B) sectionMap		= SectionMap	= [FileSection : Range<Int>]
-//		C) bodyBlocks		= BodyBlocks	= [FileBlock]
+//		C) fileBlocks		= FileBlocks	= [FileBlock]
 //	then, in any order:
 //		D) classDataMap		= ClassDataMap	= [UIntID : ClassData]
 //		E) keyStringMap		= KeyStringMap	= [UIntID : String]
 //
 //	A) fileHeader: a 24 bytes fixed size header
 //	B) sectionMap: a dictionary contains the range of the related section (C, D, E) in the file
-//	C) bodyBlocks: an array of FileBlock's
+//	C) fileBlocks: an array of FileBlock's
 //		A Fileblock stores in binary:
 //			• a value/reference (.Val)
 //		or:
@@ -44,7 +44,7 @@ enum FileSection : UInt16, CaseIterable, BinaryIOType {
 }
 
 typealias SectionMap		= [FileSection : Range<Int>]
-typealias BodyBlocks		= [FileBlock]
+typealias FileBlocks		= [FileBlock]
 typealias ClassDataMap		= [UIntID : ClassData]
 typealias KeyStringMap		= [UIntID : String]
 

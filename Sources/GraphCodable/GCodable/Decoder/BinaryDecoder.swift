@@ -22,29 +22,29 @@
 
 import Foundation
 
-struct BinDecoder {
+struct BinaryDecoder {
 	let fileHeader			: FileHeader
 	let	classInfoMap		: [UIntID:ClassInfo]
-	let rootElement 		: BodyElement
-	private var	elementMap	: [UIntID : BodyElement]
+	let rootElement 		: FlattenedElement
+	private var	elementMap	: [UIntID : FlattenedElement]
 	
 	init<Q>( from bytes:Q ) throws where Q:Sequence, Q.Element==UInt8 {
-		var binaryDecoder	= try FileReader( from: bytes )
+		var binaryDecoder	= try FileBlockDecoder( from: bytes )
 		let fileHeader		= binaryDecoder.fileHeader
-		let bodyBlocks		= try binaryDecoder.bodyFileBlocks()
+		let fileBlocks		= try binaryDecoder.fileBlocks()
 		let classInfoMap	= try binaryDecoder.classInfoMap()
 		let keyStringMap	= try binaryDecoder.keyStringMap()
 		
 		self.fileHeader		= fileHeader
 		self.classInfoMap	= classInfoMap
-		(self.rootElement,self.elementMap)	= try BodyElement.rootElement(
-			bodyBlocks:		bodyBlocks,
+		(self.rootElement,self.elementMap)	= try FlattenedElement.rootElement(
+			fileBlocks:		fileBlocks,
 			keyStringMap:	keyStringMap,
 			reverse:	true
 		)
 	}
 	
-	mutating func pop( objID:UIntID ) -> BodyElement? {
+	mutating func pop( objID:UIntID ) -> FlattenedElement? {
 		elementMap.removeValue( forKey: objID )
 	}
 	

@@ -22,18 +22,18 @@
 
 import Foundation
 
-final class StringDecoder: DataEncoderDelegate {
+final class StringDecoder: FileBlockEncoderDelegate {
 	let fileHeader		: FileHeader
-	let bodyBlocks		: BodyBlocks
+	let fileBlocks		: FileBlocks
 	let classDataMap	: ClassDataMap
 	let keyStringMap	: KeyStringMap
 	let dumpOptions		: GraphDumpOptions
 	
 	init<Q>( from bytes:Q, options:GraphDumpOptions ) throws where Q:Sequence, Q.Element==UInt8 {
-		var binaryDecoder	= try FileReader( from: bytes )
+		var binaryDecoder	= try FileBlockDecoder( from: bytes )
 		
 		self.fileHeader		= binaryDecoder.fileHeader
-		self.bodyBlocks		= try binaryDecoder.bodyFileBlocks()
+		self.fileBlocks		= try binaryDecoder.fileBlocks()
 		self.classDataMap	= try binaryDecoder.classDataMap()
 		self.keyStringMap	= try binaryDecoder.keyStringMap()
 		self.dumpOptions	= options
@@ -42,10 +42,10 @@ final class StringDecoder: DataEncoderDelegate {
 	func dump() throws -> String {
 		let stringEncoder	= StringEncoder()
 		stringEncoder.delegate	= self
-		try bodyBlocks.forEach { try stringEncoder.append($0, binaryValue: nil) }
+		try fileBlocks.forEach { try stringEncoder.append($0, binaryValue: nil) }
 		if dumpOptions.contains( .showDecodedFlattenedBody ) {
-			let (rootElement,elementMap)	= try BodyElement.rootElement(
-				bodyBlocks:		bodyBlocks,
+			let (rootElement,elementMap)	= try FlattenedElement.rootElement(
+				fileBlocks:		fileBlocks,
 				keyStringMap:	keyStringMap,
 				reverse:		true
 			)

@@ -24,8 +24,8 @@ import Foundation
 
 //---------------------------------------------------------------------------------------------
 //	Encoder Structure:
-//		GraphEncoder	public interface
-//		⤷	GEncoderImpl : GEncoder, DataEncoderDelegate
+//		GraphEncoder	(public interface)
+//		⤷	GEncoderImpl : GEncoder, FileBlockEncoderDelegate
 //			⤷	AnyIdentifierMap	(ObjID → Identifier)
 //					• manage Identity
 //			⤷	ReferenceMap		(ObjectIdentifier → TypeID → ClassData )
@@ -35,12 +35,12 @@ import Foundation
 //			⤷	any DataEncoder
 //					• a protocol for converting values into their representation
 //
-//		DataEncoder protocol
-//			BinEncoder : DataEncoder
+//		FileBlockEncoder protocol
+//			BinaryEncoder : FileBlockEncoder
 //			⤷	delegate = GEncoderImpl
 //				• generate a binary rapresentation of values for encoding
 //
-//			StringEncoder : DataEncoder
+//			StringEncoder : FileBlockEncoder
 //			⤷	delegate = GEncoderImpl
 //				• generate readable/not decodable string rapresentation of values
 //
@@ -52,7 +52,7 @@ import Foundation
 /// GEncoderImpl produces:
 /// - a data representation of the rootValue to encode
 /// - eventualy, a readable string that described this data representation
-final class GEncoderImpl : DataEncoderDelegate {
+final class GEncoderImpl : FileBlockEncoderDelegate {
 	var userInfo							= [String:Any]()
 	private let 		encodeOptions		: GraphEncoder.Options
 	private var 		currentKeys			= Set<String>()
@@ -61,7 +61,7 @@ final class GEncoderImpl : DataEncoderDelegate {
 	private var			keyMap				= KeyMap()
 	private (set) var	dumpOptions			= GraphDumpOptions.readable
 	
-	private var			dataEncoder			: (any DataEncoder)! {
+	private var			dataEncoder			: (any FileBlockEncoder)! {
 		willSet {
 			self.dataEncoder?.delegate	= nil
 		}
@@ -83,7 +83,7 @@ final class GEncoderImpl : DataEncoderDelegate {
 
 	func encodeRoot<T,Q>( _ value: T ) throws -> Q where T:GEncodable, Q:MutableDataProtocol {
 		defer { self.dataEncoder = nil }
-		let dataEncoder	= BinEncoder<Q>()
+		let dataEncoder	= BinaryEncoder<Q>()
 		self.dataEncoder = dataEncoder
 		try encode( value )
 		return try dataEncoder.output()

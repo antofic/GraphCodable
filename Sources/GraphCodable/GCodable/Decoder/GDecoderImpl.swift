@@ -35,7 +35,7 @@ final class GDecoderImpl {
 	where T:GDecodable, Q:Sequence, Q.Element==UInt8 {
 		defer { constructor = nil }
 		
-		constructor	= TypeConstructor(decodedData: try BinDecoder( from: data ))
+		constructor	= TypeConstructor(decodedData: try BinaryDecoder( from: data ))
 		
 		return try constructor.decodeRoot(type, from: self)
 	}
@@ -95,9 +95,9 @@ extension GDecoderImpl : GDecoder {
 	}
 	
 	func deferDecode<Value>(_ setter: @escaping (Value) -> ()) throws where Value : GDecodable {
-		let	bodyElement = try constructor.popBodyElement()
+		let	element = try constructor.popBodyElement()
 
-		try constructor.deferDecode( element:bodyElement, from: self, setter )
+		try constructor.deferDecode( element:element, from: self, setter )
 	}
 }
 

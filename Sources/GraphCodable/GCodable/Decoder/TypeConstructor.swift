@@ -23,13 +23,13 @@
 import Foundation
 
 final class TypeConstructor {
-	private var			decodedData			: BinDecoder
-	private (set) var 	currentElement 		: BodyElement
+	private var			decodedData			: BinaryDecoder
+	private (set) var 	currentElement 		: FlattenedElement
 	private (set) var 	currentInfo 		: ClassInfo?
 	private var			objectRepository 	= [ UIntID :Any ]()
 	private var			setterRepository 	= [ () throws -> () ]()
 	
-	init( decodedData:BinDecoder ) {
+	init( decodedData:BinaryDecoder ) {
 		self.decodedData	= decodedData
 		self.currentElement	= decodedData.rootElement
 	}
@@ -51,7 +51,7 @@ final class TypeConstructor {
 		currentElement.contains(key: key)
 	}
 	
-	func popBodyElement( key:String ) throws -> BodyElement {
+	func popBodyElement( key:String ) throws -> FlattenedElement {
 		// keyed case
 		guard let element = currentElement.pop(key: key) else {
 			throw GCodableError.childNotFound(
@@ -63,7 +63,7 @@ final class TypeConstructor {
 		return element
 	}
 	
-	func popBodyElement() throws -> BodyElement {
+	func popBodyElement() throws -> FlattenedElement {
 		// keyed case
 		guard let element = currentElement.pop() else {
 			throw GCodableError.childNotFound(
@@ -102,7 +102,7 @@ final class TypeConstructor {
 		}
 	}
 	
-	func deferDecode<T>( element:BodyElement, from decoder:GDecoder, _ setter: @escaping (T) -> () ) throws where T:GDecodable {
+	func deferDecode<T>( element:FlattenedElement, from decoder:GDecoder, _ setter: @escaping (T) -> () ) throws where T:GDecodable {
 		let setter : () throws -> () = {
 			let value : T = try self.decode( element:element, from:decoder )
 			setter( value )
@@ -110,7 +110,7 @@ final class TypeConstructor {
 		setterRepository.append( setter )
 	}
 	
-	func decode<T>( element:BodyElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
+	func decode<T>( element:FlattenedElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
 		switch element.fileBlock {
 		case .Val( _, let typeID, let objID, let bytes):
 			if objID == nil {
@@ -132,7 +132,7 @@ final class TypeConstructor {
 
 // MARK: TypeConstructor private level 1
 extension TypeConstructor {
-	private func decodeAny<T>( element:BodyElement, from decoder:GDecoder, type:T.Type ) throws -> Any where T:GDecodable {
+	private func decodeAny<T>( element:FlattenedElement, from decoder:GDecoder, type:T.Type ) throws -> Any where T:GDecodable {
 		func decodeIdentifiable( type:T.Type, objID:UIntID, from decoder:GDecoder ) throws -> Any? {
 			//	tutti gli oggetti (reference types) inizialmente si trovano in decodedData.objBlockMap
 			//	quando arriva la prima richiesta di un particolare oggetto (da objID)
@@ -156,7 +156,7 @@ extension TypeConstructor {
 				}
 				throw GCodableError.internalInconsistency(
 					Self.self, GCodableError.Context(
-						debugDescription: "Inappropriate bodyElement \(element.fileBlock) here."
+						debugDescription: "Inappropriate fileblock \(element.fileBlock) here."
 					)
 				)
 			} else {
@@ -185,7 +185,7 @@ extension TypeConstructor {
 		default:	// .Struct & .Object are inappropriate here!
 			throw GCodableError.internalInconsistency(
 				Self.self, GCodableError.Context(
-					debugDescription: "Inappropriate bodyElement \(element.fileBlock) here."
+					debugDescription: "Inappropriate fileblock \(element.fileBlock) here."
 				)
 			)
 		}
@@ -194,7 +194,7 @@ extension TypeConstructor {
 
 // MARK: TypeConstructor private level 2
 extension TypeConstructor {
-	private func decode<T>( type:T.Type, typeID:UIntID?, bytes: Bytes?, element:BodyElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
+	private func decode<T>( type:T.Type, typeID:UIntID?, bytes: Bytes?, element:FlattenedElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
 		if let typeID {
 			return try decodeRefOrBinRef( type:T.self, typeID:typeID , bytes:bytes, element:element, from: decoder )
 		} else if let bytes {
@@ -207,7 +207,7 @@ extension TypeConstructor {
 
 // MARK: TypeConstructor private level 3
 extension TypeConstructor {
-	private func decodeValue<T>( type:T.Type, element:BodyElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
+	private func decodeValue<T>( type:T.Type, element:FlattenedElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
 		let saved	= currentElement
 		defer { currentElement = saved }
 		currentElement	= element
@@ -234,7 +234,7 @@ extension TypeConstructor {
 		}
 	}
 	
-	private func decodeBinValue<T>( type:T.Type, bytes: Bytes,element:BodyElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
+	private func decodeBinValue<T>( type:T.Type, bytes: Bytes,element:FlattenedElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
 		let saved	= currentElement
 		defer { currentElement = saved }
 		currentElement	= element
@@ -261,7 +261,7 @@ extension TypeConstructor {
 		return value
 	}
 	
-	private func decodeRefOrBinRef<T>( type:T.Type, typeID:UIntID, bytes: Bytes?, element:BodyElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
+	private func decodeRefOrBinRef<T>( type:T.Type, typeID:UIntID, bytes: Bytes?, element:FlattenedElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
 		let saved	= currentInfo
 		defer { currentInfo = saved }
 		currentInfo	= try classInfo( typeID:typeID )

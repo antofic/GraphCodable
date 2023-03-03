@@ -21,16 +21,16 @@
 //	SOFTWARE.
 
 
-protocol DataEncoderDelegate : AnyObject {
+protocol FileBlockEncoderDelegate : AnyObject {
 	var	classDataMap:	ClassDataMap { get }
 	var	keyStringMap:	KeyStringMap { get }
 	var dumpOptions:	GraphDumpOptions { get }
 }
 
-protocol DataEncoder : AnyObject {
+protocol FileBlockEncoder : AnyObject {
 	associatedtype	Output
 	
-	var delegate	: DataEncoderDelegate? { get set }
+	var delegate	: FileBlockEncoderDelegate? { get set }
 	
 	func append( _ fileBlock: FileBlock, binaryValue:BinaryOType? ) throws
 	func output() throws -> Output
@@ -41,7 +41,7 @@ protocol DataEncoder : AnyObject {
 	func appendVal( keyID:UIntID?, typeID:UIntID?, objID:UIntID?, binaryValue:BinaryOType? ) throws
 }
 
-extension DataEncoder {
+extension FileBlockEncoder {
 	func appendEnd() throws {
 		try append( .End, binaryValue:nil )
 	}

@@ -22,13 +22,13 @@
 
 import Foundation
 
-struct FileReader {
+struct FileBlockDecoder {
 	let 		fileHeader		: FileHeader
 	private	var sectionMap		: SectionMap
 	private var rbuffer			: BinaryReadBuffer
 
 	private var _classDataMap	: ClassDataMap?
-	private var _bodyFileBlocks	: BodyBlocks?
+	private var _fileBlocks		: FileBlocks?
 	private var _keyStringMap	: KeyStringMap?
 
 	init<Q>( from data:Q ) throws where Q:Sequence, Q.Element==UInt8 {
@@ -40,42 +40,42 @@ struct FileReader {
 	}
 
 	mutating func classDataMap() throws -> ClassDataMap {
-		if let classMap = _classDataMap { return classMap }
+		if let classMap = self._classDataMap { return classMap }
 		
 		let saveRegion	= try setReaderRegionTo(section: .classDataMap)
 		defer { rbuffer.currentRegion = saveRegion }
 
-		_classDataMap	= try ClassDataMap(from: &rbuffer)
-		return _classDataMap!
+		self._classDataMap	= try ClassDataMap(from: &rbuffer)
+		return self._classDataMap!
 	}
 	
 	mutating func classInfoMap() throws -> [UIntID : ClassInfo] {
 		try classDataMap().mapValues {  try ClassInfo(classData: $0)  }
 	}
 
-	mutating func bodyFileBlocks() throws -> BodyBlocks {
-		if let bodyBlocks = _bodyFileBlocks { return bodyBlocks }
+	mutating func fileBlocks() throws -> FileBlocks {
+		if let fileBlocks = self._fileBlocks { return fileBlocks }
 
 		let saveRegion	= try setReaderRegionTo(section: .body)
 		defer { rbuffer.currentRegion = saveRegion }
 
-		var bodyBlocks	= [FileBlock]()
+		var fileBlocks	= [FileBlock]()
 		while rbuffer.isEof == false {
-			bodyBlocks.append( try FileBlock(from: &rbuffer, fileHeader: fileHeader) )
+			fileBlocks.append( try FileBlock(from: &rbuffer, fileHeader: fileHeader) )
 		}
 		
-		_bodyFileBlocks	= bodyBlocks
-		return bodyBlocks
+		self._fileBlocks	= fileBlocks
+		return fileBlocks
 	}
 
 	mutating func keyStringMap() throws -> KeyStringMap {
-		if let keyStringMap = _keyStringMap { return keyStringMap }
+		if let keyStringMap = self._keyStringMap { return keyStringMap }
 
 		let saveRegion	= try setReaderRegionTo(section: .keyStringMap)
 		defer { rbuffer.currentRegion = saveRegion }
 		
-		_keyStringMap	= try KeyStringMap(from: &rbuffer)
-		return _keyStringMap!
+		self._keyStringMap	= try KeyStringMap(from: &rbuffer)
+		return self._keyStringMap!
 	}
 	
 	private mutating func setReaderRegionTo( section:FileSection ) throws -> Range<Int> {
