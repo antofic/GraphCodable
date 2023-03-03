@@ -111,6 +111,16 @@ enum FileBlock {
 }
 
 extension FileBlock {
+	var keyID : UIntID? {
+		switch self {
+		case .Nil( let keyID ):				return	keyID
+		case .Ptr( let keyID, _, _ ):		return	keyID
+		case .Val( let keyID, _, _, _ ):	return	keyID
+		default:							return	nil
+		}
+	}
+	
+	/*
 	var objID : UIntID? {
 		switch self {
 		case .Ptr( _, let objID, _ ):		return	objID
@@ -133,20 +143,13 @@ extension FileBlock {
 		}
 	}
 
-	var keyID : UIntID? {
-		switch self {
-		case .Nil( let keyID ):				return	keyID
-		case .Ptr( let keyID, _, _ ):		return	keyID
-		case .Val( let keyID, _, _, _ ):	return	keyID
-		default:							return	nil
-		}
-	}
 	var conditional : Bool {
 		switch self {
 		case .Ptr( _, _, let conditional ):	return	conditional
 		default:							return	false
 		}
 	}
+	 */
 }
 
 extension FileBlock {
@@ -160,6 +163,50 @@ extension FileBlock {
 	}
 }
 
+extension FileBlock {
+	//	Compact UInt32 to reduce file size
+	//	if value <= Int16.max only 2 bytes are archived
+	//	value > Int32.max generate a failure
+	private struct Pack32 : BinaryIOType {
+		let value	: UInt32
+		
+		init( _ value: UInt32 ) {
+			precondition( (value & 0x8000000) == 0, "\( #function ): Value \(value) too high to be compacted" )
+			self.value = value
+		}
+		
+		init(from rbuffer: inout BinaryReadBuffer) throws {
+			let lo		= try UInt16( from: &rbuffer)
+			let hi		= (lo & 0x8000) != 0 ? try UInt16( from: &rbuffer) : 0
+			self.value	= Self.expand( (hi,lo) )
+		}
+		
+		func write(to wbuffer: inout BinaryWriteBuffer) throws {
+			let (hi,lo) = Self.compact( value )
+			try lo.write(to: &wbuffer)
+			if hi != 0 { try hi.write(to: &wbuffer) }
+		}
+		
+		static private func compact( _ value:UInt32 ) -> (hi:UInt16,lo:UInt16) {
+			if value & 0x7FFF8000 == 0 {
+				return (
+					hi:0,
+					lo:UInt16( value )
+				)
+			} else {
+				return (
+					hi:UInt16( (value & 0x00007FFF) | 0x8000 ),
+					lo:UInt16( (value & 0x7FFF8000) &>> 15 )
+				)
+			}
+		}
+		
+		static private func expand( _ v : (hi:UInt16,lo:UInt16) ) -> UInt32 {
+			( UInt32( v.lo ) & 0x00007FFF ) &+ ( UInt32( v.hi ) &<< 15 )
+		}
+	}
+}
+
 extension FileBlock : BinaryOType {
 	func write( to wbuffer: inout BinaryWriteBuffer ) throws {
 		switch self {
@@ -167,16 +214,16 @@ extension FileBlock : BinaryOType {
 			try Code.End().write(to: &wbuffer)
 		case .Nil( let keyID ):
 			try Code.Nil(keyID: keyID).write(to: &wbuffer)
-			if let keyID	{ try keyID.write(to: &wbuffer) }
+			if let keyID	{ try Pack32(keyID).write(to: &wbuffer) }
 		case .Ptr( let keyID, let objID, let conditional ):
 			try Code.Ptr(keyID: keyID, objID: objID, conditional:conditional ).write(to: &wbuffer)
-			if let keyID	{ try keyID.write(to: &wbuffer) }
-			try objID.write(to: &wbuffer)
+			if let keyID	{ try Pack32(keyID).write(to: &wbuffer) }
+			try Pack32(objID).write(to: &wbuffer)
 		case .Val( let keyID, let typeID, let objID, let bytes ):
 			try Code.Val(keyID: keyID, typeID: typeID, objID: objID, bytes: bytes).write(to: &wbuffer)
-			if let keyID	{ try keyID.write(to: &wbuffer) }
-			if let typeID	{ try typeID.write(to: &wbuffer) }
-			if let objID	{ try objID.write(to: &wbuffer) }
+			if let keyID	{ try Pack32(keyID).write(to: &wbuffer) }
+			if let typeID	{ try Pack32(typeID).write(to: &wbuffer) }
+			if let objID	{ try Pack32(objID).write(to: &wbuffer) }
 			if let bytes	{ try bytes.write(to: &wbuffer) }
 		}
 	}
@@ -190,17 +237,17 @@ extension FileBlock {
 		case .End:
 			self	= .End
 		case .Nil:
-			let keyID	= code.hasKeyID ? try UIntID.init(from: &rbuffer) : nil
+			let keyID	= code.hasKeyID ? try Pack32(from: &rbuffer).value : nil
 			self = .Nil(keyID: keyID)
 		case .Ptr:
-			let keyID	= code.hasKeyID ? try UIntID.init(from: &rbuffer) : nil
-			let objID	= try UIntID.init(from: &rbuffer)
+			let keyID	= code.hasKeyID	? try Pack32(from: &rbuffer).value : nil
+			let objID	= try Pack32(from: &rbuffer).value
 			self = .Ptr( keyID: keyID, objID: objID, conditional: code.isConditional )
 		case .Val:
-			let keyID	= code.hasKeyID ? try UIntID.init(from: &rbuffer) : nil
-			let typeID	= code.hasTypeID ? try UIntID.init(from: &rbuffer) : nil
-			let objID	= code.hasObjID ? try UIntID.init(from: &rbuffer) : nil
-			let bytes	= code.hasBytes ? try Bytes.init(from: &rbuffer) : nil
+			let keyID	= code.hasKeyID	? try Pack32(from: &rbuffer).value : nil
+			let typeID	= code.hasTypeID ? try Pack32(from: &rbuffer).value : nil
+			let objID	= code.hasObjID	? try Pack32(from: &rbuffer).value : nil
+			let bytes	= code.hasBytes	? try Bytes(from: &rbuffer) : nil
 			self = .Val( keyID: keyID, typeID: typeID, objID: objID, bytes: bytes )
 		}
 	}

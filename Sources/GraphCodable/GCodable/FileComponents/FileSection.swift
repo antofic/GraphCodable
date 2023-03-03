@@ -24,9 +24,9 @@ typealias UIntID = UInt32
 //	B) sectionMap: a dictionary contains the range of the related section (C, D, E) in the file
 //	C) bodyBlocks: an array of FileBlock's
 //		A Fileblock stores in binary:
-//			• a single value/reference
+//			• a value/reference (.Val)
 //		or:
-//			• a pointer (strong or conditional) to a value/reference with identity
+//			• a pointer (.Ptr), strong or conditional, to a value/reference with identity
 //		or:
 //			• a token (.Nil) when Optional.none is encountered
 //		or:
