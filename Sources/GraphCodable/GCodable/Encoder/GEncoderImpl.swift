@@ -168,7 +168,7 @@ extension GEncoderImpl {
 					try dataEncoder.appendPtr(keyID: keyID, objID: objID, conditional: conditional)
 				} else {
 					// not encoded value: we encode it
-					// INHERITANCE: only classes have a typeID
+					// INHERITANCE: only classes have a typeID (value typeID == nil)
 					let typeID	= try createTypeIDIfNeeded( for: value )
 					let objID	= identifierMap.createStrongID( identifier )
 

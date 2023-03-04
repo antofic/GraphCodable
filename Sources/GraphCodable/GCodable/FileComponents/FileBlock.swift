@@ -273,15 +273,17 @@ extension FileBlock : CustomStringConvertible {
 		let classDataMap = options.contains( .resolveTypeIDs ) ? cdm : nil
 		let keyStringMap = options.contains( .resolveKeyIDs ) ? ksm : nil
 		
+		var string	= ""
 		switch self {
 		case .End:
-			return 	"."
+			string.append( "." )
 		case .Nil( let keyID ):
-			return keyName( keyID, keyStringMap ).appending("nil")
+			string.append( keyName( keyID, keyStringMap ) )
+			string.append( "NIL" )
 		case .Ptr( let keyID, let objID, let conditional ):
-			return keyName( keyID, keyStringMap ).appending(
-				conditional ? "PTR\(objID.format("04"))?" : "PTR\(objID.format("04"))"
-			)
+			string.append( keyName( keyID, keyStringMap ) )
+			string.append( conditional ? "PTC" : "PTS" )
+			string.append( objID.format("04") )
 		case .Val( let keyID, let typeID, let objID, let bytes ):
 			//	VAL			= []
 			//	BIV			= [bytes]
@@ -292,29 +294,21 @@ extension FileBlock : CustomStringConvertible {
 			//	REF_objID	= [objID,typeID]
 			//	BIR_objID	= [objID,typeID,bytes]
 
-			var string = keyName( keyID, keyStringMap )
-			
+			string.append( keyName( keyID, keyStringMap ) )
 			switch (typeID != nil,bytes != nil) {
-			case (false, false)	: string = "VAL"	//	Codable value
-			case (false, true)	: string = "BIV"	//	BinaryCodable value
-			case (true,  false)	: string = "REF"	//	Codable reference
-			case (true,  true)	: string = "BIR"	//	BinaryCodable reference
+			case (false, false)	: string.append( "VAL" )	//	Codable value
+			case (false, true)	: string.append( "BIV" )	//	BinaryCodable value
+			case (true,  false)	: string.append( "REF" )	//	Codable reference
+			case (true,  true)	: string.append( "BIR" )	//	BinaryCodable reference
 			}
-			if let objID {
-				string.append( objID.format("04") )
-			}
-			if let typeID {
-				string.append( " \( typeName( typeID,options,classDataMap ) )")
-			}
+			if let objID	{ string.append( objID.format("04") ) }
+			if let typeID	{ string.append( " \( typeName( typeID,options,classDataMap ) )") }
 			if let bytes {
-				if let binaryValue {
-					string.append( " \( small( binaryValue, options ) )")
-				} else {
-					string.append( " {\(bytes.count) bytes}")
-				}
+				if let binaryValue	{ string.append( " \( small( binaryValue, options ) )") }
+				else				{ string.append( " {\(bytes.count) bytes}") }
 			}
-			return 	string
 		}
+		return string
 	}
 }
 

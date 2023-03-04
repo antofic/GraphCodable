@@ -23,43 +23,43 @@
 import simd
 
 // SIMD Vector support
+extension SIMDStorage				where Scalar:GTrivialCodable {}
+extension SIMDMask					where Scalar:GTrivialCodable {}
 
-extension SIMD2:GCodable where Scalar:GTrivialCodable {}
-extension SIMD3:GCodable where Scalar:GTrivialCodable {}
-extension SIMD4:GCodable where Scalar:GTrivialCodable {}
-extension SIMD8:GCodable where Scalar:GTrivialCodable {}
-extension SIMD16:GCodable where Scalar:GTrivialCodable {}
-extension SIMD32:GCodable where Scalar:GTrivialCodable {}
-extension SIMD64:GCodable where Scalar:GTrivialCodable {}
+extension SIMD2:GCodable	where Scalar:GTrivialCodable {}
+extension SIMD3:GCodable	where Scalar:GTrivialCodable {}
+extension SIMD4:GCodable	where Scalar:GTrivialCodable {}
+extension SIMD8:GCodable	where Scalar:GTrivialCodable {}
+extension SIMD16:GCodable	where Scalar:GTrivialCodable {}
+extension SIMD32:GCodable	where Scalar:GTrivialCodable {}
+extension SIMD64:GCodable	where Scalar:GTrivialCodable {}
 
-extension SIMDStorage where Scalar:GTrivialCodable {}
-extension SIMDMask where Scalar:GTrivialCodable {}
-extension SIMD2:GTrivialCodable where Scalar:GTrivialCodable {}
-extension SIMD3:GTrivialCodable where Scalar:GTrivialCodable {}
-extension SIMD4:GTrivialCodable where Scalar:GTrivialCodable {}
-extension SIMD8:GTrivialCodable where Scalar:GTrivialCodable {}
-extension SIMD16:GTrivialCodable where Scalar:GTrivialCodable {}
-extension SIMD32:GTrivialCodable where Scalar:GTrivialCodable {}
-extension SIMD64:GTrivialCodable where Scalar:GTrivialCodable {}
+extension SIMD2:GTrivialCodable		where Scalar:GTrivialCodable {}
+extension SIMD3:GTrivialCodable		where Scalar:GTrivialCodable {}
+extension SIMD4:GTrivialCodable		where Scalar:GTrivialCodable {}
+extension SIMD8:GTrivialCodable		where Scalar:GTrivialCodable {}
+extension SIMD16:GTrivialCodable	where Scalar:GTrivialCodable {}
+extension SIMD32:GTrivialCodable	where Scalar:GTrivialCodable {}
+extension SIMD64:GTrivialCodable	where Scalar:GTrivialCodable {}
 
 // Matrix support
 
-extension simd_float2x2: GTrivialCodable {}
-extension simd_float2x3: GTrivialCodable {}
-extension simd_float2x4: GTrivialCodable {}
-extension simd_float3x2: GTrivialCodable {}
-extension simd_float3x3: GTrivialCodable {}
-extension simd_float3x4: GTrivialCodable {}
-extension simd_float4x2: GTrivialCodable {}
-extension simd_float4x3: GTrivialCodable {}
-extension simd_float4x4: GTrivialCodable {}
+extension simd_float2x2:	GTrivialCodable {}
+extension simd_float2x3:	GTrivialCodable {}
+extension simd_float2x4:	GTrivialCodable {}
+extension simd_float3x2:	GTrivialCodable {}
+extension simd_float3x3:	GTrivialCodable {}
+extension simd_float3x4:	GTrivialCodable {}
+extension simd_float4x2:	GTrivialCodable {}
+extension simd_float4x3:	GTrivialCodable {}
+extension simd_float4x4:	GTrivialCodable {}
 
-extension simd_double2x2: GTrivialCodable {}
-extension simd_double2x3: GTrivialCodable {}
-extension simd_double2x4: GTrivialCodable {}
-extension simd_double3x2: GTrivialCodable {}
-extension simd_double3x3: GTrivialCodable {}
-extension simd_double3x4: GTrivialCodable {}
-extension simd_double4x2: GTrivialCodable {}
-extension simd_double4x3: GTrivialCodable {}
-extension simd_double4x4: GTrivialCodable {}
+extension simd_double2x2:	GTrivialCodable {}
+extension simd_double2x3:	GTrivialCodable {}
+extension simd_double2x4:	GTrivialCodable {}
+extension simd_double3x2:	GTrivialCodable {}
+extension simd_double3x3:	GTrivialCodable {}
+extension simd_double3x4:	GTrivialCodable {}
+extension simd_double4x2:	GTrivialCodable {}
+extension simd_double4x3:	GTrivialCodable {}
+extension simd_double4x4:	GTrivialCodable {}

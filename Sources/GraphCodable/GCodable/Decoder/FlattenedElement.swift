@@ -177,7 +177,7 @@ extension FlattenedElement {
 		if elementMap.isEmpty == false {
 			dump.append( StringEncoder.titleString( "WHERE:", filler: "-") )
 			for (id,element) in elementMap {
-				dump.append( "# PTR\(id) is:\n")
+				dump.append( "# PTR\(id.format("04")) is:\n")
 				dump.append( element.subdump( elementMap:elementMap, classDataMap: classDataMap, keyStringMap: keyStringMap, options:options, level: level ))
 			}
 		}

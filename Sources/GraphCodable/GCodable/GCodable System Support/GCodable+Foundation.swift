@@ -28,7 +28,7 @@ extension CharacterSet		: GBinaryCodable {}
 extension AffineTransform	: GTrivialCodable {}
 extension Locale 			: GBinaryCodable {}
 extension TimeZone 			: GBinaryCodable {}
-extension UUID 				: GTrivialCodable  {}
+extension UUID 				: GTrivialCodable {}
 extension Date				: GTrivialCodable {}
 extension IndexSet 			: GBinaryCodable {}
 extension IndexPath 		: GBinaryCodable {}
@@ -57,10 +57,10 @@ extension Calendar : GCodable {
 	public func encode(to encoder: GEncoder) throws {
 		let nsIdentifier = (self as NSCalendar).calendarIdentifier
 		
-		try encoder.encode( nsIdentifier, for: Key.nsIdentifier )
-		try encoder.encode( locale, for: Key.locale )
-		try encoder.encode( timeZone, for: Key.timeZone )
-		try encoder.encode( firstWeekday, for: Key.firstWeekday )
+		try encoder.encode( nsIdentifier, 			for: Key.nsIdentifier )
+		try encoder.encode( locale, 				for: Key.locale )
+		try encoder.encode( timeZone, 				for: Key.timeZone )
+		try encoder.encode( firstWeekday, 			for: Key.firstWeekday )
 		try encoder.encode( minimumDaysInFirstWeek, for: Key.minimumDaysInFirstWeek )
 	}
 	
@@ -104,59 +104,43 @@ extension DateComponents : GCodable {
 	}
 	
 	public init(from decoder: GDecoder) throws {
-		let calendar   			= try decoder.decodeIfPresent( for: Key.calendar ) as Calendar?
-		let timeZone   			= try decoder.decodeIfPresent( for: Key.timeZone ) as TimeZone?
-		let era        			= try decoder.decodeIfPresent( for: Key.era ) as Int?
-		let year       			= try decoder.decodeIfPresent( for: Key.year ) as Int?
-		let month      			= try decoder.decodeIfPresent( for: Key.month ) as Int?
-		let day        			= try decoder.decodeIfPresent( for: Key.day ) as Int?
-		let hour       			= try decoder.decodeIfPresent( for: Key.hour ) as Int?
-		let minute     			= try decoder.decodeIfPresent( for: Key.minute ) as Int?
-		let second     			= try decoder.decodeIfPresent( for: Key.second ) as Int?
-		let nanosecond 			= try decoder.decodeIfPresent( for: Key.nanosecond ) as Int?
-		let weekday          	= try decoder.decodeIfPresent( for: Key.weekday ) as Int?
-		let weekdayOrdinal   	= try decoder.decodeIfPresent( for: Key.weekdayOrdinal ) as Int?
-		let quarter          	= try decoder.decodeIfPresent( for: Key.quarter ) as Int?
-		let weekOfMonth      	= try decoder.decodeIfPresent( for: Key.weekOfMonth ) as Int?
-		let weekOfYear       	= try decoder.decodeIfPresent( for: Key.weekOfYear ) as Int?
-		let yearForWeekOfYear	= try decoder.decodeIfPresent( for: Key.yearForWeekOfYear ) as Int?
-		
-		self.init(calendar: calendar,
-				  timeZone: timeZone,
-				  era: era,
-				  year: year,
-				  month: month,
-				  day: day,
-				  hour: hour,
-				  minute: minute,
-				  second: second,
-				  nanosecond: nanosecond,
-				  weekday: weekday,
-				  weekdayOrdinal: weekdayOrdinal,
-				  quarter: quarter,
-				  weekOfMonth: weekOfMonth,
-				  weekOfYear: weekOfYear,
-				  yearForWeekOfYear: yearForWeekOfYear
+		self.init(
+			calendar:			try decoder.decodeIfPresent( for: Key.calendar 			),
+			timeZone:			try decoder.decodeIfPresent( for: Key.timeZone 			),
+			era:				try decoder.decodeIfPresent( for: Key.era 				),
+			year:				try decoder.decodeIfPresent( for: Key.year			 	),
+			month:				try decoder.decodeIfPresent( for: Key.month			 	),
+			day:				try decoder.decodeIfPresent( for: Key.day			 	),
+			hour:				try decoder.decodeIfPresent( for: Key.hour			 	),
+			minute:				try decoder.decodeIfPresent( for: Key.minute			),
+			second:				try decoder.decodeIfPresent( for: Key.second			),
+			nanosecond:			try decoder.decodeIfPresent( for: Key.nanosecond		),
+			weekday:			try decoder.decodeIfPresent( for: Key.weekday		 	),
+			weekdayOrdinal:		try decoder.decodeIfPresent( for: Key.weekdayOrdinal	),
+			quarter:			try decoder.decodeIfPresent( for: Key.quarter		 	),
+			weekOfMonth:		try decoder.decodeIfPresent( for: Key.weekOfMonth	 	),
+			weekOfYear: 		try decoder.decodeIfPresent( for: Key.weekOfYear 	 	),
+			yearForWeekOfYear:	try decoder.decodeIfPresent( for: Key.yearForWeekOfYear )
 		)
 	}
 	
 	public func encode(to encoder: GEncoder) throws {
-		try encoder.encodeIfPresent( calendar, 			for: Key.calendar)
-		try encoder.encodeIfPresent( timeZone, 			for: Key.timeZone)
-		try encoder.encodeIfPresent( era, 				for: Key.era)
-		try encoder.encodeIfPresent( year, 				for: Key.year)
-		try encoder.encodeIfPresent( month, 				for: Key.month)
-		try encoder.encodeIfPresent( day,				for: Key.day)
-		try encoder.encodeIfPresent( hour,				for: Key.hour)
-		try encoder.encodeIfPresent( minute,				for: Key.minute)
-		try encoder.encodeIfPresent( second,				for: Key.second)
-		try encoder.encodeIfPresent( nanosecond,			for: Key.nanosecond)
-		try encoder.encodeIfPresent( weekday,			for: Key.weekday)
-		try encoder.encodeIfPresent( weekdayOrdinal,		for: Key.weekdayOrdinal)
-		try encoder.encodeIfPresent( quarter,			for: Key.quarter)
-		try encoder.encodeIfPresent( weekOfMonth,		for: Key.weekOfMonth)
-		try encoder.encodeIfPresent( weekOfYear,			for: Key.weekOfYear)
-		try encoder.encodeIfPresent( yearForWeekOfYear,	for: Key.yearForWeekOfYear)
+		try encoder.encodeIfPresent( calendar, 			for: Key.calendar 			)
+		try encoder.encodeIfPresent( timeZone, 			for: Key.timeZone 			)
+		try encoder.encodeIfPresent( era, 				for: Key.era 				)
+		try encoder.encodeIfPresent( year, 				for: Key.year			 	)
+		try encoder.encodeIfPresent( month, 			for: Key.month			 	)
+		try encoder.encodeIfPresent( day,				for: Key.day			 	)
+		try encoder.encodeIfPresent( hour,				for: Key.hour			 	)
+		try encoder.encodeIfPresent( minute,			for: Key.minute				)
+		try encoder.encodeIfPresent( second,			for: Key.second				)
+		try encoder.encodeIfPresent( nanosecond,		for: Key.nanosecond			)
+		try encoder.encodeIfPresent( weekday,			for: Key.weekday		 	)
+		try encoder.encodeIfPresent( weekdayOrdinal,	for: Key.weekdayOrdinal		)
+		try encoder.encodeIfPresent( quarter,			for: Key.quarter		 	)
+		try encoder.encodeIfPresent( weekOfMonth,		for: Key.weekOfMonth	 	)
+		try encoder.encodeIfPresent( weekOfYear,		for: Key.weekOfYear 	 	)
+		try encoder.encodeIfPresent( yearForWeekOfYear,	for: Key.yearForWeekOfYear	)
 	}
 }
 
@@ -267,24 +251,18 @@ extension URLComponents : GCodable {
 	public init(from decoder: GDecoder) throws {
 		self.init()
 		
-		scheme		= try decoder.decodeIfPresent( for: Key.scheme )
-		user		= try decoder.decodeIfPresent( for: Key.user )
-		password	= try decoder.decodeIfPresent( for: Key.password )
-		host		= try decoder.decodeIfPresent( for: Key.host )
-		port		= try decoder.decodeIfPresent( for: Key.port )
-		path		= try decoder.decode( for: Key.path )
-		query		= try decoder.decodeIfPresent( for: Key.query )
-		fragment	= try decoder.decodeIfPresent( for: Key.fragment )
+		scheme		= try decoder.decodeIfPresent(	for: Key.scheme )
+		user		= try decoder.decodeIfPresent(	for: Key.user )
+		password	= try decoder.decodeIfPresent(	for: Key.password )
+		host		= try decoder.decodeIfPresent(	for: Key.host )
+		port		= try decoder.decodeIfPresent(	for: Key.port )
+		path		= try decoder.decode( 			for: Key.path )
+		query		= try decoder.decodeIfPresent(	for: Key.query )
+		fragment	= try decoder.decodeIfPresent(	for: Key.fragment )
 	}
 }
 
-//	----------------------------------------------------------------------------
-//	----------------------------------------------------------------------------
-//	----------------------------------------------------------------------------
-//	----------------------------------------------------------------------------
-//	----------------------------------------------------------------------------
 //	Measurement SUPPORT ------------------------------------------------------
-
 
 extension Measurement : GCodable {
 	private enum Key : String {
