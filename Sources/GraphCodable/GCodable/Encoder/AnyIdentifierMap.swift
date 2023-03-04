@@ -43,7 +43,7 @@ struct AnyIdentifierMap {
 		}
 	}
 	
-	private	var actualId : UIntID	= 1000	// <1000 reserved for future use
+	private	var actualId : UIntID	= 1
 	private var	strongObjDict		= [AnyIdentifier:UIntID]()
 	private var	weakObjDict			= [AnyIdentifier:UIntID]()
 	

@@ -273,7 +273,7 @@ extension TypeConstructor {
 		} else {
 			object = try decodeValue( type:type, element:element, from: decoder )
 		}
-
+		
 		guard let object = object as? T else {
 			throw GCodableError.internalInconsistency(
 				Self.self, GCodableError.Context(

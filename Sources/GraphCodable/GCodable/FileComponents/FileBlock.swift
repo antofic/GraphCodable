@@ -176,40 +176,6 @@ extension FileBlock {
 	}
 }
 
-extension FileBlock {
-	//	Compact UInt32 to reduce file size
-	//	if value <= Int16.max only 2 bytes are archived
-	//	value > Int32.max generate a failure
-	private struct Pack32B : BinaryIOType {
-		let value	: UInt32
-		
-		init( _ value: UInt32 ) {
-			precondition( (value & 0x8000000) == 0, "\( #function ): Value \(value) too high to be compacted" )
-			self.value = value
-		}
-		
-		init(from rbuffer: inout BinaryReadBuffer) throws {
-			let lo		= try UInt16( from: &rbuffer)
-			if lo <= Int16.max {
-				self.value	= UInt32( lo )
-			} else {
-				let hi	= try UInt16( from: &rbuffer )
-				self.value	= ( UInt32( lo ) & 0x00007FFF ) | ( UInt32( hi ) &<< 15 )
-			}
-		}
-		
-		func write(to wbuffer: inout BinaryWriteBuffer) throws {
-			if value <= Int16.max {
-				try UInt16( value ).write( to: &wbuffer )
-			} else {
-				let lo	= UInt16( (value & 0x00007FFF) | 0x8000 )
-				try lo.write( to: &wbuffer )
-				let hi	= UInt16( (value & 0x7FFF8000) &>> 15 )
-				try hi.write( to: &wbuffer )
-			}
-		}
-	}
-}
 
 extension FileBlock : BinaryOType {
 	func write( to wbuffer: inout BinaryWriteBuffer ) throws {
@@ -218,16 +184,16 @@ extension FileBlock : BinaryOType {
 			try Code.End().write(to: &wbuffer)
 		case .Nil( let keyID ):
 			try Code.Nil(keyID: keyID).write(to: &wbuffer)
-			if let keyID	{ try UInt32(keyID).write(to: &wbuffer) }
+			if let keyID	{ try keyID.write(packTo: &wbuffer) }
 		case .Ptr( let keyID, let objID, let conditional ):
 			try Code.Ptr(keyID: keyID, objID: objID, conditional:conditional ).write(to: &wbuffer)
-			if let keyID	{ try UInt32(keyID).write(to: &wbuffer) }
-			try UInt32(objID).write(to: &wbuffer)
+			if let keyID	{ try keyID.write(packTo: &wbuffer) }
+			try objID.write(packTo: &wbuffer)
 		case .Val( let keyID, let typeID, let objID, let bytes ):
 			try Code.Val(keyID: keyID, typeID: typeID, objID: objID, bytes: bytes).write(to: &wbuffer)
-			if let keyID	{ try UInt32(keyID).write(to: &wbuffer) }
-			if let typeID	{ try UInt32(typeID).write(to: &wbuffer) }
-			if let objID	{ try UInt32(objID).write(to: &wbuffer) }
+			if let keyID	{ try keyID.write(packTo: &wbuffer) }
+			if let typeID	{ try typeID.write(packTo: &wbuffer) }
+			if let objID	{ try objID.write(packTo: &wbuffer) }
 			if let bytes	{ try bytes.write(to: &wbuffer) }
 		}
 	}
@@ -241,16 +207,16 @@ extension FileBlock {
 		case .End:
 			self	= .End
 		case .Nil:
-			let keyID	= code.hasKeyID ? try UInt32(from: &rbuffer) : nil
+			let keyID	= code.hasKeyID ? try UIntID(unpackFrom:&rbuffer) : nil
 			self = .Nil(keyID: keyID)
 		case .Ptr:
-			let keyID	= code.hasKeyID	? try UInt32(from: &rbuffer) : nil
-			let objID	= try UInt32(from: &rbuffer)
+			let keyID	= code.hasKeyID	? try UIntID(unpackFrom: &rbuffer) : nil
+			let objID	= try UIntID(unpackFrom: &rbuffer)
 			self = .Ptr( keyID: keyID, objID: objID, conditional: code.isConditional )
 		case .Val:
-			let keyID	= code.hasKeyID	? try UInt32(from: &rbuffer) : nil
-			let typeID	= code.hasTypeID ? try UInt32(from: &rbuffer) : nil
-			let objID	= code.hasObjID	? try UInt32(from: &rbuffer) : nil
+			let keyID	= code.hasKeyID	? try UIntID(unpackFrom: &rbuffer) : nil
+			let typeID	= code.hasTypeID ? try UIntID(unpackFrom: &rbuffer) : nil
+			let objID	= code.hasObjID	? try UIntID(unpackFrom: &rbuffer) : nil
 			let bytes	= code.hasBytes	? try Bytes(from: &rbuffer) : nil
 			self = .Val( keyID: keyID, typeID: typeID, objID: objID, bytes: bytes )
 		}
@@ -268,7 +234,7 @@ extension FileBlock : CustomStringConvertible {
 		classDataMap cdm:	ClassDataMap?,
 		keyStringMap ksm: 	KeyStringMap?
 	) -> String {
-		func typeName( _ typeID:UInt32, _ options:GraphDumpOptions, _ classDataMap:[UIntID:ClassData]? ) -> String {
+		func typeName( _ typeID:UIntID, _ options:GraphDumpOptions, _ classDataMap:[UIntID:ClassData]? ) -> String {
 			if let classData	= classDataMap?[typeID] {
 				if options.contains( .showReferenceVersion ) {
 					return "\(classData.readableTypeName) V\(classData.encodeVersion)"
@@ -276,7 +242,7 @@ extension FileBlock : CustomStringConvertible {
 					return classData.readableTypeName
 				}
 			} else {
-				return "TYPE\(typeID)"
+				return "TYPE\(typeID.format("04"))"
 			}
 		}
 
@@ -297,13 +263,12 @@ extension FileBlock : CustomStringConvertible {
 				if let key = keyStringMap?[keyID] {
 					return "+ \"\(key)\": "
 				} else {
-					return "+ KEY\(keyID): "
+					return "+ KEY\(keyID.format("04")): "
 				}
 			} else {
 				return "- "
 			}
 		}
-
 		
 		let classDataMap = options.contains( .resolveTypeIDs ) ? cdm : nil
 		let keyStringMap = options.contains( .resolveKeyIDs ) ? ksm : nil
@@ -315,7 +280,7 @@ extension FileBlock : CustomStringConvertible {
 			return keyName( keyID, keyStringMap ).appending("nil")
 		case .Ptr( let keyID, let objID, let conditional ):
 			return keyName( keyID, keyStringMap ).appending(
-				conditional ? "PTR\(objID)?" : "PTR\(objID)"
+				conditional ? "PTR\(objID.format("04"))?" : "PTR\(objID.format("04"))"
 			)
 		case .Val( let keyID, let typeID, let objID, let bytes ):
 			//	VAL			= []
@@ -336,7 +301,7 @@ extension FileBlock : CustomStringConvertible {
 			case (true,  true)	: string = "BIR"	//	BinaryCodable reference
 			}
 			if let objID {
-				string.append( "\(objID)" )
+				string.append( objID.format("04") )
 			}
 			if let typeID {
 				string.append( " \( typeName( typeID,options,classDataMap ) )")

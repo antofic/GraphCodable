@@ -238,10 +238,10 @@ extension GEncoderImpl {
 			if let id = identifiable.gcodableID {
 				return id
 			}
-		} else if
-			!encodeOptions.contains( .disableAutoObjectIdentifierIdentityForReferences ),
-			let object = value as? (GEncodable & AnyObject) {
-			return ObjectIdentifier( object )
+		} else if !encodeOptions.contains( .disableAutoObjectIdentifierIdentityForReferences ) {
+			if let object = value as? (GEncodable & AnyObject) {
+				return ObjectIdentifier( object )
+			}
 		}
 		
 		if encodeOptions.contains( .tryHashableIdentityAtLast ) {

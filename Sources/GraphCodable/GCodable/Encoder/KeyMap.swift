@@ -21,7 +21,7 @@
 //	SOFTWARE.
 
 struct KeyMap  {
-	private	var			currentId : UIntID	= 1000	// 0-999 future use
+	private	var			currentId : UIntID	= 1
 	private (set) var	keyStringMap		= KeyStringMap()
 	private var			inverseMap			= [String: UIntID]()
 	

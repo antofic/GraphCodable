@@ -21,7 +21,7 @@
 //	SOFTWARE.
 
 struct ReferenceMap {
-	private	var			currentId : UIntID	= 1000	// ATT! 0-999 future use
+	private	var			currentId : UIntID	= 1
 	private (set) var	classDataMap	= ClassDataMap()
 	private var			identifierMap	= [ObjectIdentifier: UIntID]()
 	
