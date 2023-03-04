@@ -22,7 +22,9 @@
 
 import UniformTypeIdentifiers
 
-extension UTTagClass : GCodable {}
+
+
+extension UTTagClass : GTrivial & GCodable {}
 
 
 extension UTType : GCodable {
@@ -46,6 +48,3 @@ extension UTType : GCodable {
 		self = uttype
 	}
 }
-
-
-//	extension UTType : GBinaryCodable {}

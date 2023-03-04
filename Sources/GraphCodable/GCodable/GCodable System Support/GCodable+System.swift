@@ -22,12 +22,12 @@
 
 import System
 
-extension Errno : GCodable {}
-extension FileDescriptor : GCodable {}
-extension FileDescriptor.AccessMode : GCodable {}
-extension FileDescriptor.OpenOptions : GCodable {}
-extension FileDescriptor.SeekOrigin : GCodable {}
-extension FilePermissions : GCodable {}
+extension Errno : GTrivial & GCodable {}
+extension FileDescriptor : GTrivial & GCodable {}
+extension FileDescriptor.AccessMode : GTrivial & GCodable {}
+extension FileDescriptor.OpenOptions : GTrivial & GCodable {}
+extension FileDescriptor.SeekOrigin : GTrivial & GCodable {}
+extension FilePermissions : GTrivial & GCodable {}
 
 extension FilePath : GCodable {
 	private enum Key : String { case path }
