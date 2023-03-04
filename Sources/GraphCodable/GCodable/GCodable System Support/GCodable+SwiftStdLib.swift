@@ -93,33 +93,6 @@ extension RawRepresentable where Self.RawValue : GDecodable {
 extension RawRepresentable where Self.RawValue : GBinaryCodable {}
 
 //	String SUPPORT ------------------------------------------------------
-/*
-extension String: GCodable {
-	public func encode(to encoder: GEncoder) throws	{
-		try withCString() { ptr0 in
-			var ptr = ptr0
-			while ptr.pointee != 0 {	// null terminated
-				try encoder.encode( ptr.pointee )
-				ptr += 1
-			}
-		}
-	}
-	public init(from decoder: GDecoder) throws {
-		let count = decoder.unkeyedCount
-
-		let string = try withUnsafeTemporaryAllocation(of: CChar.self, capacity: count+1) {
-			let ptr = $0.baseAddress!
-			for i in 0..<count {
-				ptr[i]	= try decoder.decode()
-			}
-			ptr[count]	= 0
-			return String( cString: $0.baseAddress! )
-		}
-		
-		self = string
-	}
-}
-*/
 extension String : GBinaryCodable {}
 
 //	Array SUPPORT ------------------------------------------------------

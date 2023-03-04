@@ -105,8 +105,8 @@ extension SIMD where Self.Scalar : UnsignedInteger {
 // simd matrix format
 
 protocol SIMDMatrixDimension {
-	var cols : Int { get }
-	var rows : Int { get }
+	static var cols : Int { get }
+	static var rows : Int { get }
 }
 
 protocol SIMDMatrixFloatingPointFormat : SIMDMatrixDimension {
@@ -119,8 +119,8 @@ protocol SIMDMatrixFloatingPointFormat : SIMDMatrixDimension {
 extension SIMDMatrixFloatingPointFormat {
 	func format( _ f:String, _ code:FloatingPointFormatCode = .f ) -> String {
 		var string = ""
-		for r in 0..<rows {
-			for c in 0..<cols {
+		for r in 0..<Self.rows {
+			for c in 0..<Self.cols {
 				if c > 0 {
 					string.append( " " )
 				}
@@ -136,94 +136,94 @@ extension SIMDMatrixFloatingPointFormat {
 // float simd matrix support
 
 extension simd_float2x2 : SIMDMatrixFloatingPointFormat {
-	var cols: Int { 2 }
-	var rows: Int { 2 }
+	static var cols: Int { 2 }
+	static var rows: Int { 2 }
 }
 
 extension simd_float2x3 : SIMDMatrixFloatingPointFormat {
-	var cols: Int { 2 }
-	var rows: Int { 3 }
+	static var cols: Int { 2 }
+	static var rows: Int { 3 }
 }
 
 extension simd_float2x4 : SIMDMatrixFloatingPointFormat {
-	var cols: Int { 2 }
-	var rows: Int { 4 }
+	static var cols: Int { 2 }
+	static var rows: Int { 4 }
 }
 
 extension simd_float3x2 : SIMDMatrixFloatingPointFormat {
-	var cols: Int { 3 }
-	var rows: Int { 2 }
+	static var cols: Int { 3 }
+	static var rows: Int { 2 }
 }
 
 extension simd_float3x3 : SIMDMatrixFloatingPointFormat {
-	var cols: Int { 3 }
-	var rows: Int { 3 }
+	static var cols: Int { 3 }
+	static var rows: Int { 3 }
 }
 
 extension simd_float3x4 : SIMDMatrixFloatingPointFormat {
-	var cols: Int { 3 }
-	var rows: Int { 4 }
+	static var cols: Int { 3 }
+	static var rows: Int { 4 }
 }
 
 extension simd_float4x2 : SIMDMatrixFloatingPointFormat {
-	var cols: Int { 4 }
-	var rows: Int { 2 }
+	static var cols: Int { 4 }
+	static var rows: Int { 2 }
 }
 
 extension simd_float4x3 : SIMDMatrixFloatingPointFormat {
-	var cols: Int { 4 }
-	var rows: Int { 3 }
+	static var cols: Int { 4 }
+	static var rows: Int { 3 }
 }
 
 extension simd_float4x4 : SIMDMatrixFloatingPointFormat {
-	var cols: Int { 4 }
-	var rows: Int { 4 }
+	static var cols: Int { 4 }
+	static var rows: Int { 4 }
 }
 
 //****************************************************
 // double simd matrix support
 
 extension simd_double2x2 : SIMDMatrixFloatingPointFormat {
-	var cols: Int { 2 }
-	var rows: Int { 2 }
+	static var cols: Int { 2 }
+	static var rows: Int { 2 }
 }
 
 extension simd_double2x3 : SIMDMatrixFloatingPointFormat {
-	var cols: Int { 2 }
-	var rows: Int { 3 }
+	static var cols: Int { 2 }
+	static var rows: Int { 3 }
 }
 
 extension simd_double2x4 : SIMDMatrixFloatingPointFormat {
-	var cols: Int { 2 }
-	var rows: Int { 4 }
+	static var cols: Int { 2 }
+	static var rows: Int { 4 }
 }
 
 extension simd_double3x2 : SIMDMatrixFloatingPointFormat {
-	var cols: Int { 3 }
-	var rows: Int { 2 }
+	static var cols: Int { 3 }
+	static var rows: Int { 2 }
 }
 
 extension simd_double3x3 : SIMDMatrixFloatingPointFormat {
-	var cols: Int { 3 }
-	var rows: Int { 3 }
+	static var cols: Int { 3 }
+	static var rows: Int { 3 }
 }
 
 extension simd_double3x4 : SIMDMatrixFloatingPointFormat {
-	var cols: Int { 3 }
-	var rows: Int { 4 }
+	static var cols: Int { 3 }
+	static var rows: Int { 4 }
 }
 
 extension simd_double4x2 : SIMDMatrixFloatingPointFormat {
-	var cols: Int { 4 }
-	var rows: Int { 2 }
+	static var cols: Int { 4 }
+	static var rows: Int { 2 }
 }
 
 extension simd_double4x3 : SIMDMatrixFloatingPointFormat {
-	var cols: Int { 4 }
-	var rows: Int { 3 }
+	static var cols: Int { 4 }
+	static var rows: Int { 3 }
 }
 
 extension simd_double4x4 : SIMDMatrixFloatingPointFormat {
-	var cols: Int { 4 }
-	var rows: Int { 4 }
+	static var cols: Int { 4 }
+	static var rows: Int { 4 }
 }

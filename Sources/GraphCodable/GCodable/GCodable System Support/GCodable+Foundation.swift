@@ -22,341 +22,27 @@
 
 import Foundation
 
-extension CGFloat	: GTrivialCodable {}
+extension CGFloat			: GTrivialCodable {}
+extension Data 				: GBinaryCodable {}
+extension CharacterSet		: GBinaryCodable {}
+extension AffineTransform	: GTrivialCodable {}
+extension Locale 			: GBinaryCodable {}
+extension TimeZone 			: GBinaryCodable {}
+extension UUID 				: GTrivialCodable  {}
+extension Date				: GTrivialCodable {}
+extension IndexSet 			: GBinaryCodable {}
+extension IndexPath 		: GBinaryCodable {}
+extension CGSize 			: GTrivialCodable {}
+extension CGPoint 			: GTrivialCodable {}
+extension CGVector 			: GTrivialCodable {}
+extension CGRect 			: GTrivialCodable {}
+extension NSRange 			: GTrivialCodable {}
+extension Decimal 			: GTrivialCodable {}
 
-//	Data SUPPORT ------------------------------------------------------
-/*
-extension Data : GCodable {
-	public func encode(to encoder: GEncoder) throws {
-		for element in self {
-			try encoder.encode( element )
-		}
-	}
-	public init(from decoder: GDecoder) throws {
-		self.init()
-		
-		self.reserveCapacity( decoder.unkeyedCount )
-		while decoder.unkeyedCount > 0 {
-			self.append( try decoder.decode() as Self.Element )
-		}
-	}
-}
-*/
-extension Data : GBinaryCodable {}
-
-
-//	CharacterSet SUPPORT ------------------------------------------------------
-/*
-extension CharacterSet : GCodable {
-	public init(from decoder: GDecoder) throws {
-		self.init( bitmapRepresentation: try decoder.decode() )
-	}
-
-	public func encode(to encoder: GEncoder) throws {
-		try encoder.encode( bitmapRepresentation )
-	}
-}
-*/
-extension CharacterSet : GBinaryCodable {}
-
-
-//	AffineTransform SUPPORT ------------------------------------------------------
-/*
-extension AffineTransform : GCodable {
-	public init(from decoder: GDecoder) throws {
-		let m11	= try decoder.decode() as CGFloat
-		let m12	= try decoder.decode() as CGFloat
-		let m21	= try decoder.decode() as CGFloat
-		let m22	= try decoder.decode() as CGFloat
-		let tX	= try decoder.decode() as CGFloat
-		let tY	= try decoder.decode() as CGFloat
-		self.init(m11: m11, m12: m12, m21: m21, m22: m22, tX: tX, tY: tY)
-	}
-	
-	public func encode(to encoder: GEncoder) throws {
-		try encoder.encode( m11 )
-		try encoder.encode( m12 )
-		try encoder.encode( m21 )
-		try encoder.encode( m22 )
-		try encoder.encode( tX )
-		try encoder.encode( tY )
-	}
-}
-*/
-extension AffineTransform : GTrivialCodable {}
-
-
-//	Locale SUPPORT ------------------------------------------------------
-/*
-extension Locale : GCodable {
-	public init(from decoder: GDecoder) throws {
-		self.init( identifier: try decoder.decode() )
-	}
-	
-	public func encode(to encoder: GEncoder) throws {
-		try encoder.encode( identifier )
-	}
-}
-*/
-
-extension Locale : GBinaryCodable {}
-
-//	TimeZone SUPPORT ------------------------------------------------------
-/*
-extension TimeZone : GCodable {
-	public init(from decoder: GDecoder) throws {
-		let identifier = try decoder.decode() as String
-		guard let timeZone = TimeZone( identifier: identifier ) else {
-			throw GCodableError.initTypeError(
-				Self.self, GCodableError.Context(
-					debugDescription: "Invalid timezone identifier -\(identifier)-"
-				)
-			)
-		}
-		self = timeZone
-	}
-	
-	public func encode(to encoder: GEncoder) throws {
-		try encoder.encode( identifier )
-	}
-}
-*/
-extension TimeZone : GBinaryCodable {}
-
-// -- UUID support  -------------------------------------------------------
-/*
-extension UUID : GCodable  {
-	public init(from decoder: GDecoder) throws {
-		let uuidString	= try decoder.decode() as String
-		
-		guard let uuid = UUID(uuidString: uuidString) else {
-			throw GCodableError.initTypeError(
-				Self.self, GCodableError.Context(
-					debugDescription: "Attempted to decode UUID from invalid UUID string -\(uuidString)-."
-				)
-			)
-		}
-		self = uuid
-	}
-	
-	public func encode(to encoder: GEncoder) throws {
-		try encoder.encode( uuidString )
-	}
-}
-*/
-extension UUID : GTrivialCodable  {}
-
-
-//	Date SUPPORT ------------------------------------------------------
-/*
-extension Date : GCodable {
-	public init(from decoder: GDecoder) throws {
-		self.init( timeIntervalSince1970: try decoder.decode() )
-	}
-	
-	public func encode(to encoder: GEncoder) throws {
-		try encoder.encode( timeIntervalSince1970 )
-	}
-}
-*/
-extension Date : GTrivialCodable {}
-
-
-//	IndexSet SUPPORT ------------------------------------------------------
-/*
-extension IndexSet : GCodable {
-	public init(from decoder: GDecoder) throws {
-		self.init()
-		while decoder.unkeyedCount > 0 {
-			self.insert(integersIn: try decoder.decode() )
-		}
-	}
-	
-	public func encode(to encoder: GEncoder) throws {
-		for range in rangeView {
-			try encoder.encode( range )
-		}
-	}
-}
-*/
-extension IndexSet : GBinaryCodable {}
-
-
-// -- IndexPath support  -------------------------------------------------------
-/*
-extension IndexPath : GCodable {
-	public init(from decoder: GDecoder) throws {
-		self.init()
-		while decoder.unkeyedCount > 0 {
-			self.append( try decoder.decode() as Element )
-		}
-	}
-	
-	public func encode(to encoder: GEncoder) throws {
-		for element in self {
-			try encoder.encode( element )
-		}
-	}
-}
-*/
-extension IndexPath : GBinaryCodable {}
-
-
-//	CGSize SUPPORT ------------------------------------------------------
-/*
-extension CGSize : GCodable {
-	private enum Key:String {
-		case width, height
-	}
-	
-	public init(from decoder: GDecoder) throws {
-		let width	= try decoder.decode(for: Key.width) as CGFloat
-		let height	= try decoder.decode(for: Key.height) as CGFloat
-		self.init(width: width, height: height)
-	}
-	
-	public func encode(to encoder: GEncoder) throws {
-		try encoder.encode( width,for: Key.width )
-		try encoder.encode( height,for: Key.height )
-	}
-}
-*/
-extension CGSize : GTrivialCodable {}
-
-
-//	CGPoint SUPPORT ------------------------------------------------------
-/*
-extension CGPoint : GCodable {
-	private enum Key:String {
-		case x, y
-	}
-
-	public init(from decoder: GDecoder) throws {
-		let x	= try decoder.decode(for: Key.x) as CGFloat
-		let y	= try decoder.decode(for: Key.y) as CGFloat
-		self.init(x: x, y: y)
-	}
-	
-	public func encode(to encoder: GEncoder) throws {
-		try encoder.encode( x,for: Key.x )
-		try encoder.encode( y,for: Key.y )
-	}
-}
-*/
-extension CGPoint : GTrivialCodable {}
-
-
-//	CGVector SUPPORT ------------------------------------------------------
-/*
-extension CGVector : GCodable {
-	private enum Key:String {
-		case dx, dy
-	}
-
-	public init(from decoder: GDecoder) throws {
-		let dx	= try decoder.decode(for: Key.dx) as CGFloat
-		let dy	= try decoder.decode(for: Key.dy) as CGFloat
-		self.init(dx: dx, dy: dy)
-	}
-	
-	public func encode(to encoder: GEncoder) throws {
-		try encoder.encode( dx,for: Key.dx )
-		try encoder.encode( dy,for: Key.dy )
-	}
-}
-*/
-extension CGVector : GTrivialCodable {}
-
-
-//	CGRect SUPPORT ------------------------------------------------------
-/*
-extension CGRect : GCodable {
-	private enum Key:String {
-		case origin, size
-	}
-
-	public init(from decoder: GDecoder) throws {
-		let origin	= try decoder.decode(for: Key.origin) as CGPoint
-		let size	= try decoder.decode(for: Key.size) as CGSize
-		self.init(origin: origin, size: size)
-	}
-
-	public func encode(to encoder: GEncoder) throws {
-		try encoder.encode( origin,for: Key.origin )
-		try encoder.encode( size,for: Key.size )
-	}
-}
-*/
-extension CGRect : GTrivialCodable {}
-
-
-//	NSRange SUPPORT ------------------------------------------------------
-/*
-extension NSRange : GCodable {
-	private enum Key:String {
-		case location, length
-	}
-
-	public init(from decoder: GDecoder) throws {
-		let location	= try decoder.decode(for: Key.location) as Int
-		let length		= try decoder.decode(for: Key.length) as Int
-		self.init(location: location, length: length)
-	}
-
-	public func encode(to encoder: GEncoder) throws {
-		try encoder.encode( location,for: Key.location )
-		try encoder.encode( length,for: Key.length )
-	}
-}
-*/
-extension NSRange : GTrivialCodable {}
-
-
-// -- Decimal support  -------------------------------------------------------
-
-extension Decimal : GCodable {
-	private enum Key:String {
-		case _exponent, _length, _isNegative, _isCompact
-	}
-
-	public init(from decoder: GDecoder) throws {
-		let exponent	= try decoder.decode(for: Key._exponent) as Int32
-		let length		= try decoder.decode(for: Key._length) as UInt32
-		let isNegative	= (try decoder.decode(for: Key._isNegative) as Bool) == false ? UInt32(0) : UInt32(1)
-		let isCompact	= (try decoder.decode(for: Key._isCompact) as Bool) == false ? UInt32(0) : UInt32(1)
-		let mantissa0	= try decoder.decode() as UInt16
-		let mantissa1	= try decoder.decode() as UInt16
-		let mantissa2	= try decoder.decode() as UInt16
-		let mantissa3	= try decoder.decode() as UInt16
-		let mantissa4	= try decoder.decode() as UInt16
-		let mantissa5	= try decoder.decode() as UInt16
-		let mantissa6	= try decoder.decode() as UInt16
-		let mantissa7	= try decoder.decode() as UInt16
-
-		self.init(
-			_exponent: exponent, _length: length, _isNegative: isNegative, _isCompact: isCompact, _reserved: 0,
-			_mantissa: (mantissa0, mantissa1, mantissa2, mantissa3, mantissa4, mantissa5, mantissa6, mantissa7)
-		)
-	}
-	
-	
-	public func encode(to encoder: GEncoder) throws {
-		try encoder.encode( _exponent,for: Key._exponent )
-		try encoder.encode( _length,for: Key._length )
-		try encoder.encode( _isNegative == 0,for: Key._isNegative )
-		try encoder.encode( _isCompact == 0,for: Key._isCompact )
-		try encoder.encode( _mantissa.0 )
-		try encoder.encode( _mantissa.1 )
-		try encoder.encode( _mantissa.2 )
-		try encoder.encode( _mantissa.3 )
-		try encoder.encode( _mantissa.4 )
-		try encoder.encode( _mantissa.5 )
-		try encoder.encode( _mantissa.6 )
-		try encoder.encode( _mantissa.7 )
-	}
-}
-
-//	extension Decimal : GTrivialCodable {}
+extension OperationQueue.SchedulerTimeType 			: GTrivialCodable {}
+extension OperationQueue.SchedulerTimeType.Stride	: GTrivialCodable {}
+extension RunLoop.SchedulerTimeType					: GTrivialCodable {}
+extension RunLoop.SchedulerTimeType.Stride			: GTrivialCodable {}
 
 
 //	Calendar SUPPORT ------------------------------------------------------
@@ -396,13 +82,7 @@ extension Calendar : GCodable {
 	}
 }
 
-
-//	extension NSCalendar.Identifier : GBinaryCodable {} // Why?
-//	extension Calendar : GBinaryCodable {}
-
-
 //	DateComponents SUPPORT ------------------------------------------------------
-
 extension DateComponents : GCodable {
 	private enum Key : String {
 		case calendar
@@ -422,8 +102,6 @@ extension DateComponents : GCodable {
 		case weekOfYear
 		case yearForWeekOfYear
 	}
-
-	
 	
 	public init(from decoder: GDecoder) throws {
 		let calendar   			= try decoder.decodeIfPresent( for: Key.calendar ) as Calendar?
@@ -482,9 +160,6 @@ extension DateComponents : GCodable {
 	}
 }
 
-//	extension DateComponents : GBinaryCodable {}
-
-
 //	DateInterval SUPPORT ------------------------------------------------------
 
 extension DateInterval : GCodable {
@@ -504,9 +179,6 @@ extension DateInterval : GCodable {
 		try encoder.encode( duration, 	for: Key.duration)
 	}
 }
-
-//	extension DateInterval : GTrivialCodable {}
-
 
 //	PersonNameComponents SUPPORT ------------------------------------------------------
 
@@ -541,9 +213,6 @@ extension PersonNameComponents : GCodable {
 	}
 }
 
-// extension PersonNameComponents : GBinaryCodable {}
-
-
 //	URL SUPPORT ------------------------------------------------------
 
 extension URL : GCodable {
@@ -568,9 +237,6 @@ extension URL : GCodable {
 		try encoder.encodeIfPresent( baseURL, for: Key.baseURL )
 	}
 }
-
-//	extension URL : GBinaryCodable {}
-
 
 //	URLComponents SUPPORT ------------------------------------------------------
 
@@ -612,8 +278,6 @@ extension URLComponents : GCodable {
 	}
 }
 
-//	extension URLComponents : GBinaryCodable {}
-
 //	----------------------------------------------------------------------------
 //	----------------------------------------------------------------------------
 //	----------------------------------------------------------------------------
@@ -640,9 +304,3 @@ extension Measurement : GCodable {
 	}
 }
 
-//	extension Measurement : GBinaryCodable {}
-
-extension OperationQueue.SchedulerTimeType : GTrivialCodable {}
-extension OperationQueue.SchedulerTimeType.Stride : GTrivialCodable {}
-extension RunLoop.SchedulerTimeType : GTrivialCodable {}
-extension RunLoop.SchedulerTimeType.Stride : GTrivialCodable {}

@@ -22,10 +22,7 @@
 
 import UniformTypeIdentifiers
 
-
-
-extension UTTagClass : GTrivial & GCodable {}
-
+extension UTTagClass : GCodable {}
 
 extension UTType : GCodable {
 	private enum Key : String { case identifier }
