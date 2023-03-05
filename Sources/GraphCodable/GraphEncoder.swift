@@ -78,13 +78,13 @@ extension GraphEncoder {
 		/// - Note: This option is disabled by default
 		public static let	ignoreGIdentifiableProtocol							= Self( rawValue: 1 << 1 )
 
-		///	Ignore the `GClassName` protocol
+		///	Ignore the `GInheritance` protocol
 		///
-		/// By activating this option, the encoder will ignore the `GClassName` protocol
+		/// By activating this option, the encoder will ignore the `GInheritance` protocol
 		/// and values that adopt this protocol act as they have not adopted it.
 		///
 		/// - Note: This option is disabled by default
-		public static let	ignoreGClassNameProtocol							= Self( rawValue: 1 << 2 )
+		public static let	ignoreGInheritanceProtocol							= Self( rawValue: 1 << 2 )
 		
 		///	Disable the automatic reference type identity
 		///
@@ -104,12 +104,12 @@ extension GraphEncoder {
 		/// - Note: This option is disabled by default
 		public static let	disableIdentity										= Self( rawValue: 1 << 4 )
 		
-		///	Disable class names
+		///	Disable inheritance
 		///
 		/// All reference types will be encoded with no class name info's.
 		///
 		/// - Note: This option is disabled by default
-		public static let	disableClassNames									= Self( rawValue: 1 << 5 )
+		public static let	disableInheritance									= Self( rawValue: 1 << 5 )
 
 		///	Resort to hashable identity
 		///
@@ -127,7 +127,7 @@ extension GraphEncoder {
 		/// - Note: The option can be expensive in certain situations
 		public static let	tryHashableIdentityAtLast							= Self( rawValue: 1 << 7 )
 		
-		public static let	mimicSwiftCodable:				Self 	= [ disableIdentity, disableClassNames ]
+		public static let	mimicSwiftCodable:				Self 	= [ disableIdentity, disableInheritance ]
 		public static let	defaultOption:					Self 	= [ ]
 	}
 }

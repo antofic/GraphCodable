@@ -45,12 +45,14 @@ In other words, the intent of GraphCodable is not to serialize the data in some 
 
 The purpose of GraphCodable is to get after dearchiving the same "thing" that was archived.
 
-What is meant by **inheritance** in relation to archiving/dearchiving?
-Suppose `B : A` is a subclass of `A`. If we archive an array `[a,b]` containing one instance `a` of `A` and one instance `b` of `B` with Codable, after dearchiving we get an array containing two instances of `a`. This happens because Codable doesn't store the type of the instance, and so when dearchiving it can only see the static type of the array, which is `[A]`, and infer that the array contains only instances of `A`.
+*What is meant by **inheritance** in relation to archiving/dearchiving?*
+Suppose `B : A` is a subclass of `A`. If we archive an array `[a,b]` containing one instance `a` of `A` and one instance `b` of `B` with Codable, after dearchiving we get an array containing two instances of `a`. This happens because Codable doesn't encode the type of the instance, and so when decoding it can only see the static type of the array, which is `[A]`, and infer that the array contains only instances of `A`.
 
 *What is meant by **identity** in relation to archiving/dearchiving?*
 
-Suppose we have references connected as in the following diagram:
+Suppose that `A` is a class. If we archive an array `[a,a]` containing two times the same instance `a` of `A`  (`(a === a) == true`) with Codable, after decoding we get an array containing two different instances `a` that not anymore share the same *ObjectIdentifier*  (`(a === a) == false`). 
+
+The consequences are more serious than they may appear: now suppose you have references connected as in the following diagram and that the program logic rely on tha fact that `c` is shared by `a` and `b`  so that if `a` changes `c`, `b` sees the change of `c`:
 
 ```
          ╭───╮
@@ -74,19 +76,13 @@ Using Codable, after dearchiving we get:
  ╰───╯   ╰───╯   ╰───╯
 ```
 
-Thus the original data structure is lost and furthermore an object has been duplicated, with what follows in terms of memory. This happens because Codable doesn't store the *identity* of the references.
+Again, the original data structure is lost and furthermore an object has been duplicated, with what follows in terms of memory. This happens because Codable doesn't store the *identity* of the references. Now, for references it is essential that the data structure is preserved: after dearchiving the program logic is compromised if two objects are dearchived instead of one object. In GraphCodable, the identity of references is automatically derived from their *ObjectIdentifier*, although you can change this behavior.
 
-Now, for references it is essential that the data structure is preserved: after dearchiving the program logic is compromised if two objects are dearchived instead of one object. 
+The way value types behave, it makes no sense to talk about which data structure to preserve; conversely, in certain cases their duplication/multiplication can be problematic if they contain a large amount of data. For this reason, in analogy to the `Identifiable` system protocol, GraphCodable allows to define an identity for archiving and dearchiving also for value types (by default they don't have one), via the `GIdentifiable` protocol. Reference types can also make use of the `GIdentifiable`protocol where for some reason it is necessary to define an identity other than the one derived from *ObjectIdentifier*.
 
-In GraphCodable, the identity of references is automatically derived from their ObjectIdentifier, although you can change this behavior.
+Clarified that the purpose of the library is to <u>get after dearchiving the same "thing" that was archived</u>, the characteristics of GraphCodable are illustrated in the next paragraphs with simple but working examples that can be directly tested with copy and paste.
 
-The way value types behave, it makes no sense to talk about which data structure to preserve; conversely, in certain cases their duplication/multiplication can be problematic if they contain a large amount of data.
-
-For this reason, in analogy to the `Identifiable` system protocol, GraphCodable allows to define an identity for archiving and dearchiving also for value types (by default they don't have one), via the `GIdentifiable` protocol. Reference types can also make use of the `GIdentifiable`protocol where for some reason it is necessary to define an identity other than the one derived from ObjectIdentifier.
-
-Clarified that the purpose of the library is to get after dearchiving the same "thing" that was archived, the characteristics of GraphCodable are illustrated in the next paragraphs with simple but working examples that can be directly tested with copy and paste.
-
-## Supported types
+## Supported system types
 
 GraphCodable natively supports most  types of Swift Standard Library, Foundation, SIMD and others. The full list is [here](/Docs/GraphCodableTypes.md). And so, to archive and dearchive these types you don't have to do anything. Just one example:
 
@@ -106,11 +102,7 @@ print( outRoot == inRoot )	// prints: true
 ```
 **Note:** `GraphEncoder().encode( value )` return type is a *generic sequence* of `UInt8`, so you need to specify the concrete type with `as Data`, o, for example, with `as [UInt8]`, generally sligtly more performant. GraphCodable define `Bytes` as typealias of `[UInt8]`.
 
-### Value types
-
-As can be seen from the following examples, the archiving and unarchiving interface is very similar to that of Codable, except that it does not use containers.
-
-#### Keyed coding
+### Keyed coding
 GraphCodable uses enums with string rawValue as keys.
 
 ```swift
@@ -120,16 +112,16 @@ import GraphCodable
 struct Example : GCodable, Equatable {
 	private(set) var name		: String
 	private(set) var examples	: [Example]
-
+	
 	init( name : String, examples : [Example] = [Example]()) {
 		self.name		= name
 		self.examples	= examples
-		}
-
+	}
+	
 	private enum Key: String {
 		case name, examples
 	}
-
+	
 	init(from decoder: GDecoder) throws {
 		self.name	= try decoder.decode( for: Key.name )
 		self.examples	= try decoder.decode( for: Key.examples )
@@ -147,17 +139,17 @@ let eB	= Example(name: "exampleB", examples: [eA,eA,eA] )
 let inRoot	= eB
 
 // encode inRoot in data
-let data	= try GraphEncoder().encode( inRoot )
+let data	= try GraphEncoder().encode( inRoot ) as Bytes
 
 // decode outRoot from data
 let outRoot	= try GraphDecoder().decode( type(of:inRoot), from: data )
 
 print( outRoot == inRoot )	// prints: true
 ```
-You can check if a keyed value is present in the archive with `try decoder.contains(...)` before decoding it.
+You can check if a keyed value is present in the archive with `try decoder.contains(_ key:)` before decoding it.
 **Values are removed from the decoder as they are decoded**.
 
-#### Unkeyed coding
+### Unkeyed coding
 The same example using unkeyed coding. With unkeyed coding you must decode values in the same order in which they are encoded.
 
 ```swift
@@ -194,7 +186,7 @@ let eB	= Example(name: "exampleB", examples: [eA,eA,eA] )
 let inRoot	= eB
 
 // encode inRoot in data
-let data	= try GraphEncoder().encode( inRoot )
+let data	= try GraphEncoder().encode( inRoot ) as Bytes
 
 // decode outRoot from data
 let outRoot	= try GraphDecoder().decode( type(of:inRoot), from: data )
@@ -205,18 +197,20 @@ It is also possible to mix keyed and unkeyed coding, as long as the unkeyed vari
 It is recommended that you use unkeyed coding not in cases like this, but rather when you need to store a single value or a sequence of values. The following example shows how array conformance is implemented in the GraphCodable package using unkeyed encode/decode:
 
 ```swift
-extension Array: GCodable where Element:GCodable {
+extension Array: GEncodable where Element:GEncodable {
 	public func encode(to encoder: GEncoder) throws {
 		for element in self {
 			try encoder.encode( element )
 		}
 	}
+}
+
+extension Array: GDecodable where Element:GDecodable {
 	public init(from decoder: GDecoder) throws {
 		self.init()
-
-		self.reserveCapacity( try decoder.unkeyedCount )
-
-		while try decoder.unkeyedCount > 0 {
+		
+		self.reserveCapacity( decoder.unkeyedCount )
+		while decoder.unkeyedCount > 0 {
 			self.append( try decoder.decode() )
 		}
 	}
@@ -224,12 +218,123 @@ extension Array: GCodable where Element:GCodable {
 ```
 The `init( from:... )` method clearly shows that **values are removed from the decoder as they are decoded**.
 
-### Reference types
-#### Identity
+### Inheritance
 
-Up to now the behavior of GraphCodable is similar to that of Codable. That changes with reference types.
-GraphCodable uses the ObjectIdentifier of each reference type as its identity. If, while encoding, it encounters a reference type that it has already encoded, instead of encoding it normally, it simply encode a token that identifies it.
-This way reference types are not duplicated. Codable duplicates it.
+Up to now the behavior of GraphCodable is similar to that of Codable. That changes with reference types. 
+
+Suppose `B : A` is a subclass of `A`. If we archive an array `[a,b]` containing one instance `a` of `A` and one instance `b` of `B` with Codable, after dearchiving we get an array containing two instances of `a`. This happens because Codable doesn't store the type of the instance, and so when dearchiving it can only see the static type of the array, which is `[A]`, and infer that the array contains only instances of `A`.
+
+GraphCodable **supports inheritance**: in other words, <u>the type of decoded reference always corresponds to the type of the encoded reference</u>, as you can see in the next example:
+
+```swift
+import Foundation
+import GraphCodable
+
+class A : CustomStringConvertible, GCodable, Codable {
+	init() {
+	}
+	required init(from decoder: GDecoder) throws {
+	}
+	func encode(to encoder: GEncoder) throws {
+	}
+	var description: String {
+		return "\(type(of: self))"
+	}
+}
+
+class B : A {}
+
+let inRoot	= [ A(), B() ]
+
+print( type(of: inRoot) )	// Array<A>
+print( inRoot )				// [A, B]
+
+do {	// GraphCodable
+	let data	= try GraphEncoder().encode( inRoot ) as Bytes
+	let outRoot	= try GraphDecoder().decode( type(of:inRoot), from: data )
+	
+	print( type(of: outRoot) )	// Array<A>
+	print( outRoot )			// [A, B] --> real reference types are maintained
+}
+
+do {	// Codable
+	let data	= try JSONEncoder().encode( inRoot )
+	let outRoot	= try JSONDecoder().decode( type(of:inRoot), from: data )
+	
+	print( type(of: outRoot) )	// Array<A>
+	print( outRoot )			// [A, A]	--> real reference types are lost
+}
+```
+
+#### Inheritance control (advanced users)
+
+**Very unlikely you will ever need to disable inheritance**, but just in case you can disable it:
+
+- by type, adopting the protocol with `GInheritance` protocol:
+
+  ```swift
+  public protocol GInheritance : AnyObject {
+  	var disableInheritance : Bool { get }
+  }
+  ```
+
+  Than, if in the above example you define:
+
+  ```swift
+  extension B: GInheritance {
+  	var disableInheritance: Bool { true }
+  }
+  ```
+
+  the encoder will not encode the class name of B and so when dearchiving you will get [A,A] even with GraphCodable.
+
+- globally, using the `.disableClassNames` option in the `GraphEncoder(  _ options: )` method:
+
+  ```swift
+  let data	= try GraphEncoder( .disableInheritance ).encode( inRoot ) as Bytes
+  ```
+
+Finally, you can choose to globally ignore the adoption of the `GInheritance` protocol using the `.ignoreGInheritanceProtocol` option:
+
+```swift
+let data	= try GraphEncoder( .ignoreGInheritanceProtocol ).encode( inRoot ) as Bytes
+```
+
+## Identity
+
+Suppose that `A` is a class. If we archive an array `[a,a]` containing two times the same instance `a` of `A`  (`(a === a) == true`) with Codable, after decoding we get an array containing two different instances `a` that not anymore share the same *ObjectIdentifier*  (`(a === a) == false`). 
+
+The consequences are more serious than they may appear: now suppose you have references connected as in the following diagram and that the program logic rely on tha fact that `c` is shared by `a` and `b`  so that if `a` changes `c`, `b` sees the change of `c`:
+
+```
+         ╭───╮
+   ┌────▶︎│ c │
+   │     ╰───╯
+   │       ▲  
+   │       │  
+ ╭───╮   ╭───╮
+ │ a │──▶︎│ b │
+ ╰───╯   ╰───╯
+```
+
+Using Codable, after dearchiving we get:
+
+```
+         ╭───╮
+   ┌────▶︎│ c │
+   │     ╰───╯
+ ╭───╮   ╭───╮   ╭───╮
+ │ a │──▶︎│ b │──▶︎│ c │
+ ╰───╯   ╰───╯   ╰───╯
+```
+
+Again, the original data structure is lost and furthermore an object has been duplicated, with what follows in terms of memory. This happens because Codable doesn't store the *identity* of the references. Now, for references it is essential that the data structure is preserved: after dearchiving the program logic is compromised if two objects are dearchived instead of one object. In GraphCodable, the identity of references is automatically derived from their *ObjectIdentifier*, although you can change this behavior.
+
+The way value types behave, it makes no sense to talk about which data structure to preserve; conversely, in certain cases their duplication/multiplication can be problematic if they contain a large amount of data. For this reason, in analogy to the `Identifiable` system protocol, GraphCodable allows to define an identity for archiving and dearchiving also for value types (by default they don't have one), via the `GIdentifiable` protocol. Reference types can also make use of the `GIdentifiable`protocol where for some reason it is necessary to define an identity other than the one derived from *ObjectIdentifier*.
+
+#### Reference types identity
+
+GraphCodable supports reference types identity <u>automatically</u> using the reference *ObjectIdentifier*. If, while encoding, it encounters a reference type that it has already encoded, instead of encoding it normally, it simply encode a token that identifies it. This way reference types are not duplicated. Codable duplicates it.
 
 See the next example:
 ```swift
@@ -270,12 +375,12 @@ let eB	= Example(name: "exampleB", examples: [eA,eA,eA] )
 let inRoot	= eB
 
 do {	//	GraphCodable
-	let data	= try GraphEncoder().encode( inRoot )
+	let data	= try GraphEncoder().encode( inRoot ) as Bytes
 	let outRoot	= try GraphDecoder().decode( type(of:inRoot), from: data )
 	
 	print( outRoot == inRoot )	// prints: true
-	print( outRoot.examples[0] === outRoot.examples[1] )	// prints: true --> we use '===': same reference!
-	print( outRoot.examples[0] === outRoot.examples[2] )	// prints: true --> we use '===': same reference!
+	print( outRoot.examples[0] === outRoot.examples[1] )	// true --> we use '===': same reference!
+	print( outRoot.examples[0] === outRoot.examples[2] )	// true --> we use '===': same reference!
 }
 
 do {	//	Codable
@@ -283,60 +388,121 @@ do {	//	Codable
 	let outRoot	= try JSONDecoder().decode( type(of:inRoot), from: data )
 	
 	print( outRoot == inRoot )	// prints: true
-	print( outRoot.examples[0] === outRoot.examples[1] )	// prints: false --> we use '===': reference duplicated!
-	print( outRoot.examples[0] === outRoot.examples[2] )	// prints: false --> we use '===': reference duplicated!
+	print( outRoot.examples[0] === outRoot.examples[1] )	// false --> we use '===': reference duplicated!
+	print( outRoot.examples[0] === outRoot.examples[2] )	// false --> we use '===': reference duplicated!
 }
 ```
 
-### Inheritance
+Note: Reference types can also make use of the `GIdentifiable`protocol (see the next chapter) where for some reason it is necessary to define an identity other than the one derived from *ObjectIdentifier* or to "undefine" their identity by make the  `gcodableID`  property return `nil`.
 
-GraphCodable **supports inheritance**: in other words, the type of decoded object always corresponds to the real type of the encoded object, as you can see in the next example. Codable lost type information.
+#### Value types identity
+
+Value types usually don't have an identity. In analogy to the `Identifiable` system protocol, GraphCodable allows to define an identity for archiving and dearchiving also for value types (by default they don't have one) adopting the `GIdentifiable` protocol:
+
+```swift
+public protocol GIdentifiable<GID> {
+	associatedtype GID : Hashable
+	var gcodableID: Self.GID? { get }
+}
+
+extension GIdentifiable where Self:Identifiable {
+	public var gcodableID: Self.ID? { id }
+}
+
+```
+
+Note: `gcodableID` automatically returns `id` if the type adopt the Identifiable protocol.
+
+A value type conforming to the `GIdentifiable` protocol acquires the same ability as reference types to not be duplicated during storage. See the next example:
 
 ```swift
 import Foundation
 import GraphCodable
 
-class View : CustomStringConvertible, GCodable, Codable {
-	init() {
+struct Example : GCodable, Equatable, Codable, Identifiable, GIdentifiable {
+	var id = UUID()
+	
+	private(set) var name		: String
+	private(set) var examples	: [Example]
+	
+	init( name : String, examples : [Example] = [Example]()) {
+		self.name		= name
+		self.examples	= examples
 	}
-	required init(from decoder: GDecoder) throws {
+	
+	private enum Key: String {
+		case name, examples
 	}
+	
+	init(from decoder: GDecoder) throws {
+		self.name	= try decoder.decode( for: Key.name )
+		self.examples	= try decoder.decode( for: Key.examples )
+	}
+	
 	func encode(to encoder: GEncoder) throws {
+		try encoder.encode( name, for: Key.name )
+		try encoder.encode( examples, for: Key.examples )
 	}
-	var description: String {
-		return "\(type(of: self))"
+	
+	enum CodingKeys: String, CodingKey {
+		case name, examples
+	}
+	
+	// we dont want to save the ID
+	init(from decoder: Decoder) throws {
+		let values	= try decoder.container(keyedBy: CodingKeys.self)
+		name 		= try values.decode(String.self, forKey: .name)
+		examples	= try values.decode([Example].self, forKey: .examples)
+	}
+	
+	func encode(to encoder: Encoder) throws {
+		var container = encoder.container(keyedBy: CodingKeys.self)
+		try container.encode(name, forKey: .name)
+		try container.encode(examples, forKey: .examples)
+	}
+	
+	static func == (lhs: Example, rhs: Example) -> Bool {
+		// first check the id (same id than same data)
+		// then check data (different id but same data)
+		return (lhs === rhs) || (lhs.name == rhs.name && lhs.examples == rhs.examples)
+	}
+	
+	static func === (lhs: Example, rhs: Example) -> Bool {
+		return lhs.id == rhs.id
 	}
 }
 
-class Window : View {}
+let eA	= Example(name: "exampleA")
+let eB	= Example(name: "exampleB", examples: [eA,eA,eA] )
 
-class Screen : Window {}
+let inRoot	= eB
 
-let inRoot	= [ View(), Window(), Screen() ]
-
-print( type(of: inRoot) )	// print Array<View>
-print( inRoot )				// print [View, Window, Screen]
-
-do {	// GraphCodable
-	let data	= try GraphEncoder().encode( inRoot )
+do {	//	GraphCodable
+	let data	= try GraphEncoder().encode( inRoot ) as Bytes
 	let outRoot	= try GraphDecoder().decode( type(of:inRoot), from: data )
 	
-	print( type(of: outRoot) )	// print Array<View>
-	print( outRoot )			// print [View, Window, Screen]	--> true types are maintained
+	print( outRoot == inRoot )	// true
+	print( outRoot.examples[0] === outRoot.examples[1] )	// true --> we use '===': same id!
+	print( outRoot.examples[0] === outRoot.examples[2] )	// true --> we use '===': same id!
 }
 
-do {	// Codable
+do {	//	Codable
 	let data	= try JSONEncoder().encode( inRoot )
 	let outRoot	= try JSONDecoder().decode( type(of:inRoot), from: data )
 	
-	print( type(of: outRoot) )	// print Array<View>
-	print( outRoot )			// print [View, View, View]	--> true types are lost
+	print( outRoot == inRoot )	// prints: true
+	print( outRoot.examples[0] === outRoot.examples[1] )	// false --> we use '===': different id: value duplicated!
+	print( outRoot.examples[0] === outRoot.examples[2] )	// false --> we use '===': different id: value duplicated!
 }
 ```
 
 #### Conditional encoding
 
-GraphCodable supports conditional encoding:  `encodeConditional(...)` encodes a reference to the given object only if it is encoded unconditionally elsewhere in the payload (previously, or in the future). Codable appears to be designed for conditional encoding in mind, but neither the JSONEncoder nor the PropertyListEncoder supports it.
+GraphCodable supports conditional encoding of <u>references and values with identity</u>:  `encodeConditional(...)` encodes the value/reference only if it is encoded unconditionally elsewhere in the payload (previously, or in the future).
+
+Note: Codable appears to be designed for conditional encoding in mind, but neither the JSONEncoder nor the PropertyListEncoder supports it.
+
+This example uses references:
 
 ```swift
 import Foundation
@@ -369,7 +535,7 @@ let c = ConditionalList( b )
 
 do {
 	let inRoot	= [ "a": a, "b": b, "c" : c ]
-	let data	= try GraphEncoder().encode( inRoot )
+	let data	= try GraphEncoder().encode( inRoot ) as Bytes
 	let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 	
 	// "c.b" must be alive because there is at least one unconditional path from the root to "b"
@@ -381,7 +547,7 @@ do {
 
 do {
 	let inRoot	= [ "b": b, "c": c ]
-	let data	= try GraphEncoder().encode( inRoot )
+	let data	= try GraphEncoder().encode( inRoot ) as Bytes
 	let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 	
 	// "c.b" must be alive because there is at least one unconditional path from the root to "b"
@@ -393,7 +559,7 @@ do {
 
 do {
 	let inRoot	= [ "a": a, "c" : c ]
-	let data	= try GraphEncoder().encode( inRoot )
+	let data	= try GraphEncoder().encode( inRoot ) as Bytes
 	let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 	
 	// "c.b" must be nil because there is no unconditional path from the root to "b"
@@ -401,13 +567,144 @@ do {
 }
 ```
 
-#### Identity
+The next example uses the value <u>with identity</u> `VeryLargeData` supposed to hold a large quantity of data. `A` contains  `VeryLargeData`  and encode it.  `B` optionally contains  `VeryLargeData`  and conditionally encode it. Finally, Model hold `A` optionally and `B`.
 
+```swift
+import Foundation
+import GraphCodable
 
+struct VeryLargeData : GCodable, Identifiable, GIdentifiable {
+	let id = UUID()
+	let veryLargeData : String
+	
+	init( _ veryLargeData: String = "very large data") {
+		self.veryLargeData	= veryLargeData
+	}
 
-##### Directed acyclic graphs
+	func encode(to encoder: GEncoder) throws {
+		try encoder.encode( veryLargeData )
+	}
+	
+	init(from decoder: GDecoder) throws {
+		veryLargeData	= try decoder.decode()
+	}
+}
 
-The variables that contain objects realize **directed graphs**. ARC requires that strong variables do not create **directed cyclic graphs** (DCG) because the cycles prevent the release of memory. GraphCodable is capable of encoding and decoding **directed acyclic graphs** (DAG) without the need for any special treatment.
+struct A : GCodable {
+	var data : VeryLargeData
+	
+	init( data:VeryLargeData ) {
+		self.data	= data
+	}
+	
+	private enum Key : String {
+		case data
+	}
+	
+	func encode(to encoder: GEncoder) throws {
+		try encoder.encode( data, for: Key.data )
+	}
+	
+	init(from decoder: GDecoder) throws {
+		data	= try decoder.decode( for: Key.data )
+	}
+}
+
+struct B : GCodable {
+	var data : VeryLargeData?
+
+	init( data:VeryLargeData ) {
+		self.data	= data
+	}
+
+	private enum Key : String {
+		case data
+	}
+	
+	func encode(to encoder: GEncoder) throws {
+		try encoder.encodeConditional( data, for: Key.data )
+	}
+	
+	init(from decoder: GDecoder) throws {
+		data	= try decoder.decode( for: Key.data )
+	}
+}
+
+struct Model : GCodable {
+	var a 	: A?
+	var b 	: B
+	
+	init( a:A?, b:B ) {
+		self.a	= a
+		self.b	= b
+	}
+	
+	private enum Key : String {
+		case a,b
+	}
+	
+	func encode(to encoder: GEncoder) throws {
+		try encoder.encode( a, for: Key.a )
+		try encoder.encode( b, for: Key.b )
+	}
+	
+	init(from decoder: GDecoder) throws {
+		a	= try decoder.decodeIfPresent( for: Key.a )
+		b	= try decoder.decode( for: Key.b )
+	}
+}
+
+var a	= A(data: VeryLargeData())
+var b	= B(data: a.data)
+
+let inRoot = Model(a: a, b: b)
+
+let data	= try GraphEncoder().encode( inRoot ) as Bytes
+let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
+
+if let oa = outRoot.a {
+	print( "outRoot.a.data contains \(oa.data.veryLargeData)" )
+} else {
+	print( "outRoot.a == nil " )
+}
+
+if let obdata = outRoot.b.data {
+	print( "outRoot.b.data contains \(obdata.veryLargeData)" )
+} else {
+	print( "outRoot.b.data == nil " )
+}
+if let aid = outRoot.a?.data.id, let bid = outRoot.b.data?.id {
+	if aid == bid { print( "Very large data NOT duplicated." )}
+	else { print( "Very large data duplicated." )}
+}
+```
+
+The output is:
+
+```
+outRoot.a.data contains very large data
+outRoot.b.data contains very large data
+Very large data NOT duplicated.
+```
+
+Now if you change the inRoot line to:
+
+```swift
+let inRoot = Model(a: nil, b: b)
+```
+
+the output becomes:
+
+```
+outRoot.a == nil 
+outRoot.b.data == nil 
+```
+
+So, `b` encodes `data` conditionally. If `a`, which encodes `data` unconditionally, isn't encoded, `data` isn't encoded either.
+
+#### Directed acyclic graphs
+
+The variables that contain references realize **directed graphs**. ARC requires that strong variables do not create **directed cyclic graphs** (DCG) because the cycles prevent the release of memory. GraphCodable is capable of encoding and decoding **directed acyclic graphs** (DAG) without the need for any special treatment.
 The next example shows how GraphCodable encode and decode this [DAG](https://en.wikipedia.org/wiki/Directed_acyclic_graph#/media/File:Tred-G.svg) taken from this [Wikipedia page](https://en.wikipedia.org/wiki/Directed_acyclic_graph).
 
 ```
@@ -488,7 +785,7 @@ d.connect( to: e )
 
 do {	
 	let inRoot	= a
-	let data	= try GraphEncoder().encode( inRoot )
+	let data	= try GraphEncoder().encode( inRoot ) as Bytes
 	let out_a	= try GraphDecoder().decode( type(of:inRoot), from:data )
 	
 	// Now we reach "e" from different paths:
@@ -515,9 +812,7 @@ do {	// same thing with Codable
 	print( e1 === e3 )	// prints: false --> we use '===': different references!
 }
 ```
-GraphCodable decodes the original structure of the graph.
-Codable duplicates the same object reachable through different paths, destroying the original structure of the graph.
-The result of Codable decoding is this:
+GraphCodable decodes the original structure of the graph. Codable duplicates the same reference reachable through different paths, destroying the original structure of the graph. The result of Codable decoding is this:
 ```
          ╭───╮   ╭───╮
          │ d │──▶︎│ e │
@@ -539,7 +834,7 @@ The result of Codable decoding is this:
   └─────▶︎│ e │
          ╰───╯
 ```
-##### Directed cyclic graphs
+#### Directed cyclic graphs
 
 What happens if you add a connection from **e** to **b** in the previous example?
 - The graph become cyclic (DCG);
@@ -547,15 +842,22 @@ What happens if you add a connection from **e** to **b** in the previous example
 - GraphCodable encodes it but generates an exception during decoding;
 - Codable EXC_BAD_ACCESS during encoding.
 
-Just like ARC cannot release **e**, **b** and **d** because each retain the other, GraphCodable cannot initialize **e**, **b** and **d** because the initialization of each of them requires that the other be initialized and
-Swift does not allow to exit from an init method without inizializing all variables. So, when GraphCodable during decode encounters a cycle that it cannot resolve, it throws an exception.
+Just like ARC cannot autamatically release **e**, **b** and **d** because each retain the other, GraphCodable cannot initialize **e**, **b** and **d** because the initialization of each of them requires that the other be initialized and Swift does not allow to exit from an init method without inizializing all variables. So, when GraphCodable during decode encounters a cycle that it cannot resolve, it throws an exception.
 
-###### An example: weak variables
+##### An example: weak variables
 One possible solution for ARC is to use weak variables.
 Than, GraphCodable uses a slightly different way to decode weak variables used to break strong memory cycles: it postpones, calling a closure with the `deferDecode(...)` method, the setting of these variables (remember: they are optional, so they are auto-inizializated to nil) until the objects they point to have been initialized.
 
-Let's see how with a classic example: the **parent-childs pattern**. In this pattern the parent variable is weak to break the strong cycles (self.parent.child === self) that would otherwise form with his childs.
-Similarly, this pattern requires to 'deferDecode' the weak variable (parent) because the initialization of parent depends on that of its childs and vice versa.
+Let's see how with a classic example: the **parent-childs pattern**. In this pattern the parent variable is weak to break the strong cycles (self.parent.child === self) that would otherwise form with his childs. Similarly, this pattern requires to '*deferDecode*' the weak variable (parent):
+
+```swift
+required init(from decoder: GDecoder) throws {
+	self.childs	= try decoder.decode( for: Key.childs )
+	try decoder.deferDecode( for: Key.parent ) { self.parent = $0 }
+}
+```
+
+because the initialization of parent depends on that of its childs and vice versa.
 
 ```swift
 import Foundation
@@ -569,21 +871,21 @@ extension Hashable where Self: AnyObject {
 
 extension Equatable where Self: AnyObject {
 	static func == (lhs:Self, rhs:Self) -> Bool {
-		return lhs === rhs
+		lhs === rhs
 	}
 }
 
 func == <T:AnyObject>(lhs: T, rhs: T) -> Bool {
-	return lhs === rhs
+	lhs === rhs
 }
 
 func != <T:AnyObject>(lhs: T, rhs: T) -> Bool {
-	return lhs !== rhs
+	lhs !== rhs
 }
 
 class Node : Hashable, GCodable, CustomStringConvertible {
 	private(set) var childs = Set<Node>()
-
+	
 	weak var parent : Node? {
 		willSet {
 			if newValue != parent {
@@ -594,29 +896,28 @@ class Node : Hashable, GCodable, CustomStringConvertible {
 			if parent != oldValue {
 				parent?.childs.insert( self )
 			}
-		}
-		
+		}	
 	}
 	
 	init() {}
-
+	
 	private enum Key : String {
 		case childs, parent
 	}
 	var description: String {
-		return "\( type(of:self) ) \(childs)"
+		"\( type(of:self) ) \(childs)"
 	}
 	
 	func encode(to encoder: GEncoder) throws {
 		try encoder.encode( childs, for: Key.childs )
-	
+		
 		//	weak variables should always be encoded conditionally:
 		try encoder.encodeConditional( parent, for: Key.parent )
 	}
-
+	
 	required init(from decoder: GDecoder) throws {
 		self.childs	= try decoder.decode( for: Key.childs )
-
+		
 		//	weak variables used to break strong memory cycles must
 		//	be decoded with:
 		try decoder.deferDecode( for: Key.parent ) { self.parent = $0 }
@@ -647,7 +948,7 @@ windowA.parent	= screen	// make windowA child of screen
 windowB.parent	= screen	// make windowB child of screen
 
 let inRoot	= screen
-let data	= try GraphEncoder().encode( inRoot )
+let data	= try GraphEncoder().encode( inRoot ) as Bytes
 let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 
 print( outRoot )	// print 'Screen [Window [View [], View [View []]], Window [View []]]' or equivalent...
@@ -657,19 +958,21 @@ print( outRoot )	// print 'Screen [Window [View [], View [View []]], Window [Vie
 //	If parent variables are set correctly the operation will be successful:
 
 print( outRoot === outRoot.childs.first?.childs.first?.parent?.parent! )	// print true
+
 ```
-###### A more general example: elimination of ARC strong cycles
-Another possible workaround with ARC is to manually drop the strong cycles to allow for memory release.
-In the following example, the Model class contains a collection of Node classes by name in a dictionary.
-Each node contains an array of nodes it is connected to and may also be connected to itself.
-To prevent memory from ever being freed, Model's 'deinit' method calls 'removeConnections' for each node it owns.
+##### A more general example: elimination of ARC strong cycles
+Another possible workaround with ARC is to manually drop the strong cycles to allow for memory release. In the following example, the Model class contains a collection of Node classes by name in a dictionary. Each node contains an array of nodes it is connected to and may also be connected to itself. To prevent memory from ever being freed, Model's 'deinit' method calls 'removeConnections' for each node it owns. So we have a model where the array of connections in each Node to other Nodes generates reference cycles.
 
-So we have a model where the array of connections in each Node to other Nodes generates reference cycles.
+If `decode` is used for those connections, the dearchiving fails due to reference cycles. The solution, as the previous example, is to use `deferDecode` to decode the array:
 
-If `decode` is used for those connections, the dearchiving fails due to reference cycles.
-The solution, as per the following example, is to use `deferDecode` to dearchive the array.
+```swift
+required init(from decoder: GDecoder) throws {
+	name		= try decoder.decode( for: Key.name  )
+  try decoder.deferDecode( for: Key.connections ) { self.connections = $0 }
+}
+```
 
-See the example:
+See the full example:
 ```swift
 import Foundation
 import GraphCodable
@@ -682,7 +985,7 @@ class Model : GCodable, Equatable, CustomStringConvertible {
 		
 		private var connections = [Node]()
 		let name : String
-
+		
 		func connect( to nodes: Node... ) {
 			connections.append(contentsOf: nodes)
 		}
@@ -697,8 +1000,7 @@ class Model : GCodable, Equatable, CustomStringConvertible {
 		
 		required init(from decoder: GDecoder) throws {
 			name		= try decoder.decode( for: Key.name  )
-			// *** SEE HERE:  *** SEE HERE:  *** SEE HERE:  *** SEE HERE: ***
-			try decoder.deferDecode( for: Key.connections ) { self.connections = $0 }
+      try decoder.deferDecode( for: Key.connections ) { self.connections = $0 }
 		}
 		
 		func encode(to encoder: GEncoder) throws {
@@ -709,7 +1011,7 @@ class Model : GCodable, Equatable, CustomStringConvertible {
 		func removeConnections() {
 			connections.removeAll()
 		}
-
+		
 		var description: String {
 			return "\( Self.self ) '\(name)' -> \( connections.map { $0.name } )"
 		}
@@ -718,15 +1020,15 @@ class Model : GCodable, Equatable, CustomStringConvertible {
 	private (set) var nodes = [String:Node]()
 	
 	init() {}
-
+	
 	static func == (lhs: Model, rhs: Model) -> Bool {
 		return lhs.nodes == rhs.nodes
 	}
-
+	
 	private enum Key : String {
 		case nodes
 	}
-
+	
 	required init(from decoder: GDecoder) throws {
 		nodes	= try decoder.decode( for: Key.nodes )
 		//	deferDecode can be used here, but is not required
@@ -750,7 +1052,7 @@ class Model : GCodable, Equatable, CustomStringConvertible {
 	subscript( _ name: String ) -> Node? {
 		return nodes[name]
 	}
-			
+	
 	deinit {
 		// avoid strong memory cycles
 		nodes.forEach { $0.value.removeConnections() }
@@ -776,122 +1078,36 @@ c.connect( to: d,e,a,c,b,b,b,c,e )
 d.connect( to: e,d,e,a,c,b )
 e.connect( to: a,b,c,d,e,e )
 
-let data		= try GraphEncoder().encode( inModel )
+let data		= try GraphEncoder().encode( inModel ) as Bytes
 let outModel	= try GraphDecoder().decode( type(of:inModel), from:data )
 
 print( "decoded \( outModel ) " )
 print( "\( inModel == outModel ) " )
 ```
 
-### Encoding/Decoding Identity for value types
+The output is:
 
-#### The GIdentifiable protocol
-
-GraphCodable now supports identity for value types via the following protocol:
-```swift
-public protocol GIdentifiable<GID> {
-	/// A type representing the stable identity **over encoding/decoding**
-	/// of the entity associated with an instance.
-	associatedtype GID : Hashable
-
-	/// The stable identity **over encoding/decoding** of the entity associated
-	/// with this instance.
-	var gcodableID: Self.GID? { get }
-}
-
-extension GIdentifiable where Self:Identifiable {
-	/// By default gcodableID == id.
-	public var gcodableID: Self.ID? { id }
-}
 ```
-A value type conforming to the `GIdentifiable` protocol acquires the same ability as reference types to not be duplicated during storage.
-A value that already conforms to Identifiable, if made Identifiable, uses `id` as the `gcodableID`.
-See the next example:
-
-```swift
-import Foundation
-import GraphCodable
-
-struct Example : GCodable, Equatable, Codable, Identifiable, GIdentifiable {
-	var id = UUID()
-	
-	private(set) var name		: String
-	private(set) var examples	: [Example]
-	
-	init( name : String, examples : [Example] = [Example]()) {
-		self.name		= name
-		self.examples	= examples
-	}
-	
-	private enum Key: String {
-		case name, examples
-	}
-	
-	init(from decoder: GDecoder) throws {
-		self.name	= try decoder.decode( for: Key.name )
-		self.examples	= try decoder.decode( for: Key.examples )
-	}
-	
-	func encode(to encoder: GEncoder) throws {
-		try encoder.encode( name, for: Key.name )
-		try encoder.encode( examples, for: Key.examples )
-	}
-	
-	enum CodingKeys: String, CodingKey {
-		case name, examples
-	}
-	
-	// we dont want to save the ID
-	init(from decoder: Decoder) throws {
-		let values	= try decoder.container(keyedBy: CodingKeys.self)
-		name 		= try values.decode(String.self, forKey: .name)
-		examples	= try values.decode([Example].self, forKey: .examples)
-	}
-	
-	func encode(to encoder: Encoder) throws {
-		var container = encoder.container(keyedBy: CodingKeys.self)
-		try container.encode(name, forKey: .name)
-		try container.encode(examples, forKey: .examples)
-	}
-	
-	static func == (lhs: Example, rhs: Example) -> Bool {
-		// first check the id (same id than same data)
-		// then check data (different id but same data)
-		return (lhs === rhs) || (lhs.name == rhs.name && lhs.examples == rhs.examples)
-	}
-
-	static func === (lhs: Example, rhs: Example) -> Bool {
-		return lhs.id == rhs.id
-	}
-}
-
-let eA	= Example(name: "exampleA")
-let eB	= Example(name: "exampleB", examples: [eA,eA,eA] )
-
-let inRoot	= eB
-
-do {	//	GraphCodable
-	let data	= try GraphEncoder().encode( inRoot )
-	let outRoot	= try GraphDecoder().decode( type(of:inRoot), from: data )
-	
-	print( outRoot == inRoot )	// prints: true
-	print( outRoot.examples[0] === outRoot.examples[1] )	// prints: true --> we use '===': same id!
-	print( outRoot.examples[0] === outRoot.examples[2] )	// prints: true --> we use '===': same id!
-}
-
-do {	//	Codable
-	let data	= try JSONEncoder().encode( inRoot )
-	let outRoot	= try JSONDecoder().decode( type(of:inRoot), from: data )
-	
-	print( outRoot == inRoot )	// prints: true
-	print( outRoot.examples[0] === outRoot.examples[1] )	// prints: false --> we use '===': different id: value duplicated!
-	print( outRoot.examples[0] === outRoot.examples[2] )	// prints: false --> we use '===': different id: value duplicated!
-}
+decoded Model:
+	• Node 'b' -> ["d", "a", "c", "b", "b", "b"]
+	• Node 'd' -> ["e", "d", "e", "a", "c", "b"]
+	• Node 'e' -> ["a", "b", "c", "d", "e", "e"]
+	• Node 'a' -> ["b", "c", "d", "e"]
+	• Node 'c' -> ["d", "e", "a", "c", "b", "b", "b", "c", "e"] 
+true 
 ```
+
+
+
+#### Global Identity control (advanced users)
+
+Several options in the `GraphEncoder(  _ options: )` method control the behavior of Identity:
+
+
 
 #### Identity for system types
 
-##### Array and ContiguosArray
+##### Array and ContiguousArray
 
 If you want to give identity to Array and ContiguosArray, avoiding their duplication, copy and paste this code:
 

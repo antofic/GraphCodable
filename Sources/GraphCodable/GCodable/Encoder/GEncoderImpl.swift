@@ -281,15 +281,15 @@ extension GEncoderImpl {
 	}
 	
 	private func createTypeIDIfNeeded( for value:GEncodable ) throws -> UIntID? {
-		if encodeOptions.contains( .disableClassNames ) {
+		if encodeOptions.contains( .disableInheritance ) {
 			return nil
 		}
 		guard let object = value as? GEncodable & AnyObject else {
 			return nil
 		}
-		if encodeOptions.contains( .ignoreGClassNameProtocol ) == false,
-		   let typeInfo = object as? (AnyObject & GClassName),
-		   typeInfo.disableClassName {
+		if encodeOptions.contains( .ignoreGInheritanceProtocol ) == false,
+		   let typeInfo = object as? (AnyObject & GInheritance),
+		   typeInfo.disableInheritance {
 			return nil
 		}
 		return try referenceMap.createTypeIDIfNeeded( type: type(of:object) )
