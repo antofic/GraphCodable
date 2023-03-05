@@ -22,6 +22,7 @@
 
 import Foundation
 
+
 //---------------------------------------------------------------------------------------------
 //	Encoder Structure:
 //		GraphEncoder	(public interface)
