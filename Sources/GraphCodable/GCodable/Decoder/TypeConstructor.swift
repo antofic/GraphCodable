@@ -23,14 +23,14 @@
 import Foundation
 
 final class TypeConstructor {
-	private var			decodedData			: BinaryDecoder
+	private var			binaryDecoder		: BinaryDecoder
 	private (set) var 	currentElement 		: FlattenedElement
 	private (set) var 	currentInfo 		: ClassInfo?
 	private var			objectRepository 	= [ UIntID :Any ]()
 	private var			setterRepository 	= [ () throws -> () ]()
 	
 	init( decodedData:BinaryDecoder ) {
-		self.decodedData	= decodedData
+		self.binaryDecoder	= decodedData
 		self.currentElement	= decodedData.rootElement
 	}
 	
@@ -38,7 +38,7 @@ final class TypeConstructor {
 		let rootBlock	= currentElement
 		let value : T	= try decode( element:rootBlock, from: decoder )
 		
-		// decode dalayed
+		// call deferDecode
 		while setterRepository.isEmpty == false {
 			let setter = setterRepository.removeLast()
 			try setter()
@@ -134,7 +134,7 @@ final class TypeConstructor {
 extension TypeConstructor {
 	private func decodeAny<T>( element:FlattenedElement, from decoder:GDecoder, type:T.Type ) throws -> Any where T:GDecodable {
 		func decodeIdentifiable( type:T.Type, objID:UIntID, from decoder:GDecoder ) throws -> Any? {
-			//	tutti gli oggetti (reference types) inizialmente si trovano in decodedData.objBlockMap
+			//	tutti gli oggetti (reference types) inizialmente si trovano in binaryDecoder
 			//	quando arriva la prima richiesta di un particolare oggetto (da objID)
 			//	lo costruiamo (se esiste) e lo mettiamo nell'objectRepository in modo
 			//	che le richieste successive peschino di lì.
@@ -143,7 +143,7 @@ extension TypeConstructor {
 			
 			if let object = objectRepository[ objID ] {
 				return object
-			} else if let element = decodedData.pop( objID: objID ) {
+			} else if let element = binaryDecoder.pop( objID: objID ) {
 				switch element.fileBlock {
 				case .Val( _, let typeID, let objID, let bytes):
 					if let objID {
@@ -175,8 +175,7 @@ extension TypeConstructor {
 					throw GCodableError.decodingError(
 						Self.self, GCodableError.Context(
 							debugDescription:
-								"Object pointed from -\(element.fileBlock)- not found." +
-							"Use deferDecode to break the cycles."
+								"Value pointed from -\(element.fileBlock)- not found. Try deferDecode to break the cycle."
 						)
 					)
 				}
@@ -254,19 +253,29 @@ extension TypeConstructor {
 		else {
 			throw GCodableError.typeMismatch(
 				Self.self, GCodableError.Context(
-					debugDescription: "Block \(element) wrapped type -\(wrapped)- not BinaryIType."
+					debugDescription: "\(element) wrapped type -\(wrapped)- not BinaryIType."
 				)
 			)
 		}
 		return value
 	}
 	
-	private func decodeRefOrBinRef<T>( type:T.Type, typeID:UIntID, bytes: Bytes?, element:FlattenedElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
+	private func decodeRefOrBinRef<T>(
+		type:T.Type, typeID:UIntID, bytes: Bytes?, element:FlattenedElement, from decoder:GDecoder
+	) throws -> T where T:GDecodable {
+		guard let classInfo = binaryDecoder.classInfoMap[ typeID ] else {
+			throw GCodableError.internalInconsistency(
+				Self.self, GCodableError.Context(
+					debugDescription: "Type name not found for typeID -\(typeID)-: can't construct it."
+				)
+			)
+		}
+		
 		let saved	= currentInfo
 		defer { currentInfo = saved }
-		currentInfo	= try classInfo( typeID:typeID )
+		currentInfo	= classInfo
 		
-		let type	= currentInfo!.decodableType.self
+		let type	= classInfo.decodableType.self
 		let object	: GDecodable & AnyObject
 		if let bytes {
 			object = try decodeBinValue( type:type, bytes: bytes, element:element, from: decoder )
@@ -281,19 +290,7 @@ extension TypeConstructor {
 				)
 			)
 		}
-
+		
 		return object
 	}
-	
-	private func classInfo( typeID:UIntID ) throws -> ClassInfo {
-		guard let classInfo = decodedData.classInfoMap[ typeID ] else {
-			throw GCodableError.internalInconsistency(
-				Self.self, GCodableError.Context(
-					debugDescription: "ClassInfo not found for typeID -\(typeID)-."
-				)
-			)
-		}
-		return classInfo
-	}
-	
 }

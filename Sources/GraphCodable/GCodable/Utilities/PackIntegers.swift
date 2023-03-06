@@ -7,7 +7,8 @@
 
 import Foundation
 
-//	Compact UnsignedInteger to reduce file size
+//	Read and Write packed UnsignedIntegers to reduce file size:
+//	we use it to compact typeID's, objID's, keyID's
 
 extension UnsignedInteger {
 	init( unpackFrom rbuffer: inout BinaryReadBuffer ) throws {

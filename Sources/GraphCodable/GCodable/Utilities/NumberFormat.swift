@@ -9,21 +9,7 @@ import Foundation
 import simd
 
 //****************************************************
-// number format
-
-enum FloatingPointFormatCode {
-	case f,e,E,g,G
-	
-	var code : String {
-		switch self {
-		case .f: return "f"
-		case .e: return "e"
-		case .E: return "E"
-		case .g: return "g"
-		case .G: return "G"
-		}
-	}
-}
+// integer format
 
 enum IntegerFormatCode {
 	case d,u,x,X,o
@@ -38,11 +24,6 @@ enum IntegerFormatCode {
 	}
 }
 
-extension BinaryFloatingPoint {
-	func format( _ f:String, _ code:FloatingPointFormatCode = .f ) -> String {
-		return String(format: "%\(f)l\(code.code)", Double(self) )
-	}
-}
 
 extension BinaryInteger {
 	func format( _ f:String, _ code:IntegerFormatCode ) -> String {
@@ -62,6 +43,29 @@ extension UnsignedInteger {
 
 extension ObjectIdentifier {
 	func format( _ f:String = "" ) -> String { UInt(bitPattern: self).format( f, .X ) }
+}
+
+//****************************************************
+// floating point format
+
+enum FloatingPointFormatCode {
+	case f,e,E,g,G
+	
+	var code : String {
+		switch self {
+		case .f: return "f"
+		case .e: return "e"
+		case .E: return "E"
+		case .g: return "g"
+		case .G: return "G"
+		}
+	}
+}
+
+extension BinaryFloatingPoint {
+	func format( _ f:String, _ code:FloatingPointFormatCode = .f ) -> String {
+		return String(format: "%\(f)l\(code.code)", Double(self) )
+	}
 }
 
 //****************************************************
