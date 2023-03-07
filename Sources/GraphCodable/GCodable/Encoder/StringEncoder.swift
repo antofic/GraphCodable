@@ -119,7 +119,7 @@ final class StringEncoder : FileBlockEncoder {
 			}
 			dump = delegate?.classDataMap.reduce( into: dump ) {
 				result, tuple in
-				result.append( "TYPE\( tuple.key.format("04") ):\t\( typeString( options, tuple.value ) )\n")
+				result.append( "TYPE\( tuple.key.id.format("04") ):\t\( typeString( options, tuple.value ) )\n")
 			} ?? "UNAVAILABLE DELEGATE \(#function)\n"
 		}
 		
@@ -129,7 +129,7 @@ final class StringEncoder : FileBlockEncoder {
 			}
 			dump = delegate?.keyStringMap.reduce( into: dump ) {
 				result, tuple in
-				result.append( "KEY\( tuple.key.format("04") ):\t\"\( tuple.value )\"\n" )
+				result.append( "KEY\( tuple.key.id.format("04") ):\t\"\( tuple.value )\"\n" )
 			} ?? "UNAVAILABLE DELEGATE \(#function)\n"
 		}
 		if options.contains( .hideSectionTitles ) == false {

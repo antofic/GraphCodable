@@ -36,22 +36,22 @@ protocol FileBlockEncoder : AnyObject {
 	func output() throws -> Output
 	
 	func appendEnd() throws
-	func appendNil( keyID:UIntID? ) throws
-	func appendPtr( keyID:UIntID?, objID:UIntID, conditional:Bool ) throws
-	func appendVal( keyID:UIntID?, typeID:UIntID?, objID:UIntID?, binaryValue:BinaryOType? ) throws
+	func appendNil( keyID:KeyID? ) throws
+	func appendPtr( keyID:KeyID?, objID:ObjID, conditional:Bool ) throws
+	func appendVal( keyID:KeyID?, typeID:TypeID?, objID:ObjID?, binaryValue:BinaryOType? ) throws
 }
 
 extension FileBlockEncoder {
 	func appendEnd() throws {
 		try append( .End, binaryValue:nil )
 	}
-	func appendNil( keyID:UIntID? ) throws {
+	func appendNil( keyID:KeyID? ) throws {
 		try append( .Nil(keyID: keyID), binaryValue:nil )
 	}
-	func appendPtr( keyID:UIntID?, objID:UIntID, conditional:Bool ) throws {
+	func appendPtr( keyID:KeyID?, objID:ObjID, conditional:Bool ) throws {
 		try append( .Ptr(keyID: keyID,objID:objID, conditional:conditional ), binaryValue:nil )
 	}
-	func appendVal( keyID:UIntID?, typeID:UIntID?, objID:UIntID?, binaryValue:BinaryOType? ) throws {
+	func appendVal( keyID:KeyID?, typeID:TypeID?, objID:ObjID?, binaryValue:BinaryOType? ) throws {
 		let bytes	: Bytes?
 
 		if let binaryValue {

@@ -45,6 +45,6 @@ enum FileSection : UInt16, CaseIterable, BinaryIOType {
 
 typealias SectionMap		= [FileSection : Range<Int>]
 typealias FileBlocks		= [FileBlock]
-typealias ClassDataMap		= [UIntID : ClassData]
-typealias KeyStringMap		= [UIntID : String]
+typealias ClassDataMap		= [TypeID : ClassData]
+typealias KeyStringMap		= [KeyID : String]
 

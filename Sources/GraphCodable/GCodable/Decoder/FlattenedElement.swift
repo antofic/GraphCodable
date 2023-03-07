@@ -22,6 +22,8 @@
 
 import Foundation
 
+typealias ElementMap = [ObjID : FlattenedElement]
+
 ///	Reorder FileBlock's in a `rootElement` and a `[objID : FlattenedElement]` dictionary
 ///	to allow dearchiving of acyclic graphs without requiring deferDecode
 final class FlattenedElement {
@@ -36,9 +38,9 @@ final class FlattenedElement {
 	
 	static func rootElement<S>(
 		fileBlocks:S, keyStringMap:KeyStringMap, reverse:Bool
-	) throws -> ( rootElement: FlattenedElement, elementMap: [UIntID : FlattenedElement] )
+	) throws -> ( rootElement: FlattenedElement, elementMap: ElementMap )
 	where S:Sequence, S.Element == FileBlock {
-		var elementMap	= [UIntID : FlattenedElement]()
+		var elementMap	= ElementMap()
 		var lineIterator = fileBlocks.makeIterator()
 		
 		guard let fileBlock = lineIterator.next() else {
@@ -83,7 +85,7 @@ final class FlattenedElement {
 // MARK: BodyElement private flatten section
 extension FlattenedElement {
 	private static func flatten<T>(
-		elementMap map: inout [UIntID : FlattenedElement], element:FlattenedElement, lineIterator: inout T, keyStringMap:KeyStringMap, reverse:Bool
+		elementMap map: inout ElementMap, element:FlattenedElement, lineIterator: inout T, keyStringMap:KeyStringMap, reverse:Bool
 	) throws where T:IteratorProtocol, T.Element == FileBlock {
 		
 		switch element.fileBlock {
@@ -125,7 +127,7 @@ extension FlattenedElement {
 	
 	
 	private static func subFlatten<T>(
-		elementMap map: inout [UIntID : FlattenedElement], parentElement:FlattenedElement, lineIterator: inout T, keyStringMap:KeyStringMap, reverse:Bool
+		elementMap map: inout ElementMap, parentElement:FlattenedElement, lineIterator: inout T, keyStringMap:KeyStringMap, reverse:Bool
 	) throws where T:IteratorProtocol, T.Element == FileBlock {
 		while let fileBlock = lineIterator.next() {
 			let element = FlattenedElement( fileBlock: fileBlock )
@@ -166,7 +168,7 @@ extension FlattenedElement {
 
 // MARK: BodyElement dump section
 extension FlattenedElement {
-	func dump( elementMap: [UIntID : FlattenedElement], classDataMap: ClassDataMap?, keyStringMap: KeyStringMap?, options: GraphDumpOptions ) -> String {
+	func dump( elementMap: ElementMap, classDataMap: ClassDataMap?, keyStringMap: KeyStringMap?, options: GraphDumpOptions ) -> String {
 		let level	= 0
 		var dump 	= ""
 		
@@ -177,7 +179,7 @@ extension FlattenedElement {
 		if elementMap.isEmpty == false {
 			dump.append( StringEncoder.titleString( "WHERE:", filler: "-") )
 			for (id,element) in elementMap {
-				dump.append( "# PTR\(id.format("04")) is:\n")
+				dump.append( "# PTR\(id.id.format("04")) is:\n")
 				dump.append( element.subdump( elementMap:elementMap, classDataMap: classDataMap, keyStringMap: keyStringMap, options:options, level: level ))
 			}
 		}
@@ -185,7 +187,7 @@ extension FlattenedElement {
 		return dump
 	}
 	
-	private func subdump( elementMap: [UIntID : FlattenedElement], classDataMap: ClassDataMap?, keyStringMap: KeyStringMap?, options: GraphDumpOptions, level:Int ) -> String {
+	private func subdump( elementMap: ElementMap, classDataMap: ClassDataMap?, keyStringMap: KeyStringMap?, options: GraphDumpOptions, level:Int ) -> String {
 		var dump = ""
 		
 		let string = fileBlock.description(

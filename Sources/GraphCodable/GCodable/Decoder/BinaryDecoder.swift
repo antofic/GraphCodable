@@ -22,11 +22,13 @@
 
 import Foundation
 
+typealias ClassInfoMap	= [TypeID:ClassInfo]
+
 struct BinaryDecoder {
 	let fileHeader			: FileHeader
-	let	classInfoMap		: [UIntID:ClassInfo]
+	let	classInfoMap		: ClassInfoMap
 	let rootElement 		: FlattenedElement
-	private var	elementMap	: [UIntID : FlattenedElement]
+	private var	elementMap	: ElementMap
 	
 	init<Q>( from bytes:Q ) throws where Q:Sequence, Q.Element==UInt8 {
 		var binaryDecoder	= try FileBlockDecoder( from: bytes )
@@ -44,7 +46,7 @@ struct BinaryDecoder {
 		)
 	}
 	
-	mutating func pop( objID:UIntID ) -> FlattenedElement? {
+	mutating func pop( objID:ObjID ) -> FlattenedElement? {
 		elementMap.removeValue( forKey: objID )
 	}
 	

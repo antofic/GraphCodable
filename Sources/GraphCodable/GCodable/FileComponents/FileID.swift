@@ -20,24 +20,43 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
-struct ReferenceMap {
-	private	var			currentId 		= TypeID()
-	private (set) var	classDataMap	= ClassDataMap()
-	private var			identifierMap	= [ObjectIdentifier: TypeID]()
-	
-	mutating func createTypeIDIfNeeded( type:(AnyObject & GEncodable).Type ) throws -> TypeID {
-		let objIdentifier	= ObjectIdentifier( type )
-		
-		if let typeID = identifierMap[ objIdentifier ] {
-			return typeID
-		} else {
-			let typeID = currentId
-			defer { currentId = typeID.next }
-			
-			classDataMap[ typeID ]	= try ClassData( type: type )
-			identifierMap[ objIdentifier ] = typeID
-			return typeID
-		}
+import Foundation
+
+protocol FileID: Hashable, BinaryIOType {
+	init( _ id:UIntID )
+	var id : UIntID { get }
+}
+
+extension FileID {
+	init() {
+		self.init( 1 )
+	}
+
+	init( from rbuffer:inout BinaryReadBuffer ) throws {
+		self.init( try UIntID.init(unpackFrom: &rbuffer) )
+	}
+
+	func write( to wbuffer:inout BinaryWriteBuffer ) throws {
+		// we pack ids to reduce file size
+		try id.write(packTo: &wbuffer)
+	}
+
+	var next : Self {
+		return Self( id + 1 )
 	}
 }
 
+struct ObjID : FileID {
+	var id: UIntID
+	init(_ id: UIntID) { self.id = id }
+}
+
+struct KeyID : FileID {
+	var id: UIntID
+	init(_ id: UIntID) { self.id = id }
+}
+
+struct TypeID : FileID {
+	var id: UIntID
+	init(_ id: UIntID) { self.id = id }
+}

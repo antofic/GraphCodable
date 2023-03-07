@@ -25,7 +25,7 @@
 struct FileHeader : CustomStringConvertible, BinaryIOType {
 	struct Flags : OptionSet {
 		let rawValue: UInt16
-		static let	packIndicies 		= Self( rawValue: 1 << 0 )
+		// flags for future use
 	}
 	
 	static var INITIAL_FILE_VERSION	: UInt32 { 0 }	// no more supported
@@ -49,13 +49,11 @@ struct FileHeader : CustomStringConvertible, BinaryIOType {
 	let unused0 : UInt16
 	let unused1 : UInt64
 	
-	var packIndicies : Bool { flags.contains( .packIndicies ) }
-	
 	var description: String {
-		"FILETYPE = \(HeaderID.gcodable) V\(version), U0 = \(unused0), U1 = \(unused1)"
+		"FILETYPE = \(HeaderID.gcodable) FLAGS = \(flags), V\(version), U0 = \(unused0), U1 = \(unused1)"
 	}
 	
-	init( version: UInt32 = CURRENT_FILE_VERSION, flags: Flags = [.packIndicies], unused0: UInt16 = 0, unused1: UInt64 = 0 ) {
+	init( version: UInt32 = CURRENT_FILE_VERSION, flags: Flags = [], unused0: UInt16 = 0, unused1: UInt64 = 0 ) {
 		self.version	= version	// Self.CURRENT_FILE_VERSION
 		self.flags		= flags
 		self.unused0	= unused0

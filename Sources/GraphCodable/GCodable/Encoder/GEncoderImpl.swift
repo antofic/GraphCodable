@@ -80,10 +80,8 @@ final class GEncoderImpl : FileBlockEncoderDelegate {
 	var keyStringMap: KeyStringMap 	{ keyMap.keyStringMap }
 	
 	init( _ options: GraphEncoder.Options ) {
-		self.encodeOptions			= options
-		self.fileHeader	= FileHeader(
-			flags: options.contains( .dontPackIndicies ) ? FileHeader.Flags() : .packIndicies
-		)
+		self.encodeOptions	= options
+		self.fileHeader		= FileHeader()
 	}
 
 	func encodeRoot<T,Q>( _ value: T ) throws -> Q where T:GEncodable, Q:MutableDataProtocol {
@@ -268,7 +266,7 @@ extension GEncoderImpl {
 		}
 	}
 	
-	private func createKeyID( key: String? ) throws -> UIntID? {
+	private func createKeyID( key: String? ) throws -> KeyID? {
 		if let key = key {
 			defer { currentKeys.insert( key ) }
 			if currentKeys.contains( key ) {
@@ -284,7 +282,7 @@ extension GEncoderImpl {
 		}
 	}
 	
-	private func createTypeIDIfNeeded( for value:GEncodable ) throws -> UIntID? {
+	private func createTypeIDIfNeeded( for value:GEncodable ) throws -> TypeID? {
 		if encodeOptions.contains( .disableInheritance ) {
 			return nil
 		}

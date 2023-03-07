@@ -20,44 +20,6 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
-protocol FileID: Hashable {
-	init( _ id:UIntID )
-	var id		: UIntID { get }
-}
-
-extension FileID {
-	init() {
-		self.init( 1 )
-	}
-	init( from rbuffer:inout BinaryReadBuffer, pack:Bool ) throws {
-		self.init( pack ? try UIntID.init(unpackFrom: &rbuffer) : try UIntID.init(from: &rbuffer) )
-	}
-	func write( to wbuffer:inout BinaryWriteBuffer, pack:Bool ) throws {
-		if pack {
-			try id.write(packTo: &wbuffer)
-		} else {
-			try id.write(to: &wbuffer)
-		}
-	}
-	var next : Self {
-		return Self( id + 1 )
-	}
-}
-
-struct ObjID : FileID {
-	var id: UIntID
-	init(_ id: UIntID) { self.id = id }
-}
-
-struct KeyID : FileID {
-	var id: UIntID
-	init(_ id: UIntID) { self.id = id }
-}
-
-struct TypeID : FileID {
-	var id: UIntID
-	init(_ id: UIntID) { self.id = id }
-}
 
 /// the body of a GCodable file is a sequence of FileBlock's
 enum FileBlock {
@@ -132,20 +94,20 @@ enum FileBlock {
 			return catEnd
 		}
 
-		static func Nil( keyID:UIntID? ) -> Self {
+		static func Nil( keyID:KeyID? ) -> Self {
 			var code	= catNil
 			if keyID	!= nil { code.formUnion( hasKeyID ) }
 			return code
 		}
 		
-		static func Ptr( keyID:UIntID?, objID:UIntID, conditional:Bool ) -> Self {
+		static func Ptr( keyID:KeyID?, objID:ObjID, conditional:Bool ) -> Self {
 			var code	= catPtr.union( hasObjID )
 			if keyID	!= nil { code.formUnion( hasKeyID ) }
 			if conditional { code.formUnion( Self.conditional ) }
 			return code
 		}
 		
-		static func  Val( keyID:UIntID?, typeID:UIntID?, objID:UIntID?, bytes:Bytes? ) -> Self {
+		static func  Val( keyID:KeyID?, typeID:TypeID?, objID:ObjID?, bytes:Bytes? ) -> Self {
 			var code	= catVal
 			if keyID	!= nil { code.formUnion( hasKeyID ) }
 			if typeID	!= nil { code.formUnion( hasTypeID ) }
@@ -156,14 +118,14 @@ enum FileBlock {
 	}
 	
 	case End
-	case Nil( keyID:UIntID? )
-	case Ptr( keyID:UIntID?, objID:UIntID, conditional:Bool )
-	case Val( keyID:UIntID?, typeID:UIntID?, objID:UIntID?, bytes:Bytes? )
+	case Nil( keyID:KeyID? )
+	case Ptr( keyID:KeyID?, objID:ObjID, conditional:Bool )
+	case Val( keyID:KeyID?, typeID:TypeID?, objID:ObjID?, bytes:Bytes? )
 }
 
 
 extension FileBlock {
-	var keyID : UIntID? {
+	var keyID : KeyID? {
 		switch self {
 		case .Nil( let keyID ):				return	keyID
 		case .Ptr( let keyID, _, _ ):		return	keyID
@@ -173,7 +135,7 @@ extension FileBlock {
 	}
 	
 	/*
-	var objID : UIntID? {
+	var objID : ObjID? {
 		switch self {
 		case .Ptr( _, let objID, _ ):		return	objID
 		case .Val( _, _, let objID, _ ):	return	objID
@@ -181,7 +143,7 @@ extension FileBlock {
 		}
 	}
 
-	var typeID : UIntID? {
+	var typeID : TypeID? {
 		switch self {
 		case .Val( _, let typeID,_ , _):	return	typeID
 		default:							return	nil
@@ -218,67 +180,46 @@ extension FileBlock {
 
 
 extension FileBlock {
-	static private func write( _ id:UIntID?, to wbuffer:inout BinaryWriteBuffer, pack:Bool ) throws {
-		if let id {
-			if pack {
-				try id.write(packTo: &wbuffer)
-			} else {
-				try id.write(to: &wbuffer)
-			}
-		}
-	}
-	
 	func write( to wbuffer: inout BinaryWriteBuffer, fileHeader:FileHeader ) throws {
-		let pack	= fileHeader.packIndicies
-
 		switch self {
 		case .End:
 			try Code.End().write(to: &wbuffer)
 		case .Nil( let keyID ):
 			try Code.Nil(keyID: keyID).write(to: &wbuffer)
-			try Self.write( keyID, to: &wbuffer, pack: pack)
+			try keyID?.write(to: &wbuffer)
 		case .Ptr( let keyID, let objID, let conditional ):
 			try Code.Ptr(keyID: keyID, objID: objID, conditional:conditional ).write(to: &wbuffer)
-			try Self.write( keyID, to: &wbuffer, pack: pack)
-			try Self.write( objID, to: &wbuffer, pack: pack)
+			try keyID?.write(to: &wbuffer)
+			try objID.write(to: &wbuffer)
 		case .Val( let keyID, let typeID, let objID, let bytes ):
 			try Code.Val(keyID: keyID, typeID: typeID, objID: objID, bytes: bytes).write(to: &wbuffer)
-			try Self.write( keyID, to: &wbuffer, pack: pack)
-			try Self.write( typeID, to: &wbuffer, pack: pack)
-			try Self.write( objID, to: &wbuffer, pack: pack)
+			try keyID?.write(to: &wbuffer)
+			try typeID?.write(to: &wbuffer)
+			try objID?.write(to: &wbuffer)
 			if let bytes	{ try bytes.write(to: &wbuffer) }
 		}
 	}
 }
 
 extension FileBlock {
-	static private func read( from rbuffer:inout BinaryReadBuffer, pack:Bool ) throws -> UIntID  {
-		if pack {
-			return try UIntID(unpackFrom: &rbuffer)
-		} else {
-			return try UIntID(from: &rbuffer)
-		}
-	}
-	
 	init(from rbuffer: inout BinaryReadBuffer, fileHeader:FileHeader ) throws {
 		let code	= try Code(from: &rbuffer)
-		let pack	= fileHeader.packIndicies
 		
 		switch try code.category {
 		case .End:
 			self	= .End
 		case .Nil:
-			let keyID	= code.hasKeyID ? try Self.read(from: &rbuffer, pack: pack) : nil
+			let keyID	= code.hasKeyID ? try KeyID(from: &rbuffer) : nil
 			self = .Nil(keyID: keyID)
 		case .Ptr:
-			let keyID	= code.hasKeyID	? try Self.read(from: &rbuffer, pack: pack) : nil
-			let objID	= try Self.read(from: &rbuffer, pack: pack)
+			let keyID	= code.hasKeyID	? try KeyID(from: &rbuffer) : nil
+			let objID	= try ObjID(from: &rbuffer)
 			self = .Ptr( keyID: keyID, objID: objID, conditional: code.isConditional )
 		case .Val:
-			let keyID	= code.hasKeyID	? try Self.read(from: &rbuffer, pack: pack) : nil
-			let typeID	= code.hasTypeID ? try Self.read(from: &rbuffer, pack: pack) : nil
-			let objID	= code.hasObjID	? try Self.read(from: &rbuffer, pack: pack) : nil
-			let bytes	= code.hasBytes	? try Bytes(from: &rbuffer) : nil
+			let keyID	= code.hasKeyID	?	try KeyID(from: &rbuffer) : nil
+			let typeID	= code.hasTypeID ?	try TypeID(from: &rbuffer) : nil
+			let objID	= code.hasObjID	?	try ObjID(from: &rbuffer) : nil
+			let bytes	= code.hasBytes	?	try Bytes(from: &rbuffer) : nil
 			self = .Val( keyID: keyID, typeID: typeID, objID: objID, bytes: bytes )
 		}
 	}
@@ -295,7 +236,7 @@ extension FileBlock : CustomStringConvertible {
 		classDataMap cdm:	ClassDataMap?,
 		keyStringMap ksm: 	KeyStringMap?
 	) -> String {
-		func typeName( _ typeID:UIntID, _ options:GraphDumpOptions, _ classDataMap:[UIntID:ClassData]? ) -> String {
+		func typeName( _ typeID:TypeID, _ options:GraphDumpOptions, _ classDataMap:ClassDataMap? ) -> String {
 			if let classData	= classDataMap?[typeID] {
 				if options.contains( .showReferenceVersion ) {
 					return "\(classData.readableTypeName) V\(classData.encodeVersion)"
@@ -303,7 +244,7 @@ extension FileBlock : CustomStringConvertible {
 					return classData.readableTypeName
 				}
 			} else {
-				return "TYPE\(typeID.format("04"))"
+				return "TYPE\(typeID.id.format("04"))"
 			}
 		}
 
@@ -319,12 +260,12 @@ extension FileBlock : CustomStringConvertible {
 			}
 		}
 		
-		func keyName( _ keyID:UIntID?, _ keyStringMap: [UIntID:String]? ) -> String {
+		func keyName( _ keyID:KeyID?, _ keyStringMap: KeyStringMap? ) -> String {
 			if let keyID {
 				if let key = keyStringMap?[keyID] {
 					return "+ \"\(key)\": "
 				} else {
-					return "+ KEY\(keyID.format("04")): "
+					return "+ KEY\(keyID.id.format("04")): "
 				}
 			} else {
 				return "- "
@@ -344,7 +285,7 @@ extension FileBlock : CustomStringConvertible {
 		case .Ptr( let keyID, let objID, let conditional ):
 			string.append( keyName( keyID, keyStringMap ) )
 			string.append( conditional ? "PTC" : "PTS" )
-			string.append( objID.format("04") )
+			string.append( objID.id.format("04") )
 		case .Val( let keyID, let typeID, let objID, let bytes ):
 			//	VAL			= []
 			//	BIV			= [bytes]
@@ -362,7 +303,7 @@ extension FileBlock : CustomStringConvertible {
 			case (true,  false)	: string.append( "REF" )	//	Codable reference
 			case (true,  true)	: string.append( "BIR" )	//	BinaryCodable reference
 			}
-			if let objID	{ string.append( objID.format("04") ) }
+			if let objID	{ string.append( objID.id.format("04") ) }
 			if let typeID	{ string.append( " \( typeName( typeID,options,classDataMap ) )") }
 			if let bytes {
 				if let binaryValue	{ string.append( " \( small( binaryValue, options ) )") }

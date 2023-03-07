@@ -26,7 +26,7 @@ final class TypeConstructor {
 	private var			binaryDecoder		: BinaryDecoder
 	private (set) var 	currentElement 		: FlattenedElement
 	private (set) var 	currentInfo 		: ClassInfo?
-	private var			objectRepository 	= [ UIntID :Any ]()
+	private var			objectRepository 	= [ ObjID: Any ]()
 	private var			setterRepository 	= [ () throws -> () ]()
 	
 	init( decodedData:BinaryDecoder ) {
@@ -133,7 +133,7 @@ final class TypeConstructor {
 // MARK: TypeConstructor private level 1
 extension TypeConstructor {
 	private func decodeAny<T>( element:FlattenedElement, from decoder:GDecoder, type:T.Type ) throws -> Any where T:GDecodable {
-		func decodeIdentifiable( type:T.Type, objID:UIntID, from decoder:GDecoder ) throws -> Any? {
+		func decodeIdentifiable( type:T.Type, objID:ObjID, from decoder:GDecoder ) throws -> Any? {
 			//	tutti gli oggetti (reference types) inizialmente si trovano in binaryDecoder
 			//	quando arriva la prima richiesta di un particolare oggetto (da objID)
 			//	lo costruiamo (se esiste) e lo mettiamo nell'objectRepository in modo
@@ -193,7 +193,7 @@ extension TypeConstructor {
 
 // MARK: TypeConstructor private level 2
 extension TypeConstructor {
-	private func decode<T>( type:T.Type, typeID:UIntID?, bytes: Bytes?, element:FlattenedElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
+	private func decode<T>( type:T.Type, typeID:TypeID?, bytes: Bytes?, element:FlattenedElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
 		if let typeID {
 			return try decodeRefOrBinRef( type:T.self, typeID:typeID , bytes:bytes, element:element, from: decoder )
 		} else if let bytes {
@@ -261,7 +261,7 @@ extension TypeConstructor {
 	}
 	
 	private func decodeRefOrBinRef<T>(
-		type:T.Type, typeID:UIntID, bytes: Bytes?, element:FlattenedElement, from decoder:GDecoder
+		type:T.Type, typeID:TypeID, bytes: Bytes?, element:FlattenedElement, from decoder:GDecoder
 	) throws -> T where T:GDecodable {
 		guard let classInfo = binaryDecoder.classInfoMap[ typeID ] else {
 			throw GCodableError.internalInconsistency(

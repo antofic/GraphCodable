@@ -43,27 +43,27 @@ struct AnyIdentifierMap {
 		}
 	}
 	
-	private	var actualId : UIntID	= 1
-	private var	strongObjDict		= [AnyIdentifier:UIntID]()
-	private var	weakObjDict			= [AnyIdentifier:UIntID]()
+	private	var actualId			= ObjID()
+	private var	strongObjDict		= [AnyIdentifier:ObjID]()
+	private var	weakObjDict			= [AnyIdentifier:ObjID]()
 	
-	func strongID<T:Hashable>( _ identifier: T ) -> UIntID? {
+	func strongID<T:Hashable>( _ identifier: T ) -> ObjID? {
 		strongObjDict[ AnyIdentifier(identifier) ]
 	}
 	
-	mutating func createWeakID<T:Hashable>( _ identifier: T ) -> UIntID {
+	mutating func createWeakID<T:Hashable>( _ identifier: T ) -> ObjID {
 		let box	= AnyIdentifier(identifier)
 		if let objID = weakObjDict[ box ] {
 			return objID
 		} else {
 			let objID = actualId
-			defer { actualId += 1 }
+			defer { actualId = objID.next }
 			weakObjDict[ box ] = objID
 			return objID
 		}
 	}
 	
-	mutating func createStrongID<T:Hashable>( _ identifier: T ) -> UIntID {
+	mutating func createStrongID<T:Hashable>( _ identifier: T ) -> ObjID {
 		let key	= AnyIdentifier(identifier)
 		if let objID = strongObjDict[ key ] {
 			return objID
@@ -76,7 +76,7 @@ struct AnyIdentifierMap {
 		} else {
 			// altrimenti creo uno nuovo
 			let objID = actualId
-			defer { actualId += 1 }
+			defer { actualId = objID.next }
 			strongObjDict[key] = objID
 			return objID
 		}

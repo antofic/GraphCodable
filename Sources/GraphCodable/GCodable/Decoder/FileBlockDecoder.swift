@@ -49,7 +49,7 @@ struct FileBlockDecoder {
 		return self._classDataMap!
 	}
 	
-	mutating func classInfoMap() throws -> [UIntID : ClassInfo] {
+	mutating func classInfoMap() throws -> ClassInfoMap {
 		try classDataMap().mapValues {  try ClassInfo(classData: $0)  }
 	}
 

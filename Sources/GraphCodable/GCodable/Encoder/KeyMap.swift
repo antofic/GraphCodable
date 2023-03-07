@@ -21,16 +21,16 @@
 //	SOFTWARE.
 
 struct KeyMap  {
-	private	var			currentId : UIntID	= 1
-	private (set) var	keyStringMap		= KeyStringMap()
-	private var			inverseMap			= [String: UIntID]()
+	private	var			currentId		= KeyID()
+	private (set) var	keyStringMap	= KeyStringMap()
+	private var			inverseMap		= [String: KeyID]()
 	
-	mutating func createKeyIDIfNeeded( key:String ) -> UIntID {
+	mutating func createKeyIDIfNeeded( key:String ) -> KeyID {
 		if let keyID = inverseMap[ key ] {
 			return keyID
 		} else {
 			let keyID = currentId
-			defer { currentId += 1 }
+			defer { currentId = keyID.next }
 			inverseMap[ key ]	= keyID
 			keyStringMap[ keyID ] = key
 			return keyID

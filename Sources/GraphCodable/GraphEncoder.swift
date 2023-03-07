@@ -65,7 +65,6 @@ extension GraphEncoder {
 			self.rawValue	= rawValue
 		}
 				
-		public static let	dontPackIndicies									= Self( rawValue: 1 << 0 )
 		///	Ignore the `GIdentifiable` protocol
 		///
 		/// By default, reference types have the automatic identity defined by
