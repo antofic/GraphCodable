@@ -89,7 +89,7 @@ extension FlattenedElement {
 	) throws where T:IteratorProtocol, T.Element == FileBlock {
 		
 		switch element.fileBlock {
-		case .Val( let keyID, let typeID, let objID, let bytes ):
+		case .Val( let keyID, let objID, let typeID, let bytes ):
 			if let objID {
 				//	l'oggetto non può trovarsi nella map
 				guard map.index(forKey: objID) == nil else {
@@ -105,7 +105,7 @@ extension FlattenedElement {
 				
 				//	e per l'oggetto dovrà andare a vedere nella map, in modo che si possano
 				//	beccare gli oggetti memorizzati dopo!
-				let root		= FlattenedElement( fileBlock: .Val(keyID: keyID, typeID: typeID, objID: objID, bytes: bytes) )
+				let root		= FlattenedElement( fileBlock: .Val(keyID: keyID, objID: objID, typeID: typeID, bytes: bytes) )
 				map[ objID ]	= root
 				if bytes == nil {	// ATT! NO subFlatten for BinValue's
 					try subFlatten(

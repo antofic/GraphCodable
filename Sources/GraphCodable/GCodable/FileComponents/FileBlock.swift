@@ -38,8 +38,8 @@ enum FileBlock {
 		private static let	catMask:		Self = [ b0,b1,b2 ]
 		private static let	catEnd:			Self = []
 		private static let	catNil:			Self = [ b0 ]
-		private static let	catVal:			Self = [ b1 ]
-		private static let	catPtr:			Self = [ b1, b0 ]
+		private static let	catPtr:			Self = [ b1 ]
+		private static let	catVal:			Self = [ b1, b0 ]
 		
 		private static let	hasKeyID:		Self = [ b3 ]		// catNil, catVal, catPtr
 		private static let	hasObjID:		Self = [ b4 ]		// catVal, catPtr
@@ -107,7 +107,7 @@ enum FileBlock {
 			return code
 		}
 		
-		static func  Val( keyID:KeyID?, typeID:TypeID?, objID:ObjID?, bytes:Bytes? ) -> Self {
+		static func  Val( keyID:KeyID?, objID:ObjID?, typeID:TypeID?, bytes:Bytes? ) -> Self {
 			var code	= catVal
 			if keyID	!= nil { code.formUnion( hasKeyID ) }
 			if typeID	!= nil { code.formUnion( hasTypeID ) }
@@ -120,7 +120,7 @@ enum FileBlock {
 	case End
 	case Nil( keyID:KeyID? )
 	case Ptr( keyID:KeyID?, objID:ObjID, conditional:Bool )
-	case Val( keyID:KeyID?, typeID:TypeID?, objID:ObjID?, bytes:Bytes? )
+	case Val( keyID:KeyID?, objID:ObjID?, typeID:TypeID?, bytes:Bytes? )
 }
 
 
@@ -133,19 +133,18 @@ extension FileBlock {
 		default:							return	nil
 		}
 	}
-	
-	/*
+/*
 	var objID : ObjID? {
 		switch self {
 		case .Ptr( _, let objID, _ ):		return	objID
-		case .Val( _, _, let objID, _ ):	return	objID
+		case .Val( _, let objID, _,  _ ):	return	objID
 		default:							return	nil
 		}
 	}
 
 	var typeID : TypeID? {
 		switch self {
-		case .Val( _, let typeID,_ , _):	return	typeID
+		case .Val( _, _ ,let typeID, _):	return	typeID
 		default:							return	nil
 		}
 	}
@@ -163,7 +162,7 @@ extension FileBlock {
 		default:							return	false
 		}
 	}
-	 */
+*/
 }
 
 extension FileBlock {
@@ -191,11 +190,11 @@ extension FileBlock {
 			try Code.Ptr(keyID: keyID, objID: objID, conditional:conditional ).write(to: &wbuffer)
 			try keyID?.write(to: &wbuffer)
 			try objID.write(to: &wbuffer)
-		case .Val( let keyID, let typeID, let objID, let bytes ):
-			try Code.Val(keyID: keyID, typeID: typeID, objID: objID, bytes: bytes).write(to: &wbuffer)
+		case .Val( let keyID,let objID,  let typeID, let bytes ):
+			try Code.Val(keyID: keyID, objID: objID, typeID: typeID, bytes: bytes).write(to: &wbuffer)
 			try keyID?.write(to: &wbuffer)
-			try typeID?.write(to: &wbuffer)
 			try objID?.write(to: &wbuffer)
+			try typeID?.write(to: &wbuffer)
 			if let bytes	{ try bytes.write(to: &wbuffer) }
 		}
 	}
@@ -217,10 +216,10 @@ extension FileBlock {
 			self = .Ptr( keyID: keyID, objID: objID, conditional: code.isConditional )
 		case .Val:
 			let keyID	= code.hasKeyID	?	try KeyID(from: &rbuffer) : nil
-			let typeID	= code.hasTypeID ?	try TypeID(from: &rbuffer) : nil
 			let objID	= code.hasObjID	?	try ObjID(from: &rbuffer) : nil
+			let typeID	= code.hasTypeID ?	try TypeID(from: &rbuffer) : nil
 			let bytes	= code.hasBytes	?	try Bytes(from: &rbuffer) : nil
-			self = .Val( keyID: keyID, typeID: typeID, objID: objID, bytes: bytes )
+			self = .Val( keyID: keyID, objID: objID, typeID: typeID, bytes: bytes )
 		}
 	}
 }
@@ -286,7 +285,7 @@ extension FileBlock : CustomStringConvertible {
 			string.append( keyName( keyID, keyStringMap ) )
 			string.append( conditional ? "PTC" : "PTS" )
 			string.append( objID.id.format("04") )
-		case .Val( let keyID, let typeID, let objID, let bytes ):
+		case .Val( let keyID, let objID, let typeID, let bytes ):
 			//	VAL			= []
 			//	BIV			= [bytes]
 			//	REF			= [typeID]

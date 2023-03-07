@@ -60,7 +60,7 @@ extension FileBlockEncoder {
 			bytes	= nil
 		}
 
-		try append( .Val(keyID: keyID, typeID:typeID, objID:objID, bytes: bytes), binaryValue:binaryValue  )
+		try append( .Val(keyID: keyID, objID:objID, typeID:typeID, bytes: bytes), binaryValue:binaryValue  )
 	}
 }
 

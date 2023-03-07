@@ -112,7 +112,7 @@ final class TypeConstructor {
 	
 	func decode<T>( element:FlattenedElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
 		switch element.fileBlock {
-		case .Val( _, let typeID, let objID, let bytes):
+		case .Val( _, let objID, let typeID, let bytes):
 			if objID == nil {
 				return try decode(type: T.self, typeID: typeID, bytes: bytes, element: element, from: decoder)
 			}
@@ -145,7 +145,7 @@ extension TypeConstructor {
 				return object
 			} else if let element = binaryDecoder.pop( objID: objID ) {
 				switch element.fileBlock {
-				case .Val( _, let typeID, let objID, let bytes):
+				case .Val( _, let objID, let typeID, let bytes):
 					if let objID {
 						let object	= try decode(type: T.self, typeID: typeID, bytes: bytes, element: element, from: decoder)
 						objectRepository[ objID ]	= object
