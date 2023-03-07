@@ -21,6 +21,7 @@
 //	SOFTWARE.
 
 final class StringEncoder : FileBlockEncoder {
+	
 	typealias			Output		= String
 	weak var			delegate	: FileBlockEncoderDelegate?
 	let					fileHeader	: FileHeader
@@ -98,6 +99,27 @@ final class StringEncoder : FileBlockEncoder {
 			
 			if case .enter = fileBlock.level { tabs?.append("\t") }
 		}
+	}
+	
+	func appendEnd() throws {
+		try append( .End, binaryValue:nil )
+	}
+	func appendNil( keyID:KeyID? ) throws {
+		try append( .Nil(keyID: keyID), binaryValue:nil )
+	}
+	func appendPtr( keyID:KeyID?, objID:ObjID, conditional:Bool ) throws {
+		try append( .Ptr(keyID: keyID,objID:objID, conditional:conditional ), binaryValue:nil )
+	}
+	func appendVal( keyID:KeyID?, typeID:TypeID?, objID:ObjID?, binaryValue:BinaryOType? ) throws {
+		let bytes	: Bytes?
+ 
+		if let binaryValue {
+			bytes	= try binaryValue.binaryData() as Bytes
+		} else {
+			bytes	= nil
+		}
+
+		try append( .Val(keyID: keyID, objID:objID, typeID:typeID, bytes: bytes), binaryValue:binaryValue  )
 	}
 	
 	func output() throws -> String {

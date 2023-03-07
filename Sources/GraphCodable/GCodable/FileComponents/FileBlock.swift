@@ -177,7 +177,7 @@ extension FileBlock {
 }
 
 extension FileBlock {
-	func write( to wbuffer: inout BinaryWriteBuffer, fileHeader:FileHeader ) throws {
+	private func write( to wbuffer: inout BinaryWriteBuffer, fileHeader:FileHeader ) throws {
 		switch self {
 		case .End:
 			try Code.End().write(to: &wbuffer)
@@ -195,6 +195,39 @@ extension FileBlock {
 			try typeID?.write(to: &wbuffer)
 			if let bytes	{ try bytes.write(to: &wbuffer) }
 		}
+	}
+	
+	static func writeEnd(
+		to wbuffer: inout BinaryWriteBuffer, fileHeader:FileHeader
+	) throws {
+		try Self.End.write(to: &wbuffer, fileHeader: fileHeader)
+	}
+
+	static func writeNil(
+		keyID:KeyID?,
+		to wbuffer: inout BinaryWriteBuffer, fileHeader:FileHeader
+	) throws {
+		try Self.Nil(
+			keyID: keyID
+		).write(to: &wbuffer, fileHeader: fileHeader)
+	}
+
+	static func writePtr(
+		keyID:KeyID?, objID:ObjID, conditional:Bool,
+		to wbuffer: inout BinaryWriteBuffer, fileHeader:FileHeader
+	) throws {
+		try Self.Ptr(
+			keyID: keyID, objID:objID, conditional: conditional
+		).write(to: &wbuffer, fileHeader: fileHeader)
+	}
+
+	static func writeVal(
+		keyID:KeyID?, objID:ObjID?, typeID:TypeID?, binaryValue:BinaryOType?,
+		to wbuffer: inout BinaryWriteBuffer, fileHeader:FileHeader
+	) throws {
+		try Self.Val(
+			keyID: keyID, objID:objID, typeID:typeID, bytes:try binaryValue?.binaryData()
+		).write(to: &wbuffer, fileHeader: fileHeader)
 	}
 }
 

@@ -32,7 +32,7 @@ protocol FileBlockEncoder : AnyObject {
 	
 	var delegate	: FileBlockEncoderDelegate? { get set }
 	
-	func append( _ fileBlock: FileBlock, binaryValue:BinaryOType? ) throws
+//	func append( _ fileBlock: FileBlock, binaryValue:BinaryOType? ) throws
 	func output() throws -> Output
 	
 	func appendEnd() throws
@@ -41,6 +41,7 @@ protocol FileBlockEncoder : AnyObject {
 	func appendVal( keyID:KeyID?, typeID:TypeID?, objID:ObjID?, binaryValue:BinaryOType? ) throws
 }
 
+/*
 extension FileBlockEncoder {
 	func appendEnd() throws {
 		try append( .End, binaryValue:nil )
@@ -63,5 +64,5 @@ extension FileBlockEncoder {
 		try append( .Val(keyID: keyID, objID:objID, typeID:typeID, bytes: bytes), binaryValue:binaryValue  )
 	}
 }
-
+*/
 
