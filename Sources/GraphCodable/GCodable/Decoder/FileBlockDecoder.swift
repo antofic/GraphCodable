@@ -22,13 +22,15 @@
 
 import Foundation
 
+typealias RFileBlocks		= [RFileBlock]
+
 struct FileBlockDecoder {
 	let 		fileHeader		: FileHeader
 	private	var sectionMap		: SectionMap
 	private var rbuffer			: BinaryReadBuffer
 
 	private var _classDataMap	: ClassDataMap?
-	private var _fileBlocks		: FileBlocks?
+	private var _fileBlocks		: RFileBlocks?
 	private var _keyStringMap	: KeyStringMap?
 
 	init( from readBuffer:BinaryReadBuffer ) throws {
@@ -52,15 +54,15 @@ struct FileBlockDecoder {
 		try classDataMap().mapValues {  try ClassInfo(classData: $0)  }
 	}
 
-	mutating func fileBlocks() throws -> FileBlocks {
+	mutating func rFileBlocks() throws -> RFileBlocks {
 		if let fileBlocks = self._fileBlocks { return fileBlocks }
 
 		let saveRegion	= try setReaderRegionTo(section: .body)
 		defer { rbuffer.currentRegion = saveRegion }
 
-		var fileBlocks	= [FileBlock]()
+		var fileBlocks	= [RFileBlock]()
 		while rbuffer.isEof == false {
-			fileBlocks.append( try FileBlock(from: &rbuffer, fileHeader: fileHeader) )
+			fileBlocks.append( try RFileBlock(from: &rbuffer, fileHeader: fileHeader) )
 		}
 		
 		self._fileBlocks	= fileBlocks

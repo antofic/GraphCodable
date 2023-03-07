@@ -199,7 +199,7 @@ extension FileBlock {
 }
 
 extension FileBlock {
-	init(from rbuffer: inout BinaryReadBuffer, fileHeader:FileHeader ) throws {
+	fileprivate init(from rbuffer: inout BinaryReadBuffer, fileHeader:FileHeader ) throws {
 		let code	= try Code(from: &rbuffer)
 		
 		switch try code.category {
@@ -221,6 +221,22 @@ extension FileBlock {
 		}
 	}
 }
+
+struct RFileBlock {
+	let fileBlock	: FileBlock
+	let position	: Int
+	
+	init(from rbuffer: inout BinaryReadBuffer, fileHeader:FileHeader ) throws {
+		self.fileBlock	= try FileBlock(from: &rbuffer, fileHeader: fileHeader)
+		self.position	= rbuffer.position
+	}
+	
+	init( fileBlock:FileBlock, position:Int ) {
+		self.fileBlock	= fileBlock
+		self.position	= position
+	}
+}
+
 
 extension FileBlock : CustomStringConvertible {
 	var description: String {

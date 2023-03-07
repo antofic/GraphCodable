@@ -56,7 +56,7 @@ final class TypeConstructor {
 		guard let element = currentElement.pop(key: key) else {
 			throw GCodableError.childNotFound(
 				Self.self, GCodableError.Context(
-					debugDescription: "Keyed child for key-\(key)- not found in \(currentElement.fileBlock)."
+					debugDescription: "Keyed child for key-\(key)- not found in \(currentElement.rFileBlock)."
 				)
 			)
 		}
@@ -68,7 +68,7 @@ final class TypeConstructor {
 		guard let element = currentElement.pop() else {
 			throw GCodableError.childNotFound(
 				Self.self, GCodableError.Context(
-					debugDescription: "Unkeyed child not found in \(currentElement.fileBlock)."
+					debugDescription: "Unkeyed child not found in \(currentElement.rFileBlock)."
 				)
 			)
 		}
@@ -111,7 +111,7 @@ final class TypeConstructor {
 	}
 	
 	func decode<T>( element:FlattenedElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
-		switch element.fileBlock {
+		switch element.rFileBlock.fileBlock {
 		case .Val( _, let objID, let typeID, let bytes):
 			if objID == nil {
 				return try decode(type: T.self, typeID: typeID, bytes: bytes, element: element, from: decoder)
@@ -144,7 +144,7 @@ extension TypeConstructor {
 			if let object = objectRepository[ objID ] {
 				return object
 			} else if let element = binaryDecoder.pop( objID: objID ) {
-				switch element.fileBlock {
+				switch element.rFileBlock.fileBlock {
 				case .Val( _, let objID, let typeID, let bytes):
 					if let objID {
 						let object	= try decode(type: T.self, typeID: typeID, bytes: bytes, element: element, from: decoder)
@@ -156,7 +156,7 @@ extension TypeConstructor {
 				}
 				throw GCodableError.internalInconsistency(
 					Self.self, GCodableError.Context(
-						debugDescription: "Inappropriate fileblock \(element.fileBlock) here."
+						debugDescription: "Inappropriate fileblock \(element.rFileBlock) here."
 					)
 				)
 			} else {
@@ -164,7 +164,7 @@ extension TypeConstructor {
 			}
 		}
 		
-		switch element.fileBlock {
+		switch element.rFileBlock.fileBlock {
 		case .Nil( _ ):
 			return Optional<Any>.none as Any
 		case .Ptr( _, let objID, let conditional ):
@@ -175,7 +175,7 @@ extension TypeConstructor {
 					throw GCodableError.decodingError(
 						Self.self, GCodableError.Context(
 							debugDescription:
-								"Value pointed from -\(element.fileBlock)- not found. Try deferDecode to break the cycle."
+								"Value pointed from -\(element.rFileBlock)- not found. Try deferDecode to break the cycle."
 						)
 					)
 				}
@@ -184,7 +184,7 @@ extension TypeConstructor {
 		default:	// .Struct & .Object are inappropriate here!
 			throw GCodableError.internalInconsistency(
 				Self.self, GCodableError.Context(
-					debugDescription: "Inappropriate fileblock \(element.fileBlock) here."
+					debugDescription: "Inappropriate fileblock \(element.rFileBlock) here."
 				)
 			)
 		}

@@ -24,7 +24,7 @@ import Foundation
 
 final class StringDecoder: FileBlockEncoderDelegate {
 	let fileHeader		: FileHeader
-	let fileBlocks		: FileBlocks
+	let rFileBlocks		: RFileBlocks
 	let classDataMap	: ClassDataMap
 	let keyStringMap	: KeyStringMap
 	let dumpOptions		: GraphDumpOptions
@@ -33,7 +33,7 @@ final class StringDecoder: FileBlockEncoderDelegate {
 		var binaryDecoder	= try FileBlockDecoder( from: readBuffer )
 		
 		self.fileHeader		= binaryDecoder.fileHeader
-		self.fileBlocks		= try binaryDecoder.fileBlocks()
+		self.rFileBlocks	= try binaryDecoder.rFileBlocks()
 		self.classDataMap	= try binaryDecoder.classDataMap()
 		self.keyStringMap	= try binaryDecoder.keyStringMap()
 		self.dumpOptions	= options
@@ -42,10 +42,10 @@ final class StringDecoder: FileBlockEncoderDelegate {
 	func dump() throws -> String {
 		let stringEncoder	= StringEncoder( fileHeader:fileHeader )
 		stringEncoder.delegate	= self
-		try fileBlocks.forEach { try stringEncoder.append($0, binaryValue: nil) }
+		try rFileBlocks.forEach { try stringEncoder.append($0.fileBlock, binaryValue: nil) }
 		if dumpOptions.contains( .showDecodedFlattenedBody ) {
 			let (rootElement,elementMap)	= try FlattenedElement.rootElement(
-				fileBlocks:		fileBlocks,
+				rFileBlocks:	rFileBlocks,
 				keyStringMap:	keyStringMap,
 				reverse:		true
 			)
