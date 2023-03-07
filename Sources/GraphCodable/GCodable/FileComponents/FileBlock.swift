@@ -22,7 +22,7 @@
 
 
 /// the body of a GCodable file is a sequence of FileBlock's
-enum FileBlock {
+enum FileBlock {	// size = 32 bytes
 	private struct Code: OptionSet {
 		let rawValue: UInt8
 		
@@ -175,8 +175,6 @@ extension FileBlock {
 		}
 	}
 }
-
-
 
 extension FileBlock {
 	func write( to wbuffer: inout BinaryWriteBuffer, fileHeader:FileHeader ) throws {

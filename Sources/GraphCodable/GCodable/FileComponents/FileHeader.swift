@@ -51,11 +51,11 @@ struct FileHeader : CustomStringConvertible, BinaryIOType {
 	
 	var description: String {
   """
-  - FILETYPE = '\(HeaderID.gcodable)' {\(MemoryLayout<HeaderID.RawValue>.size) bytes}
-  - VERSION  = \(version.format("10")) {\(MemoryLayout.size(ofValue: version)) bytes}
-  - FLAGS    = \(flags.rawValue.format("10",.X)) {\(MemoryLayout.size(ofValue: flags)) bytes}
-  - UNUSED0  = \(unused0.format("10",.X)) {\(MemoryLayout.size(ofValue: unused0)) bytes}
-  - UNUSED1  = \(unused1.format("10",.X)) {\(MemoryLayout.size(ofValue: unused1)) bytes}
+  - FILETYPE  = '\(HeaderID.gcodable)' {\(MemoryLayout<HeaderID.RawValue>.size) bytes}
+  - VERSION   = \(version.format("10")) {\(MemoryLayout.size(ofValue: version)) bytes}
+  - FLAGS     = \(flags.rawValue.format("10",.X)) {\(MemoryLayout.size(ofValue: flags)) bytes}
+  - UNUSED0   = \(unused0.format("10",.X)) {\(MemoryLayout.size(ofValue: unused0)) bytes}
+  - UNUSED1   = \(unused1.format("10",.X)) {\(MemoryLayout.size(ofValue: unused1)) bytes}
   """
 	}
 	
