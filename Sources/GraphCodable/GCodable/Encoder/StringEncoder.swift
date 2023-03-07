@@ -23,11 +23,15 @@
 final class StringEncoder : FileBlockEncoder {
 	typealias			Output		= String
 	weak var			delegate	: FileBlockEncoderDelegate?
-	let					fileHeader	= FileHeader()
+	let					fileHeader	: FileHeader
 	private var			dump		= String()
 	private var 		dumpStart	= false
 	private var 		tabs		: String?
-	
+
+	init( fileHeader: FileHeader ) {
+		self.fileHeader	= fileHeader
+	}
+
 	static func titleString( _ string: String, filler:Character = "=", lenght: Int = 66 ) -> String {
 		var title	= ""
 		if string.count > 0 {
@@ -64,7 +68,7 @@ final class StringEncoder : FileBlockEncoder {
 				if options.contains( .hideSectionTitles ) == false {
 					dump.append( Self.titleString( "BODY" ) )
 				}
-				tabs = options.contains( .dontIndentLevel ) ? nil : ""
+				tabs = options.contains( .dontIndent ) ? nil : ""
 			}
 		}
 	}

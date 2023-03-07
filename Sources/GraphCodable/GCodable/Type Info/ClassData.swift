@@ -22,6 +22,7 @@
 
 import Foundation
 
+
 struct ClassData : BinaryIOType, CustomStringConvertible {
 	let	readableTypeName:	String	// the TypeName Generated _typeName( type, qualified:true )
 	let	mangledTypeName:	String?	// the TypeName Generated _mangledTypeName( type )
@@ -43,6 +44,7 @@ struct ClassData : BinaryIOType, CustomStringConvertible {
 	}
 	
 	static private func constructType( mangledTypeName:String?, objcTypeName:String ) -> AnyClass? {
+		//	_typeByName( mangledTypeName ) is faster than NSClassFromString( objcTypeName )
 		if let mangledTypeName, let type = _typeByName( mangledTypeName ) as? AnyClass {
 			return type
 		} else {
@@ -50,15 +52,12 @@ struct ClassData : BinaryIOType, CustomStringConvertible {
 		}
 	}
 	
+	
 	init( type:(AnyObject & GEncodable).Type ) throws {
 		self.readableTypeName	= _typeName( type, qualified:true )
 		self.mangledTypeName 	= _mangledTypeName( type )
 		self.objcTypeName		= NSStringFromClass( type )
-		if let versionedType = type as? GVersion.Type {
-			self.encodeVersion		= versionedType.encodeVersion
-		} else {
-			self.encodeVersion		= 0
-		}
+		self.encodeVersion		= (type as? GVersion.Type)?.encodeVersion ?? 0
 		
 		guard Self.constructType(mangledTypeName: mangledTypeName, objcTypeName: objcTypeName ) != nil else {
 			throw GCodableError.cantConstructClass(
@@ -104,3 +103,4 @@ struct ClassData : BinaryIOType, CustomStringConvertible {
 		"\"\(readableTypeName)\" V\(encodeVersion) "
 	}
 }
+

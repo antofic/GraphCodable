@@ -22,14 +22,15 @@
 		- [Reference type replacement system](#Reference-type-replacement-system)
 	
 ## Premise
-GraphCodable is a Swift encode/decode package (similar to Codable at interface level) that does not treat reference types as second-class citizens. Indeed, it also offers for value types a possibility normally reserved only for reference types: that of taking into account their identity to avoid duplication of data during archiving and de-archiving.
+GraphCodable is a Swift encode/decode package (similar to Codable at interface level) that does not treat reference types as second-class citizens. Indeed, it also offers for value types a possibility normally reserved only for reference types: that of taking into account their identity to avoid duplication of data during encoding and decoding.
 
 GraphCodable was born as an experiment to understand if it is possible to write in Swift a library that offers for all Swift types the functions that NSCoder, NSKeyedArchiver and NSKeyedUnarchiver have for Objective-C types.
 
 The answer is basically yes and even with improvements in some cases.
 
-There remains a cumbersomeness that becomes apparent only when the data structure forms a *cyclic* graph. In this situation it is necessary to use a different method (`deferDecode`) instead of the usual one (`decode`) during dearchiving to "break" the cycle.
-This issue is related to the fact that if the reference type A contains a link to B and B a link to A, then in order to initialize A and B during dearchive it is necessary to partially initialize A or B and this is not allowed in Swift.
+There remains a cumbersomeness that becomes apparent only when the data structure forms a *cyclic* graph. In this situation it is necessary to use a different method (`deferDecode`) instead of the usual one (`decode`) to "break the cycle" and bring the decoding to a successful completion. This issue is related to the fact that if the reference type **A** contains a link to **B** and **B** a link to **A**, then in order to initialize **A** and **B** during decoding it is necessary to partially initialize **A** or **B** and this is not allowed in Swift.
+
+Also, GraphCodable cannot rely on compiler magic that allows Codable to encode and decode value types without writing code. In this regard, I intend to evaluate whether the next developments of the language (in particular, *reflection* and *macros*) will allow such "magic" to be implemented in GraphCodable.
 
 Graph Codable uses a very similar interface to Codable:
 
@@ -41,16 +42,16 @@ Graph Codable uses a very similar interface to Codable:
 GraphCodable does not use containers.
 
 However, it should be emphasized that GraphCodable is not meant to replace Codable, but rather to give all Swift types the functionality that NSCoder, NSKeyedArchiver and NSKeyedUnarchiver have in Objective-C.
-In other words, the intent of GraphCodable is not to serialize the data in some public format, but to archive and unarchive your "state" while preserving the real type of the references (**inheritance**) and the structure of the data (**identity**) regardless of its complexity, which Codable doesn't allow you to do.
+In other words, the intent of GraphCodable is not to serialize the data in some public format, but to encode and decode your "state" while preserving the real type of the references (**inheritance**) and the structure of the data (**identity**) regardless of its complexity, which Codable doesn't allow you to do.
 
-The purpose of GraphCodable is to get after dearchiving the same "thing" that was archived.
+**Ultimatelly, the purpose of GraphCodable is to get after decode the same "thing" that was encoded.**
 
-*What is meant by **inheritance** in relation to archiving/dearchiving?*
-Suppose `B : A` is a subclass of `A`. If we archive an array `[a,b]` containing one instance `a` of `A` and one instance `b` of `B` with Codable, after dearchiving we get an array containing two instances of `a`. This happens because Codable doesn't encode the type of the instance, and so when decoding it can only see the static type of the array, which is `[A]`, and infer that the array contains only instances of `A`.
+*What is meant by **inheritance** in relation to encoding/decoding?*
+Suppose `B : A` is a subclass of `A`. If we encode an array `[a,b]` containing one instance `a` of `A` and one instance `b` of `B` with Codable, after decoding we get an array containing two instances of `a`. This happens because Codable doesn't encode the type of the instance, and so when decoding it can only see the static type of the array, which is `[A]`, and infer that the array contains only instances of `A`.
 
-*What is meant by **identity** in relation to archiving/dearchiving?*
+*What is meant by **identity** in relation to encoding/decoding?*
 
-Suppose that `A` is a class. If we archive an array `[a,a]` containing two times the same instance `a` of `A`  (`(a === a) == true`) with Codable, after decoding we get an array containing two different instances `a` that not anymore share the same *ObjectIdentifier*  (`(a === a) == false`). 
+Suppose that `A` is a class. If we encode an array `[a,a]` containing two times the same instance `a` of `A`  (`(a === a) == true`) with Codable, after decoding we get an array containing two different instances `a` that not anymore share the same *ObjectIdentifier*  (`(a === a) == false`). 
 
 The consequences are more serious than they may appear: now suppose you have references connected as in the following diagram and that the program logic rely on tha fact that `c` is shared by `a` and `b`  so that if `a` changes `c`, `b` sees the change of `c`:
 
@@ -65,7 +66,7 @@ The consequences are more serious than they may appear: now suppose you have ref
  ╰───╯   ╰───╯
 ```
 
-Using Codable, after dearchiving we get:
+Using Codable, after decoding we get:
 
 ```
          ╭───╮
@@ -76,15 +77,15 @@ Using Codable, after dearchiving we get:
  ╰───╯   ╰───╯   ╰───╯
 ```
 
-Again, the original data structure is lost and furthermore an object has been duplicated, with what follows in terms of memory. This happens because Codable doesn't store the *identity* of the references. Now, for references it is essential that the data structure is preserved: after dearchiving the program logic is compromised if two objects are dearchived instead of one object. In GraphCodable, the identity of references is automatically derived from their *ObjectIdentifier*, although you can change this behavior.
+Again, the original data structure is lost and furthermore an object has been duplicated, with what follows in terms of memory. This happens because Codable doesn't store the *identity* of the references. Now, for references, it is essential that the data structure is preserved: after decoding the program logic is compromised if two objects are decoded instead of one object. In GraphCodable, the identity of references is automatically derived from their *ObjectIdentifier*, although you can change this behavior.
 
-The way value types behave, it makes no sense to talk about which data structure to preserve; conversely, in certain cases their duplication/multiplication can be problematic if they contain a large amount of data. For this reason, in analogy to the `Identifiable` system protocol, GraphCodable allows to define an identity for archiving and dearchiving also for value types (by default they don't have one), via the `GIdentifiable` protocol. Reference types can also make use of the `GIdentifiable`protocol where for some reason it is necessary to define an identity other than the one derived from *ObjectIdentifier*.
+The way value types behave, it makes no sense to talk about which data structure to preserve; conversely, in certain cases their duplication/multiplication can be problematic if they contain a large amount of data. For this reason, in analogy to the `Identifiable` system protocol, GraphCodable allows to define an identity for encoding and decoding also for value types (by default they don't have one), via the `GIdentifiable` protocol. Reference types can also make use of the `GIdentifiable`protocol where for some reason it is necessary to define an identity other than the one derived from *ObjectIdentifier*.
 
-Clarified that the purpose of the library is to <u>get after dearchiving the same "thing" that was archived</u>, the characteristics of GraphCodable are illustrated in the next paragraphs with simple but working examples that can be directly tested with copy and paste.
+Clarified that the purpose of the library is to <u>get after decoding the same "thing" that was encoded</u>, the characteristics of GraphCodable are illustrated in the next paragraphs with simple but working examples that can be directly tested with copy and paste.
 
 ## Supported system types
 
-GraphCodable natively supports most  types of Swift Standard Library, Foundation, SIMD and others. The full list is [here](/Docs/GraphCodableTypes.md). And so, to archive and dearchive these types you don't have to do anything. Just one example:
+GraphCodable natively supports most  types of Swift Standard Library, Foundation, SIMD and others. The full list is [here](/Docs/GraphCodableTypes.md). And so, to encode and decode these types you don't have to do anything. Just one example:
 
 ```swift
 import Foundation
@@ -147,7 +148,7 @@ let outRoot	= try GraphDecoder().decode( type(of:inRoot), from: data )
 print( outRoot == inRoot )	// prints: true
 ```
 You can check if a keyed value is present in the archive with `try decoder.contains(_ key:)` before decoding it.
-**Values are removed from the decoder as they are decoded**.
+**Note**: Values are removed from the decoder as they are decoded.
 
 ### Unkeyed coding
 The same example using unkeyed coding. With unkeyed coding you must decode values in the same order in which they are encoded.
@@ -194,7 +195,7 @@ let outRoot	= try GraphDecoder().decode( type(of:inRoot), from: data )
 print( outRoot == inRoot )	// prints: true
 ```
 It is also possible to mix keyed and unkeyed coding, as long as the unkeyed variables are decoded in the same order in which they were encoded.
-It is recommended that you use unkeyed coding not in cases like this, but rather when you need to store a single value or a sequence of values. The following example shows how array conformance is implemented in the GraphCodable package using unkeyed encode/decode:
+It is recommended that you use unkeyed coding not in cases like this, but rather when you need to encode only a single value or a sequence of values. The following example shows how array conformance is implemented in the GraphCodable package using unkeyed encode/decode:
 
 ```swift
 extension Array: GEncodable where Element:GEncodable {
@@ -216,13 +217,13 @@ extension Array: GDecodable where Element:GDecodable {
 	}
 }
 ```
-The `init( from:... )` method clearly shows that **values are removed from the decoder as they are decoded**.
+The `while decoder.unkeyedCount > 0 {…}` in the  `init( from:... )` method clearly shows that **values are removed from the decoder as they are decoded**.
 
 ### Inheritance
 
 Up to now the behavior of GraphCodable is similar to that of Codable. That changes with reference types. 
 
-Suppose `B : A` is a subclass of `A`. If we archive an array `[a,b]` containing one instance `a` of `A` and one instance `b` of `B` with Codable, after dearchiving we get an array containing two instances of `a`. This happens because Codable doesn't store the type of the instance, and so when dearchiving it can only see the static type of the array, which is `[A]`, and infer that the array contains only instances of `A`.
+Suppose `B : A` is a subclass of `A`. If we encode an array `[a,b]` containing one instance `a` of `A` and one instance `b` of `B` with Codable, after decoding we get an array containing two instances of `a`. This happens because Codable doesn't store the type of the instance, and so when decoding it can only see the static type of the array, which is `[A]`, and infer that the array contains only instances of `A`.
 
 GraphCodable **supports inheritance**: in other words, <u>the type of decoded reference always corresponds to the type of the encoded reference</u>, as you can see in the next example:
 
@@ -266,43 +267,39 @@ do {	// Codable
 }
 ```
 
-#### Inheritance control (advanced users)
+#### Disable inheritance
 
-**Very unlikely you will ever need to disable inheritance**, but just in case you can disable it:
+There are situations where it is necessary or desirable to **disable** inheritance:
 
-- by type, adopting the protocol with `GInheritance` protocol:
+- A **private** reference type cannot be decoded because it cannot be constructed from its type name. The encoder always checks if a type is constructible: if not, it throws an exception at runtime. You can also check whether a `GEncodable` reference type is constructible by calling the `supportsCodableInheritance` property.
+- If a reference type **is not part of a class hierarchy**, encoding its type name to support inheritance is unnecessary.
 
-  ```swift
-  public protocol GInheritance : AnyObject {
-  	var disableInheritance : Bool { get }
-  }
-  ```
-
-  Than, if in the above example you define:
-
-  ```swift
-  extension B: GInheritance {
-  	var disableInheritance: Bool { true }
-  }
-  ```
-
-  the encoder will not encode the class name of B and so when dearchiving you will get [A,A] even with GraphCodable.
-
-- globally, using the `.disableClassNames` option in the `GraphEncoder(  _ options: )` method:
-
-  ```swift
-  let data	= try GraphEncoder( .disableInheritance ).encode( inRoot ) as Bytes
-  ```
-
-Finally, you can choose to globally ignore the adoption of the `GInheritance` protocol using the `.ignoreGInheritanceProtocol` option:
+For cases like these, GraphCodable provides the `GInheritance` protocol:
 
 ```swift
-let data	= try GraphEncoder( .ignoreGInheritanceProtocol ).encode( inRoot ) as Bytes
+public protocol GInheritance : AnyObject {
+	var disableInheritance : Bool { get }
+}
 ```
 
-## Identity
+To disable inheritance it is therefore sufficient to adopt the `GInheritance` protocol and define the `disableInheritance` property so that it returns `true`:
 
-Suppose that `A` is a class. If we archive an array `[a,a]` containing two times the same instance `a` of `A`  (`(a === a) == true`) with Codable, after decoding we get an array containing two different instances `a` that not anymore share the same *ObjectIdentifier*  (`(a === a) == false`). 
+```swift
+extension MyReferenceType: GInheritance {
+	var disableInheritance: Bool { true }
+}
+```
+
+#### Control inheritance globally
+
+Some options in the `GraphEncoder(  _ options: )` method control inheritance **globally**, that is, they apply to all encoded reference types.
+
+- the `.disableInheritance` option disable inheritance for all reference types, regardless of protocol `GInheritance`;
+- the `.ignoreGInheritanceProtocol` option override the adoption of the `GInheritance` protocol and make the encoder ignore it.
+
+### Identity
+
+Suppose that `A` is a class. If we encode an array `[a,a]` containing two times the same instance `a` of `A`  (`(a === a) == true`) with Codable, after decoding we get an array containing two different instances `a` that not anymore share the same *ObjectIdentifier*  (`(a === a) == false`). 
 
 The consequences are more serious than they may appear: now suppose you have references connected as in the following diagram and that the program logic rely on tha fact that `c` is shared by `a` and `b`  so that if `a` changes `c`, `b` sees the change of `c`:
 
@@ -317,7 +314,7 @@ The consequences are more serious than they may appear: now suppose you have ref
  ╰───╯   ╰───╯
 ```
 
-Using Codable, after dearchiving we get:
+Using Codable, after decoding we get:
 
 ```
          ╭───╮
@@ -328,9 +325,9 @@ Using Codable, after dearchiving we get:
  ╰───╯   ╰───╯   ╰───╯
 ```
 
-Again, the original data structure is lost and furthermore an object has been duplicated, with what follows in terms of memory. This happens because Codable doesn't store the *identity* of the references. Now, for references it is essential that the data structure is preserved: after dearchiving the program logic is compromised if two objects are dearchived instead of one object. In GraphCodable, the identity of references is automatically derived from their *ObjectIdentifier*, although you can change this behavior.
+Again, the original data structure is lost and furthermore an object has been duplicated, with what follows in terms of memory. This happens because Codable doesn't store the *identity* of the references. Now, for references it is essential that the data structure is preserved: after decoding the program logic is compromised if two objects are decoded instead of one object. In GraphCodable, the identity of references is automatically derived from their *ObjectIdentifier*, although you can change this behavior.
 
-The way value types behave, it makes no sense to talk about which data structure to preserve; conversely, in certain cases their duplication/multiplication can be problematic if they contain a large amount of data. For this reason, in analogy to the `Identifiable` system protocol, GraphCodable allows to define an identity for archiving and dearchiving also for value types (by default they don't have one), via the `GIdentifiable` protocol. Reference types can also make use of the `GIdentifiable`protocol where for some reason it is necessary to define an identity other than the one derived from *ObjectIdentifier*.
+The way value types behave, it makes no sense to talk about which data structure to preserve; conversely, in certain cases their duplication/multiplication can be problematic if they contain a large amount of data. For this reason, in analogy to the `Identifiable` system protocol, GraphCodable allows to define an identity for encoding and decoding also for value types (by default they don't have one), via the `GIdentifiable` protocol. Reference types can also make use of the `GIdentifiable`protocol where for some reason it is necessary to define an identity other than the one derived from *ObjectIdentifier*.
 
 #### Reference types identity
 
@@ -393,11 +390,11 @@ do {	//	Codable
 }
 ```
 
-Note: Reference types can also make use of the `GIdentifiable`protocol (see the next chapter) where for some reason it is necessary to define an identity other than the one derived from *ObjectIdentifier* or to "undefine" their identity by make the  `gcodableID`  property return `nil`.
+**Note**: Reference types can also make use of the `GIdentifiable`protocol (see the next chapter) where for some reason it is necessary to define an identity other than the one derived from *ObjectIdentifier* or to "undefine" their identity by make the  `gcodableID`  property return `nil`.
 
 #### Value types identity
 
-Value types usually don't have an identity. In analogy to the `Identifiable` system protocol, GraphCodable allows to define an identity for archiving and dearchiving also for value types (by default they don't have one) adopting the `GIdentifiable` protocol:
+Value types usually don't have an identity. In analogy to the `Identifiable` system protocol, GraphCodable allows to define an identity for encoding and decoding also for value types (by default they don't have one) adopting the `GIdentifiable` protocol:
 
 ```swift
 public protocol GIdentifiable<GID> {
@@ -411,9 +408,9 @@ extension GIdentifiable where Self:Identifiable {
 
 ```
 
-Note: `gcodableID` automatically returns `id` if the type adopt the Identifiable protocol.
+**Note**: `gcodableID` automatically returns the `Identifiable.id` as `gcodableID` if the type adopt the `Identifiable` protocol. 
 
-A value type conforming to the `GIdentifiable` protocol acquires the same ability as reference types to not be duplicated during storage. See the next example:
+A value type conforming to the `GIdentifiable` protocol acquires the same ability as reference types to not be duplicated during encoding and decoding. See the next example:
 
 ```swift
 import Foundation
@@ -500,7 +497,7 @@ do {	//	Codable
 
 GraphCodable supports conditional encoding of <u>references and values with identity</u>:  `encodeConditional(...)` encodes the value/reference only if it is encoded unconditionally elsewhere in the payload (previously, or in the future).
 
-Note: Codable appears to be designed for conditional encoding in mind, but neither the JSONEncoder nor the PropertyListEncoder supports it.
+**Note**: Codable appears to be designed for conditional encoding in mind, but neither the JSONEncoder nor the PropertyListEncoder supports it. And it's not clear how it could, given that conditional storage is only possible for types with identities, which Codable doesn't support.
 
 This example uses references:
 
@@ -567,7 +564,7 @@ do {
 }
 ```
 
-The next example uses the value <u>with identity</u> `VeryLargeData` supposed to hold a large quantity of data. `A` contains  `VeryLargeData`  and encode it.  `B` optionally contains  `VeryLargeData`  and conditionally encode it. Finally, Model hold `A` optionally and `B`.
+The next example uses the value <u>with identity</u>. `A` contains  `VeryLargeData`  and encode it.  `B` optionally contains  `VeryLargeData`  and conditionally encode it. Finally, Model hold `A` optionally and `B`.
 
 ```swift
 import Foundation
@@ -700,11 +697,12 @@ outRoot.a == nil
 outRoot.b.data == nil 
 ```
 
-So, `b` encodes `data` conditionally. If `a`, which encodes `data` unconditionally, isn't encoded, `data` isn't encoded either.
+So, `b` encodes `data` conditionally. If `Model` don't encode  `a`, which encodes `data` unconditionally, `data` isn't encoded att all.
 
-#### Directed acyclic graphs
+#### Directed acyclic graphs (DAG)
 
-The variables that contain references realize **directed graphs**. ARC requires that strong variables do not create **directed cyclic graphs** (DCG) because the cycles prevent the release of memory. GraphCodable is capable of encoding and decoding **directed acyclic graphs** (DAG) without the need for any special treatment.
+Connections between reference types often create complex graphs where the same object "points" and "is pointed to" by many other objects. ARC, for example, requires that strong variables do not create **directed cyclic graphs** (DCG) because the cycles prevent the release of memory. The GraphCodable decoder implements an algorithm that allows it to **always** decode  **directed acyclic graphs** (DAG) without any special treatment of the variables to decode.
+
 The next example shows how GraphCodable encode and decode this [DAG](https://en.wikipedia.org/wiki/Directed_acyclic_graph#/media/File:Tred-G.svg) taken from this [Wikipedia page](https://en.wikipedia.org/wiki/Directed_acyclic_graph).
 
 ```
@@ -764,20 +762,6 @@ let c = Node("c")
 let d = Node("d")
 let e = Node("e")
 
-/// Wikipedia 'Tred-G.svg' graph:                
-///                        ╭───╮
-///          ┌────────────▶︎│ c │─────┐
-///          │             ╰───╯     │
-///          │               │       │
-///          │               ▼       ▼
-///        ╭───╮   ╭───╮   ╭───╮   ╭───╮
-/// root = │ a │──▶︎│ b │──▶︎│ d │──▶︎│ e │
-///        ╰───╯   ╰───╯   ╰───╯   ╰───╯
-///         │ │              ▲       ▲
-///         │ │              │       │
-///         │ └──────────────┘       │
-///         └────────────────────────┘
-
 a.connect( to: b, c, d, e )
 b.connect( to: d )
 c.connect( to: d, e )
@@ -834,15 +818,15 @@ GraphCodable decodes the original structure of the graph. Codable duplicates the
   └─────▶︎│ e │
          ╰───╯
 ```
-#### Directed cyclic graphs
+#### Directed cyclic graphs (DCG)
 
-What happens if you add a connection from **e** to **b** in the previous example?
+What happens if you add a connection from `e` to `b` in the previous example?
 - The graph become cyclic (DCG);
-- Your code leaks memory: ARC cannot release **e**, **b** and **d** because each retain the other;
+- Your code leaks memory: ARC cannot release `e`, `b` and `d` because each retain the other;
 - GraphCodable encodes it but generates an exception during decoding;
-- Codable EXC_BAD_ACCESS during encoding.
+- Codable generates an exception during encoding.
 
-Just like ARC cannot autamatically release **e**, **b** and **d** because each retain the other, GraphCodable cannot initialize **e**, **b** and **d** because the initialization of each of them requires that the other be initialized and Swift does not allow to exit from an init method without inizializing all variables. So, when GraphCodable during decode encounters a cycle that it cannot resolve, it throws an exception.
+Just like ARC cannot autamatically release `e`, `b` and d because each retain the other, GraphCodable cannot initialize `e`, `b` and `d` because the initialization of each of them requires that the other be initialized and Swift does not allow to exit from an init method without inizializing all variables. So, when GraphCodable during decode encounters a cycle that it cannot resolve, it throws an exception.
 
 ##### An example: weak variables
 One possible solution for ARC is to use weak variables.
@@ -961,9 +945,9 @@ print( outRoot === outRoot.childs.first?.childs.first?.parent?.parent! )	// prin
 
 ```
 ##### A more general example: elimination of ARC strong cycles
-Another possible workaround with ARC is to manually drop the strong cycles to allow for memory release. In the following example, the Model class contains a collection of Node classes by name in a dictionary. Each node contains an array of nodes it is connected to and may also be connected to itself. To prevent memory from ever being freed, Model's 'deinit' method calls 'removeConnections' for each node it owns. So we have a model where the array of connections in each Node to other Nodes generates reference cycles.
+Another possible workaround with ARC is to manually break the strong cycles to allow for memory release. In the following example, the Model class contains a collection of Node classes by name in a dictionary. Each node contains an array of nodes it is connected to and may also be connected to itself. To prevent memory from ever being freed, Model's `deinit` method calls `removeConnections` for each node it owns. So we have a model where the array of connections in each Node to other Nodes generates reference cycles.
 
-If `decode` is used for those connections, the dearchiving fails due to reference cycles. The solution, as the previous example, is to use `deferDecode` to decode the array:
+If `decode` is used for those connections, the decoding fails due to reference cycles. The solution, as the previous example, is to use `deferDecode` to decode the array:
 
 ```swift
 required init(from decoder: GDecoder) throws {
@@ -1097,37 +1081,226 @@ decoded Model:
 true 
 ```
 
+#### Identity for value types that use copy on write (COW)
 
+The following example demonstrates how to give identity to an *Array-like* type that implements the COW mechanism. The buffer (for simplicity a standard Array is used) is contained in a box reference so that it can be copied only when the box is shared by multiple arrays.
 
-#### Global Identity control (advanced users)
+```swift
+struct MyArray<Element> {
+	private final class RefBox<Element> {
+		var value : Element
+		
+		init( _ value:Element )  {
+			self.value	= value
+		}
+	}
+	
+	//	It's just an example, so let's use an Array
+  //	as internal buffer:
+	typealias	Buffer	= [Element]
+	private var box : RefBox<Buffer>
+	
+	init()  {
+		box	= RefBox( Buffer() )
+	}
+	
+	private mutating func updateCOW() {
+		if !isKnownUniquelyReferenced( &box ) {
+			box = RefBox( box.value )
+		}
+	}
+}
 
-Several options in the `GraphEncoder(  _ options: )` method control the behavior of Identity:
+extension MyArray : RandomAccessCollection, RangeReplaceableCollection {
+	var startIndex: Int					{ box.value.startIndex }
+	var endIndex: Int					{ box.value.endIndex }
+	func index(before i: Int) -> Int	{ box.value.index(before: i) }
+	func index(after i: Int) -> Int		{ box.value.index(after: i) }
+	
+	subscript(i: Int) -> Element {
+		get {
+			box.value[i]
+		}
+		set {
+			updateCOW()
+			box.value[i] = newValue
+		}
+	}
+	
+	mutating func replaceSubrange<C>(_ subrange: Range<Int>, with newElements: C)
+  where C : Collection, C.Element == Element {
+		updateCOW()
+		box.value.replaceSubrange(subrange, with: newElements)
+	}
+}
 
+extension MyArray : CustomStringConvertible {
+	var description: String	{
+		box.value.description
+	}
+}
 
+extension MyArray : Equatable where Element:Equatable {
+	static func == (lhs: MyArray, rhs: MyArray) -> Bool {
+		return lhs.box === rhs.box || lhs.box.value == rhs.box.value
+	}
+}
+```
 
-#### Identity for system types
+First of all, let's adopt the `GCodable` protocol:
 
-##### Array and ContiguousArray
+```swift
+extension MyArray: GCodable where Element:GCodable {
+	init(from decoder: GDecoder) throws {
+		box	= RefBox( try decoder.decode() )
+	}
+	func encode(to encoder: GEncoder) throws {
+		try encoder.encode( box.value )
+	}
+}
+```
 
-If you want to give identity to Array and ContiguosArray, avoiding their duplication, copy and paste this code:
+Let's see what happens by encoding a composition of MyArray and printing the result of the encoding in readable format.
+
+```swift
+let a 			= MyArray( [1,2] )
+let b			= MyArray( [a,a] )
+let inRoot		= MyArray( [b,b] )
+print("••• MYArray = \(inRoot) ")
+print( try GraphEncoder().dump( inRoot ) )
+```
+
+The output shows that the array `a ` has been encoded 4 times and that's not what we want:
+
+```
+••• MYArray = [[[1, 2], [1, 2]], [[1, 2], [1, 2]]] 
+== BODY ==========================================================
+- VAL
+	- VAL
+		- VAL
+			- VAL
+				- VAL
+					- BIV [1, 2]
+				.
+				- VAL
+					- BIV [1, 2]
+				.
+			.
+		.
+		- VAL
+			- VAL
+				- VAL
+					- BIV [1, 2]
+				.
+				- VAL
+					- BIV [1, 2]
+				.
+			.
+		.
+	.
+.
+==================================================================
+```
+
+The solution is to adopt the `GIdentifiable` protocol to give an identity to MyArray and the identity is obviously the *ObjectIdentifier* of the box.
+
+```swift
+extension MyArray: GIdentifiable {
+	var gcodableID: ObjectIdentifier? { return ObjectIdentifier(box) }
+}
+```
+
+The output becomes now:
+
+```
+••• MYArray = [[[1, 2], [1, 2]], [[1, 2], [1, 2]]] 
+== BODY ==========================================================
+- VAL0001
+	- VAL
+		- VAL0002
+			- VAL
+				- VAL0003
+					- BIV [1, 2]
+				.
+				- PTS0003
+			.
+		.
+		- PTS0002
+	.
+.
+==================================================================
+```
+
+Not only array `a` (VAL0003) is encoded only once, but array `b` (VAL0002) is also encoded once.
+
+##### Optimization for trivial types  (advanced users).
+
+You can streamline and speed up encoding/decoding of **trivial** types using the BinaryIO library (see the BinaryIO documentation). The first step is to adopt the `BinaryIOType` protocol:
+
+```swift
+extension MyArray: BinaryIOType where Element:BinaryIOType {
+	init(from rbuffer: inout BinaryReadBuffer) throws {
+		box	= RefBox( try Buffer(from: &rbuffer) )
+	}
+	
+	func write(to wbuffer: inout BinaryWriteBuffer) throws {
+		try box.value.write(to: &wbuffer)
+	}
+}
+```
+
+Next you need to specify when GraphCodable should use BinaryIO:
+
+```swift
+extension MyArray: GBinaryCodable where Element:GTrivialCodable {}
+```
+
+In essence we are telling the encoder that when the elements of `MyArray` are trivial (they adopt the `GTrivialCodable` protocol), the array can use BinaryIO. So a `GBinaryCodable` type **is** a `GCodable` type, but all its fields, elements, etc… are trivial, and therefore the encoder can use BinaryIO to encode them. The output becomes this:
+
+```
+••• MYArray = [[[1, 2], [1, 2]], [[1, 2], [1, 2]]] 
+== BODY ==========================================================
+- VAL0001
+	- VAL
+		- VAL0002
+			- VAL
+				- BIV0003 [1, 2]
+				- PTS0003
+			.
+		.
+		- PTS0002
+	.
+.
+==================================================================
+```
+
+GraphCodable marks commons trivial types with the dummy protocol `GTrivial` to speed up encoding and decoding. GraphCodable check during encoding if a value is really trivial with the function `_isPOD( _:)`; if not, the encoder generate an exception.
+
+If you have defined trivial types and want to take advantage of the functionality described, adopt the `GTrivial` or `GTrivialCodable` protocol for them.
+
+#### Identity for swift system value types that use copy on write (COW)
+
+Many swift system value types use the copy on write (COW) mechanism. Among these, the most common are `Array`, `ContiguousArray`, `Data`, `Set`, `Dictionary` and presumably `String`. Unfortunately, none of these types exposes the *ObjectIdentifier* of the reference type used as storage, otherwise it would be very simple to provide them with identities, exactly as it was done in the example of the previous paragraph with `MyArray`.
+
+In the case of `Array` and `ContiguousArray` it is possible to obtain the *ObjectIdentifier* of the internal storage with the following trick:
 
 ```swift
 extension Array : GIdentifiable where Element:GCodable {
-	public var gcodableID: ObjectIdentifier? {
+	var gcodableID: ObjectIdentifier? {
 		withUnsafeBytes { unsafeBitCast( $0.baseAddress, to: ObjectIdentifier?.self) }
 	}
 }
 
 extension ContiguousArray : GIdentifiable where Element:GCodable {
-	public var gcodableID: ObjectIdentifier? {
+	var gcodableID: ObjectIdentifier? {
 		withUnsafeBytes { unsafeBitCast( $0.baseAddress, to: ObjectIdentifier?.self) }
 	}
 }
 ```
 
-##### Strings
+While this appears to work, it's still a hack and therefore GraphCodable doesn't implement it. **Use it at your own risk.** Also, the exact same trick doesn't seem to work for `Data` at all, while a similar trick doesn't seem to be available for `Set`, `Dictionary`, and `String`.
 
-If you want to give identity to Strings, avoiding their duplication, copy and paste this code:
+Another possibility is to use the value **itself** as identifier, if it adopts the `Hashable` protocol. For example, with this code:
 
 ```swift
 extension String : GIdentifiable {
@@ -1137,9 +1310,28 @@ extension String : GIdentifiable {
 }
 ```
 
-### GraphCodable protocols
+each string (a string is `Hashable`) acquires its own self-defined identity, and all equal strings are encoded only once. However, care must be taken when using this method (or generalize it) because it involves checking potentially complex and large values for equality during encoding, which can slow down the procedure. This is very different from checking the equality of *ObjectIdentifiers* (which are 64bit values) or *UUIDs* (which are 128bit values).
 
-All GraphCodable protocols are defined [here](/Sources/GraphCodable/GraphCodable.swift).
+For this reason GraphCodable does not implement a *hashable-based* automatic identity for strings or any other type, although this is not a trick, and leaves that choice up to the user. However, it is possible to activate it with two options, as we will see in the next paragraph.
+
+#### Control identity globally
+
+Some options in the `GraphEncoder(  _ options: )` method control identity **globally**, that is, they apply to all encoded reference types.
+
+- the `.disableIdentity` option disable identity for all types, regardless of protocol `GIdentifiable` and any other options.
+
+If the `.disableIdentity` option is **not** set:
+
+- the `.ignoreGIdentifiableProtocol` option override the adoption of the `GIdentifiable` protocol and make the encoder ignore it. This implies that reference types will have the identity defined by their *ObjectIdentifier* and value types will have no identity;
+- the `.disableAutoObjectIdentifierIdentityForReferences` option prevents reference types from automatically receiving the identity defined by their *ObjectIdentifier* (they can receive it adopting the `GIdentifiable` protocol, like value types);
+- the `.tryHashableIdentityAtFirst` option causes all *hashable* types to use themselves as an identity. The other options only come into play if the types are not *hashable*;
+- the `.tryHashableIdentityAtLast` option causes all *hashable* types to use themselves as the identity if they haven't obtained an identity otherwise.
+
+You can use one of these last two options to check if and how expensive it actually is to employ an identity of *hashable* types based on their own value.
+
+It should be noted that if the two options  `.disableIdentity`  and `.disableInheritance` are used together, the GraphCodable encoder behaves exactly like the swift Codable one, ignoring inheritance and identity. These two options are collected together in `.mimicSwiftCodable`.
+
+**Note**: if a reference type adopt the the `GIdentifiable` protocol and `gcodableID` returns `nil`, the type don't receive an identity unless the `.ignoreGIdentifiableProtocol`  option is set.
 
 ### Other features
 #### UserInfo dictionary
@@ -1217,7 +1409,7 @@ class MyData :GCodable, CustomStringConvertible {
 		return 1
 	}
 	
-	// ...so that during the dearchive it can be distinguished from the old one:
+	// ...so that during the decode it can be distinguished from the old one:
 	required init(from decoder: GDecoder) throws {
 		let version = try decoder.encodedVersion
 		
@@ -1261,7 +1453,7 @@ print( outRoot2 )
 #### Reference type replacement system
 
 Now suppose we need to change the name from `MyData` to `MyNewData`.
-The problem is that there are already saved files in which objects of type MyData are stored and it is therefore necessary, during dearchiving, that objects of the new type MyNewData be created instead of these.
+The problem is that there are already saved files in which objects of type MyData are stored and it is therefore necessary, during decoding, that objects of the new type MyNewData be created instead of these.
 
 To achieve this you shouldn't eliminate MyData from your code, but rather remove all content and implement the GCodableObsolete protocol by indicating in the `replacementType` method that
 `MyNewData` replaces `MyData`.
@@ -1336,7 +1528,7 @@ let outRoot2	= try GraphDecoder().decode( MyNewData.self, from: GraphEncoder().e
 print( outRoot2 )
 // print: MyData(string: "3")
 ```
-Multiple classes can be replaced by only one if necessary: use `decoder.replacedType` to find out which one was replaced during dearchiving.
+Multiple classes can be replaced by only one if necessary: use `decoder.replacedType` to find out which one was replaced during decoding.
 
 Version and replacement system can be combined.
 

@@ -36,7 +36,7 @@ public struct GraphDumpOptions: OptionSet {
 	///	show file header
 	public static let	showKeyStringMap				= Self( rawValue: 1 << 3 )
 	///	indent the data
-	public static let	dontIndentLevel					= Self( rawValue: 1 << 4 )
+	public static let	dontIndent						= Self( rawValue: 1 << 4 )
 	///	in Body / Flattended Body section, resolve typeIDs in typeNames
 	public static let	resolveTypeIDs					= Self( rawValue: 1 << 5 )
 	///	in Body / Flattended Body section, resolve keyIDs in keyNames

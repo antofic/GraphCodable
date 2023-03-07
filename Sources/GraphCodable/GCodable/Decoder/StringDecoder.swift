@@ -40,7 +40,7 @@ final class StringDecoder: FileBlockEncoderDelegate {
 	}
 	
 	func dump() throws -> String {
-		let stringEncoder	= StringEncoder()
+		let stringEncoder	= StringEncoder( fileHeader:fileHeader )
 		stringEncoder.delegate	= self
 		try fileBlocks.forEach { try stringEncoder.append($0, binaryValue: nil) }
 		if dumpOptions.contains( .showDecodedFlattenedBody ) {

@@ -23,6 +23,11 @@
 
 ///	FileHeader: the 24 bytes fixed size header of every gcodable file
 struct FileHeader : CustomStringConvertible, BinaryIOType {
+	struct Flags : OptionSet {
+		let rawValue: UInt16
+		static let	packIndicies 		= Self( rawValue: 1 << 0 )
+	}
+	
 	static var INITIAL_FILE_VERSION	: UInt32 { 0 }	// no more supported
 	static var VALUEID_FILE_VERSION	: UInt32 { 1 }	// no more supported
 	static var RMUNUS2_FILE_VERSION	: UInt32 { 2 }	// no more supported
@@ -40,17 +45,21 @@ struct FileHeader : CustomStringConvertible, BinaryIOType {
 	}
 
 	let version : UInt32
-	let unused0 : UInt32
+	let flags	: Flags
+	let unused0 : UInt16
 	let unused1 : UInt64
+	
+	var packIndicies : Bool { flags.contains( .packIndicies ) }
 	
 	var description: String {
 		"FILETYPE = \(HeaderID.gcodable) V\(version), U0 = \(unused0), U1 = \(unused1)"
 	}
 	
-	init( version: UInt32 = CURRENT_FILE_VERSION, unused0: UInt32 = 0, unused1: UInt64 = 0 ) {
-		self.version = version	// Self.CURRENT_FILE_VERSION
-		self.unused0 = unused0
-		self.unused1 = unused1
+	init( version: UInt32 = CURRENT_FILE_VERSION, flags: Flags = [.packIndicies], unused0: UInt16 = 0, unused1: UInt64 = 0 ) {
+		self.version	= version	// Self.CURRENT_FILE_VERSION
+		self.flags		= flags
+		self.unused0	= unused0
+		self.unused1	= unused1
 	}
 
 	private enum ObsoleteCode : UInt8, BinaryIOType {
@@ -71,7 +80,8 @@ struct FileHeader : CustomStringConvertible, BinaryIOType {
 			}
 			
 			self.version	= try UInt32	( from: &rbuffer )
-			self.unused0	= try UInt32	( from: &rbuffer )
+			self.flags		= try Flags		( from: &rbuffer )
+			self.unused0	= try UInt16	( from: &rbuffer )
 			self.unused1	= try UInt64	( from: &rbuffer )
 			if version < Self.RMUNUS2_FILE_VERSION {
 				_	= try UInt8( from: &rbuffer )	// removed unused2 from SECTION_FILE_VERSION
@@ -96,6 +106,7 @@ struct FileHeader : CustomStringConvertible, BinaryIOType {
 	func write(to wbuffer: inout BinaryWriteBuffer) throws {
 		try HeaderID.gcodable.write(to: &wbuffer)
 		try version.write(to: &wbuffer)
+		try flags.write(to: &wbuffer)
 		try unused0.write(to: &wbuffer)
 		try unused1.write(to: &wbuffer)
 	}

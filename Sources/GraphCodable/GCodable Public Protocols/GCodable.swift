@@ -32,7 +32,7 @@ public protocol GEncodable {
 
 extension GEncodable where Self:AnyObject {
 	/// It depends on the ability to be constructed from its type name.
-	public static var supportsCodable: Bool {
+	public static var supportsCodableInheritance: Bool {
 		ClassData.isConstructible( type:self )
 	}
 }
