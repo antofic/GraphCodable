@@ -50,11 +50,17 @@ struct FileHeader : CustomStringConvertible, BinaryIOType {
 	let unused1 : UInt64
 	
 	var description: String {
-		"FILETYPE = \(HeaderID.gcodable) FLAGS = \(flags), V\(version), U0 = \(unused0), U1 = \(unused1)"
+  """
+  - FILETYPE = '\(HeaderID.gcodable)' {\(MemoryLayout<HeaderID.RawValue>.size) bytes}
+  - VERSION  = \(version.format("10")) {\(MemoryLayout.size(ofValue: version)) bytes}
+  - FLAGS    = \(flags.rawValue.format("10",.X)) {\(MemoryLayout.size(ofValue: flags)) bytes}
+  - UNUSED0  = \(unused0.format("10",.X)) {\(MemoryLayout.size(ofValue: unused0)) bytes}
+  - UNUSED1  = \(unused1.format("10",.X)) {\(MemoryLayout.size(ofValue: unused1)) bytes}
+  """
 	}
 	
 	init( version: UInt32 = CURRENT_FILE_VERSION, flags: Flags = [], unused0: UInt16 = 0, unused1: UInt64 = 0 ) {
-		self.version	= version	// Self.CURRENT_FILE_VERSION
+		self.version	= version
 		self.flags		= flags
 		self.unused0	= unused0
 		self.unused1	= unused1

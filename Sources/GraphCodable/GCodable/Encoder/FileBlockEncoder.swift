@@ -53,7 +53,7 @@ extension FileBlockEncoder {
 	}
 	func appendVal( keyID:KeyID?, typeID:TypeID?, objID:ObjID?, binaryValue:BinaryOType? ) throws {
 		let bytes	: Bytes?
-
+ 
 		if let binaryValue {
 			bytes	= try binaryValue.binaryData() as Bytes
 		} else {

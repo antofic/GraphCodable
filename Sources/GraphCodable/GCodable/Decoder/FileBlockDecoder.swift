@@ -38,13 +38,14 @@ struct FileBlockDecoder {
 	}
 	
 	mutating func classDataMap() throws -> ClassDataMap {
-		if let classMap = self._classDataMap { return classMap }
+		if let classDataMap = self._classDataMap { return classDataMap }
 		
 		let saveRegion	= try setReaderRegionTo(section: .classDataMap)
 		defer { rbuffer.currentRegion = saveRegion }
 
-		self._classDataMap	= try ClassDataMap(from: &rbuffer)
-		return self._classDataMap!
+		let classDataMap	= try ClassDataMap(from: &rbuffer)
+		self._classDataMap	= classDataMap
+		return classDataMap
 	}
 	
 	mutating func classInfoMap() throws -> ClassInfoMap {
@@ -69,18 +70,19 @@ struct FileBlockDecoder {
 	mutating func keyStringMap() throws -> KeyStringMap {
 		if let keyStringMap = self._keyStringMap { return keyStringMap }
 
-		let saveRegion	= try setReaderRegionTo(section: .keyStringMap)
+		let saveRegion		= try setReaderRegionTo(section: .keyStringMap)
 		defer { rbuffer.currentRegion = saveRegion }
 		
-		self._keyStringMap	= try KeyStringMap(from: &rbuffer)
-		return self._keyStringMap!
+		let keyStringMap 	= try KeyStringMap(from: &rbuffer)
+		self._keyStringMap	= keyStringMap
+		return keyStringMap
 	}
 	
 	private mutating func setReaderRegionTo( section:FileSection ) throws -> Range<Int> {
 		guard let range = sectionMap[ section ] else {
 			throw GCodableError.decodingError(
 				Self.self, GCodableError.Context(
-					debugDescription: "fileRange not found while body parsing."
+					debugDescription: "File section \(section) not found."
 				)
 			)
 		}
