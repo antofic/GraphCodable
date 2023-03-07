@@ -26,8 +26,8 @@ struct ClassNamesDecoder {
 	let fileHeader				: FileHeader
 	let	classDataMap			: ClassDataMap
 	
-	init<Q>( from data:Q ) throws where Q:Sequence, Q.Element==UInt8 {
-		var binaryDecoder	= try FileBlockDecoder( from: data )
+	init( from readBuffer:BinaryReadBuffer ) throws {
+		var binaryDecoder	= try FileBlockDecoder( from: readBuffer )
 		fileHeader			= binaryDecoder.fileHeader
 		classDataMap		= try binaryDecoder.classDataMap()
 	}

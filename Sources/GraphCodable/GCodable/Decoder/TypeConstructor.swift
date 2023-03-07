@@ -29,11 +29,11 @@ final class TypeConstructor {
 	private var			objectRepository 	= [ ObjID: Any ]()
 	private var			setterRepository 	= [ () throws -> () ]()
 	
-	init( decodedData:BinaryDecoder ) {
-		self.binaryDecoder	= decodedData
-		self.currentElement	= decodedData.rootElement
+	init( readBuffer:BinaryReadBuffer ) throws {
+		self.binaryDecoder	= try BinaryDecoder(from: readBuffer)
+		self.currentElement	= binaryDecoder.rootElement
 	}
-	
+
 	func decodeRoot<T>( _ type: T.Type, from decoder:GDecoder ) throws -> T where T:GDecodable {
 		let rootBlock	= currentElement
 		let value : T	= try decode( element:rootBlock, from: decoder )

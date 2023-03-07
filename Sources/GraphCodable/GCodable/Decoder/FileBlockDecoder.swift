@@ -31,14 +31,12 @@ struct FileBlockDecoder {
 	private var _fileBlocks		: FileBlocks?
 	private var _keyStringMap	: KeyStringMap?
 
-	init<Q>( from data:Q ) throws where Q:Sequence, Q.Element==UInt8 {
-		var rbuffer 	= BinaryReadBuffer(data: data)
-
+	init( from readBuffer:BinaryReadBuffer ) throws {
+		self.rbuffer		= readBuffer
 		self.fileHeader		= try FileHeader( from: &rbuffer )
 		self.sectionMap		= try type(of:sectionMap).init(from: &rbuffer)
-		self.rbuffer		= rbuffer
 	}
-
+	
 	mutating func classDataMap() throws -> ClassDataMap {
 		if let classMap = self._classDataMap { return classMap }
 		

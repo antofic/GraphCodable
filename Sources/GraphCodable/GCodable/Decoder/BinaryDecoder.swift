@@ -30,8 +30,8 @@ struct BinaryDecoder {
 	let rootElement 		: FlattenedElement
 	private var	elementMap	: ElementMap
 	
-	init<Q>( from bytes:Q ) throws where Q:Sequence, Q.Element==UInt8 {
-		var binaryDecoder	= try FileBlockDecoder( from: bytes )
+	init( from readBuffer:BinaryReadBuffer ) throws {
+		var binaryDecoder	= try FileBlockDecoder( from: readBuffer )
 		let fileHeader		= binaryDecoder.fileHeader
 		let fileBlocks		= try binaryDecoder.fileBlocks()
 		let classInfoMap	= try binaryDecoder.classInfoMap()

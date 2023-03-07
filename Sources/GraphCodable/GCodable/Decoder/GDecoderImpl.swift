@@ -26,7 +26,8 @@ final class GDecoderImpl {
 	
 	func allClassData<Q>( from data: Q ) throws -> [ClassData]
 	where Q:Sequence, Q.Element==UInt8 {
-		let decodedNames		= try ClassNamesDecoder(from: data)
+		let readBuffer 		= BinaryReadBuffer(data: data)
+		let decodedNames	= try ClassNamesDecoder(from: readBuffer)
 		
 		return Array( decodedNames.classDataMap.values )
 	}
@@ -35,14 +36,18 @@ final class GDecoderImpl {
 	where T:GDecodable, Q:Sequence, Q.Element==UInt8 {
 		defer { constructor = nil }
 		
-		constructor	= TypeConstructor(decodedData: try BinaryDecoder( from: data ))
+		let readBuffer = BinaryReadBuffer(data: data)
+		constructor	= try TypeConstructor( readBuffer: readBuffer )
 		
 		return try constructor.decodeRoot(type, from: self)
 	}
 	
 	func dumpRoot<Q>( from data: Q, options: GraphDumpOptions ) throws -> String
 	where Q:Sequence, Q.Element==UInt8 {
-		let decodedDump	= try StringDecoder(from: data, options: options)
+		
+		let readBuffer = BinaryReadBuffer(data: data)
+
+		let decodedDump	= try StringDecoder(from: readBuffer, options: options)
 		
 		return try decodedDump.dump()
 	}

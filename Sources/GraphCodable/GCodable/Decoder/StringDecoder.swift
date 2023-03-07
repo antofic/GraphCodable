@@ -29,8 +29,8 @@ final class StringDecoder: FileBlockEncoderDelegate {
 	let keyStringMap	: KeyStringMap
 	let dumpOptions		: GraphDumpOptions
 	
-	init<Q>( from bytes:Q, options:GraphDumpOptions ) throws where Q:Sequence, Q.Element==UInt8 {
-		var binaryDecoder	= try FileBlockDecoder( from: bytes )
+	init( from readBuffer:BinaryReadBuffer, options:GraphDumpOptions ) throws {
+		var binaryDecoder	= try FileBlockDecoder( from: readBuffer )
 		
 		self.fileHeader		= binaryDecoder.fileHeader
 		self.fileBlocks		= try binaryDecoder.fileBlocks()
@@ -38,7 +38,7 @@ final class StringDecoder: FileBlockEncoderDelegate {
 		self.keyStringMap	= try binaryDecoder.keyStringMap()
 		self.dumpOptions	= options
 	}
-	
+
 	func dump() throws -> String {
 		let stringEncoder	= StringEncoder( fileHeader:fileHeader )
 		stringEncoder.delegate	= self
