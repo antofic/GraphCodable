@@ -89,7 +89,7 @@ extension FlattenedElement {
 	) throws where T:IteratorProtocol, T.Element == RFileBlock {
 		
 		switch element.rFileBlock.fileBlock {
-		case .Val( let keyID, let objID, let typeID, let bytes ):
+		case .Val( let keyID, let objID, let typeID, let isBinary ):
 			if let objID {
 				//	l'oggetto non può trovarsi nella map
 				guard map.index(forKey: objID) == nil else {
@@ -99,6 +99,11 @@ extension FlattenedElement {
 						)
 					)
 				}
+				let root = FlattenedElement( rFileBlock: element.rFileBlock )
+				element.rFileBlock	= RFileBlock(fileBlock: .Ptr( keyID: keyID, objID: objID, conditional: false ), position: 0)
+				map[ objID ]	= root
+				
+				/*
 				//	trasformo l'oggetto in uno strong pointer
 				//	così la procedura di lettura incontrerà quello al posto dell'oggetto
 				let position		= element.rFileBlock.position
@@ -108,18 +113,20 @@ extension FlattenedElement {
 				//	beccare gli oggetti memorizzati dopo!
 				let root		= FlattenedElement(
 					rFileBlock: RFileBlock(
-						fileBlock: .Val(keyID: keyID, objID: objID, typeID: typeID, bytes: bytes),
+						fileBlock: .Val(keyID: keyID, objID: objID, typeID: typeID, isBinary: isBinary),
 						position: position
 					)
 				)
 				map[ objID ]	= root
-				if bytes == nil {	// ATT! NO subFlatten for BinValue's
+				*/
+				
+				if isBinary == false {	// ATT! NO subFlatten for BinValue's
 					try subFlatten(
 						elementMap: &map, parentElement:root, lineIterator:&lineIterator,
 						keyStringMap:keyStringMap, reverse:reverse
 					)
 				}
-			} else if bytes == nil {	// ATT! NO subFlatten for BinValue's
+			} else if isBinary == false {	// ATT! NO subFlatten for BinValue's
 				try subFlatten(
 					elementMap: &map, parentElement:element, lineIterator:&lineIterator,
 					keyStringMap:keyStringMap, reverse:reverse

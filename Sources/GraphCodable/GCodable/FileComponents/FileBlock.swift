@@ -44,7 +44,7 @@ enum FileBlock {	// size = 32 bytes
 		private static let	hasKeyID:		Self = [ b3 ]		// catNil, catVal, catPtr
 		private static let	hasObjID:		Self = [ b4 ]		// catVal, catPtr
 		private static let	hasTypeID:		Self = [ b5 ]		// catVal
-		private static let	hasBytes:		Self = [ b6 ]		// catVal
+		private static let	isBinary:		Self = [ b6 ]		// catVal
 		
 		private static let	conditional:	Self = hasTypeID	// conditional (!= hasObjID,hasKeyID )
 		
@@ -75,7 +75,7 @@ enum FileBlock {	// size = 32 bytes
 		var hasKeyID		: Bool { self.contains( Self.hasKeyID ) }
 		var hasObjID		: Bool { self.contains( Self.hasObjID ) }
 		var hasTypeID		: Bool { self.contains( Self.hasTypeID ) }
-		var hasBytes		: Bool { self.contains( Self.hasBytes ) }
+		var isBinary		: Bool { self.contains( Self.isBinary ) }
 		var isConditional	: Bool { self.contains( Self.conditional ) }
 	
 		//	-----------------------------------------------------------------------
@@ -107,12 +107,12 @@ enum FileBlock {	// size = 32 bytes
 			return code
 		}
 		
-		static func  Val( keyID:KeyID?, objID:ObjID?, typeID:TypeID?, bytes:Bytes? ) -> Self {
+		static func  Val( keyID:KeyID?, objID:ObjID?, typeID:TypeID?, isBinary bin:Bool ) -> Self {
 			var code	= catVal
-			if keyID	!= nil { code.formUnion( hasKeyID ) }
-			if typeID	!= nil { code.formUnion( hasTypeID ) }
-			if objID	!= nil { code.formUnion( hasObjID ) }
-			if bytes	!= nil { code.formUnion( hasBytes ) }
+			if keyID	!= nil	{ code.formUnion( hasKeyID ) }
+			if typeID	!= nil	{ code.formUnion( hasTypeID ) }
+			if objID	!= nil	{ code.formUnion( hasObjID ) }
+			if bin				{ code.formUnion( isBinary ) }
 			return code
 		}
 	}
@@ -120,7 +120,7 @@ enum FileBlock {	// size = 32 bytes
 	case End
 	case Nil( keyID:KeyID? )
 	case Ptr( keyID:KeyID?, objID:ObjID, conditional:Bool )
-	case Val( keyID:KeyID?, objID:ObjID?, typeID:TypeID?, bytes:Bytes? )
+	case Val( keyID:KeyID?, objID:ObjID?, typeID:TypeID?, isBinary:Bool )
 }
 
 
@@ -137,21 +137,14 @@ extension FileBlock {
 	var objID : ObjID? {
 		switch self {
 		case .Ptr( _, let objID, _ ):		return	objID
-		case .Val( _, let objID, _,  _ ):	return	objID
+		case .Val( _, let objID, _ ):		return	objID
 		default:							return	nil
 		}
 	}
 
 	var typeID : TypeID? {
 		switch self {
-		case .Val( _, _ ,let typeID, _):	return	typeID
-		default:							return	nil
-		}
-	}
-
-	var bytes : Bytes? {
-		switch self {
-		case .Val( _, _ , _ , let bytes ):	return	bytes
+		case .Val( _, _ ,let typeID ):		return	typeID
 		default:							return	nil
 		}
 	}
@@ -169,7 +162,7 @@ extension FileBlock {
 	enum Level { case exit, same, enter }
 	var level : Level {
 		switch self {
-		case .Val( _, _ , _ , let bytes ):	return	bytes == nil ? .enter : .same
+		case .Val( _, _ , _ , let isBinary ):	return	isBinary ? .same : .enter
 		case .End:	return .exit
 		default:	return .same
 		}
@@ -188,12 +181,12 @@ extension FileBlock {
 			try Code.Ptr(keyID: keyID, objID: objID, conditional:conditional ).write(to: &wbuffer)
 			try keyID?.write(to: &wbuffer)
 			try objID.write(to: &wbuffer)
-		case .Val( let keyID,let objID,  let typeID, let bytes ):
-			try Code.Val(keyID: keyID, objID: objID, typeID: typeID, bytes: bytes).write(to: &wbuffer)
+		case .Val( let keyID,let objID,  let typeID, let isBinary ):
+			try Code.Val(keyID: keyID, objID: objID, typeID: typeID, isBinary: isBinary).write(to: &wbuffer)
 			try keyID?.write(to: &wbuffer)
 			try objID?.write(to: &wbuffer)
 			try typeID?.write(to: &wbuffer)
-			if let bytes	{ try bytes.write(to: &wbuffer) }
+			try isBinary.write(to: &wbuffer)
 		}
 	}
 	
@@ -226,8 +219,9 @@ extension FileBlock {
 		to wbuffer: inout BinaryWriteBuffer, fileHeader:FileHeader
 	) throws {
 		try Self.Val(
-			keyID: keyID, objID:objID, typeID:typeID, bytes:try binaryValue?.binaryData()
+			keyID: keyID, objID:objID, typeID:typeID, isBinary: binaryValue != nil
 		).write(to: &wbuffer, fileHeader: fileHeader)
+		try binaryValue?.write(to: &wbuffer)
 	}
 }
 
@@ -246,11 +240,11 @@ extension FileBlock {
 			let objID	= try ObjID(from: &rbuffer)
 			self = .Ptr( keyID: keyID, objID: objID, conditional: code.isConditional )
 		case .Val:
-			let keyID	= code.hasKeyID	?	try KeyID(from: &rbuffer) : nil
-			let objID	= code.hasObjID	?	try ObjID(from: &rbuffer) : nil
-			let typeID	= code.hasTypeID ?	try TypeID(from: &rbuffer) : nil
-			let bytes	= code.hasBytes	?	try Bytes(from: &rbuffer) : nil
-			self = .Val( keyID: keyID, objID: objID, typeID: typeID, bytes: bytes )
+			let keyID		= code.hasKeyID	?	try KeyID(from: &rbuffer) : nil
+			let objID		= code.hasObjID	?	try ObjID(from: &rbuffer) : nil
+			let typeID		= code.hasTypeID ?	try TypeID(from: &rbuffer) : nil
+			let isBinary	= try Bool(from: &rbuffer)
+			self = .Val( keyID: keyID, objID: objID, typeID: typeID, isBinary: isBinary )
 		}
 	}
 }
@@ -332,7 +326,7 @@ extension FileBlock : CustomStringConvertible {
 			string.append( keyName( keyID, keyStringMap ) )
 			string.append( conditional ? "PTC" : "PTS" )
 			string.append( objID.id.format("04") )
-		case .Val( let keyID, let objID, let typeID, let bytes ):
+		case .Val( let keyID, let objID, let typeID, let isBinary ):
 			//	VAL			= []
 			//	BIV			= [bytes]
 			//	REF			= [typeID]
@@ -343,7 +337,7 @@ extension FileBlock : CustomStringConvertible {
 			//	BIR_objID	= [objID,typeID,bytes]
 
 			string.append( keyName( keyID, keyStringMap ) )
-			switch (typeID != nil,bytes != nil) {
+			switch (typeID != nil, isBinary ) {
 			case (false, false)	: string.append( "VAL" )	//	Codable value
 			case (false, true)	: string.append( "BIV" )	//	BinaryCodable value
 			case (true,  false)	: string.append( "REF" )	//	Codable reference
@@ -351,9 +345,9 @@ extension FileBlock : CustomStringConvertible {
 			}
 			if let objID	{ string.append( objID.id.format("04") ) }
 			if let typeID	{ string.append( " \( typeName( typeID,options,classDataMap ) )") }
-			if let bytes {
+			if isBinary {
 				if let binaryValue	{ string.append( " \( small( binaryValue, options ) )") }
-				else				{ string.append( " {\(bytes.count) bytes}") }
+				else				{ string.append( " { binary data }") }
 			}
 		}
 		return string
