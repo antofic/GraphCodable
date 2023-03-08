@@ -164,13 +164,12 @@ extension Array : BinaryIOType where Element : BinaryIOType {
 		}
 	}
 	public init( from rbuffer: inout BinaryReadBuffer ) throws {
-		var array = [Element]()
+		self.init()
 		let count = try Int( from: &rbuffer )
-		array.reserveCapacity( count )
+		self.reserveCapacity( count )
 		for _ in 0..<count {
-			array.append( try Element.init(from: &rbuffer) )
+			self.append( try Element.init(from: &rbuffer) )
 		}
-		self = array
 	}
 }
 
@@ -185,13 +184,12 @@ extension ContiguousArray : BinaryIOType where Element : BinaryIOType {
 		}
 	}
 	public init( from rbuffer: inout BinaryReadBuffer ) throws {
-		var array = ContiguousArray<Element>()
+		self.init()
 		let count = try Int( from: &rbuffer )
-		array.reserveCapacity( count )
+		self.reserveCapacity( count )
 		for _ in 0..<count {
-			array.append( try Element.init(from: &rbuffer) )
+			self.append( try Element.init(from: &rbuffer) )
 		}
-		self = array
 	}
 }
 
@@ -212,18 +210,25 @@ extension Set : BinaryIOType where Element : BinaryIOType {
 
 extension Dictionary : BinaryIOType where Key : BinaryIOType, Value : BinaryIOType {
 	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
-		try Array( self.keys ).write(to: &wbuffer )
-		try Array( self.values ).write(to: &wbuffer )
+		try count.write(to: &wbuffer)
+		for (key,value) in self {
+			try key.write(to: &wbuffer)
+			try value.write(to: &wbuffer)
+		}
 	}
 
 	public init( from rbuffer: inout BinaryReadBuffer ) throws {
-		let keys	= try [Key](from: &rbuffer)
-		let values	= try [Value](from: &rbuffer)
-
-		self.init(uniqueKeysWithValues: zip(keys, values))
+		self.init()
+		let count = try Int( from: &rbuffer )
+		self.reserveCapacity(count)
+		for _ in 0..<count {
+			let key		= try Key( from: &rbuffer )
+			let value	= try Value( from: &rbuffer )
+			self[key] = value
+		}
 	}
 }
-
+ 
 // Range ------------------------------------------------------
 //	Uses Version: NO
 

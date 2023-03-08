@@ -24,7 +24,9 @@ import Foundation
 
 typealias ElementMap = [ObjID : FlattenedElement]
 
-///	Reorder FileBlock's in a `rootElement` and a `[objID : FlattenedElement]` dictionary
+/// Decoding Pass 2
+///
+///	Reorder ReadBlock's in a `rootElement` and a `[objID : FlattenedElement]` dictionary
 ///	to allow dearchiving of acyclic graphs without requiring deferDecode
 final class FlattenedElement {
 	private weak var	parentElement 	: FlattenedElement?

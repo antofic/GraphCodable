@@ -52,6 +52,39 @@ public struct BinaryWriteBuffer {
 	var eof : Int { bytes.count }
 	mutating func setEof() { _position = eof }
 	
+	
+	mutating func writePrepending<T>( dummyValue:T, update: ( _: inout BinaryWriteBuffer ) throws -> T ) throws
+	where T:BinaryOType
+	{
+		let initialPos		= position
+		try dummyValue.write(to: &self)
+		let dummySize		= position - initialPos
+		let updatedValue	= try update( &self )
+		let finalPos		= position
+		position			= initialPos
+		try updatedValue.write(to: &self)
+		let updatedSize		= position - initialPos
+		position			= finalPos
+		if updatedSize != dummySize {
+			throw BinaryIOError.prependingFails(
+				Self.self, BinaryIOError.Context(
+					debugDescription: "\(Self.self): outOfBounds position."
+				)
+			)
+		}
+	}
+
+	mutating func writePrependingSize( update: ( _: inout BinaryWriteBuffer ) throws -> () ) throws {
+		let initialPos		= position
+		try Int(-1).write(to: &self)
+		let updatePos		= position
+		try update( &self )
+		let finalPos		= position
+		position			= initialPos
+		try (finalPos-updatePos).write(to: &self)
+		position			= finalPos
+	}
+	
 	private mutating func write<C>( contentsOf source:C ) throws
 	where C:RandomAccessCollection, C.Element == UInt8 {
 		if position == bytes.endIndex {

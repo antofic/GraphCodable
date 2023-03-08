@@ -42,6 +42,7 @@ enum BinaryIOError : Error {
 
 	case notPODType( Any.Type, BinaryIOError.Context )
 	case outOfBounds( Any.Type, BinaryIOError.Context )
+	case prependingFails( Any.Type, BinaryIOError.Context )
 	case initTypeError( Any.Type, BinaryIOError.Context )
 	case versionError( Any.Type, BinaryIOError.Context )
 }

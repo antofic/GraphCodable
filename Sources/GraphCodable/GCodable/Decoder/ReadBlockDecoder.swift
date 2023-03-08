@@ -22,33 +22,44 @@
 
 import Foundation
 
+/// this struct encapsulate a FileBlock and the immediate file
+/// position (regionStart) after the end of the FileBlock in
+/// the BinaryReadBuffer.
+///
+/// Needed for binaryValues
 struct ReadBlock {
 	let fileBlock			: FileBlock
-	private let position	: Int
+	private let regionStart	: Int
 	
 	init(from rbuffer: inout BinaryReadBuffer, fileHeader:FileHeader ) throws {
 		self.fileBlock	= try FileBlock(from: &rbuffer, fileHeader: fileHeader)
 		// memorizzo la posizione della fine del fileBlock
-		self.position	= rbuffer.regionStart
+		self.regionStart	= rbuffer.regionStart
 		// sposto avanti la posizione della dimensione di binaryValue
 		rbuffer.regionStart += self.fileBlock.binarySize
 	}
 	
-	init( fileBlock:FileBlock, position:Int ) {
-		self.fileBlock	= fileBlock
-		self.position	= position
+	init( fileBlock:FileBlock, regionStart:Int ) {
+		self.fileBlock		= fileBlock
+		self.regionStart	= regionStart
 	}
 	
 	init( with fileBlock:FileBlock, copying readBlock:ReadBlock ) {
-		self.fileBlock	= fileBlock
-		self.position	= readBlock.position
+		self.fileBlock		= fileBlock
+		self.regionStart	= readBlock.regionStart
 	}
 	
-	var region : Range<Int> { position ..< (position + fileBlock.binarySize) }
+	/// only binaryValues have a value region size > 0
+	var valueRegion : Range<Int> { regionStart ..< (regionStart + fileBlock.binarySize) }
 }
 
 typealias ReadBlocks		= [ReadBlock]
 
+
+/// Decoding Pass 1
+///
+/// read the BinaryReadBuffer content.
+/// FileBlocks are trasformed in ReadBlocks
 struct ReadBlockDecoder {
 	let 		fileHeader		: FileHeader
 	private	var sectionMap		: SectionMap

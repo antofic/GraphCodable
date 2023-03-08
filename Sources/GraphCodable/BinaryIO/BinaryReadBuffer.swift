@@ -31,6 +31,9 @@ BinaryReadBuffer:
 
 
 /// Buffer to read instances of BinaryIType types from.
+///
+///
+///
 public struct BinaryReadBuffer {
 	private let base:	Bytes
 	private var bytes:	Bytes.SubSequence
@@ -49,6 +52,10 @@ public struct BinaryReadBuffer {
 	}
 
 	var isEof	: Bool	{ bytes.count == 0 }
+
+	var fullRegion: Range<Int> {
+		base.indices
+	}
 
 	///	regionStart can precede the current region start
 	///	but cannot exceed the current region end
@@ -73,10 +80,6 @@ public struct BinaryReadBuffer {
 			)
 			bytes	= base[ newValue ]
 		}
-	}
-	
-	var fullRegion: Range<Int> {
-		base.indices
 	}
 
 	mutating func readData<T>() throws -> T where T:MutableDataProtocol, T:ContiguousBytes {

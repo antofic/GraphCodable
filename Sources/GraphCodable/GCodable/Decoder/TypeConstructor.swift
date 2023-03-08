@@ -258,7 +258,7 @@ extension TypeConstructor {
 			)
 		}
 
-		readBuffer.region	= element.readBlock.region
+		readBuffer.region	= element.readBlock.valueRegion
 
 		guard let value = try binaryIType.init(from: &readBuffer) as? T else {
 			throw GCodableError.typeMismatch(
@@ -268,7 +268,7 @@ extension TypeConstructor {
 			)
 		}
 
-		let readSize	= readBuffer.regionStart - element.readBlock.region.startIndex
+		let readSize	= readBuffer.regionStart - element.readBlock.valueRegion.startIndex
 		guard size == readSize else {
 			throw GCodableError.decodingError(
 				Self.self, GCodableError.Context(

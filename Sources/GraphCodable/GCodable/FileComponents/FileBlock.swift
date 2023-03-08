@@ -210,9 +210,23 @@ extension FileBlock {
 		try objID?.write(to: &wbuffer)
 		try typeID?.write(to: &wbuffer)
 		if let binaryValue {
+			try wbuffer.writePrependingSize {
+				try binaryValue.write(to: &$0)
+			}
+
+			
+			/*
+			try wbuffer.prepending(dummyValue: Int(-1)) {
+				wbuffer in
+				let initialPos = wbuffer.position
+				try binaryValue.write(to: &wbuffer)
+				return wbuffer.position - initialPos
+			}
+			*/
+			/*
 			let sizePos			= wbuffer.position
-			// write 0 as size
-			try	Int(0).write(to: &wbuffer)
+			// write -1 as size just to fill the space
+			try	Int(-1).write(to: &wbuffer)
 			let binaryPos		= wbuffer.position
 
 			// write the binaryValue
@@ -225,6 +239,7 @@ extension FileBlock {
 
 			// restore the position at binaryValue end
 			wbuffer.position	= endPos
+			*/
 		}
 	}
 }
