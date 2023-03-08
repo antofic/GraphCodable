@@ -53,26 +53,17 @@ public struct BinaryReadBuffer {
 	var position: Int {
 		get { bytes.startIndex }
 		set {
+			//	Note: We can set position before current region start
+			//	but not beyond region end.
+			//	I should rename this property? regionStart?
+
 			precondition(
 				(base.startIndex...bytes.endIndex).contains( newValue ),
-				"\(Self.self): position \(newValue) outside region end \(bytes.endIndex)"
+				"\(Self.self): position \(newValue) beyond region end \(bytes.endIndex)"
 			)
 			bytes	= base[ newValue..<bytes.endIndex ]
 		}
 	}
-	
-	/* ERRORE!
-	var position: Int {
-		get { bytes.startIndex }
-		set {
-			precondition(
-				(base.startIndex...base.endIndex).contains( newValue ),
-				"\(Self.self): invalid position \(newValue) in \(base.indices)"
-			)
-			bytes	= base[ newValue... ]
-		}
-	}
-	*/
 	 
 	var currentRegion: Range<Int> {
 		get { bytes.indices }

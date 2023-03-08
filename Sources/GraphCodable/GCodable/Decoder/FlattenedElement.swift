@@ -103,13 +103,13 @@ extension FlattenedElement {
 				element.rFileBlock	= RFileBlock(fileBlock: .Ptr( keyID: keyID, objID: objID, conditional: false ), position: element.rFileBlock.position)
 				map[ objID ]	= root
 								
-				if size != nil {	// ATT! NO subFlatten for BinValue's
+				if size == nil {	// ATT! NO subFlatten for BinValue's
 					try subFlatten(
 						elementMap: &map, parentElement:root, lineIterator:&lineIterator,
 						keyStringMap:keyStringMap, reverse:reverse
 					)
 				}
-			} else if size != nil {	// ATT! NO subFlatten for BinValue's
+			} else if size == nil {	// ATT! NO subFlatten for BinValue's
 				try subFlatten(
 					elementMap: &map, parentElement:element, lineIterator:&lineIterator,
 					keyStringMap:keyStringMap, reverse:reverse
