@@ -50,28 +50,26 @@ public struct BinaryReadBuffer {
 
 	var isEof	: Bool	{ bytes.count == 0 }
 
-	var position: Int {
+	///	regionStart can precede the current region start
+	///	but cannot exceed the current region end
+	var regionStart: Int {
 		get { bytes.startIndex }
 		set {
-			//	Note: We can set position before current region start
-			//	but not beyond region end.
-			//	I should rename this property? regionStart?
-
 			precondition(
 				(base.startIndex...bytes.endIndex).contains( newValue ),
-				"\(Self.self): position \(newValue) beyond region end \(bytes.endIndex)"
+				"\(Self.self): regionStart \(newValue) beyond current region end \(bytes.endIndex)"
 			)
 			bytes	= base[ newValue..<bytes.endIndex ]
 		}
 	}
 	 
-	var currentRegion: Range<Int> {
+	var region: Range<Int> {
 		get { bytes.indices }
 		set {
 			precondition(
 				newValue.startIndex >= base.startIndex &&
 				newValue.endIndex <= base.endIndex,
-				"\(Self.self): invalid readRange \(newValue) in \(base.indices)"
+				"\(Self.self): region \(newValue) not cointaned in \(base.indices)"
 			)
 			bytes	= base[ newValue ]
 		}

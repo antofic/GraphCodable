@@ -59,25 +59,28 @@ final class BinaryEncoder<Output:MutableDataProtocol> : FileBlockEncoder {
 	
 	func appendNil(keyID: KeyID?) throws {
 		try writeInit()
-		try FileBlock.writeNil(keyID: keyID, to: &wbuffer, fileHeader: fileHeader)
+		try FileBlock.writeNil(
+			keyID: keyID,
+			to: &wbuffer, fileHeader: fileHeader
+		)
 	}
 	
 	func appendPtr(keyID: KeyID?, objID: ObjID, conditional: Bool) throws {
 		try writeInit()
-		try FileBlock.writePtr( keyID: keyID, objID: objID, conditional:conditional, to: &wbuffer, fileHeader: fileHeader)
+		try FileBlock.writePtr(
+			keyID: keyID, objID: objID, conditional:conditional,
+			to: &wbuffer, fileHeader: fileHeader
+		)
 	}
 	
 	func appendVal(keyID: KeyID?, typeID: TypeID?, objID: ObjID?, binaryValue: BinaryOType?) throws {
 		try writeInit()
-		try FileBlock.writeVal( keyID: keyID,objID: objID, typeID: typeID, binaryValue:binaryValue, to: &wbuffer, fileHeader: fileHeader)
+		try FileBlock.writeVal(
+			keyID: keyID,objID: objID, typeID: typeID, binaryValue:binaryValue,
+			to: &wbuffer, fileHeader: fileHeader
+		)
 	}
-	
-/*
-	func append(_ fileBlock: FileBlock, binaryValue: BinaryOType?) throws {
-		try writeInit()
-		try fileBlock.write(to: &wbuffer, fileHeader: fileHeader)
-	}
-*/
+
 	func output() throws -> Output {
 		try writeInit()
 		

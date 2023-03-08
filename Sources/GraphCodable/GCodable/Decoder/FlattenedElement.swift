@@ -28,22 +28,22 @@ typealias ElementMap = [ObjID : FlattenedElement]
 ///	to allow dearchiving of acyclic graphs without requiring deferDecode
 final class FlattenedElement {
 	private weak var	parentElement 	: FlattenedElement?
-	private(set) var	rFileBlock		: RFileBlock
+	private(set) var	readBlock		: ReadBlock
 	private		var		keyedValues		= [String:FlattenedElement]()
 	private		var 	unkeyedValues 	= [FlattenedElement]()
 	
-	private init( rFileBlock:RFileBlock ) {
-		self.rFileBlock	= rFileBlock
+	private init( readBlock:ReadBlock ) {
+		self.readBlock	= readBlock
 	}
 	
 	static func rootElement<S>(
 		rFileBlocks:S, keyStringMap:KeyStringMap, reverse:Bool
 	) throws -> ( rootElement: FlattenedElement, elementMap: ElementMap )
-	where S:Sequence, S.Element == RFileBlock {
+	where S:Sequence, S.Element == ReadBlock {
 		var elementMap	= ElementMap()
 		var lineIterator = rFileBlocks.makeIterator()
 		
-		guard let rFileBlock = lineIterator.next() else {
+		guard let readBlock = lineIterator.next() else {
 			throw GCodableError.decodingError(
 				Self.self, GCodableError.Context(
 					debugDescription: "Root not found."
@@ -51,7 +51,7 @@ final class FlattenedElement {
 			)
 		}
 		
-		guard rFileBlock.fileBlock.level != .exit else {
+		guard readBlock.fileBlock.level != .exit else {
 			throw GCodableError.decodingError(
 				Self.self, GCodableError.Context(
 					debugDescription: "The archive begins with an end block."
@@ -59,7 +59,7 @@ final class FlattenedElement {
 			)
 		}
 		
-		let root = Self.init(rFileBlock: rFileBlock)
+		let root = Self.init(readBlock: readBlock)
 		try Self.flatten( elementMap: &elementMap, element: root, lineIterator: &lineIterator, keyStringMap:keyStringMap, reverse: reverse )
 		
 		return (root,elementMap)
@@ -86,21 +86,24 @@ final class FlattenedElement {
 extension FlattenedElement {
 	private static func flatten<T>(
 		elementMap map: inout ElementMap, element:FlattenedElement, lineIterator: inout T, keyStringMap:KeyStringMap, reverse:Bool
-	) throws where T:IteratorProtocol, T.Element == RFileBlock {
+	) throws where T:IteratorProtocol, T.Element == ReadBlock {
 		
-		switch element.rFileBlock.fileBlock {
+		switch element.readBlock.fileBlock {
 		case .Val( let keyID, let objID, _, let size ):
 			if let objID {
 				//	l'oggetto non può trovarsi nella map
 				guard map.index(forKey: objID) == nil else {
 					throw GCodableError.internalInconsistency(
 						Self.self, GCodableError.Context(
-							debugDescription: "Object -\(element.rFileBlock)- already exists."
+							debugDescription: "Object -\(element.readBlock)- already exists."
 						)
 					)
 				}
-				let root = FlattenedElement( rFileBlock: element.rFileBlock )
-				element.rFileBlock	= RFileBlock(fileBlock: .Ptr( keyID: keyID, objID: objID, conditional: false ), position: element.rFileBlock.position)
+				// creo un nuovo elemento con il readBlock
+				let root = FlattenedElement( readBlock: element.readBlock )
+				// in quello vecchio metto un puntatore al vecchio elemento
+				element.readBlock	= ReadBlock( with: .Ptr( keyID: keyID, objID: objID, conditional: false ), copying: element.readBlock )
+				// metto il nuovo elelemnto nella mappa
 				map[ objID ]	= root
 								
 				if size == nil {	// ATT! NO subFlatten for BinValue's
@@ -124,16 +127,16 @@ extension FlattenedElement {
 	
 	private static func subFlatten<T>(
 		elementMap map: inout ElementMap, parentElement:FlattenedElement, lineIterator: inout T, keyStringMap:KeyStringMap, reverse:Bool
-	) throws where T:IteratorProtocol, T.Element == RFileBlock {
-		while let rFileBlock = lineIterator.next() {
-			let element = FlattenedElement( rFileBlock: rFileBlock )
+	) throws where T:IteratorProtocol, T.Element == ReadBlock {
+		while let readBlock = lineIterator.next() {
+			let element = FlattenedElement( readBlock: readBlock )
 			
-			if case .End = rFileBlock.fileBlock {
+			if case .End = readBlock.fileBlock {
 				break
 			} else {
 				element.parentElement = parentElement
 				
-				if let keyID = rFileBlock.fileBlock.keyID {
+				if let keyID = readBlock.fileBlock.keyID {
 					guard let key = keyStringMap[keyID] else {
 						throw GCodableError.keyNotFound(
 							Self.self, GCodableError.Context(
@@ -186,7 +189,7 @@ extension FlattenedElement {
 	private func subdump( elementMap: ElementMap, classDataMap: ClassDataMap?, keyStringMap: KeyStringMap?, options: GraphDumpOptions, level:Int ) -> String {
 		var dump = ""
 		
-		let string = rFileBlock.fileBlock.description(
+		let string = readBlock.fileBlock.description(
 			options: options, binaryValue: nil,
 			classDataMap: classDataMap, keyStringMap: keyStringMap
 		)

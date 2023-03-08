@@ -22,7 +22,32 @@
 
 import Foundation
 
-typealias RFileBlocks		= [RFileBlock]
+struct ReadBlock {
+	let fileBlock			: FileBlock
+	private let position	: Int
+	
+	init(from rbuffer: inout BinaryReadBuffer, fileHeader:FileHeader ) throws {
+		self.fileBlock	= try FileBlock(from: &rbuffer, fileHeader: fileHeader)
+		// memorizzo la posizione della fine del fileBlock
+		self.position	= rbuffer.regionStart
+		// sposto avanti la posizione della dimensione di binaryValue
+		rbuffer.regionStart += self.fileBlock.binarySize
+	}
+	
+	init( fileBlock:FileBlock, position:Int ) {
+		self.fileBlock	= fileBlock
+		self.position	= position
+	}
+	
+	init( with fileBlock:FileBlock, copying readBlock:ReadBlock ) {
+		self.fileBlock	= fileBlock
+		self.position	= readBlock.position
+	}
+	
+	var region : Range<Int> { position ..< (position + fileBlock.binarySize) }
+}
+
+typealias ReadBlocks		= [ReadBlock]
 
 struct FileBlockDecoder {
 	let 		fileHeader		: FileHeader
@@ -30,7 +55,7 @@ struct FileBlockDecoder {
 	private var rbuffer			: BinaryReadBuffer
 
 	private var _classDataMap	: ClassDataMap?
-	private var _fileBlocks		: RFileBlocks?
+	private var _readBlocks		: ReadBlocks?
 	private var _keyStringMap	: KeyStringMap?
 
 	init( from readBuffer:BinaryReadBuffer ) throws {
@@ -43,7 +68,7 @@ struct FileBlockDecoder {
 		if let classDataMap = self._classDataMap { return classDataMap }
 		
 		let saveRegion	= try setReaderRegionTo(section: .classDataMap)
-		defer { rbuffer.currentRegion = saveRegion }
+		defer { rbuffer.region = saveRegion }
 
 		let classDataMap	= try ClassDataMap(from: &rbuffer)
 		self._classDataMap	= classDataMap
@@ -54,19 +79,19 @@ struct FileBlockDecoder {
 		try classDataMap().mapValues {  try ClassInfo(classData: $0)  }
 	}
 
-	mutating func rFileBlocks() throws -> RFileBlocks {
-		if let fileBlocks = self._fileBlocks { return fileBlocks }
+	mutating func readBlocks() throws -> ReadBlocks {
+		if let fileBlocks = self._readBlocks { return fileBlocks }
 
 		let saveRegion	= try setReaderRegionTo(section: .body)
-		defer { rbuffer.currentRegion = saveRegion }
+		defer { rbuffer.region = saveRegion }
 
-		var fileBlocks	= [RFileBlock]()
+		var fileBlocks	= [ReadBlock]()
 		while rbuffer.isEof == false {
-			let rFileBlock	= try RFileBlock(from: &rbuffer, fileHeader: fileHeader)
-			fileBlocks.append( rFileBlock )
+			let readBlock	= try ReadBlock(from: &rbuffer, fileHeader: fileHeader)
+			fileBlocks.append( readBlock )
 		}
 		
-		self._fileBlocks	= fileBlocks
+		self._readBlocks	= fileBlocks
 		return fileBlocks
 	}
 
@@ -74,7 +99,7 @@ struct FileBlockDecoder {
 		if let keyStringMap = self._keyStringMap { return keyStringMap }
 
 		let saveRegion		= try setReaderRegionTo(section: .keyStringMap)
-		defer { rbuffer.currentRegion = saveRegion }
+		defer { rbuffer.region = saveRegion }
 		
 		let keyStringMap 	= try KeyStringMap(from: &rbuffer)
 		self._keyStringMap	= keyStringMap
@@ -89,8 +114,8 @@ struct FileBlockDecoder {
 				)
 			)
 		}
-		defer { rbuffer.currentRegion = range }
-		return rbuffer.currentRegion
+		defer { rbuffer.region = range }
+		return rbuffer.region
 	}
 }
 

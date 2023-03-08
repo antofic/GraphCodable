@@ -111,8 +111,9 @@ final class StringEncoder : FileBlockEncoder {
 		try append( .Ptr(keyID: keyID,objID:objID, conditional:conditional ), binaryValue:nil )
 	}
 	func appendVal( keyID:KeyID?, typeID:TypeID?, objID:ObjID?, binaryValue:BinaryOType? ) throws {
+		let size = binaryValue != nil ? FileBlock.unknownSize : nil
 		
-		try append( .Val(keyID: keyID, objID:objID, typeID:typeID, size: binaryValue != nil ? 0 : nil), binaryValue:binaryValue  )
+		try append( .Val(keyID: keyID, objID:objID, typeID:typeID, size: size), binaryValue:binaryValue  )
 	}
 	
 	func output() throws -> String {

@@ -89,14 +89,14 @@ public extension BinaryIType {
 	/// - parameter accept: A function to check the readed value
 	/// - returns: The accepted value, `nil` otherwise.
 	static func peek( from rbuffer: inout BinaryReadBuffer, _ accept:( Self ) -> Bool ) -> Self? {
-		let position	= rbuffer.position
+		let position	= rbuffer.regionStart
 		do {
 			let value = try Self(from: &rbuffer)
 			if accept( value ) { return value }
 		}
 		catch {}
 
-		rbuffer.position	= position
+		rbuffer.regionStart	= position
 		return nil
 	}
 }

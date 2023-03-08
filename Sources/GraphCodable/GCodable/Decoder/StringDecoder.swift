@@ -24,7 +24,7 @@ import Foundation
 
 final class StringDecoder: FileBlockEncoderDelegate {
 	let fileHeader		: FileHeader
-	let rFileBlocks		: RFileBlocks
+	let rFileBlocks		: ReadBlocks
 	let classDataMap	: ClassDataMap
 	let keyStringMap	: KeyStringMap
 	let dumpOptions		: GraphDumpOptions
@@ -33,7 +33,7 @@ final class StringDecoder: FileBlockEncoderDelegate {
 		var binaryDecoder	= try FileBlockDecoder( from: readBuffer )
 		
 		self.fileHeader		= binaryDecoder.fileHeader
-		self.rFileBlocks	= try binaryDecoder.rFileBlocks()
+		self.rFileBlocks	= try binaryDecoder.readBlocks()
 		self.classDataMap	= try binaryDecoder.classDataMap()
 		self.keyStringMap	= try binaryDecoder.keyStringMap()
 		self.dumpOptions	= options

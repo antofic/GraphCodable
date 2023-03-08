@@ -121,6 +121,8 @@ enum FileBlock {	// size = 32 bytes
 	case Nil( keyID:KeyID? )
 	case Ptr( keyID:KeyID?, objID:ObjID, conditional:Bool )
 	case Val( keyID:KeyID?, objID:ObjID?, typeID:TypeID?, size:Int? )
+	
+	static let unknownSize = -1
 }
 
 
@@ -176,78 +178,59 @@ extension FileBlock {
 }
 
 extension FileBlock {
-	private func write( to wbuffer: inout BinaryWriteBuffer, fileHeader:FileHeader ) throws {
-		switch self {
-		case .End:
-			try Code.End().write(to: &wbuffer)
-		case .Nil( let keyID ):
-			try Code.Nil(keyID: keyID).write(to: &wbuffer)
-			try keyID?.write(to: &wbuffer)
-		case .Ptr( let keyID, let objID, let conditional ):
-			try Code.Ptr(keyID: keyID, objID: objID, conditional:conditional ).write(to: &wbuffer)
-			try keyID?.write(to: &wbuffer)
-			try objID.write(to: &wbuffer)
-		case .Val( _,_,_,_ ):
-			preconditionFailure( "\(#function)" )
-		}
-	}
-	
 	static func writeEnd(
 		to wbuffer: inout BinaryWriteBuffer, fileHeader:FileHeader
 	) throws {
-		try Self.End.write(to: &wbuffer, fileHeader: fileHeader)
+		try Code.End().write(to: &wbuffer)
 	}
 
 	static func writeNil(
 		keyID:KeyID?,
 		to wbuffer: inout BinaryWriteBuffer, fileHeader:FileHeader
 	) throws {
-		try Self.Nil(
-			keyID: keyID
-		).write(to: &wbuffer, fileHeader: fileHeader)
+		try Code.Nil(keyID: keyID).write(to: &wbuffer)
+		try keyID?.write(to: &wbuffer)
 	}
 
 	static func writePtr(
 		keyID:KeyID?, objID:ObjID, conditional:Bool,
 		to wbuffer: inout BinaryWriteBuffer, fileHeader:FileHeader
 	) throws {
-		try Self.Ptr(
-			keyID: keyID, objID:objID, conditional: conditional
-		).write(to: &wbuffer, fileHeader: fileHeader)
+		try Code.Ptr(keyID: keyID, objID: objID, conditional:conditional ).write(to: &wbuffer)
+		try keyID?.write(to: &wbuffer)
+		try objID.write(to: &wbuffer)
 	}
 
 	static func writeVal(
 		keyID:KeyID?, objID:ObjID?, typeID:TypeID?, binaryValue:BinaryOType?,
 		to wbuffer: inout BinaryWriteBuffer, fileHeader:FileHeader
 	) throws {
+		try Code.Val(keyID: keyID, objID: objID, typeID: typeID, isBinary: binaryValue != nil ).write(to: &wbuffer)
+		try keyID?.write(to: &wbuffer)
+		try objID?.write(to: &wbuffer)
+		try typeID?.write(to: &wbuffer)
 		if let binaryValue {
-			try Code.Val(keyID: keyID, objID: objID, typeID: typeID, isBinary: true).write(to: &wbuffer)
-			try keyID?.write(to: &wbuffer)
-			try objID?.write(to: &wbuffer)
-			try typeID?.write(to: &wbuffer)
-			
-			let sizePos	= wbuffer.position
+			let sizePos			= wbuffer.position
+			// write 0 as size
 			try	Int(0).write(to: &wbuffer)
-			let binPos	= wbuffer.position
+			let binaryPos		= wbuffer.position
 
+			// write the binaryValue
 			try binaryValue.write(to: &wbuffer)
-			let endPos	= wbuffer.position
+			let endPos			= wbuffer.position
+			
+			// write the true size
 			wbuffer.position	= sizePos
-			let size	= endPos - binPos
-			try	size.write(to: &wbuffer)
+			try	(endPos - binaryPos).write(to: &wbuffer)
 
+			// restore the position at binaryValue end
 			wbuffer.position	= endPos
-		} else {
-			try Code.Val(keyID: keyID, objID: objID, typeID: typeID, isBinary: false).write(to: &wbuffer)
-			try keyID?.write(to: &wbuffer)
-			try objID?.write(to: &wbuffer)
-			try typeID?.write(to: &wbuffer)
 		}
 	}
 }
 
 extension FileBlock {
-	fileprivate init(from rbuffer: inout BinaryReadBuffer, fileHeader:FileHeader ) throws {
+	init(from rbuffer: inout BinaryReadBuffer, fileHeader:FileHeader ) throws {
 		let code	= try Code(from: &rbuffer)
 		
 		switch try code.category {
@@ -269,23 +252,6 @@ extension FileBlock {
 		}
 	}
 }
-
-struct RFileBlock {
-	let fileBlock	: FileBlock
-	let position	: Int
-	
-	init(from rbuffer: inout BinaryReadBuffer, fileHeader:FileHeader ) throws {
-		self.fileBlock	= try FileBlock(from: &rbuffer, fileHeader: fileHeader)
-		self.position	= rbuffer.position
-		rbuffer.position += self.fileBlock.binarySize
-	}
-	
-	init( fileBlock:FileBlock, position:Int ) {
-		self.fileBlock	= fileBlock
-		self.position	= position
-	}
-}
-
 
 extension FileBlock : CustomStringConvertible {
 	var description: String {
@@ -368,8 +334,13 @@ extension FileBlock : CustomStringConvertible {
 			if let objID	{ string.append( objID.id.format("04") ) }
 			if let typeID	{ string.append( " \( typeName( typeID,options,classDataMap ) )") }
 			if let size {
-				if let binaryValue	{ string.append( " \( small( binaryValue, options ) )") }
-				else				{ string.append( " { \(size) bytes }") }
+				if let binaryValue {
+					string.append( " \( small( binaryValue, options ) )")
+				} else if size == Self.unknownSize {
+					string.append( " { unknown bytes }")
+				} else {
+					string.append( " { \(size) bytes }")
+				}
 			}
 		}
 		return string

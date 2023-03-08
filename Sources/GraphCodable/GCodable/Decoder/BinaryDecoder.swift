@@ -33,7 +33,7 @@ struct BinaryDecoder {
 	init( from readBuffer:BinaryReadBuffer ) throws {
 		var binaryDecoder	= try FileBlockDecoder( from: readBuffer )
 		let fileHeader		= binaryDecoder.fileHeader
-		let rFileBlocks		= try binaryDecoder.rFileBlocks()
+		let rFileBlocks		= try binaryDecoder.readBlocks()
 		let classInfoMap	= try binaryDecoder.classInfoMap()
 		let keyStringMap	= try binaryDecoder.keyStringMap()
 		

@@ -58,7 +58,7 @@ final class TypeConstructor {
 		guard let element = currentElement.pop(key: key) else {
 			throw GCodableError.childNotFound(
 				Self.self, GCodableError.Context(
-					debugDescription: "Keyed child for key-\(key)- not found in \(currentElement.rFileBlock)."
+					debugDescription: "Keyed child for key-\(key)- not found in \(currentElement.readBlock)."
 				)
 			)
 		}
@@ -70,7 +70,7 @@ final class TypeConstructor {
 		guard let element = currentElement.pop() else {
 			throw GCodableError.childNotFound(
 				Self.self, GCodableError.Context(
-					debugDescription: "Unkeyed child not found in \(currentElement.rFileBlock)."
+					debugDescription: "Unkeyed child not found in \(currentElement.readBlock)."
 				)
 			)
 		}
@@ -113,7 +113,7 @@ final class TypeConstructor {
 	}
 	
 	func decode<T>( element:FlattenedElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
-		switch element.rFileBlock.fileBlock {
+		switch element.readBlock.fileBlock {
 		case .Val( _, let objID, let typeID, let size):
 			if objID == nil {
 				return try decode(type: T.self, typeID: typeID, size: size, element: element, from: decoder)
@@ -146,7 +146,7 @@ extension TypeConstructor {
 			if let object = objectRepository[ objID ] {
 				return object
 			} else if let element = binaryDecoder.pop( objID: objID ) {
-				switch element.rFileBlock.fileBlock {
+				switch element.readBlock.fileBlock {
 				case .Val( _, let objID, let typeID, let size):
 					if let objID {
 						let object	= try decode(type: T.self, typeID: typeID, size: size, element: element, from: decoder)
@@ -158,7 +158,7 @@ extension TypeConstructor {
 				}
 				throw GCodableError.internalInconsistency(
 					Self.self, GCodableError.Context(
-						debugDescription: "Inappropriate fileblock \(element.rFileBlock) here."
+						debugDescription: "Inappropriate fileblock \(element.readBlock.fileBlock) here."
 					)
 				)
 			} else {
@@ -166,7 +166,7 @@ extension TypeConstructor {
 			}
 		}
 		
-		switch element.rFileBlock.fileBlock {
+		switch element.readBlock.fileBlock {
 		case .Nil( _ ):
 			return Optional<Any>.none as Any
 		case .Ptr( _, let objID, let conditional ):
@@ -177,7 +177,7 @@ extension TypeConstructor {
 					throw GCodableError.decodingError(
 						Self.self, GCodableError.Context(
 							debugDescription:
-								"Value pointed from -\(element.rFileBlock)- not found. Try deferDecode to break the cycle."
+								"Value pointed from -\(element.readBlock.fileBlock)- not found. Try deferDecode to break the cycle."
 						)
 					)
 				}
@@ -186,7 +186,7 @@ extension TypeConstructor {
 		default:	// .Struct & .Object are inappropriate here!
 			throw GCodableError.internalInconsistency(
 				Self.self, GCodableError.Context(
-					debugDescription: "Inappropriate fileblock \(element.rFileBlock) here."
+					debugDescription: "Inappropriate fileblock \(element.readBlock.fileBlock) here."
 				)
 			)
 		}
@@ -234,34 +234,7 @@ extension TypeConstructor {
 			return try T.init(from: decoder)
 		}
 	}
-/*
-	private func decodeBinValue<T>( type:T.Type, bytes: Bytes,element:FlattenedElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
-		let saved	= currentElement
-		defer { currentElement = saved }
-		currentElement	= element
-		
-		let wrapped : Any.Type
-		
-		if let optType = T.self as? OptionalProtocol.Type {
-			// get the inner non optional type
-			wrapped	= optType.fullUnwrappedType
-		} else {
-			wrapped	= T.self
-		}
-		
-		guard
-			let binaryIType = wrapped as? BinaryIType.Type,
-			let value = try binaryIType.init(binaryData: bytes) as? T
-		else {
-			throw GCodableError.typeMismatch(
-				Self.self, GCodableError.Context(
-					debugDescription: "\(element) wrapped type -\(wrapped)- not BinaryIType."
-				)
-			)
-		}
-		return value
-	}
-*/
+
 	private func decodeBinValue<T>( type:T.Type, size:Int, element:FlattenedElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
 		let saved	= currentElement
 		defer { currentElement = saved }
@@ -276,23 +249,36 @@ extension TypeConstructor {
 			wrapped	= T.self
 		}
 		
-		if let binaryIType = wrapped as? BinaryIType.Type {
-			let position	= readBuffer.position
-			defer { readBuffer.position = position }
-			readBuffer.position	= element.rFileBlock.position
-			if let value = try binaryIType.init(from: &readBuffer) as? T {
-				return value
-			}
-		}
-		
-		throw GCodableError.typeMismatch(
-			Self.self, GCodableError.Context(
-				debugDescription: "\(element) wrapped type -\(wrapped)- not BinaryIType."
-			)
-		)
-	}
 
-	
+		guard let binaryIType = wrapped as? BinaryIType.Type else {
+			throw GCodableError.typeMismatch(
+				Self.self, GCodableError.Context(
+					debugDescription: "\(element) wrapped type -\(wrapped)- is not a BinaryIType."
+				)
+			)
+		}
+
+		readBuffer.region	= element.readBlock.region
+
+		guard let value = try binaryIType.init(from: &readBuffer) as? T else {
+			throw GCodableError.typeMismatch(
+				Self.self, GCodableError.Context(
+					debugDescription: "\(element) decoded type is not a -\(T.self)- type."
+				)
+			)
+		}
+
+		let readSize	= readBuffer.regionStart - element.readBlock.region.startIndex
+		guard size == readSize else {
+			throw GCodableError.decodingError(
+				Self.self, GCodableError.Context(
+					debugDescription: "\(size) bytes required, \(readSize) bytes read"
+				)
+			)
+		}
+
+		return value
+	}
 	
 	private func decodeRefOrBinRef<T>(
 		type:T.Type, typeID:TypeID, size: Int?, element:FlattenedElement, from decoder:GDecoder
