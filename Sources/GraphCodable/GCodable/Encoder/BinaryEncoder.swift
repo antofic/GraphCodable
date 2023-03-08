@@ -85,12 +85,14 @@ final class BinaryEncoder<Output:MutableDataProtocol> : FileBlockEncoder {
 		sectionMap[.body]	= Range( uncheckedBounds:bounds )
 		
 		// referenceMap:
-		try delegate!.classDataMap.write(to: &wbuffer)
+		let classDataMap	= delegate!.classDataMap
+		try classDataMap.write(to: &wbuffer)
 		bounds	= ( bounds.1,wbuffer.position )
 		sectionMap[ FileSection.classDataMap ] = Range( uncheckedBounds:bounds )
 		
 		// keyStringMap:
-		try delegate!.keyStringMap.write(to: &wbuffer)
+		let keyStringMap	= delegate!.keyStringMap
+		try keyStringMap.write(to: &wbuffer)
 		bounds	= ( bounds.1,wbuffer.position )
 		sectionMap[ FileSection.keyStringMap ] = Range( uncheckedBounds:bounds )
 		
