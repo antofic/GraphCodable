@@ -31,7 +31,7 @@ struct BinaryDecoder {
 	private var	elementMap	: ElementMap
 	
 	init( from readBuffer:BinaryReadBuffer ) throws {
-		var binaryDecoder	= try FileBlockDecoder( from: readBuffer )
+		var binaryDecoder	= try ReadBlockDecoder( from: readBuffer )
 		let fileHeader		= binaryDecoder.fileHeader
 		let rFileBlocks		= try binaryDecoder.readBlocks()
 		let classInfoMap	= try binaryDecoder.classInfoMap()

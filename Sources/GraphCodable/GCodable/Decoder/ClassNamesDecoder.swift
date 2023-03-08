@@ -27,7 +27,7 @@ struct ClassNamesDecoder {
 	let	classDataMap			: ClassDataMap
 	
 	init( from readBuffer:BinaryReadBuffer ) throws {
-		var binaryDecoder	= try FileBlockDecoder( from: readBuffer )
+		var binaryDecoder	= try ReadBlockDecoder( from: readBuffer )
 		fileHeader			= binaryDecoder.fileHeader
 		classDataMap		= try binaryDecoder.classDataMap()
 	}

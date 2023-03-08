@@ -30,7 +30,7 @@ final class StringDecoder: FileBlockEncoderDelegate {
 	let dumpOptions		: GraphDumpOptions
 	
 	init( from readBuffer:BinaryReadBuffer, options:GraphDumpOptions ) throws {
-		var binaryDecoder	= try FileBlockDecoder( from: readBuffer )
+		var binaryDecoder	= try ReadBlockDecoder( from: readBuffer )
 		
 		self.fileHeader		= binaryDecoder.fileHeader
 		self.rFileBlocks	= try binaryDecoder.readBlocks()

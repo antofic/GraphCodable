@@ -49,7 +49,7 @@ struct ReadBlock {
 
 typealias ReadBlocks		= [ReadBlock]
 
-struct FileBlockDecoder {
+struct ReadBlockDecoder {
 	let 		fileHeader		: FileHeader
 	private	var sectionMap		: SectionMap
 	private var rbuffer			: BinaryReadBuffer
