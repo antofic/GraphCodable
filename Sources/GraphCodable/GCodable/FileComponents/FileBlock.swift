@@ -120,7 +120,7 @@ enum FileBlock {	// size = 32 bytes
 	case End
 	case Nil( keyID:KeyID? )
 	case Ptr( keyID:KeyID?, objID:ObjID, conditional:Bool )
-	case Val( keyID:KeyID?, objID:ObjID?, typeID:TypeID?, isBinary:Bool )
+	case Val( keyID:KeyID?, objID:ObjID?, typeID:TypeID?, size:Int? )
 }
 
 
@@ -156,13 +156,19 @@ extension FileBlock {
 		}
 	}
 */
+	var binarySize : Int {
+		switch self {
+			case .Val( _, _ , _ , let size ):	return	size ?? 0
+			default:	return 0
+		}
+	}
 }
 
 extension FileBlock {
 	enum Level { case exit, same, enter }
 	var level : Level {
 		switch self {
-		case .Val( _, _ , _ , let isBinary ):	return	isBinary ? .same : .enter
+		case .Val( _, _ , _ , let size ):	return	size != nil ? .same : .enter
 		case .End:	return .exit
 		default:	return .same
 		}
@@ -181,12 +187,8 @@ extension FileBlock {
 			try Code.Ptr(keyID: keyID, objID: objID, conditional:conditional ).write(to: &wbuffer)
 			try keyID?.write(to: &wbuffer)
 			try objID.write(to: &wbuffer)
-		case .Val( let keyID,let objID,  let typeID, let isBinary ):
-			try Code.Val(keyID: keyID, objID: objID, typeID: typeID, isBinary: isBinary).write(to: &wbuffer)
-			try keyID?.write(to: &wbuffer)
-			try objID?.write(to: &wbuffer)
-			try typeID?.write(to: &wbuffer)
-			try isBinary.write(to: &wbuffer)
+		case .Val( _,_,_,_ ):
+			preconditionFailure( "\(#function)" )
 		}
 	}
 	
@@ -218,10 +220,29 @@ extension FileBlock {
 		keyID:KeyID?, objID:ObjID?, typeID:TypeID?, binaryValue:BinaryOType?,
 		to wbuffer: inout BinaryWriteBuffer, fileHeader:FileHeader
 	) throws {
-		try Self.Val(
-			keyID: keyID, objID:objID, typeID:typeID, isBinary: binaryValue != nil
-		).write(to: &wbuffer, fileHeader: fileHeader)
-		try binaryValue?.write(to: &wbuffer)
+		if let binaryValue {
+			try Code.Val(keyID: keyID, objID: objID, typeID: typeID, isBinary: true).write(to: &wbuffer)
+			try keyID?.write(to: &wbuffer)
+			try objID?.write(to: &wbuffer)
+			try typeID?.write(to: &wbuffer)
+			
+			let sizePos	= wbuffer.position
+			try	Int(0).write(to: &wbuffer)
+			let binPos	= wbuffer.position
+
+			try binaryValue.write(to: &wbuffer)
+			let endPos	= wbuffer.position
+			wbuffer.position	= sizePos
+			let size	= endPos - binPos
+			try	size.write(to: &wbuffer)
+
+			wbuffer.position	= endPos
+		} else {
+			try Code.Val(keyID: keyID, objID: objID, typeID: typeID, isBinary: false).write(to: &wbuffer)
+			try keyID?.write(to: &wbuffer)
+			try objID?.write(to: &wbuffer)
+			try typeID?.write(to: &wbuffer)
+		}
 	}
 }
 
@@ -243,8 +264,8 @@ extension FileBlock {
 			let keyID		= code.hasKeyID	?	try KeyID(from: &rbuffer) : nil
 			let objID		= code.hasObjID	?	try ObjID(from: &rbuffer) : nil
 			let typeID		= code.hasTypeID ?	try TypeID(from: &rbuffer) : nil
-			let isBinary	= try Bool(from: &rbuffer)
-			self = .Val( keyID: keyID, objID: objID, typeID: typeID, isBinary: isBinary )
+			let size		= code.isBinary ?	try Int(from: &rbuffer) : nil
+			self = .Val( keyID: keyID, objID: objID, typeID: typeID, size: size )
 		}
 	}
 }
@@ -256,6 +277,7 @@ struct RFileBlock {
 	init(from rbuffer: inout BinaryReadBuffer, fileHeader:FileHeader ) throws {
 		self.fileBlock	= try FileBlock(from: &rbuffer, fileHeader: fileHeader)
 		self.position	= rbuffer.position
+		rbuffer.position += self.fileBlock.binarySize
 	}
 	
 	init( fileBlock:FileBlock, position:Int ) {
@@ -326,7 +348,7 @@ extension FileBlock : CustomStringConvertible {
 			string.append( keyName( keyID, keyStringMap ) )
 			string.append( conditional ? "PTC" : "PTS" )
 			string.append( objID.id.format("04") )
-		case .Val( let keyID, let objID, let typeID, let isBinary ):
+		case .Val( let keyID, let objID, let typeID, let size ):
 			//	VAL			= []
 			//	BIV			= [bytes]
 			//	REF			= [typeID]
@@ -337,7 +359,7 @@ extension FileBlock : CustomStringConvertible {
 			//	BIR_objID	= [objID,typeID,bytes]
 
 			string.append( keyName( keyID, keyStringMap ) )
-			switch (typeID != nil, isBinary ) {
+			switch (typeID != nil, size != nil ) {
 			case (false, false)	: string.append( "VAL" )	//	Codable value
 			case (false, true)	: string.append( "BIV" )	//	BinaryCodable value
 			case (true,  false)	: string.append( "REF" )	//	Codable reference
@@ -345,9 +367,9 @@ extension FileBlock : CustomStringConvertible {
 			}
 			if let objID	{ string.append( objID.id.format("04") ) }
 			if let typeID	{ string.append( " \( typeName( typeID,options,classDataMap ) )") }
-			if isBinary {
+			if let size {
 				if let binaryValue	{ string.append( " \( small( binaryValue, options ) )") }
-				else				{ string.append( " { binary data }") }
+				else				{ string.append( " { \(size) bytes }") }
 			}
 		}
 		return string

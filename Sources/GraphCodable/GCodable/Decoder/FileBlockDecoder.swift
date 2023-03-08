@@ -62,7 +62,8 @@ struct FileBlockDecoder {
 
 		var fileBlocks	= [RFileBlock]()
 		while rbuffer.isEof == false {
-			fileBlocks.append( try RFileBlock(from: &rbuffer, fileHeader: fileHeader) )
+			let rFileBlock	= try RFileBlock(from: &rbuffer, fileHeader: fileHeader)
+			fileBlocks.append( rFileBlock )
 		}
 		
 		self._fileBlocks	= fileBlocks
