@@ -24,26 +24,14 @@ import Foundation
 
 final class BinaryEncoder<Output:MutableDataProtocol> : FileBlockEncoder {
 	weak var			delegate			: FileBlockEncoderDelegate?
-	private var			_wbuffer			: BinaryWriteBuffer?
+	private var			fileHeader			: FileHeader
+	private var			wbuffer				: BinaryWriteBuffer
 	private var 		sectionMap			= SectionMap()
 	private var			sectionMapPosition	= 0
 	
-	init() {}
-	
-	var wbuffer : BinaryWriteBuffer {
-		get {
-			if _wbuffer == nil {
-				_wbuffer = BinaryWriteBuffer(version: delegate!.binaryIOVersion )
-			}
-			return _wbuffer!
-		}
-		set {
-			_wbuffer	= newValue
-		}
-	}
-
-	var fileHeader : FileHeader {
-		delegate!.fileHeader
+	init( binaryWriteBuffer:BinaryWriteBuffer, fileHeader:FileHeader ) {
+		self.wbuffer	= binaryWriteBuffer
+		self.fileHeader	= fileHeader
 	}
 	
 	private func writeInit() throws {

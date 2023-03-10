@@ -56,14 +56,12 @@ import Foundation
 final class GEncoderImpl : FileBlockEncoderDelegate {
 	var userInfo							= [String:Any]()
 	private let 		encodeOptions		: GraphEncoder.Options
-	let					binaryIOVersion		: UInt16
-	let 				fileHeader			: FileHeader
+	private let			binaryIOVersion		: UInt16
+	private let 		fileHeader			: FileHeader
 	private var 		currentKeys			= Set<String>()
 	private var			identifierMap		= AnyIdentifierMap()
 	private var			referenceMap		= ReferenceMap()
 	private var			keyMap				= KeyMap()
-	private (set) var	dumpOptions			= GraphDumpOptions.readable
-
 	
 	private var			dataEncoder			: (any FileBlockEncoder)! {
 		willSet {
@@ -94,17 +92,22 @@ final class GEncoderImpl : FileBlockEncoderDelegate {
 
 	func encodeRoot<T,Q>( _ value: T ) throws -> Q where T:GEncodable, Q:MutableDataProtocol {
 		defer { self.dataEncoder = nil }
-		let dataEncoder	= BinaryEncoder<Q>()
-		self.dataEncoder = dataEncoder
+		let binaryWriteBuffer	= BinaryWriteBuffer(version: binaryIOVersion)
+		let dataEncoder			= BinaryEncoder<Q>( binaryWriteBuffer: binaryWriteBuffer, fileHeader: fileHeader )
+		self.dataEncoder 		= dataEncoder
 		try encode( value )
 		return try dataEncoder.output()
 	}
 	
 	func dumpRoot<T>( _ value: T, options: GraphDumpOptions ) throws -> String where T:GEncodable {
 		defer { self.dataEncoder = nil }
-		let dataEncoder	= StringEncoder()
-		self.dataEncoder = dataEncoder
-		self.dumpOptions = options
+		let dataEncoder		= StringEncoder(
+			fileHeader:			fileHeader,
+			dumpOptions:		options,
+			binaryIOVersion:	binaryIOVersion,
+			dataSize: 			nil	// no data size during encode
+		)
+		self.dataEncoder	= dataEncoder
 		try encode( value )
 		return try dataEncoder.output()
 	}

@@ -35,11 +35,18 @@ BinaryReadBuffer:
 ///
 ///
 public struct BinaryReadBuffer {
-	let	privateVersion : UInt16
-	public	let	version : UInt16
-	private let base	: Bytes
-	private var bytes	: Bytes.SubSequence
+	// private version for library types
+	let	privateVersion		: UInt16
+	// public version for user defined types
+	public	let	version 	: UInt16
+	private let base		: Bytes
+	private var bytes		: Bytes.SubSequence
 	
+	public var	dataSize	: Int 			{ base.count }
+	var startOfFile			: Int			{ MemoryLayout.size(ofValue: privateVersion) + MemoryLayout.size(ofValue: version) }
+	var isEndOfFile			: Bool			{ bytes.count == 0 }
+	var fullRegion			: Range<Int>	{ startOfFile ..< base.endIndex }
+
 	init( bytes base: Bytes ) throws {
 		var bytes			= base[...]
 		self.privateVersion	= try Self.readValue(from: &bytes)
@@ -56,9 +63,6 @@ public struct BinaryReadBuffer {
 		}
 	}
 	
-	var startOfFile	: Int			{ MemoryLayout.size(ofValue: privateVersion) + MemoryLayout.size(ofValue: version) }
-	var isEndOfFile	: Bool			{ bytes.count == 0 }
-	var fullRegion: Range<Int>		{ startOfFile ..< base.endIndex }
 
 	///	regionStart can precede the current region start
 	///	but cannot exceed the current region end

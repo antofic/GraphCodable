@@ -21,14 +21,21 @@
 //	SOFTWARE.
 
 final class StringEncoder : FileBlockEncoder {
-	
 	typealias			Output		= String
-	weak var			delegate	: FileBlockEncoderDelegate?
+	weak var			delegate			: FileBlockEncoderDelegate?
+	private var			fileHeader			: FileHeader
+	private var			options				: GraphDumpOptions
+	private var			binaryIOVersion		: UInt16
+	private var			dataSize			: Int?
 	private var			dump		= String()
 	private var 		dumpStart	= false
 	private var 		tabs		: String?
 
-	init() {
+	init( fileHeader: FileHeader, dumpOptions:GraphDumpOptions, binaryIOVersion:UInt16, dataSize:Int? ) {
+		self.fileHeader			= fileHeader
+		self.options			= dumpOptions
+		self.binaryIOVersion	= binaryIOVersion
+		self.dataSize			= dataSize
 	}
 
 	static func titleString( _ string: String, filler:Character = "=", lenght: Int = 69 ) -> String {
@@ -53,23 +60,22 @@ final class StringEncoder : FileBlockEncoder {
 		if dumpStart == false {
 			dumpStart	= true
 			
-			let options	= delegate?.dumpOptions ?? .readable
-			
-			if options.contains( .showHeader ), let fileHeader = delegate?.fileHeader {
+			if options.contains( .showHeader ) {
 				if options.contains( .hideSectionTitles ) == false {
 					dump.append( Self.titleString( "HEADER" ) )
 				}
 				dump.append( fileHeader.description )
 				dump.append( "\n" )
-				if let version	= delegate?.binaryIOVersion {
-					dump.append( Self.titleString( "BinaryIO",filler:"-" ) )
-					dump.append( "- Version   = \(version.format("10")) {\(MemoryLayout.size(ofValue: version)) bytes}\n" )
+				dump.append( Self.titleString( "BinaryIO",filler:"-" ) )
+				dump.append( "- Version   = \(binaryIOVersion.format("10")) {\(MemoryLayout.size(ofValue: binaryIOVersion)) bytes}\n" )
+				if let dataSize = dataSize {
+					dump.append( "- Data size = \(dataSize.format("10")) bytes\n" )
 				}
 			}
 			
-			if true {
+			if options.contains( .showHelp ) {
 				if options.contains( .hideSectionTitles ) == false {
-					dump.append( Self.titleString( "INFO" ) )
+					dump.append( Self.titleString( "HELP" ) )
 				}
 				dump.append( infoString )
 				dump.append( "\n" )
@@ -91,7 +97,6 @@ final class StringEncoder : FileBlockEncoder {
 	
 	func append(_ fileBlock: FileBlock, binaryValue: BinaryOType?) throws {
 		try dumpInit()
-		let options	= delegate?.dumpOptions ?? .readable
 		
 		if options.contains( .showBody ) {
 			if case .exit = fileBlock.level { tabs?.removeLast() }
@@ -141,7 +146,6 @@ final class StringEncoder : FileBlockEncoder {
 		}
 		
 		try dumpInit()
-		let options	= delegate?.dumpOptions ?? .readable
 		
 		if options.contains( .showReferenceMap ) {
 			if options.contains( .hideSectionTitles ) == false {

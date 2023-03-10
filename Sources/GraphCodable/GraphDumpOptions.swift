@@ -30,42 +30,44 @@ public struct GraphDumpOptions: OptionSet {
 	// SECTIONS:
 	///	show file header
 	public static let	showHeader							= Self( rawValue: 1 << 0 )
+	///	show file header
+	public static let	showHelp							= Self( rawValue: 1 << 1 )
 	///	show file body
-	public static let	showBody							= Self( rawValue: 1 << 1 )
+	public static let	showBody							= Self( rawValue: 1 << 2 )
 	///	show the flattened body structure (DECODER DUMP ONLY)
-	public static let	showFlattenedBody					= Self( rawValue: 1 << 2 )
+	public static let	showFlattenedBody					= Self( rawValue: 1 << 3 )
 	///	show file header
-	public static let	showReferenceMap					= Self( rawValue: 1 << 3 )
+	public static let	showReferenceMap					= Self( rawValue: 1 << 4 )
 	///	show file header
-	public static let	showKeyStringMap					= Self( rawValue: 1 << 4 )
+	public static let	showKeyStringMap					= Self( rawValue: 1 << 5 )
 
 	// BODY/FLATTENEDBODY OPTIONS:
 	///	disable indentation in body
-	public static let	dontIndentBody						= Self( rawValue: 1 << 8 )
+	public static let	dontIndentBody						= Self( rawValue: 1 << 16 )
 	///	in Body / Flattended Body section, show the qualified class name instead of the TypeID
-	public static let	showClassNamesInBody				= Self( rawValue: 1 << 9 )
+	public static let	showClassNamesInBody				= Self( rawValue: 1 << 17 )
 	///	in Body / Flattended Body section, show the key string instead of the KeyID
-	public static let	showKeyStringsInBody				= Self( rawValue: 1 << 10 )
+	public static let	showKeyStringsInBody				= Self( rawValue: 1 << 18 )
 	///	in the Body section, show type versions (they are in the ReferenceMap section)
-	public static let	showClassVersionsInBody				= Self( rawValue: 1 << 11 )
+	public static let	showClassVersionsInBody				= Self( rawValue: 1 << 19 )
 	
 	// BODY (only) OPTIONS FOR BINARYVALUES :
 	///	show value description (ENCODER DUMP ONLY)
-	public static let	showValueDescriptionInBody			= Self( rawValue: 1 << 16 )
+	public static let	showValueDescriptionInBody			= Self( rawValue: 1 << 24 )
 	///	value descriptions can be very large strings (example: a large int array)
 	///	so the dump function by default truncate this description to 48 characters
 	///	displaying ellipses (…).
 	///	When showValueDescription in enablen, this option disable description
 	///	truncation. (ENCODER DUMP ONLY)
-	public static let	dontTruncateValueDescriptionInBody	= Self( rawValue: 1 << 17 )
+	public static let	dontTruncateValueDescriptionInBody	= Self( rawValue: 1 << 25 )
 
 	// REFERENCEMAP OPTIONS:
 	///	show mangledName/nsClassName in ReferenceMap section
-	public static let	showMangledNamesInReferenceMap		= Self( rawValue: 1 << 24 )
+	public static let	showMangledNamesInReferenceMap		= Self( rawValue: 1 << 32 )
 
 	// OTHER OPTIONS:
 	///	disable '== SECTION TITLE =========================================='
-	public static let	hideSectionTitles					= Self( rawValue: 1 << 32 )
+	public static let	hideSectionTitles					= Self( rawValue: 1 << 40 )
 	
 
 	public static let	readable: Self = [

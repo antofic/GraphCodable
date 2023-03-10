@@ -22,11 +22,8 @@
 
 
 protocol FileBlockEncoderDelegate : AnyObject {
-	var fileHeader:			FileHeader { get }
-	var binaryIOVersion:	UInt16 { get }
 	var	classDataMap:		ClassDataMap { get }
 	var	keyStringMap:		KeyStringMap { get }
-	var dumpOptions:		GraphDumpOptions { get }
 }
 
 protocol FileBlockEncoder : AnyObject {
@@ -34,7 +31,6 @@ protocol FileBlockEncoder : AnyObject {
 	
 	var delegate	: FileBlockEncoderDelegate? { get set }
 	
-//	func append( _ fileBlock: FileBlock, binaryValue:BinaryOType? ) throws
 	func output() throws -> Output
 	
 	func appendEnd() throws
@@ -42,29 +38,3 @@ protocol FileBlockEncoder : AnyObject {
 	func appendPtr( keyID:KeyID?, objID:ObjID, conditional:Bool ) throws
 	func appendVal( keyID:KeyID?, typeID:TypeID?, objID:ObjID?, binaryValue:BinaryOType? ) throws
 }
-
-/*
-extension FileBlockEncoder {
-	func appendEnd() throws {
-		try append( .End, binaryValue:nil )
-	}
-	func appendNil( keyID:KeyID? ) throws {
-		try append( .Nil(keyID: keyID), binaryValue:nil )
-	}
-	func appendPtr( keyID:KeyID?, objID:ObjID, conditional:Bool ) throws {
-		try append( .Ptr(keyID: keyID,objID:objID, conditional:conditional ), binaryValue:nil )
-	}
-	func appendVal( keyID:KeyID?, typeID:TypeID?, objID:ObjID?, binaryValue:BinaryOType? ) throws {
-		let bytes	: Bytes?
- 
-		if let binaryValue {
-			bytes	= try binaryValue.binaryData() as Bytes
-		} else {
-			bytes	= nil
-		}
-
-		try append( .Val(keyID: keyID, objID:objID, typeID:typeID, bytes: bytes), binaryValue:binaryValue  )
-	}
-}
-*/
-
