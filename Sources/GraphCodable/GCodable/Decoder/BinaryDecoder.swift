@@ -30,15 +30,17 @@ struct BinaryDecoder {
 	let rootElement 		: FlattenedElement
 	private var	elementMap	: ElementMap
 	
-	init( from readBuffer:BinaryReadBuffer ) throws {
-		var binaryDecoder	= try ReadBlockDecoder( from: readBuffer )
-		let fileHeader		= binaryDecoder.fileHeader
-		let rFileBlocks		= try binaryDecoder.readBlocks()
-		let classInfoMap	= try binaryDecoder.classInfoMap()
-		let keyStringMap	= try binaryDecoder.keyStringMap()
+	init( from readBuffer:BinaryReadBuffer, classNameMap:ClassNameMap? ) throws {
+		var readBlockDecoder	= try ReadBlockDecoder( from: readBuffer )
+		let fileHeader			= readBlockDecoder.fileHeader
+		let rFileBlocks			= try readBlockDecoder.readBlocks()
+		let classInfoMap		= try readBlockDecoder.classDataMap().mapValues {
+			try ClassInfo(classData: $0, classNameMap:classNameMap )
+		}
+		let keyStringMap		= try readBlockDecoder.keyStringMap()
 		
-		self.fileHeader		= fileHeader
-		self.classInfoMap	= classInfoMap
+		self.fileHeader			= fileHeader
+		self.classInfoMap		= classInfoMap
 		(self.rootElement,self.elementMap)	= try FlattenedElement.rootElement(
 			rFileBlocks:	rFileBlocks,
 			keyStringMap:	keyStringMap,

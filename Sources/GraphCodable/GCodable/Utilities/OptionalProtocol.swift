@@ -20,6 +20,9 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
+
+
+
 protocol OptionalProtocol {
 	static var wrappedType: Any.Type { get }
 	// nested optional types unwrapping
@@ -41,24 +44,11 @@ extension Optional : OptionalProtocol {
 		}
 		return currentType
 	}
+
+	var isNil: Bool { self == nil }
+
+	var wrappedValue: Any { self! }
 	
-	var isNil: Bool {
-		switch self {
-		case .some:
-			return false
-		case .none:
-			return true
-		}
-	}
-	
-	var wrappedValue: Any {
-		switch self {
-		case .some( let unwrapped ):
-			return unwrapped
-		case .none:
-			preconditionFailure( "nil unwrap" )
-		}
-	}
 }
 
 extension Optional where Wrapped == Any {
@@ -76,4 +66,7 @@ extension Optional where Wrapped == Any {
 		self = .some( currentValue )
 	}
 }
+
+
+
 

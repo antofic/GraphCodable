@@ -26,8 +26,8 @@ typealias ElementMap = [ObjID : FlattenedElement]
 
 /// Decoding Pass 2
 ///
-///	Reorder ReadBlock's in a `rootElement` and a `[objID : FlattenedElement]` dictionary
-///	to allow dearchiving of acyclic graphs without requiring deferDecode
+///	Reorder ReadBlock's in a `rootElement` and a `ElementMap = [objID : FlattenedElement]`
+///	dictionary to allow decoding of every acyclic graphs without requiring deferDecode
 final class FlattenedElement {
 	private weak var	parentElement 	: FlattenedElement?
 	private(set) var	readBlock		: ReadBlock
@@ -91,7 +91,7 @@ extension FlattenedElement {
 	) throws where T:IteratorProtocol, T.Element == ReadBlock {
 		
 		switch element.readBlock.fileBlock {
-		case .Val( let keyID, let objID, _, let size ):
+		case .Val( let keyID, let objID, _, let binSize ):
 			if let objID {
 				//	l'oggetto non può trovarsi nella map
 				guard map.index(forKey: objID) == nil else {
@@ -108,13 +108,13 @@ extension FlattenedElement {
 				// metto il nuovo elelemnto nella mappa
 				map[ objID ]	= root
 								
-				if size == nil {	// ATT! NO subFlatten for BinValue's
+				if binSize == nil {	// ATT! NO subFlatten for BinValue's
 					try subFlatten(
 						elementMap: &map, parentElement:root, lineIterator:&lineIterator,
 						keyStringMap:keyStringMap, reverse:reverse
 					)
 				}
-			} else if size == nil {	// ATT! NO subFlatten for BinValue's
+			} else if binSize == nil {	// ATT! NO subFlatten for BinValue's
 				try subFlatten(
 					elementMap: &map, parentElement:element, lineIterator:&lineIterator,
 					keyStringMap:keyStringMap, reverse:reverse

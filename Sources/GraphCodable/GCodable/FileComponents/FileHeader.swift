@@ -25,7 +25,8 @@
 struct FileHeader : CustomStringConvertible, BinaryIOType {
 	struct Flags : OptionSet {
 		let rawValue: UInt16
-		// flags for future use
+		static let	packBinSize		= Self( rawValue: 1 << 0 )
+		
 	}
 	
 	static var INITIAL_FILE_VERSION	: UInt32 { 0 }	// no more supported

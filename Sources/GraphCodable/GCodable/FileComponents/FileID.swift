@@ -33,11 +33,10 @@ extension FileID {
 	}
 
 	init( from rbuffer:inout BinaryReadBuffer ) throws {
-		self.init( try UIntID.init(unpackFrom: &rbuffer) )
+		self.init( try UIntID(unpackFrom: &rbuffer) )
 	}
 
 	func write( to wbuffer:inout BinaryWriteBuffer ) throws {
-		// we pack ids to reduce file size
 		try id.write(packTo: &wbuffer)
 	}
 
@@ -47,16 +46,37 @@ extension FileID {
 }
 
 struct ObjID : FileID {
-	var id: UIntID
+	let id: UIntID
 	init(_ id: UIntID) { self.id = id }
 }
 
 struct KeyID : FileID {
-	var id: UIntID
+	let id: UIntID
 	init(_ id: UIntID) { self.id = id }
 }
 
 struct TypeID : FileID {
-	var id: UIntID
+	let id: UIntID
 	init(_ id: UIntID) { self.id = id }
 }
+
+struct BinSize: Equatable {
+	private let _usize: UInt
+	
+	init() { _usize = UInt(bitPattern: -1) }
+	
+	init(_ size: Int)	{ self._usize = UInt(size) }
+	var size: Int		{ Int(_usize) }
+	
+	init(from rbuffer: inout BinaryReadBuffer, unpack:Bool ) throws {
+		if unpack	{ _usize = try UInt( unpackFrom: &rbuffer ) }
+		else		{ _usize = try UInt( from: &rbuffer ) }
+	}
+	
+	///	pack will make writed data variable in size
+	func write(to wbuffer: inout BinaryWriteBuffer, pack:Bool ) throws {
+		if pack 	{ try _usize.write( packTo: &wbuffer) }
+		else		{ try _usize.write( to: &wbuffer) }
+	}
+}
+

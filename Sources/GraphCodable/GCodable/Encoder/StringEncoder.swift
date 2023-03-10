@@ -33,7 +33,7 @@ final class StringEncoder : FileBlockEncoder {
 		self.fileHeader	= fileHeader
 	}
 
-	static func titleString( _ string: String, filler:Character = "=", lenght: Int = 66 ) -> String {
+	static func titleString( _ string: String, filler:Character = "=", lenght: Int = 69 ) -> String {
 		var title	= ""
 		if string.count > 0 {
 			title.append( String(repeating: filler, count: 1) )
@@ -65,11 +65,19 @@ final class StringEncoder : FileBlockEncoder {
 				dump.append( "\n" )
 			}
 			
-			if options.contains( .hideBody ) == false {
+			if true {
+				if options.contains( .hideSectionTitles ) == false {
+					dump.append( Self.titleString( "INFO" ) )
+				}
+				dump.append( infoString )
+				dump.append( "\n" )
+			}
+			
+			if options.contains( .showBody ) {
 				if options.contains( .hideSectionTitles ) == false {
 					dump.append( Self.titleString( "BODY" ) )
 				}
-				tabs = options.contains( .dontIndent ) ? nil : ""
+				tabs = options.contains( .dontIndentBody ) ? nil : ""
 			}
 		}
 	}
@@ -83,11 +91,11 @@ final class StringEncoder : FileBlockEncoder {
 		try dumpInit()
 		let options	= delegate?.dumpOptions ?? .readable
 		
-		if options.contains( .hideBody ) == false {
+		if options.contains( .showBody ) {
 			if case .exit = fileBlock.level { tabs?.removeLast() }
 			if let tbs = tabs { dump.append( tbs ) }
 			
-			let binValue = options.contains( .hideValueDescription ) ? nil : binaryValue
+			let binValue = options.contains( .showValueDescriptionInBody ) ? binaryValue : nil 
 			
 			dump.append( fileBlock.description(
 				options:		options,
@@ -111,17 +119,21 @@ final class StringEncoder : FileBlockEncoder {
 		try append( .Ptr(keyID: keyID,objID:objID, conditional:conditional ), binaryValue:nil )
 	}
 	func appendVal( keyID:KeyID?, typeID:TypeID?, objID:ObjID?, binaryValue:BinaryOType? ) throws {
-		let size = binaryValue != nil ? FileBlock.unknownSize : nil
+		let size = binaryValue != nil ? BinSize() : nil
 		
-		try append( .Val(keyID: keyID, objID:objID, typeID:typeID, size: size), binaryValue:binaryValue  )
+		try append( .Val(keyID: keyID, objID:objID, typeID:typeID, binSize: size), binaryValue:binaryValue  )
 	}
 	
 	func output() throws -> String {
 		func typeString( _ options:GraphDumpOptions, _ classData:ClassData ) -> String {
-			var string	= "\(classData.readableTypeName) V\(classData.encodeVersion)"
-			if options.contains( .showMangledClassNames ) {
-				string.append( "\n\t\t\tMangledName = \( classData.mangledTypeName ?? "nil" )"  )
-				string.append( "\n\t\t\tNSTypeName  = \( classData.objcTypeName )"  )
+			var string	= ""
+			if options.contains( .showMangledNamesInReferenceMap ) {
+				string.append( "QualifiedName  = \( classData.qualifiedName )"  )
+				string.append( "\n\t\t\tMangledName    = \( classData.mangledName ?? "nil" )"  )
+				string.append( "\n\t\t\tNSClassName    = \( classData.nsClassName )"  )
+				string.append( "\n\t\t\tEncodedVersion = \( classData.encodedVersion )"  )
+			} else {
+				string.append("\(classData.qualifiedName) V\(classData.encodedVersion)")
 			}
 			return string
 		}
@@ -129,7 +141,7 @@ final class StringEncoder : FileBlockEncoder {
 		try dumpInit()
 		let options	= delegate?.dumpOptions ?? .readable
 		
-		if options.contains( .showClassDataMap ) {
+		if options.contains( .showReferenceMap ) {
 			if options.contains( .hideSectionTitles ) == false {
 				dump.append( Self.titleString( "REFERENCEMAP" ) )
 			}
@@ -154,4 +166,34 @@ final class StringEncoder : FileBlockEncoder {
 		
 		return dump
 	}
+	
+	private var infoString : String  {
+"""
+Codes:
+\tVAL<objID?>   = GCodable value tipe
+\tREF<objID?>   = GCodable reference type
+\tBIV<objID?>   = BinaryIO value type
+\tBIR<objID?>   = BinaryIO reference type
+\tNIL<objID?>   = nil (Optional.none) VAL,REF,BIV,BIR
+\tPTS<objID>    = Strong pointer to VAL,REF,BIV,BIR
+\tPTC<objID>    = Conditional pointer to VAL,REF,BIV,BIR
+
+\t• VAL, REF are followed by their internal fields ending with '.'
+\t• The '+ key/KEY<keyID>' symbol precedes keyed fields.
+\t• The '-' symbol precedes unkeyed fields.
+\t• objID is an unique integer code associated with REF, VAL, BIV,
+\t  BIR, NIL only if they have identities. The PTC and PTS objID
+\t  code is the same as the REF, VAL, BIV, BIR, NIL the pointer
+\t  points to.
+
+Other codes:
+\tTYPE<typeID>  = uniquely identifies the class of a reference
+\t                (REF, BIR). Depending on the options selected,
+\t                the qualified name of the class may be displayed
+\t                alternatively.
+\tKEY<keyID>    = uniquely identifies the key used in keyed coding.
+\t			    Only used by the VAL and REF fields.
+"""
+	}
+
 }

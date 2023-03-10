@@ -20,6 +20,15 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
+///	last resort to decode a reference type with identity
+public enum ClassName : Hashable {
+	case qualifiedName( _:String )
+	case mangledName( _:String )
+	case nsClassName( _:String )
+}
+
+public typealias ClassNameMap = [ClassName : (AnyObject & GDecodable).Type ]
+
 ///	An object that decodes instances of a **GDecodable** type
 ///	from a data buffer that uses **GraphCodable** format.
 public final class GraphDecoder {
@@ -31,6 +40,12 @@ public final class GraphDecoder {
 		set { decoder.userInfo = newValue }
 	}
 
+	///	get/set the classNameMap dictionary
+	public var classNameMap : ClassNameMap? {
+		get { decoder.classNameMap }
+		set { decoder.classNameMap = newValue }
+	}
+	
 	///	Decode the root value from the data byte buffer
 	///
 	///	The root value must conform to the GDecodable protocol

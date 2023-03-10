@@ -80,8 +80,13 @@ final class GEncoderImpl : FileBlockEncoderDelegate {
 	var keyStringMap: KeyStringMap 	{ keyMap.keyStringMap }
 	
 	init( _ options: GraphEncoder.Options ) {
+		#if DEBUG
+		self.encodeOptions	= [options, .printWarnings]
+		#else
 		self.encodeOptions	= options
-		self.fileHeader		= FileHeader()
+		#endif
+		// packBinSize or not??? 
+		self.fileHeader		= FileHeader( flags: .packBinSize )
 	}
 
 	func encodeRoot<T,Q>( _ value: T ) throws -> Q where T:GEncodable, Q:MutableDataProtocol {
@@ -146,12 +151,10 @@ extension GEncoderImpl {
 			try throwIfNotTrivial( trivialValue: trivialValue )
 			// note: only value types can be trivial
 			// trivial value don't have identity
-			if conditional {
-				throw GCodableError.conditionalWithoutIdentity(
-					Self.self, GCodableError.Context(
-						debugDescription: "Can't conditionally encode a value \(value) without identity."
-					)
-				)
+			if encodeOptions.contains( .printWarnings ) {
+				if conditional {
+					print( "### Warning: can't conditionally encode the type '\( type(of:value) )' without identity. It will be encoded unconditionally." )
+				}
 			}
 			try dataEncoder.appendVal(keyID: keyID, typeID:nil, objID:nil, binaryValue: trivialValue )
 		} else if let value = value as? GEncodable {
@@ -186,16 +189,18 @@ extension GEncoderImpl {
 					}
 				}
 			} else {	// NO IDENTITY
-				if conditional {
-					throw GCodableError.conditionalWithoutIdentity(
-						Self.self, GCodableError.Context(
-							debugDescription: "Can't conditionally encode a value \(value) without identity."
-						)
-					)
-				}
 				// INHERITANCE: only classes have a typeID != 0
 				let typeID	= try createTypeIDIfNeeded( for: value )
 
+				if encodeOptions.contains( .printWarnings ) {
+					if conditional {
+						print( "### Warning: can't conditionally encode the type '\( type(of:value) )' without identity. It will be encoded unconditionally." )
+					}
+					if typeID != nil, value is GVersion {
+						print( "### Warning: the type '\( type(of:value) )' has no identity and cannot use the versioning system." )
+					}
+				}
+				
 				if let binaryValue = value as? GBinaryEncodable {
 					// BinaryEncodable type
 					try dataEncoder.appendVal(keyID: keyID, typeID: typeID, objID: nil, binaryValue: binaryValue)
@@ -258,7 +263,7 @@ extension GEncoderImpl {
 	
 	private func throwIfNotTrivial<T:GTrivialEncodable>( trivialValue value:T ) throws {
 		guard _isPOD( T.self ) else {
-			throw GCodableError.notTrivialValue(
+			throw GCodableError.valueMustBeTrivial(
 				Self.self, GCodableError.Context(
 					debugDescription: "Not trivial type \( T.self ) marked as \(GTrivial.self)."
 				)

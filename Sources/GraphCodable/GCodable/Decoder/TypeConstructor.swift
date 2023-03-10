@@ -30,9 +30,9 @@ final class TypeConstructor {
 	private var			objectRepository 	= [ ObjID: Any ]()
 	private var			setterRepository 	= [ () throws -> () ]()
 	
-	init( readBuffer:BinaryReadBuffer ) throws {
+	init( readBuffer:BinaryReadBuffer, classNameMap:ClassNameMap? ) throws {
 		self.readBuffer		= readBuffer
-		self.binaryDecoder	= try BinaryDecoder(from: readBuffer)
+		self.binaryDecoder	= try BinaryDecoder(from: readBuffer, classNameMap:classNameMap )
 		self.currentElement	= binaryDecoder.rootElement
 	}
 
@@ -87,7 +87,7 @@ final class TypeConstructor {
 					)
 				)
 			}
-			return classInfo.classData.encodeVersion
+			return classInfo.classData.encodedVersion
 		}
 	}
 	
@@ -114,9 +114,9 @@ final class TypeConstructor {
 	
 	func decode<T>( element:FlattenedElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
 		switch element.readBlock.fileBlock {
-		case .Val( _, let objID, let typeID, let size):
+		case .Val( _, let objID, let typeID, let binSize):
 			if objID == nil {
-				return try decode(type: T.self, typeID: typeID, size: size, element: element, from: decoder)
+				return try decode(type: T.self, typeID: typeID, binSize: binSize, element: element, from: decoder)
 			}
 		default:
 			break
@@ -147,9 +147,9 @@ extension TypeConstructor {
 				return object
 			} else if let element = binaryDecoder.pop( objID: objID ) {
 				switch element.readBlock.fileBlock {
-				case .Val( _, let objID, let typeID, let size):
+				case .Val( _, let objID, let typeID, let binSize):
 					if let objID {
-						let object	= try decode(type: T.self, typeID: typeID, size: size, element: element, from: decoder)
+						let object	= try decode(type: T.self, typeID: typeID, binSize: binSize, element: element, from: decoder)
 						objectRepository[ objID ]	= object
 						return object
 					}
@@ -195,11 +195,11 @@ extension TypeConstructor {
 
 // MARK: TypeConstructor private level 2
 extension TypeConstructor {
-	private func decode<T>( type:T.Type, typeID:TypeID?, size: Int?, element:FlattenedElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
+	private func decode<T>( type:T.Type, typeID:TypeID?, binSize: BinSize?, element:FlattenedElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
 		if let typeID {
-			return try decodeRefOrBinRef( type:T.self, typeID:typeID , size:size, element:element, from: decoder )
-		} else if let size {
-			return try decodeBinValue( type:T.self, size:size, element:element, from: decoder )
+			return try decodeRefOrBinRef( type:T.self, typeID:typeID , binSize:binSize, element:element, from: decoder )
+		} else if let binSize {
+			return try decodeBinValue( type:T.self, binSize:binSize, element:element, from: decoder )
 		} else {
 			return try decodeValue( type:T.self, element:element, from: decoder )
 		}
@@ -235,7 +235,7 @@ extension TypeConstructor {
 		}
 	}
 
-	private func decodeBinValue<T>( type:T.Type, size:Int, element:FlattenedElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
+	private func decodeBinValue<T>( type:T.Type, binSize:BinSize, element:FlattenedElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
 		let saved	= currentElement
 		defer { currentElement = saved }
 		currentElement	= element
@@ -248,7 +248,6 @@ extension TypeConstructor {
 		} else {
 			wrapped	= T.self
 		}
-		
 
 		guard let binaryIType = wrapped as? BinaryIType.Type else {
 			throw GCodableError.typeMismatch(
@@ -269,10 +268,10 @@ extension TypeConstructor {
 		}
 
 		let readSize	= readBuffer.regionStart - element.readBlock.valueRegion.startIndex
-		guard size == readSize else {
+		guard binSize.size == readSize else {
 			throw GCodableError.decodingError(
 				Self.self, GCodableError.Context(
-					debugDescription: "\(size) bytes required, \(readSize) bytes read"
+					debugDescription: "\(binSize.size) bytes required, \(readSize) bytes read"
 				)
 			)
 		}
@@ -281,7 +280,7 @@ extension TypeConstructor {
 	}
 	
 	private func decodeRefOrBinRef<T>(
-		type:T.Type, typeID:TypeID, size: Int?, element:FlattenedElement, from decoder:GDecoder
+		type:T.Type, typeID:TypeID, binSize: BinSize?, element:FlattenedElement, from decoder:GDecoder
 	) throws -> T where T:GDecodable {
 		guard let classInfo = binaryDecoder.classInfoMap[ typeID ] else {
 			throw GCodableError.internalInconsistency(
@@ -297,8 +296,8 @@ extension TypeConstructor {
 		
 		let type	= classInfo.decodableType.self
 		let object	: GDecodable & AnyObject
-		if let size {
-			object = try decodeBinValue( type:type, size: size, element:element, from: decoder )
+		if let binSize {
+			object = try decodeBinValue( type:type, binSize: binSize, element:element, from: decoder )
 		} else {
 			object = try decodeValue( type:type, element:element, from: decoder )
 		}

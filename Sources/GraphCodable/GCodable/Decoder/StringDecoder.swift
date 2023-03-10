@@ -30,20 +30,20 @@ final class StringDecoder: FileBlockEncoderDelegate {
 	let dumpOptions		: GraphDumpOptions
 	
 	init( from readBuffer:BinaryReadBuffer, options:GraphDumpOptions ) throws {
-		var binaryDecoder	= try ReadBlockDecoder( from: readBuffer )
+		var readBlockDecoder	= try ReadBlockDecoder( from: readBuffer )
 		
-		self.fileHeader		= binaryDecoder.fileHeader
-		self.rFileBlocks	= try binaryDecoder.readBlocks()
-		self.classDataMap	= try binaryDecoder.classDataMap()
-		self.keyStringMap	= try binaryDecoder.keyStringMap()
-		self.dumpOptions	= options
+		self.fileHeader			= readBlockDecoder.fileHeader
+		self.rFileBlocks		= try readBlockDecoder.readBlocks()
+		self.classDataMap		= try readBlockDecoder.classDataMap()
+		self.keyStringMap		= try readBlockDecoder.keyStringMap()
+		self.dumpOptions		= options
 	}
 
 	func dump() throws -> String {
 		let stringEncoder	= StringEncoder( fileHeader:fileHeader )
 		stringEncoder.delegate	= self
 		try rFileBlocks.forEach { try stringEncoder.append($0.fileBlock, binaryValue: nil) }
-		if dumpOptions.contains( .showDecodedFlattenedBody ) {
+		if dumpOptions.contains( .showFlattenedBody ) {
 			let (rootElement,elementMap)	= try FlattenedElement.rootElement(
 				rFileBlocks:	rFileBlocks,
 				keyStringMap:	keyStringMap,

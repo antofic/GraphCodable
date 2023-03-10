@@ -23,18 +23,33 @@
 struct ClassInfo : CustomStringConvertible {
 	let	decodableType:	(AnyObject & GDecodable).Type
 	let	classData:		ClassData
-	 
-	init( classData:ClassData ) throws {
-		guard let decodableType = classData.decodableType else {
-			throw GCodableError.cantConstructClass(
-				Self.self, GCodableError.Context(
-					debugDescription:"The class -\(classData.readableTypeName)- can't be constructed."
-				)
-			)
+	
+	init( classData:ClassData, classNameMap:ClassNameMap? ) throws {
+		self.classData		= classData
+
+		if let decodableType = classData.decodableType {
+			self.decodableType	= decodableType
+			return
+		} else if let classNameMap {
+			if let decodableType = classNameMap[ .qualifiedName(classData.qualifiedName) ] {
+				self.decodableType	= decodableType
+				return
+			} else if
+				let	mangledName		= classData.mangledName,
+				let decodableType	= classNameMap[ .mangledName(mangledName) ] {
+				self.decodableType	= decodableType
+				return
+			} else if let decodableType = classNameMap[ .nsClassName(classData.nsClassName) ] {
+				self.decodableType	= decodableType
+				return
+			}
 		}
 		
-		self.decodableType	= decodableType
-		self.classData		= classData
+		throw GCodableError.cantConstructClass(
+			Self.self, GCodableError.Context(
+				debugDescription:"The class -\(classData.qualifiedName)- can't be constructed."
+			)
+		)
 	}
 
 	var description: String {

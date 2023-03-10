@@ -12,7 +12,7 @@
 		- [Conditional encode](#Conditional-encode)
 		- [Directed acyclic graphs](#Directed-acyclic-graphs)
 		- [Directed cyclic graphs](#Directed-cyclic-graphs)
-	- [ncoding/Decoding Identity for value types](#ncoding/Decoding-Identity-for-value-types)
+	- [Encoding/Decoding Identity for value types](#ncoding/Decoding-Identity-for-value-types)
 		- [The GIdentifiable protocol](#The-GIdentifiable-protocol)
 		- [Identity for Array and ContiguosArray](#Identity-for-Array-and-ContiguosArray)
 	- [GraphCodable protocols](#GraphCodable-protocols)
@@ -699,6 +699,8 @@ outRoot.b.data == nil
 
 So, `b` encodes `data` conditionally. If `Model` don't encode  `a`, which encodes `data` unconditionally, `data` isn't encoded att all.
 
+If you try to **conditionally** encode a value **without identity**, GraphCodable encodes it **unconditionally**. If it happens and the `.printWarnings` option in the `GraphEncoder(  _ options: )` method is selected, GraphCodable prints a warning message during encoding.
+
 #### Directed acyclic graphs (DAG)
 
 Connections between reference types often create complex graphs where the same object "points" and "is pointed to" by many other objects. ARC, for example, requires that strong variables do not create **directed cyclic graphs** (DCG) because the cycles prevent the release of memory. The GraphCodable decoder implements an algorithm that allows it to **always** decode  **directed acyclic graphs** (DAG) without any special treatment of the variables to decode.
@@ -1333,12 +1335,34 @@ It should be noted that if the two options  `.disableIdentity`  and `.disableInh
 
 **Note**: if a reference type adopt the the `GIdentifiable` protocol and `gcodableID` returns `nil`, the type don't receive an identity unless the `.ignoreGIdentifiableProtocol`  option is set.
 
-### Other features
-#### UserInfo dictionary
+### UserInfo dictionary
 
-The use is identical to that of Codable.
+Both `GraphEncoder` and `GraphDecoder` allow setting a dictionary accessible during archiving and dearchiving respectively with the aim of adopting appropriate strategies. Usage is identical to that of Codable.
 
-#### Reference type version system
+### Versioning of reference types
+
+Reference types **with identities** can adopt the `GVersion` protocol to define the version (a `UInt32` value) of their type so that they can handle different decoding strategies depending on it.
+
+```swift
+public protocol GVersion : AnyObject {
+	static var encodeVersion : UInt32 { get }
+}
+```
+
+The encoder stores the value returned by `encodeVersion` together with the reference type information. During decoding, the version of the encoded reference type can be accessed through the decoder property `encodedVersion`.
+
+```swift
+public protocol GDecoder {
+	...
+	var encodedVersion : UInt32  { get throws }
+  ...
+}
+
+```
+
+If the type does not adopt the GVersion protocol, `encodedVersion` returns 0. If the `GVersion` protocol is adopted, it is therefore appropriate that `encodeVersion` returns at least 1.
+
+
 
 GraphCodable implements a reference type version system.
 

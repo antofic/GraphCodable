@@ -27,53 +27,59 @@ public struct GraphDumpOptions: OptionSet {
 		self.rawValue	= rawValue
 	}
 	
+	// SECTIONS:
 	///	show file header
-	public static let	showHeader						= Self( rawValue: 1 << 0 )
+	public static let	showHeader							= Self( rawValue: 1 << 0 )
 	///	show file body
-	public static let	hideBody						= Self( rawValue: 1 << 1 )
+	public static let	showBody							= Self( rawValue: 1 << 1 )
+	///	show the flattened body structure (DECODER DUMP ONLY)
+	public static let	showFlattenedBody					= Self( rawValue: 1 << 2 )
 	///	show file header
-	public static let	showClassDataMap				= Self( rawValue: 1 << 2 )
+	public static let	showReferenceMap					= Self( rawValue: 1 << 3 )
 	///	show file header
-	public static let	showKeyStringMap				= Self( rawValue: 1 << 3 )
-	///	indent the data
-	public static let	dontIndent						= Self( rawValue: 1 << 4 )
-	///	in Body / Flattended Body section, resolve typeIDs in typeNames
-	public static let	resolveTypeIDs					= Self( rawValue: 1 << 5 )
-	///	in Body / Flattended Body section, resolve keyIDs in keyNames
-	public static let	resolveKeyIDs					= Self( rawValue: 1 << 6 )
-	///	in the Body section, show type versions (they are in the ReferenceMap section)
-	public static let	showReferenceVersion			= Self( rawValue: 1 << 7 )
-	///	includes '=== SECTION TITLE =========================================='
-	public static let	hideSectionTitles				= Self( rawValue: 1 << 8 )
-	///	disable truncation of too long nativeValues (over 48 characters - String or Data typically)
-	public static let	noTruncation					= Self( rawValue: 1 << 9 )
-	///	show mangledTypeNames/NSStringFromClass name in ReferenceMap section
-	public static let	showMangledClassNames			= Self( rawValue: 1 << 10 )
-	///	show the flattened body structure (Decoder dump only)
-	public static let	showDecodedFlattenedBody		= Self( rawValue: 1 << 11 )
-	///	show the flattened body structure (Decoder dump only)
-	public static let	hideValueDescription			= Self( rawValue: 1 << 12 )
+	public static let	showKeyStringMap					= Self( rawValue: 1 << 4 )
 
-	public static let	showOnlyMangledClassNames: Self = [
-		.hideBody, .showClassDataMap, .showMangledClassNames,
-	]
+	// BODY/FLATTENEDBODY OPTIONS:
+	///	disable indentation in body
+	public static let	dontIndentBody						= Self( rawValue: 1 << 8 )
+	///	in Body / Flattended Body section, show the qualified class name instead of the TypeID
+	public static let	showClassNamesInBody				= Self( rawValue: 1 << 9 )
+	///	in Body / Flattended Body section, show the key string instead of the KeyID
+	public static let	showKeyStringsInBody				= Self( rawValue: 1 << 10 )
+	///	in the Body section, show type versions (they are in the ReferenceMap section)
+	public static let	showClassVersionsInBody				= Self( rawValue: 1 << 11 )
+	
+	// BODY (only) OPTIONS FOR BINARYVALUES :
+	///	show value description (ENCODER DUMP ONLY)
+	public static let	showValueDescriptionInBody			= Self( rawValue: 1 << 16 )
+	///	value descriptions can be very large strings (example: a large int array)
+	///	so the dump function by default truncate this description to 48 characters
+	///	displaying ellipses (…).
+	///	When showValueDescription in enablen, this option disable description
+	///	truncation. (ENCODER DUMP ONLY)
+	public static let	dontTruncateValueDescriptionInBody	= Self( rawValue: 1 << 17 )
+
+	// REFERENCEMAP OPTIONS:
+	///	show mangledName/nsClassName in ReferenceMap section
+	public static let	showMangledNamesInReferenceMap		= Self( rawValue: 1 << 24 )
+
+	// OTHER OPTIONS:
+	///	disable '== SECTION TITLE =========================================='
+	public static let	hideSectionTitles					= Self( rawValue: 1 << 32 )
+	
+
 	public static let	readable: Self = [
-		.resolveTypeIDs, .resolveKeyIDs
-	]
-	public static let	readableNoTruncation: Self = [
-		.showHeader, .readable, .noTruncation
+		.showBody, .showClassNamesInBody, .showKeyStringsInBody, .showValueDescriptionInBody
 	]
 	public static let	binaryLike: Self = [
-		.showHeader, .showClassDataMap, .showKeyStringMap, .hideValueDescription
-	]
-	public static let	binaryLikeNoTruncation: Self = [
-		.binaryLike, .noTruncation
+		.showHeader, .showBody, .showReferenceMap, .showKeyStringMap
 	]
 	public static let	fullInfo: Self = [
-		.showHeader, .showClassDataMap, .showKeyStringMap, .readable, .showReferenceVersion, .showDecodedFlattenedBody
+		.readable, .showHeader, .showFlattenedBody, .showReferenceMap, .showKeyStringMap,
+		.showClassVersionsInBody, .showFlattenedBody, .showValueDescriptionInBody
 	]
-	public static let	fullInfoNoTruncation: Self = [
-		.showHeader, .showClassDataMap, .showKeyStringMap, .readable, .noTruncation, .showReferenceVersion, .showDecodedFlattenedBody
+	public static let	referenceMapOnly: Self = [
+		.showReferenceMap,.showMangledNamesInReferenceMap
 	]
 }
 

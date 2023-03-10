@@ -22,7 +22,9 @@
 
 final class GDecoderImpl {
 	var	userInfo			= [String:Any]()
+	var classNameMap		: ClassNameMap?
 	private var constructor : TypeConstructor!
+
 	
 	func allClassData<Q>( from data: Q ) throws -> [ClassData]
 	where Q:Sequence, Q.Element==UInt8 {
@@ -37,7 +39,7 @@ final class GDecoderImpl {
 		defer { constructor = nil }
 		
 		let readBuffer = BinaryReadBuffer(data: data)
-		constructor	= try TypeConstructor( readBuffer: readBuffer )
+		constructor	= try TypeConstructor( readBuffer: readBuffer, classNameMap:classNameMap )
 		
 		return try constructor.decodeRoot(type, from: self)
 	}

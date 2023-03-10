@@ -32,7 +32,8 @@ BinaryWriteBuffer data format uses always:
 public struct BinaryWriteBuffer {
 	private (set) var 	bytes 		= Bytes()
 	private var 		_position	= 0
-
+	private var			insert		= false
+	
 	func data<Q>() -> Q where Q:MutableDataProtocol {
 		if let data = bytes as? Q {
 			return data
@@ -51,21 +52,24 @@ public struct BinaryWriteBuffer {
 	
 	var eof : Int { bytes.count }
 	mutating func setEof() { _position = eof }
-	
-	
-	mutating func writePrepending<T>( dummyValue:T, update: ( _: inout BinaryWriteBuffer ) throws -> T ) throws
-	where T:BinaryOType
-	{
-		let initialPos		= position
-		try dummyValue.write(to: &self)
-		let dummySize		= position - initialPos
-		let updatedValue	= try update( &self )
+
+	mutating func prependingWrite(
+		dummyWrite			dummyFunc: ( _: inout BinaryWriteBuffer ) throws -> (),
+		thenWrite 			writeFunc: ( _: inout BinaryWriteBuffer ) throws -> (),
+		thenOverwriteDummy 	overwriteFunc: ( inout BinaryWriteBuffer, _: Int ) throws -> ()
+	) throws {
+		let dummyPos		= position
+		try dummyFunc( &self )
+		let bodyPos			= position
+		try writeFunc( &self )
 		let finalPos		= position
-		position			= initialPos
-		try updatedValue.write(to: &self)
-		let updatedSize		= position - initialPos
+		
+		position			= dummyPos
+		try overwriteFunc( &self, finalPos - bodyPos )
+		let newbodyPos		= position
 		position			= finalPos
-		if updatedSize != dummySize {
+
+		if newbodyPos != bodyPos {
 			throw BinaryIOError.prependingFails(
 				Self.self, BinaryIOError.Context(
 					debugDescription: "\(Self.self): outOfBounds position."
@@ -73,16 +77,22 @@ public struct BinaryWriteBuffer {
 			)
 		}
 	}
-
-	mutating func writePrependingSize( update: ( _: inout BinaryWriteBuffer ) throws -> () ) throws {
+	
+	mutating func insertingWrite(
+		firstWrite	writeFunc: ( _: inout BinaryWriteBuffer ) throws -> (),
+		thenInsert	insertFunc: ( _: inout BinaryWriteBuffer, _: Int ) throws -> ()
+	) throws {
 		let initialPos		= position
-		try Int(-1).write(to: &self)
-		let updatePos		= position
-		try update( &self )
+		try writeFunc( &self )
 		let finalPos		= position
 		position			= initialPos
-		try (finalPos-updatePos).write(to: &self)
-		position			= finalPos
+		do {
+			insert = true
+			defer { insert = false }
+			try insertFunc( &self, finalPos - initialPos )
+		}
+		let valuePos		= position
+		position	= finalPos + (valuePos - initialPos)
 	}
 	
 	private mutating func write<C>( contentsOf source:C ) throws
@@ -90,7 +100,7 @@ public struct BinaryWriteBuffer {
 		if position == bytes.endIndex {
 			bytes.append( contentsOf: source )
 		} else if position >= bytes.startIndex {
-			let endIndex	= bytes.index( position, offsetBy: source.count )
+			let endIndex	= bytes.index( position, offsetBy: insert ? 0 : source.count )
 			let range		= position ..< Swift.min( bytes.endIndex, endIndex )
 			bytes.replaceSubrange( range, with: source )
 		} else {
@@ -120,7 +130,7 @@ public struct BinaryWriteBuffer {
 		}
 	}
 	
-	mutating func writeData<T>( _ value:T ) throws where T:MutableDataProtocol, T:ContiguousBytes {
+	mutating func writeData<T>( _ value:T, insert:Bool = false ) throws where T:MutableDataProtocol, T:ContiguousBytes {
 		try writeInt64( Int64(value.count) )
 		try value.withUnsafeBytes { source in
 			try write(contentsOf: source)
@@ -128,7 +138,7 @@ public struct BinaryWriteBuffer {
 	}
 
 	// write a null terminated utf8 string
-	mutating func writeString( _ value:String ) throws {
+	mutating func writeString( _ value:String, insert:Bool = false ) throws {
 		// string saved as null-terminated sequence of utf8
 		//	let uint8array	= unsafeBitCast( value.utf8CString, to: ContiguousArray<UInt8>.self )
 		//	try write( contentsOf: uint8array )

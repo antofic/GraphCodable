@@ -31,35 +31,35 @@ struct ReadBlock {
 	let fileBlock			: FileBlock
 	private let regionStart	: Int
 	
-	init(from rbuffer: inout BinaryReadBuffer, fileHeader:FileHeader ) throws {
+	fileprivate init(from rbuffer: inout BinaryReadBuffer, fileHeader:FileHeader ) throws {
 		self.fileBlock	= try FileBlock(from: &rbuffer, fileHeader: fileHeader)
-		// memorizzo la posizione della fine del fileBlock
+		//	memorizzo la posizione della fine del fileBlock
 		self.regionStart	= rbuffer.regionStart
-		// sposto avanti la posizione della dimensione di binaryValue
+		//	sposto avanti la posizione della dimensione di binaryValue
+		//	in modo che la posizione del BinaryReadBuffer punti al
+		//	FileBlock successivo
+		//	(binarySize = 0 for non binary values)
 		rbuffer.regionStart += self.fileBlock.binarySize
 	}
-	
-	init( fileBlock:FileBlock, regionStart:Int ) {
-		self.fileBlock		= fileBlock
-		self.regionStart	= regionStart
-	}
-	
+
 	init( with fileBlock:FileBlock, copying readBlock:ReadBlock ) {
 		self.fileBlock		= fileBlock
 		self.regionStart	= readBlock.regionStart
 	}
 	
-	/// only binaryValues have a value region size > 0
+	///	Only binaryValues have a value region size > 0
+	///
+	///	whe size > 0 this is the region of the BinaryReadBuffer that contains
+	///	the "binaryEncoded" value.
 	var valueRegion : Range<Int> { regionStart ..< (regionStart + fileBlock.binarySize) }
 }
 
 typealias ReadBlocks		= [ReadBlock]
 
-
 /// Decoding Pass 1
 ///
 /// read the BinaryReadBuffer content.
-/// FileBlocks are trasformed in ReadBlocks
+/// FileBlocks are updated in ReadBlocks
 struct ReadBlockDecoder {
 	let 		fileHeader		: FileHeader
 	private	var sectionMap		: SectionMap
@@ -75,6 +75,8 @@ struct ReadBlockDecoder {
 		self.sectionMap		= try type(of:sectionMap).init(from: &rbuffer)
 	}
 	
+	/// decode the class data of reference types
+	/// from the BinaryReadBuffer
 	mutating func classDataMap() throws -> ClassDataMap {
 		if let classDataMap = self._classDataMap { return classDataMap }
 		
@@ -85,11 +87,9 @@ struct ReadBlockDecoder {
 		self._classDataMap	= classDataMap
 		return classDataMap
 	}
-	
-	mutating func classInfoMap() throws -> ClassInfoMap {
-		try classDataMap().mapValues {  try ClassInfo(classData: $0)  }
-	}
 
+	/// decode fileblocks from the BinaryReadBuffer
+	/// and trasform them in ReadBlock's
 	mutating func readBlocks() throws -> ReadBlocks {
 		if let fileBlocks = self._readBlocks { return fileBlocks }
 
@@ -106,6 +106,7 @@ struct ReadBlockDecoder {
 		return fileBlocks
 	}
 
+	/// decode the keyString map from the BinaryReadBuffer
 	mutating func keyStringMap() throws -> KeyStringMap {
 		if let keyStringMap = self._keyStringMap { return keyStringMap }
 
