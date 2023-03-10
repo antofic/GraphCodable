@@ -35,28 +35,28 @@ BinaryReadBuffer:
 ///
 ///
 public struct BinaryReadBuffer {
-//	public	let	globalVersion : UInt16
-	private let base:	Bytes
-	private var bytes:	Bytes.SubSequence
+	public	let	version : UInt16
+	private let base	: Bytes
+	private var bytes	: Bytes.SubSequence
 	
-	init( bytes: Bytes ) {
-		self.base	= bytes
-		self.bytes	= bytes[ ... ]
+	init( bytes base: Bytes ) throws {
+		var bytes		= base[...]
+		self.version	= try Self.readValue(from: &bytes)
+		self.base		= base
+		self.bytes		= bytes
 	}
 
-	init<Q>( data: Q ) where Q:Sequence, Q.Element==UInt8 {
+	init<Q>( data: Q ) throws where Q:Sequence, Q.Element==UInt8 {
 		if let bytes = data as? Bytes {
-			self.init( bytes: bytes )
+			try self.init( bytes: bytes )
 		} else {
-			self.init( bytes: Bytes(data) )
+			try self.init( bytes: Bytes(data) )
 		}
 	}
-
-	var isEof	: Bool	{ bytes.count == 0 }
-
-	var fullRegion: Range<Int> {
-		base.indices
-	}
+	
+	var startOfFile	: Int			{ MemoryLayout.size(ofValue: version) }
+	var isEndOfFile	: Bool			{ bytes.count == 0 }
+	var fullRegion: Range<Int>		{ MemoryLayout<UInt16>.size ..< base.endIndex }
 
 	///	regionStart can precede the current region start
 	///	but cannot exceed the current region end
@@ -64,7 +64,7 @@ public struct BinaryReadBuffer {
 		get { bytes.startIndex }
 		set {
 			precondition(
-				(base.startIndex...bytes.endIndex).contains( newValue ),
+				(startOfFile...bytes.endIndex).contains( newValue ),
 				"\(Self.self): regionStart \(newValue) beyond current region end \(bytes.endIndex)"
 			)
 			bytes	= base[ newValue..<bytes.endIndex ]
@@ -75,7 +75,7 @@ public struct BinaryReadBuffer {
 		get { bytes.indices }
 		set {
 			precondition(
-				newValue.startIndex >= base.startIndex &&
+				newValue.startIndex >= startOfFile &&
 				newValue.endIndex <= base.endIndex,
 				"\(Self.self): region \(newValue) not cointaned in \(base.indices)"
 			)
@@ -97,6 +97,60 @@ public struct BinaryReadBuffer {
 
 	// read a null terminated utf8 string
 	mutating func readString() throws -> String {
+		return try Self.readString(bytes: &bytes)
+	}
+
+	// private section ---------------------------------------------------------
+			
+	private mutating func readValue<T>() throws  -> T {
+		guard _isPOD(T.self) else {
+			throw BinaryIOError.notPODType(
+				Self.self, BinaryIOError.Context(
+					debugDescription: "\(T.self) must be a POD type."
+				)
+			)
+		}
+		return try Self.readValue( from:&bytes )
+	}
+	
+	private func checkRemainingSize( size:Int ) throws {
+		try Self.checkRemainingSize(bytes: bytes, size: size)
+	}
+
+	// private static section ----------------------------------------------------
+
+	private static func readValue<T>( from bytes:inout Bytes.SubSequence ) throws  -> T {
+		let inSize	= MemoryLayout<T>.size
+		try checkRemainingSize( bytes: bytes, size:inSize )
+		defer { bytes.removeFirst( inSize ) }
+
+		return bytes.withUnsafeBytes { source in
+#if swift(>=5.7)
+			source.loadUnaligned(as: T.self)
+#elseif swift(>=5.6)
+			withUnsafeTemporaryAllocation(of: T.self, capacity: 1) {
+				let temporary = $0.baseAddress!
+				memcpy( temporary, source.baseAddress, inSize )
+				return temporary.pointee
+			}
+#else
+#error("Minimum swift version = 5.6")
+#endif
+		}
+	}
+
+	private static func checkRemainingSize( bytes:Bytes.SubSequence, size:Int ) throws {
+		if bytes.count < size {
+			throw BinaryIOError.outOfBounds(
+				Self.self, BinaryIOError.Context(
+					debugDescription: "\(size) bytes requested; \(bytes.count) bytes remaining."
+				)
+			)
+		}
+	}
+	
+	// read a null terminated utf8 string
+	private static func readString( bytes:inout Bytes.SubSequence ) throws -> String {
 		var inSize = 0
 
 		let string = try bytes.withUnsafeBytes {
@@ -125,46 +179,6 @@ public struct BinaryReadBuffer {
 		}
 		bytes.removeFirst( inSize )
 		return string
-	}
-
-	// private section ---------------------------------------------------------
-	
-	private mutating func readValue<T>() throws  -> T {
-		guard _isPOD(T.self) else {
-			throw BinaryIOError.notPODType(
-				Self.self, BinaryIOError.Context(
-					debugDescription: "\(T.self) must be a POD type."
-				)
-			)
-		}
-		let inSize	= MemoryLayout<T>.size
-		try checkRemainingSize( size:inSize )
-		
-		defer { bytes.removeFirst( inSize ) }
-		
-		return bytes.withUnsafeBytes { source in
-#if swift(>=5.7)
-			source.loadUnaligned(as: T.self)
-#elseif swift(>=5.6)
-			withUnsafeTemporaryAllocation(of: T.self, capacity: 1) {
-				let temporary = $0.baseAddress!
-				memcpy( temporary, source.baseAddress, inSize )
-				return temporary.pointee
-			}
-#else
-#error("Minimum swift version = 5.6")
-#endif
-		}
-	}
-	
-	private func checkRemainingSize( size:Int ) throws {
-		if bytes.count < size {
-			throw BinaryIOError.outOfBounds(
-				Self.self, BinaryIOError.Context(
-					debugDescription: "\(size) bytes requested; \(bytes.count) bytes remaining."
-				)
-			)
-		}
 	}
 }
 

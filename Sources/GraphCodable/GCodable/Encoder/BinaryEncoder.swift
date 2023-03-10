@@ -25,7 +25,7 @@ import Foundation
 final class BinaryEncoder<Output:MutableDataProtocol> : FileBlockEncoder {
 	weak var			delegate			: FileBlockEncoderDelegate?
 	let					fileHeader			: FileHeader
-	private var			wbuffer				= BinaryWriteBuffer()
+	private var			wbuffer				= BinaryWriteBuffer(version: 0)
 	private var 		sectionMap			= SectionMap()
 	private var			sectionMapPosition	= 0
 	
@@ -101,7 +101,7 @@ final class BinaryEncoder<Output:MutableDataProtocol> : FileBlockEncoder {
 		do {
 			//	sovrascrivo la sectionMapPosition
 			//	ora che ho tutti i valori
-			defer { wbuffer.setEof() }
+			defer { wbuffer.setPositionToEnd() }
 			wbuffer.position	= sectionMapPosition
 			try sectionMap.write(to: &wbuffer)
 		}

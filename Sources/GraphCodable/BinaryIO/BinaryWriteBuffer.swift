@@ -30,26 +30,19 @@ BinaryWriteBuffer data format uses always:
 
 /// Buffer to write instances of BinaryOType types to.
 public struct BinaryWriteBuffer {
-	private (set) var 	bytes 		= Bytes()
-	private var 		_position	= 0
-	private var			insert		= false
-	
-	init() {
-/*		var bytes 	= Bytes()
-		let version	= Self.globalVersion
-	
-		withUnsafePointer(to: version) { source in
-			let size = MemoryLayout.size(ofValue: source.pointee)
-			source.withMemoryRebound(to: UInt8.self, capacity: size ) {
-				bytes.append(contentsOf: UnsafeBufferPointer( start: $0, count: size ))
-			}
-		}
-*/
+	public let			version		: UInt16
+	private (set) var 	bytes 		: Bytes
+	private var 		_position	: Int
+	private var			insert		: Bool
+
+	init( version: UInt16 ) {
+		self.version		= version
 		self.bytes			= Bytes()
 		self._position		= 0
 		self.insert			= false
+		// really can't throw
+		try! self.writeValue( version )
 	}
-	
 	
 	func data<Q>() -> Q where Q:MutableDataProtocol {
 		if let data = bytes as? Q {
@@ -58,17 +51,20 @@ public struct BinaryWriteBuffer {
 			return Q( bytes )
 		}
 	}
+
+	var startOfFile	: Int { MemoryLayout.size(ofValue: version) }
+	var endOfFile	: Int { bytes.endIndex }
 	
+	mutating func setPositionToStart()	{ _position = startOfFile }
+	mutating func setPositionToEnd()	{ _position = endOfFile }
+
 	var position: Int {
 		get { _position }
 		set {
-			precondition( (0...bytes.count).contains( newValue ),"\(Self.self): outOfBounds position." )
+			precondition( (startOfFile...endOfFile).contains( newValue ),"\(Self.self): outOfBounds position." )
 			_position	= newValue
 		}
 	}
-	
-	var eof : Int { bytes.endIndex }
-	mutating func setEof() { _position = eof }
 
 	mutating func prependingWrite(
 		dummyWrite			dummyFunc: ( _: inout BinaryWriteBuffer ) throws -> (),
@@ -146,7 +142,7 @@ public struct BinaryWriteBuffer {
 			}
 		}
 	}
-	
+
 	mutating func writeData<T>( _ value:T, insert:Bool = false ) throws where T:MutableDataProtocol, T:ContiguousBytes {
 		try writeInt64( Int64(value.count) )
 		try value.withUnsafeBytes { source in

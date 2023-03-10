@@ -97,7 +97,7 @@ struct ReadBlockDecoder {
 		defer { rbuffer.region = saveRegion }
 
 		var fileBlocks	= [ReadBlock]()
-		while rbuffer.isEof == false {
+		while rbuffer.isEndOfFile == false {
 			let readBlock	= try ReadBlock(from: &rbuffer, fileHeader: fileHeader)
 			fileBlocks.append( readBlock )
 		}
