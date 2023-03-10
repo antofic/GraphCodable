@@ -24,13 +24,11 @@ final class StringEncoder : FileBlockEncoder {
 	
 	typealias			Output		= String
 	weak var			delegate	: FileBlockEncoderDelegate?
-	let					fileHeader	: FileHeader
 	private var			dump		= String()
 	private var 		dumpStart	= false
 	private var 		tabs		: String?
 
-	init( fileHeader: FileHeader ) {
-		self.fileHeader	= fileHeader
+	init() {
 	}
 
 	static func titleString( _ string: String, filler:Character = "=", lenght: Int = 69 ) -> String {
@@ -57,12 +55,16 @@ final class StringEncoder : FileBlockEncoder {
 			
 			let options	= delegate?.dumpOptions ?? .readable
 			
-			if options.contains( .showHeader ) {
+			if options.contains( .showHeader ), let fileHeader = delegate?.fileHeader {
 				if options.contains( .hideSectionTitles ) == false {
 					dump.append( Self.titleString( "HEADER" ) )
 				}
 				dump.append( fileHeader.description )
 				dump.append( "\n" )
+				if let version	= delegate?.binaryIOVersion {
+					dump.append( Self.titleString( "BinaryIO",filler:"-" ) )
+					dump.append( "- Version   = \(version.format("10")) {\(MemoryLayout.size(ofValue: version)) bytes}\n" )
+				}
 			}
 			
 			if true {

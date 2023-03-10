@@ -23,6 +23,7 @@
 import Foundation
 
 final class StringDecoder: FileBlockEncoderDelegate {
+	let	binaryIOVersion	: UInt16
 	let fileHeader		: FileHeader
 	let rFileBlocks		: ReadBlocks
 	let classDataMap	: ClassDataMap
@@ -32,6 +33,7 @@ final class StringDecoder: FileBlockEncoderDelegate {
 	init( from readBuffer:BinaryReadBuffer, options:GraphDumpOptions ) throws {
 		var readBlockDecoder	= try ReadBlockDecoder( from: readBuffer )
 		
+		self.binaryIOVersion	= readBuffer.version
 		self.fileHeader			= readBlockDecoder.fileHeader
 		self.rFileBlocks		= try readBlockDecoder.readBlocks()
 		self.classDataMap		= try readBlockDecoder.classDataMap()
@@ -40,7 +42,7 @@ final class StringDecoder: FileBlockEncoderDelegate {
 	}
 
 	func dump() throws -> String {
-		let stringEncoder	= StringEncoder( fileHeader:fileHeader )
+		let stringEncoder	= StringEncoder()
 		stringEncoder.delegate	= self
 		try rFileBlocks.forEach { try stringEncoder.append($0.fileBlock, binaryValue: nil) }
 		if dumpOptions.contains( .showFlattenedBody ) {

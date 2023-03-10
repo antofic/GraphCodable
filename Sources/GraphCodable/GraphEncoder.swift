@@ -28,8 +28,8 @@ public final class GraphEncoder {
 	private let encoder	: GEncoderImpl
 
 	/// GraphEncoder init method
-	public init( _ options: Options = .defaultOption ) {
-		encoder	= GEncoderImpl( options )
+	public init( _ options: Options = .defaultOption, binaryIOVersion: UInt16 = 0 ) {
+		encoder	= GEncoderImpl( options, binaryIOVersion:binaryIOVersion )
 	}
 
 	///	Get/Set the userInfo dictionary

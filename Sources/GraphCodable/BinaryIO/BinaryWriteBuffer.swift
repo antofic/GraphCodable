@@ -30,10 +30,11 @@ BinaryWriteBuffer data format uses always:
 
 /// Buffer to write instances of BinaryOType types to.
 public struct BinaryWriteBuffer {
-	public let			version		: UInt16
-	private (set) var 	bytes 		: Bytes
-	private var 		_position	: Int
-	private var			insert		: Bool
+	let 				privateVersion	= UInt16(0)
+	public let			version			: UInt16
+	private (set) var 	bytes 			: Bytes
+	private var 		_position		: Int
+	private var			insert			: Bool
 
 	init( version: UInt16 ) {
 		self.version		= version
@@ -41,6 +42,7 @@ public struct BinaryWriteBuffer {
 		self._position		= 0
 		self.insert			= false
 		// really can't throw
+		try! self.writeValue( privateVersion )
 		try! self.writeValue( version )
 	}
 	
@@ -52,7 +54,7 @@ public struct BinaryWriteBuffer {
 		}
 	}
 
-	var startOfFile	: Int { MemoryLayout.size(ofValue: version) }
+	var startOfFile	: Int { MemoryLayout.size(ofValue: privateVersion) + MemoryLayout.size(ofValue: version) }
 	var endOfFile	: Int { bytes.endIndex }
 	
 	mutating func setPositionToStart()	{ _position = startOfFile }

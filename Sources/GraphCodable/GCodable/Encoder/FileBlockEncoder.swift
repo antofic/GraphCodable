@@ -22,9 +22,11 @@
 
 
 protocol FileBlockEncoderDelegate : AnyObject {
-	var	classDataMap:	ClassDataMap { get }
-	var	keyStringMap:	KeyStringMap { get }
-	var dumpOptions:	GraphDumpOptions { get }
+	var fileHeader:			FileHeader { get }
+	var binaryIOVersion:	UInt16 { get }
+	var	classDataMap:		ClassDataMap { get }
+	var	keyStringMap:		KeyStringMap { get }
+	var dumpOptions:		GraphDumpOptions { get }
 }
 
 protocol FileBlockEncoder : AnyObject {

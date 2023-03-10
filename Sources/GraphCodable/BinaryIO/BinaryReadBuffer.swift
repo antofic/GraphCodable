@@ -35,15 +35,17 @@ BinaryReadBuffer:
 ///
 ///
 public struct BinaryReadBuffer {
+	let	privateVersion : UInt16
 	public	let	version : UInt16
 	private let base	: Bytes
 	private var bytes	: Bytes.SubSequence
 	
 	init( bytes base: Bytes ) throws {
-		var bytes		= base[...]
-		self.version	= try Self.readValue(from: &bytes)
-		self.base		= base
-		self.bytes		= bytes
+		var bytes			= base[...]
+		self.privateVersion	= try Self.readValue(from: &bytes)
+		self.version		= try Self.readValue(from: &bytes)
+		self.base			= base
+		self.bytes			= bytes
 	}
 
 	init<Q>( data: Q ) throws where Q:Sequence, Q.Element==UInt8 {
@@ -54,9 +56,9 @@ public struct BinaryReadBuffer {
 		}
 	}
 	
-	var startOfFile	: Int			{ MemoryLayout.size(ofValue: version) }
+	var startOfFile	: Int			{ MemoryLayout.size(ofValue: privateVersion) + MemoryLayout.size(ofValue: version) }
 	var isEndOfFile	: Bool			{ bytes.count == 0 }
-	var fullRegion: Range<Int>		{ MemoryLayout<UInt16>.size ..< base.endIndex }
+	var fullRegion: Range<Int>		{ startOfFile ..< base.endIndex }
 
 	///	regionStart can precede the current region start
 	///	but cannot exceed the current region end
