@@ -35,6 +35,7 @@ BinaryReadBuffer:
 ///
 ///
 public struct BinaryReadBuffer {
+//	public	let	globalVersion : UInt16
 	private let base:	Bytes
 	private var bytes:	Bytes.SubSequence
 	

@@ -34,6 +34,23 @@ public struct BinaryWriteBuffer {
 	private var 		_position	= 0
 	private var			insert		= false
 	
+	init() {
+/*		var bytes 	= Bytes()
+		let version	= Self.globalVersion
+	
+		withUnsafePointer(to: version) { source in
+			let size = MemoryLayout.size(ofValue: source.pointee)
+			source.withMemoryRebound(to: UInt8.self, capacity: size ) {
+				bytes.append(contentsOf: UnsafeBufferPointer( start: $0, count: size ))
+			}
+		}
+*/
+		self.bytes			= Bytes()
+		self._position		= 0
+		self.insert			= false
+	}
+	
+	
 	func data<Q>() -> Q where Q:MutableDataProtocol {
 		if let data = bytes as? Q {
 			return data
@@ -50,7 +67,7 @@ public struct BinaryWriteBuffer {
 		}
 	}
 	
-	var eof : Int { bytes.count }
+	var eof : Int { bytes.endIndex }
 	mutating func setEof() { _position = eof }
 
 	mutating func prependingWrite(

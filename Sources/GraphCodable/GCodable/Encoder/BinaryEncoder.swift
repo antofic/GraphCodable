@@ -23,7 +23,6 @@
 import Foundation
 
 final class BinaryEncoder<Output:MutableDataProtocol> : FileBlockEncoder {
-	
 	weak var			delegate			: FileBlockEncoderDelegate?
 	let					fileHeader			: FileHeader
 	private var			wbuffer				= BinaryWriteBuffer()
