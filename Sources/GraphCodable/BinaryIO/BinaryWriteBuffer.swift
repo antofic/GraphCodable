@@ -36,13 +36,30 @@ public struct BinaryWriteBuffer {
 	public let			version			: UInt16
 	private (set) var 	bytes 			: Bytes
 	private var 		_position		: Int
-	private var			insert			: Bool
+	private var			insertMode		: Bool
+}
 
+//	MAKE THIS EXTENSION PUBLIC IF YOU WANT TO USE BinaryIO AS A STANDALONE LIBRARY
+//	public extension BinaryWriteBuffer {
+extension BinaryWriteBuffer {
+	var startOfFile	: Int { MemoryLayout.size(ofValue: Self.privateVersion) + MemoryLayout.size(ofValue: version) }
+	var endOfFile	: Int { bytes.endIndex }
+	mutating func setPositionToStart()	{ _position = startOfFile }
+	mutating func setPositionToEnd()	{ _position = endOfFile }
+	
+	var position: Int {
+		get { _position }
+		set {
+			precondition( (startOfFile...endOfFile).contains( newValue ),"\(Self.self): outOfBounds position." )
+			_position	= newValue
+		}
+	}
+	
 	init( version: UInt16 ) {
 		self.version		= version
 		self.bytes			= Bytes()
 		self._position		= 0
-		self.insert			= false
+		self.insertMode			= false
 		// really can't throw
 		try! self.writeValue( Self.privateVersion )
 		try! self.writeValue( version )
@@ -55,21 +72,7 @@ public struct BinaryWriteBuffer {
 			return Q( bytes )
 		}
 	}
-
-	var startOfFile	: Int { MemoryLayout.size(ofValue: Self.privateVersion) + MemoryLayout.size(ofValue: version) }
-	var endOfFile	: Int { bytes.endIndex }
 	
-	mutating func setPositionToStart()	{ _position = startOfFile }
-	mutating func setPositionToEnd()	{ _position = endOfFile }
-
-	var position: Int {
-		get { _position }
-		set {
-			precondition( (startOfFile...endOfFile).contains( newValue ),"\(Self.self): outOfBounds position." )
-			_position	= newValue
-		}
-	}
-
 	mutating func prependingWrite(
 		dummyWrite			dummyFunc: ( _: inout BinaryWriteBuffer ) throws -> (),
 		thenWrite 			writeFunc: ( _: inout BinaryWriteBuffer ) throws -> (),
@@ -85,7 +88,7 @@ public struct BinaryWriteBuffer {
 		try overwriteFunc( &self, finalPos - bodyPos )
 		let newbodyPos		= position
 		position			= finalPos
-
+		
 		if newbodyPos != bodyPos {
 			throw BinaryIOError.prependingFails(
 				Self.self, BinaryIOError.Context(
@@ -104,20 +107,47 @@ public struct BinaryWriteBuffer {
 		let finalPos		= position
 		position			= initialPos
 		do {
-			insert = true
-			defer { insert = false }
+			insertMode = true
+			defer { insertMode = false }
 			try insertFunc( &self, finalPos - initialPos )
 		}
 		let valuePos		= position
 		position	= finalPos + (valuePos - initialPos)
 	}
-	
+}
+
+
+// internal section: Data and String support -------------------------------
+extension BinaryWriteBuffer {
+	mutating func writeData<T>( _ value:T, insert:Bool = false ) throws where T:MutableDataProtocol, T:ContiguousBytes {
+		try writeInt64( Int64(value.count) )
+		try value.withUnsafeBytes { source in
+			try write(contentsOf: source)
+		}
+	}
+
+	// write a null terminated utf8 string
+	mutating func writeString( _ value:String, insert:Bool = false ) throws {
+		try value.withCString() { ptr in
+			var endptr	= ptr
+			while endptr.pointee != 0 { endptr += 1 }	// null terminated
+			let size = endptr - ptr + 1
+			try ptr.withMemoryRebound(to: UInt8.self, capacity: size ) {
+				try write( contentsOf: UnsafeBufferPointer( start: $0, count: size ) )
+			}
+		}
+		
+	}
+}
+
+// private section ---------------------------------------------------------
+extension BinaryWriteBuffer {
 	private mutating func write<C>( contentsOf source:C ) throws
 	where C:RandomAccessCollection, C.Element == UInt8 {
 		if position == bytes.endIndex {
 			bytes.append( contentsOf: source )
 		} else if position >= bytes.startIndex {
-			let endIndex	= bytes.index( position, offsetBy: insert ? 0 : source.count )
+			let endIndex	= bytes.index( position, offsetBy: insertMode ? 0 : source.count )
 			let range		= position ..< Swift.min( bytes.endIndex, endIndex )
 			bytes.replaceSubrange( range, with: source )
 		} else {
@@ -146,32 +176,9 @@ public struct BinaryWriteBuffer {
 			}
 		}
 	}
-
-	mutating func writeData<T>( _ value:T, insert:Bool = false ) throws where T:MutableDataProtocol, T:ContiguousBytes {
-		try writeInt64( Int64(value.count) )
-		try value.withUnsafeBytes { source in
-			try write(contentsOf: source)
-		}
-	}
-
-	// write a null terminated utf8 string
-	mutating func writeString( _ value:String, insert:Bool = false ) throws {
-		// string saved as null-terminated sequence of utf8
-		//	let uint8array	= unsafeBitCast( value.utf8CString, to: ContiguousArray<UInt8>.self )
-		//	try write( contentsOf: uint8array )
-		
-		try value.withCString() { ptr in
-			var endptr	= ptr
-			while endptr.pointee != 0 { endptr += 1 }	// null terminated
-			let size = endptr - ptr + 1
-			try ptr.withMemoryRebound(to: UInt8.self, capacity: size ) {
-				try write( contentsOf: UnsafeBufferPointer( start: $0, count: size ) )
-			}
-		}
-		 
-	}
 }
 
+// internal section: utilities ---------------------------------------------------------
 extension BinaryWriteBuffer {
 	mutating func writeBool( _ value:Bool ) throws			{ try writeValue( value ) }
 

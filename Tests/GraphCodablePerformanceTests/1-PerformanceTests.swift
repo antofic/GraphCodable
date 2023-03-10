@@ -79,7 +79,7 @@ final class PerformanceTests: XCTestCase {
 		print("\n\n\n- DATA SIZES ----------------------------------")
 		print("GraphEncoder (bin=on)  : \( try GraphEncoder().encode(input) as Data )")
 		print("GraphEncoder (bin=off) : \( try GraphEncoder().encode(input) as Data )")
-		print("BinariIOReader         : \( try input.binaryData() as Data )")
+		print("BinariIOReader         : \( try input.binaryData(version: 0) as Data )")
 		print("JSONEncoder            : \( try JSONEncoder().encode(input) )")
 		print("PropertyListEncoder    : \( try PropertyListEncoder().encode(input) )")
 		print("-----------------------------------------------\n\n\n")
@@ -104,7 +104,7 @@ final class PerformanceTests: XCTestCase {
 	func testBinaryWriter() throws {
 		measure {
 			do {
-				let _		= try input.binaryData() as Bytes
+				let _		= try input.binaryData(version: 0) as Bytes
 			} catch {}
 		}
 	}
@@ -145,7 +145,7 @@ final class PerformanceTests: XCTestCase {
 	}
 
 	func testBinaryReader() throws {
-		let data	= try input.binaryData() as Bytes
+		let data	= try input.binaryData(version: 0) as Bytes
 		measure {
 			do {
 				let	_		= try type(of:input).init( binaryData: data)

@@ -95,6 +95,36 @@ extension RawRepresentable where Self.RawValue : GBinaryCodable {}
 //	String SUPPORT ------------------------------------------------------
 extension String : GBinaryCodable {}
 
+/*
+extension GDecodable where Self:RangeReplaceableCollection, Self.Element: GDecodable {
+	public init(from decoder: GDecoder) throws {
+		self.init()
+		
+		self.reserveCapacity( decoder.unkeyedCount )
+		while decoder.unkeyedCount > 0 {
+			self.append( try decoder.decode() )
+		}
+	}
+}
+
+extension GEncodable where Self:RandomAccessCollection, Self.Element: GEncodable {
+	public func encode(to encoder: GEncoder) throws {
+		for element in self {
+			try encoder.encode( element )
+		}
+	}
+}
+
+extension GBinaryDecodable where Self:RangeReplaceableCollection, Self.Element: GTrivialDecodable {}
+extension GBinaryEncodable where Self:RandomAccessCollection, Self.Element: GTrivialEncodable {}
+
+extension Array: GCodable where Element:GCodable {}
+extension Array: GBinaryCodable where Element : GTrivialCodable {}
+
+extension ContiguousArray: GCodable where Element:GCodable {}
+extension ContiguousArray: GBinaryCodable where Element : GTrivialCodable {}
+*/
+
 //	Array SUPPORT ------------------------------------------------------
 extension Array: GEncodable where Element:GEncodable {
 	public func encode(to encoder: GEncoder) throws {

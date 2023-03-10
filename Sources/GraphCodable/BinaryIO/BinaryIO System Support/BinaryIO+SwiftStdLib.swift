@@ -156,6 +156,33 @@ extension RawRepresentable where Self.RawValue : BinaryIOType {
 // Array ------------------------------------------------------
 //	Uses Version: NO
 
+/*
+extension BinaryIType where Self:RangeReplaceableCollection, Self.Element: BinaryIType {
+	public init( from rbuffer: inout BinaryReadBuffer ) throws {
+		self.init()
+		let count = try Int( from: &rbuffer )
+		self.reserveCapacity( count )
+		for _ in 0..<count {
+			self.append( try Element.init(from: &rbuffer) )
+		}
+	}
+}
+
+
+extension BinaryOType where Self:RandomAccessCollection, Self.Element: BinaryOType {
+	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
+		try count.write(to: &wbuffer)
+		for element in self {
+			try element.write(to: &wbuffer)
+		}
+	}
+}
+
+extension Array : BinaryIOType where Element : BinaryIOType {}
+extension ContiguousArray : BinaryIOType where Element : BinaryIOType {}
+*/
+
+
 extension Array : BinaryIOType where Element : BinaryIOType {
 	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
 		try count.write(to: &wbuffer)
@@ -192,6 +219,7 @@ extension ContiguousArray : BinaryIOType where Element : BinaryIOType {
 		}
 	}
 }
+
 
 // Set ------------------------------------------------------
 //	Uses Version: NO

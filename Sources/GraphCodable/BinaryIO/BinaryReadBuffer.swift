@@ -37,16 +37,28 @@ BinaryReadBuffer:
 public struct BinaryReadBuffer {
 	// private version for library types
 	let	privateVersion		: UInt16
-	// public version for user defined types
-	public	let	version 	: UInt16
+	
 	private let base		: Bytes
 	private var bytes		: Bytes.SubSequence
 	
-	public var	dataSize	: Int 			{ base.count }
-	var startOfFile			: Int			{ MemoryLayout.size(ofValue: privateVersion) + MemoryLayout.size(ofValue: version) }
-	var isEndOfFile			: Bool			{ bytes.count == 0 }
-	var fullRegion			: Range<Int>	{ startOfFile ..< base.endIndex }
+	//	public version for user defined types
+	public	let	version 	: UInt16
+	public	var	dataSize	: Int 			{ base.count }
+}
 
+//	MAKE THIS EXTENSION PUBLIC IF YOU WANT TO USE BinaryIO AS A STANDALONE LIBRARY
+//	public extension BinaryReadBuffer {
+extension BinaryReadBuffer {
+	//	MAKE THIS PROPERTY PUBLIC IF YOU WANT TO USE BinaryIO AS A STANDALONE LIBRARY
+	var startOfFile			: Int			{ MemoryLayout.size(ofValue: privateVersion) + MemoryLayout.size(ofValue: version) }
+	
+	//	MAKE THIS PROPERTY PUBLIC IF YOU WANT TO USE BinaryIO AS A STANDALONE LIBRARY
+	var isEndOfFile			: Bool			{ bytes.count == 0 }
+	
+	//	MAKE THIS PROPERTY PUBLIC IF YOU WANT TO USE BinaryIO AS A STANDALONE LIBRARY
+	var fullRegion			: Range<Int>	{ startOfFile ..< base.endIndex }
+	
+	//	MAKE THIS FUNCTION PUBLIC IF YOU WANT TO USE BinaryIO AS A STANDALONE LIBRARY
 	init( bytes base: Bytes ) throws {
 		var bytes			= base[...]
 		self.privateVersion	= try Self.readValue(from: &bytes)
@@ -54,7 +66,8 @@ public struct BinaryReadBuffer {
 		self.base			= base
 		self.bytes			= bytes
 	}
-
+	
+	//	MAKE THIS FUNCTION PUBLIC IF YOU WANT TO USE BinaryIO AS A STANDALONE LIBRARY
 	init<Q>( data: Q ) throws where Q:Sequence, Q.Element==UInt8 {
 		if let bytes = data as? Bytes {
 			try self.init( bytes: bytes )
@@ -63,7 +76,7 @@ public struct BinaryReadBuffer {
 		}
 	}
 	
-
+	//	MAKE THIS FUNCTION PUBLIC IF YOU WANT TO USE BinaryIO AS A STANDALONE LIBRARY
 	///	regionStart can precede the current region start
 	///	but cannot exceed the current region end
 	var regionStart: Int {
@@ -76,7 +89,8 @@ public struct BinaryReadBuffer {
 			bytes	= base[ newValue..<bytes.endIndex ]
 		}
 	}
-	 
+	
+	//	MAKE THIS FUNCTION PUBLIC IF YOU WANT TO USE BinaryIO AS A STANDALONE LIBRARY
 	var region: Range<Int> {
 		get { bytes.indices }
 		set {
@@ -88,26 +102,30 @@ public struct BinaryReadBuffer {
 			bytes	= base[ newValue ]
 		}
 	}
+}
 
+// internal section ---------------------------------------------------------
+extension BinaryReadBuffer {
 	mutating func readData<T>() throws -> T where T:MutableDataProtocol, T:ContiguousBytes {
 		let count = try readInt64()
-
+		
 		let inSize	= Int(count) * MemoryLayout<UInt8>.size
 		try checkRemainingSize( size: inSize )
 		defer { bytes.removeFirst( inSize ) }
-
+		
 		return bytes.withUnsafeBytes { source in
 			return T( source.prefix( inSize ) )
 		}
 	}
-
+	
 	// read a null terminated utf8 string
 	mutating func readString() throws -> String {
 		return try Self.readString(bytes: &bytes)
 	}
+}
 
-	// private section ---------------------------------------------------------
-			
+// private section ---------------------------------------------------------
+extension BinaryReadBuffer {
 	private mutating func readValue<T>() throws  -> T {
 		guard _isPOD(T.self) else {
 			throw BinaryIOError.notPODType(
@@ -122,9 +140,10 @@ public struct BinaryReadBuffer {
 	private func checkRemainingSize( size:Int ) throws {
 		try Self.checkRemainingSize(bytes: bytes, size: size)
 	}
+}
 
-	// private static section ----------------------------------------------------
-
+// private static section ----------------------------------------------------
+extension BinaryReadBuffer {
 	private static func readValue<T>( from bytes:inout Bytes.SubSequence ) throws  -> T {
 		let inSize	= MemoryLayout<T>.size
 		try checkRemainingSize( bytes: bytes, size:inSize )
@@ -188,6 +207,7 @@ public struct BinaryReadBuffer {
 	}
 }
 
+// internal section: utilities ---------------------------------------------------------
 extension BinaryReadBuffer {
 	mutating func readBool() throws -> Bool {
 		return try readValue()

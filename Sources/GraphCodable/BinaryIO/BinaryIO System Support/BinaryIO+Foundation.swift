@@ -22,8 +22,26 @@
 
 import Foundation
 
+
+
 // -- Data support (BinaryIOType) -------------------------------------------------------
 //	Uses Version: NO
+
+/*
+extension BinaryIType where Self:MutableDataProtocol, Self:ContiguousBytes {
+	public init( from rbuffer: inout BinaryReadBuffer ) throws {
+		self = try rbuffer.readData()
+	}
+}
+
+extension BinaryOType where Self:MutableDataProtocol, Self:ContiguousBytes {
+	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
+		try wbuffer.writeData( self )
+	}
+}
+
+extension Data : BinaryIOType {}
+*/
 
 extension Data : BinaryIOType {
 	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {

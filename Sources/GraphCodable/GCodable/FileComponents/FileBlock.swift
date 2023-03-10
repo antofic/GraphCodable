@@ -212,13 +212,17 @@ extension FileBlock {
 			let pack = fileHeader.flags.contains( .packBinSize )
 			if pack {
 				try wbuffer.insertingWrite(
-					firstWrite: { try binaryValue.write(to: &$0) },
+					firstWrite: {
+						try binaryValue.write(to: &$0)
+					},
 					thenInsert: { try BinSize( $1 ).write(to: &$0, pack: pack) }
 				)
 			} else {
 				try wbuffer.prependingWrite(
 					dummyWrite: { try BinSize().write(to: &$0, pack: pack) },
-					thenWrite: { try binaryValue.write(to: &$0) },
+					thenWrite: {
+						try binaryValue.write(to: &$0)
+					},
 					thenOverwriteDummy: { try BinSize( $1 ).write(to: &$0, pack: pack) }
 				)
 			}
