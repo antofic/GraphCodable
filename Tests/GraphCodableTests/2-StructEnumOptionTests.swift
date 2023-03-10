@@ -293,7 +293,7 @@ final class StructEnumOptionTests: XCTestCase {
 	}
 	
 	func testOptionSet() throws {
-		let inRoot	= GraphDumpOptions.fullStructure
+		let inRoot	= GraphDumpOptions.fullInfo
 		let data	= try GraphEncoder().encode( inRoot ) as Bytes
 		let outRoot	= try GraphDecoder().decode( type(of:inRoot), from:data )
 
