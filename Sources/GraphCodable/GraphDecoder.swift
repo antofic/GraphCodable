@@ -24,7 +24,6 @@
 public enum ClassName : Hashable {
 	case qualifiedName( _:String )
 	case mangledName( _:String )
-	case nsClassName( _:String )
 }
 
 public typealias ClassNameMap = [ClassName : (AnyObject & GDecodable).Type ]

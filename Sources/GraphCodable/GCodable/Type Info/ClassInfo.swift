@@ -34,12 +34,7 @@ struct ClassInfo : CustomStringConvertible {
 			if let decodableType = classNameMap[ .qualifiedName(classData.qualifiedName) ] {
 				self.decodableType	= decodableType
 				return
-			} else if
-				let	mangledName		= classData.mangledName,
-				let decodableType	= classNameMap[ .mangledName(mangledName) ] {
-				self.decodableType	= decodableType
-				return
-			} else if let decodableType = classNameMap[ .nsClassName(classData.nsClassName) ] {
+			} else if let decodableType	= classNameMap[ .mangledName(classData.mangledName) ] {
 				self.decodableType	= decodableType
 				return
 			}

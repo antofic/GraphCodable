@@ -24,7 +24,6 @@ enum IntegerFormatCode {
 	}
 }
 
-
 extension BinaryInteger {
 	func format( _ f:String, _ code:IntegerFormatCode ) -> String {
 		return String(format: "%\(f)l\(code.code)", Int64(self) )
