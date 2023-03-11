@@ -31,6 +31,6 @@ public protocol GVersion : AnyObject {
 	/// really start with a minumum **encodeVersion = 1**
 	///
 	/// - Note: You should really adopt this protocol
-	/// with a class property and not a static property.
+	/// using a class property and not a static property.
 	static var encodeVersion : UInt32 { get }
 }

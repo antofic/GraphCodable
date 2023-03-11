@@ -21,7 +21,6 @@
 //	SOFTWARE.
 
 /// A protocol to disable reference type names.
-/// **You should never use it.**
 public protocol GInheritance : AnyObject {
 	/// Encoding reference type name is enabled by default
 	///

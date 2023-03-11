@@ -21,6 +21,7 @@
 //	SOFTWARE.
 
 import Foundation
+
 /*
 public enum ClassName : Hashable {
 	case qualifiedName( _:String )
@@ -58,7 +59,6 @@ struct ClassData : BinaryIOType, CustomStringConvertible {
 		}
 	}
 	
-	
 	init( type:(AnyObject & GEncodable).Type ) throws {
 		self.qualifiedName	= _typeName( type, qualified:true )
 		self.mangledName 	= _mangledTypeName( type )
@@ -94,7 +94,19 @@ struct ClassData : BinaryIOType, CustomStringConvertible {
 	
 	var decodableType: (AnyObject & GDecodable).Type? {
 		let type = encodedType
-		return type as? (AnyObject & GDecodable).Type ?? (type as? GObsolete.Type)?.replacementType
+		
+		if let type = type as? GObsolete.Type {
+			if let oldName = mangledName, let newName = _mangledTypeName( type.replacementType ) {
+				let replacementName = Self.replacementeName(oldMangled: oldName, newMangled: newName)
+
+				if let replacement = _typeByName( replacementName ) as? (AnyObject & GDecodable).Type {
+					return replacement
+				}
+			}
+		} else if let type = type as? (AnyObject & GDecodable).Type {
+			return type
+		}
+		return nil
 	}
 	
 	var obsoleteType : GObsolete.Type? {
@@ -108,5 +120,26 @@ struct ClassData : BinaryIOType, CustomStringConvertible {
 	var description: String {
 		"\"\(qualifiedName)\" V\(encodedVersion) "
 	}
+	
+	private static func replacementeName( oldMangled:String,newMangled:String ) -> String {
+		func separator( _ mangled:String ) -> String.SubSequence.Index {
+			var	remain		= mangled[...]
+			var lenString	= remain.prefix { $0.isASCII && $0.isNumber }
+			
+			while lenString.isEmpty == false, let len = Int(lenString) {
+				remain 		= remain[ lenString.endIndex... ]
+				remain.removeFirst( len )
+				lenString	= remain.prefix { $0.isASCII && $0.isNumber }
+			}
+			return remain.startIndex
+		}
+
+		let oldSeparator	= separator( oldMangled )
+		let newSeparator	= separator( newMangled )
+
+		return String( newMangled[..<newSeparator] + oldMangled[oldSeparator...] )
+	}
 }
+
+
 

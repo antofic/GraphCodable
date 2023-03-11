@@ -1337,11 +1337,11 @@ It should be noted that if the two options  `.disableIdentity`  and `.disableInh
 
 ### UserInfo dictionary
 
-Both `GraphEncoder` and `GraphDecoder` allow setting a dictionary accessible during archiving and dearchiving respectively with the aim of adopting appropriate strategies. Usage is identical to that of Codable.
+Both `GraphEncoder` and `GraphDecoder` allow setting a dictionary accessible during encoding and decoding respectively with the aim of adopting appropriate strategies. Usage is identical to that of Codable.
 
 ### Versioning of reference types
 
-Reference types **with identities** can adopt the `GVersion` protocol to define the version (a `UInt32` value) of their type so that they can handle different decoding strategies depending on it.
+Reference types can adopt the `GVersion` protocol to define the version (a `UInt32` value) of their type so that they can handle different decoding strategies depending on it.
 
 ```swift
 public protocol GVersion : AnyObject {
@@ -1349,7 +1349,7 @@ public protocol GVersion : AnyObject {
 }
 ```
 
-The encoder stores the value returned by `encodeVersion` together with the reference type information. During decoding, the version of the encoded reference type can be accessed through the decoder property `encodedVersion`.
+The encoder stores the value returned by `encodeVersion` together with the reference type information, only once for each reference type. During decoding, the version of the encoded reference type can be accessed through the decoder property `encodedVersion`.
 
 ```swift
 public protocol GDecoder {
@@ -1362,11 +1362,10 @@ public protocol GDecoder {
 
 If the type does not adopt the GVersion protocol, `encodedVersion` returns 0. If the `GVersion` protocol is adopted, it is therefore appropriate that `encodeVersion` returns at least 1.
 
+**Note**: If inheritance is disabled, information about reference types, including version, is not encoded and therefore versions cannot be used.
 
+A very simple example: suppose that your program saves its data in the "Documents/MyFile.graph" file:
 
-GraphCodable implements a reference type version system.
-
-Suppose our program saves its data in the "Documents/MyFile.graph" file:
 ```swift
 import Foundation
 import GraphCodable
@@ -1396,10 +1395,9 @@ class MyData :GCodable, CustomStringConvertible {
 }
 
 let inRoot	= MyData(number: 3)
-print( inRoot )
-// print: MyData(number: 3)
+print( inRoot )	// MyData(number: 3)
 
-let data = try GraphEncoder().encode( inRoot )
+let data = try GraphEncoder().encode( inRoot ) as Data
 
 let path = FileManager.default.urls(
 	for: .documentDirectory, in: .userDomainMask
@@ -1428,24 +1426,14 @@ class MyData :GCodable, CustomStringConvertible {
 		case string
 	}
 	
-	//	Let's make a new version of MyData...
-	class var currentVersion: UInt32 {
-		return 1
-	}
-	
-	// ...so that during the decode it can be distinguished from the old one:
 	required init(from decoder: GDecoder) throws {
 		let version = try decoder.encodedVersion
 		
 		switch version {
-		case 0:
-			print( "decoding \(MyData.self) version 0 and updating to \(Self.currentVersion)..." )
+		case 0:		// previous version
 			self.string	=  String( try decoder.decode( for: OldKey.number ) as Int )
-		case Self.currentVersion:
-			print( "decoding the actual (\(Self.currentVersion)) version of \(MyData.self)..." )
+		default:	// current version
 			self.string	=  try decoder.decode( for: Key.string )
-		default:
-			preconditionFailure( "unknown version \(version) for type \( MyData.self )" )
 		}
 	}
 	
@@ -1465,16 +1453,9 @@ let path = FileManager.default.urls(
 let data	= try Data(contentsOf: path)
 
 let outRoot	= try GraphDecoder().decode( MyData.self, from: data )
-// print: decoding MyData version 0 and updating to 1...
-print( outRoot )
-// print: MyData(string: "3")
-
-let outRoot2	= try GraphDecoder().decode( MyData.self, from: GraphEncoder().encode( outRoot ) )
-// print: decoding the actual (1) version of MyData...
-print( outRoot2 )
-// print: MyData(string: "3")
+print( outRoot )	// MyData(string: "3")
 ```
-#### Reference type replacement system
+### Obsolete reference types
 
 Now suppose we need to change the name from `MyData` to `MyNewData`.
 The problem is that there are already saved files in which objects of type MyData are stored and it is therefore necessary, during decoding, that objects of the new type MyNewData be created instead of these.

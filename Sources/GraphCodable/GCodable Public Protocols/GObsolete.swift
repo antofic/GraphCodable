@@ -21,11 +21,28 @@
 //	SOFTWARE.
 
 /// A protocol to mark GCodable obsolete class.
-public protocol GObsolete : AnyObject {
+public protocol GObsolete : AnyObject, GCodable {
 	/// The class that replaces this obsoleted class.
 	///
 	/// Returns the class that replaces the class that adopt this protocol
 	static var replacementType : (AnyObject & GDecodable).Type { get }
 }
 
+public extension GObsolete {
+	init(from decoder: GraphCodable.GDecoder) throws {
+		throw GCodableError.internalInconsistency(
+			Self.self, GCodableError.Context(
+				debugDescription: "Program must not reach \(#function)."
+			)
+		)
+	}
+	
+	func encode(to encoder: GraphCodable.GEncoder) throws {
+		throw GCodableError.internalInconsistency(
+			Self.self, GCodableError.Context(
+				debugDescription: "Program must not reach \(#function)."
+			)
+		)
+	}
+}
 
