@@ -55,7 +55,7 @@ extension GBinaryEncodable {
 	public func encode(to encoder: GEncoder) throws	{
 		throw GCodableError.internalInconsistency(
 			Self.self, GCodableError.Context(
-				debugDescription: "Program must not reach this \(#function)."
+				debugDescription: "Unreachable code."
 			)
 		)
 	}
@@ -64,7 +64,7 @@ extension GBinaryDecodable {
 	public init(from decoder: GDecoder) throws {
 		throw GCodableError.internalInconsistency(
 			Self.self, GCodableError.Context(
-				debugDescription: "Program must not reach this \(#function)."
+				debugDescription: "Unreachable code."
 			)
 		)
 	}

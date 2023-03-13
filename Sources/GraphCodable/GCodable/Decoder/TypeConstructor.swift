@@ -91,7 +91,7 @@ final class TypeConstructor {
 		}
 	}
 	
-	var replacedType : GObsolete.Type? {
+	var replacedType : GReplaceable.Type? {
 		get throws {
 			guard let classInfo = currentInfo else {
 				throw GCodableError.typeMismatch(
@@ -100,7 +100,7 @@ final class TypeConstructor {
 					)
 				)
 			}
-			return classInfo.classData.obsoleteType
+			return classInfo.classData.replacedType
 		}
 	}
 	
@@ -301,7 +301,7 @@ extension TypeConstructor {
 		} else {
 			object = try decodeValue( type:type, element:element, from: decoder )
 		}
-		
+
 		guard let object = object as? T else {
 			throw GCodableError.internalInconsistency(
 				Self.self, GCodableError.Context(
@@ -309,7 +309,7 @@ extension TypeConstructor {
 				)
 			)
 		}
-		
+
 		return object
 	}
 }

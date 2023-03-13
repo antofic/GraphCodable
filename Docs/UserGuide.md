@@ -18,8 +18,8 @@
 	- [GraphCodable protocols](#GraphCodable-protocols)
 	- [Other features](#Other-features)
 		- [UserInfo dictionary](#UserInfo-dictionary)
-		- [Reference type version system](#Reference-type-version-system)
-		- [Reference type replacement system](#Reference-type-replacement-system)
+		- [Versioning of reference types](#Versioning-of-reference-types)
+		- [Obsolete reference types](#Obsolete-reference-types)
 	
 ## Premise
 GraphCodable is a Swift encode/decode package (similar to Codable at interface level) that does not treat reference types as second-class citizens. Indeed, it also offers for value types a possibility normally reserved only for reference types: that of taking into account their identity to avoid duplication of data during encoding and decoding.
@@ -34,10 +34,10 @@ Also, GraphCodable cannot rely on compiler magic that allows Codable to encode a
 
 Graph Codable uses a very similar interface to Codable:
 
-- GEncodable, GDecodable, GCodable have the same roles as Encodable, Decodable, Codable
-- GEncoder, GDecoder have the same roles as Encoder, Decoder
-- GraphEncoder has the same role as JSONEncoder, PropertyListEncoder
-- GraphDecoder has the same role as JSONDecoder, PropertyListDecoder
+- `GEncodable`, `GDecodable`, `GCodable` have the same roles as `Encodable`, `Decodable`, `Codable`
+- `GEncoder`, `GDecoder` have the same roles as `Encoder`, `Decoder`
+- `GraphEncoder` has the same role as `JSONEncoder` or `PropertyListEncoder`
+- `GraphDecoder` has the same role as `JSONDecoder` or `PropertyListDecoder`
 
 GraphCodable does not use containers.
 
@@ -148,7 +148,7 @@ let outRoot	= try GraphDecoder().decode( type(of:inRoot), from: data )
 print( outRoot == inRoot )	// prints: true
 ```
 You can check if a keyed value is present in the archive with `try decoder.contains(_ key:)` before decoding it.
-**Note**: Values are removed from the decoder as they are decoded.
+**Note**: Values are removed from the decoder data basket as they are decoded.
 
 ### Unkeyed coding
 The same example using unkeyed coding. With unkeyed coding you must decode values in the same order in which they are encoded.
@@ -217,7 +217,7 @@ extension Array: GDecodable where Element:GDecodable {
 	}
 }
 ```
-The `while decoder.unkeyedCount > 0 {…}` in the  `init( from:... )` method clearly shows that **values are removed from the decoder as they are decoded**.
+The `while decoder.unkeyedCount > 0 {…}` in the  `init( from:... )` method clearly shows that **values are removed from the decoder data basket as they are decoded**.
 
 ### Inheritance
 
@@ -266,6 +266,25 @@ do {	// Codable
 	print( outRoot )			// [A, A]	--> real reference types are lost
 }
 ```
+
+#### How does inheritance work?
+
+The encoder stores the following information for each reference type:
+
+- the qualified name of the class produced by `_typeName( type, qualified:true )` for informational purposes only;
+- the mangled name of the class produced by `_mangledTypeName( type );`
+- a `UInt32` user defined version of the class (see paragraph [Versioning of reference types](#Versioning-of-reference-types)).
+
+During decoding, the class is *reified* using `_typeByName( mangledName )` and used to construct all of its instances in the archive.
+
+**Note**: When used on classes, `_mangledTypeName()` and `_typeByName()` are respectively equivalent to `NSStringFromClass()` and `NSClassFromString()`, although they produce a slightly different mangling. But the former are faster, so I chose them.
+
+It is therefore evident that **if you change the name of a class it becomes impossible to decode archives created before the change**. For this reason it is very important to:
+
+- carefully choose the name of a class intended to be archived so that it is not necessary to change it later;
+- use all available strategies (a `typealias`, for example) to keep using the name initially chosen;
+
+If all possible alternatives have been exhausteds, GraphCodable offers two methods for handling class renaming (see paragraph [Obsolete reference types](#Obsolete-reference-types)).
 
 #### Disable inheritance
 
@@ -1457,17 +1476,20 @@ print( outRoot )	// MyData(string: "3")
 ```
 ### Obsolete reference types
 
-Now suppose we need to change the name from `MyData` to `MyNewData`.
-The problem is that there are already saved files in which objects of type MyData are stored and it is therefore necessary, during decoding, that objects of the new type MyNewData be created instead of these.
+##### The easy part
 
-To achieve this you shouldn't eliminate MyData from your code, but rather remove all content and implement the GCodableObsolete protocol by indicating in the `replacementType` method that
-`MyNewData` replaces `MyData`.
+Now suppose it is absolutely necessary to change some class `MyData` to `MyNewData`. The problem is that there are already saved files in which reference of class `MyData` are stored and it is therefore necessary, during decoding, that objects of the new type `MyNewData` be created instead of these.
+
+To solve the problem the old objective-c NSKeyedUnarchiver offers the possibility to map the new class to the encoded class name using the function (and class function) `setClass( _ cls: AnyClass?, forClassName:String)`.
+
+On the other hand, in swift, class names are much more complicated than in objective-c, more difficult to manage and therefore GraphCodable employs a different method **which uses the swift type system avoiding the use of class name strings**. To achieve this you shouldn't eliminate `MyData` from the code, but rather remove all its content and, adopting the `GObsolete` protocol, use the `replacementType` method to indicate that`MyNewData` replaces `MyData`:
 
 ```swift
-class MyData :GCodableObsolete {
-	static var replacementType: (AnyObject & GCodable).Type {
+class MyData : GObsolete {
+	class var replacementType: (AnyObject & GraphCodable.GDecodable).Type {
 		return MyNewData.self
 	}
+  // no other code here...
 }
 ```
 Here is the full code:
@@ -1475,8 +1497,8 @@ Here is the full code:
 import Foundation
 import GraphCodable
 
-class MyData :GCodableObsolete {
-	static var replacementType: (AnyObject & GCodable).Type {
+class MyData : GObsolete {
+	class var replacementType: (AnyObject & GraphCodable.GDecodable).Type {
 		return MyNewData.self
 	}
 }
@@ -1495,15 +1517,13 @@ class MyNewData :GCodable, CustomStringConvertible {
 	private enum Key : String {
 		case string
 	}
-		
+	
 	required init(from decoder: GDecoder) throws {
-		if let replacedType	= try decoder.replacedType {
+		if try decoder.replacedType != nil {
 			// I'm decoding MyData and replacing with MyNewData
-			print( "decoding \(replacedType.self) and replacing with \(Self.self)..." )
 			self.string	=  String( try decoder.decode( for: OldKey.number ) as Int )
 		} else {
 			// I'm decoding MyNewData
-			print( "decoding \(Self.self)..." )
 			self.string	=  try decoder.decode( for: Key.string )
 		}
 	}
@@ -1524,16 +1544,410 @@ let path = FileManager.default.urls(
 let data	= try Data(contentsOf: path)
 
 let outRoot	= try GraphDecoder().decode( MyNewData.self, from: data )
-// print: decoding MyData and replacing with MyNewData...
-print( outRoot )
-// print: MyData(string: "3")
-
-let outRoot2	= try GraphDecoder().decode( MyNewData.self, from: GraphEncoder().encode( outRoot ) )
-// print: decoding MyNewData...
-print( outRoot2 )
-// print: MyData(string: "3")
+print( outRoot )	// MyNewData(string: 3)
 ```
-Multiple classes can be replaced by only one if necessary: use `decoder.replacedType` to find out which one was replaced during decoding.
+Multiple classes can be replaced by only one if necessary: use `decoder.replacedType` to find out which one was replaced during decoding. Versioning and class replacement can be combined.
 
-Version and replacement system can be combined.
+##### The hard part
+
+The illustrated mechanism **breaks down** when the class whose name is changed can be used as *a parameter types of a generic class* that adopts the `GDecodable` protocol:
+
+```swift
+class Generic<T:GDecodable> : GDecodable {
+	let data : T
+	
+	required init(from decoder: GraphCodable.GDecoder) throws {
+		self.data = try decoder.decode()
+	}
+}
+```
+
+During decoding, the decoder knows what to do when it encounters `MyData` because through the `GObsolete` protocol it knows that it has to create `MyNewData` instead, but it doesn't know at all what to do with the `Generic<MyData>` class.
+
+The issue is therefore complicated for two reasons: firstly, the name of the generic class must be replaced if and only if the class of the parameter type changes; secondly, when a class name is changed, **all archivable generic types that potentially can use it as a type parameter must be able to handle the class name change**.
+
+Ideally, this could be done as follows:
+
+- expand the *mangledName* of  `Generic` class encoded in the archive; 
+- replace all occurrences of `MyData` that may be present with `MyNewData`,
+- recreate the new *mangledName*,
+- reify the class from the new *mangledName*.
+
+Since there is no API to operate on mangledNames, GraphCodable implements a different system ar type level, which unfortunately can't be fully automated but requires some user intervention.
+
+These are the relevant protocols:
+
+```swift
+public protocol GReplaceable : AnyObject {
+	static var replacementType : (AnyObject & GDecodable).Type { get }
+}
+
+public extension GReplaceable {
+	static func typeParameterReplacement<S:GDecodable>( for typeParameter:S.Type ) -> GDecodable.Type {
+		(typeParameter as? GReplaceable.Type)?.replacementType ?? typeParameter
+	}
+	
+	static var isReplacedType : Bool {
+		self != replacementType
+	}
+}
+```
+
+```swift
+public protocol GObsolete : GReplaceable, GCodable {
+}
+
+/// dummy functions to satisfy the GCodable protocol
+public extension GObsolete {
+	init(from decoder: GDecoder) throws {
+		throw GCodableError.internalInconsistency(
+			Self.self, GCodableError.Context(
+				debugDescription: "Unreachable code."
+			)
+		)
+	}
+	
+	func encode(to encoder: GEncoder) throws {
+		throw GCodableError.internalInconsistency(
+			Self.self, GCodableError.Context(
+				debugDescription: "Unreachable code."
+			)
+		)
+	}
+}
+```
+
+In general, a non-generic class that changes its name adopts the `GObsolete` protocol, a generic class that changes its name and/or can have parameter types that change their names adopts the `GReplaceable` protocol.
+
+As an example, first we have some utility functions for the next code example (`GraphCodableUti.checkEncoder` and `GraphCodableUti.checkDecoder` are two utility/debug functions defined in GraphCodableUti.swift):
+
+```swift
+func path( number:Int ) -> URL {
+	let string = number > 0 ? String(number) : ""
+	return FileManager.default.urls(
+		for: .documentDirectory, in: .userDomainMask
+	)[0].appendingPathComponent("ModelNumber\(string).graph")
+}
+
+typealias DataModel = Model<Two<Double, Int>>
+
+func encode( _ phase:Int ) throws {
+	let inRoot : DataModel = Model(integer: 1, string: "P", value: Two(1.0,3))
+	print( "••• Encoding format \(phase):" )
+	print( "\t\(inRoot)" )
+	try (
+		try GraphCodableUti.checkEncoder( root: inRoot ) as Data
+	).write( to: path(number: phase) )
+	print()
+}
+
+func decode( _ phase:Int ) throws {
+	print( "••• Decoding format \(phase):" )
+	let outRoot	= try GraphCodableUti.checkDecoder(
+		type: DataModel.self,
+		data: try Data.init(contentsOf: path(number: phase)),
+		qualifiedClassNames: false
+	)
+	print( "Result:\n\t\(outRoot)" )
+	print()
+}
+```
+
+and this is the **first version** of our code:
+
+```swift
+final class Pair<T,Q> : GDecodable
+where T:GDecodable, Q:GDecodable {
+	let lhs	: T
+	let rhs	: Q
+	
+	init( _ lhs: T, _ rhs: Q ) {
+		self.lhs	= lhs
+		self.rhs	= rhs
+	}
+	
+	init(from decoder: GDecoder) throws {
+		lhs	= try decoder.decode()
+		rhs	= try decoder.decode()
+	}
+}
+
+extension Pair: GEncodable
+where T:GEncodable, Q:GEncodable {
+	func encode(to encoder: GEncoder) throws {
+		try encoder.encode( lhs )
+		try encoder.encode( rhs )
+	}
+}
+
+extension Pair: CustomStringConvertible {
+	var description: String {
+		return "(\(lhs) <-> \(rhs))"
+	}
+}
+// ----------------------------------------------
+final class Model<S:GDecodable> : GDecodable {
+	let value	: Pair<Pair<S,Int>,String>
+	
+	init( integer:Int, string:String, value:S ) {
+		self.value = Pair(Pair(value,integer), string)
+	}
+	
+	init(from decoder: GraphCodable.GDecoder) throws {
+		value	= try decoder.decode()
+	}
+}
+extension Model: GEncodable where S:GEncodable {
+	func encode(to encoder: GraphCodable.GEncoder) throws {
+		try encoder.encode( value )
+	}
+}
+
+extension Model: CustomStringConvertible {
+	var description: String {
+		return "\(Self.self) = { value = \(value) }"
+	}
+}
+// ----------------------------------------------
+typealias Two = Pair
+try encode( 0 )	// encode old version
+try decode( 0 )	// decode old version
+
+```
+
+This first version (format 0) encodes the data in the file *ModelNumber0.graph* and is able to decode it, as you can see from the console output. In particular, all classes encountered during dearchiving are shown:
+
+```
+••• Encoding format 0:
+	Model<Pair<Double, Int>> = { value = (((1.0 <-> 3) <-> 1) <-> P) }
+
+••• Decoding format 0:
+Decoded Classes: --------------------------
+	'Model<Pair<Double, Int>>'
+	'Pair<Double, Int>'
+	'Pair<Pair<Double, Int>, Int>'
+	'Pair<Pair<Pair<Double, Int>, Int>, String>'
+Result:
+	Model<Pair<Double, Int>> = { value = (((1.0 <-> 3) <-> 1) <-> P) }
+```
+
+Now suppose that in the new version (format 1) of the code we want to change the name of the `Pair` class to `Couple`:
+
+```swift
+final class Couple<T,Q> : GDecodable
+where T:GDecodable, Q:GDecodable {
+	let lhs	: T
+	let rhs	: Q
+	
+	init( _ lhs: T, _ rhs: Q ) {
+		self.lhs	= lhs
+		self.rhs	= rhs
+	}
+	
+	init(from decoder: GDecoder) throws {
+		lhs	= try decoder.decode()
+		rhs	= try decoder.decode()
+	}
+}
+
+extension Couple: GEncodable
+where T:GEncodable, Q:GEncodable {
+	func encode(to encoder: GEncoder) throws {
+		try encoder.encode( lhs )
+		try encoder.encode( rhs )
+	}
+}
+
+extension Couple: CustomStringConvertible {
+	var description: String {
+		return "(\(lhs) <-> \(rhs))"
+	}
+}
+```
+
+First, `Model` is a generic class whose type could depend on `Pair` when passed as `S`. If `Pair` becomes `Couple`, the names of `Model` specializations that have `Pair` as a type parameter must also change accordingly. To handle during decoding **all situations** in which the name of `Model` argument types changes it is necessary that `Model` adopts the `GReplaceable` protocol:
+
+```swift
+extension Model : GReplaceable {
+	class var replacementType: (AnyObject & GDecodable).Type {
+		func buildSelf<T>( _ typeT:T.Type ) -> (AnyObject & GDecodable).Type
+		where T:GDecodable { Model<T>.self }
+		
+		return buildSelf( typeParameterReplacement(for: S.self) )
+	}
+}
+```
+
+Similarly, `Couple`, being generic, must adopt the `GReplaceable` protocol to handle during decoding **all situations** in which the name of one or more of its argument types changes:
+
+```swift
+extension Couple : GReplaceable {
+	class var replacementType: (AnyObject & GraphCodable.GDecodable).Type {
+		func buildSelf<newT,newQ>( _ typeT:newT.Type, _ typeQ:newQ.Type ) -> (AnyObject & GDecodable).Type
+		where newT:GDecodable, newQ:GDecodable { Couple<newT,newQ>.self }
+		
+		return buildSelf(
+			typeParameterReplacement(for: T.self),
+			typeParameterReplacement(for: Q.self)
+		)
+	}
+}
+```
+
+Compare these two properties! I hope the mechanism is clear:
+
+- `buildSelf` is a generic sub-function that returns the class specialization based on the parameter types it receives. `Couple` has 2 parameter types, `Model` has one parameter type and at least until variadic generics are available, it doesn't seem possible to generalize this functionality over different classes;
+
+- The parameter types are obtained from the function:
+
+  ```swift
+  public extension GReplaceable {
+  	static func typeParameterReplacement<S:GDecodable>( for typeParameter:S.Type ) -> GDecodable.Type {
+  		(typeParameter as? GReplaceable.Type)?.replacementType ?? typeParameter
+  	}
+  	//...
+  }
+  ```
+
+  definend in a `GReplaceable` extension.
+
+The final touch is to make the `Pair` class obsolete by telling us to replace it with `Couple`.
+
+```swift
+final class Pair<T,Q> : GObsolete
+where T:GCodable, Q:GCodable {
+	static var replacementType: (AnyObject & GraphCodable.GDecodable).Type {
+		return Couple<T,Q>.replacementType
+	}
+}
+```
+
+Note how replacementType must return `Couple<T,Q>.replacementType` and not just `Couple<T,Q>` to account for the fact that `T` and `Q` themselves could be replaced. The replacement process is therefore effectively recursive.
+
+Code summary (format 1) for easy copy and paste:
+
+```swift
+final class Pair<T,Q> : GObsolete
+where T:GCodable, Q:GCodable {
+	static var replacementType: (AnyObject & GraphCodable.GDecodable).Type {
+		return Couple<T,Q>.replacementType
+	}
+}
+
+final class Couple<T,Q> : GDecodable
+where T:GDecodable, Q:GDecodable {
+	let lhs	: T
+	let rhs	: Q
+	
+	init( _ lhs: T, _ rhs: Q ) {
+		self.lhs	= lhs
+		self.rhs	= rhs
+	}
+	
+	init(from decoder: GDecoder) throws {
+		lhs	= try decoder.decode()
+		rhs	= try decoder.decode()
+	}
+}
+
+extension Couple: GEncodable
+where T:GEncodable, Q:GEncodable {
+	func encode(to encoder: GEncoder) throws {
+		try encoder.encode( lhs )
+		try encoder.encode( rhs )
+	}
+}
+
+extension Couple: CustomStringConvertible {
+	var description: String {
+		return "(\(lhs) <-> \(rhs))"
+	}
+}
+
+extension Couple : GReplaceable {
+	class var replacementType: (AnyObject & GraphCodable.GDecodable).Type {
+		func buildSelf<newT,newQ>( _ typeT:newT.Type, _ typeQ:newQ.Type ) -> (AnyObject & GDecodable).Type
+		where newT:GDecodable, newQ:GDecodable { Couple<newT,newQ>.self }
+		
+		return buildSelf(
+			typeParameterReplacement(for: T.self),
+			typeParameterReplacement(for: Q.self)
+		)
+	}
+}
+// ----------------------------------------------
+final class Model<S:GDecodable> : GDecodable {
+	let value	: Couple<Couple<S,Int>,String>
+	
+	init( integer:Int, string:String, value:S ) {
+		self.value = Couple(Couple(value,integer), string)
+	}
+	
+	init(from decoder: GraphCodable.GDecoder) throws {
+		value	= try decoder.decode()
+	}
+}
+extension Model: GEncodable where S:GEncodable {
+	func encode(to encoder: GraphCodable.GEncoder) throws {
+		try encoder.encode( value )
+	}
+}
+
+extension Model: CustomStringConvertible {
+	var description: String {
+		return "\(Self.self) = { value = \(value) }"
+	}
+}
+
+extension Model : GReplaceable {
+	class var replacementType: (AnyObject & GDecodable).Type {
+		func buildSelf<T>( _ typeT:T.Type ) -> (AnyObject & GDecodable).Type
+		where T:GDecodable { Model<T>.self }
+				
+		
+		return buildSelf( typeParameterReplacement(for: S.self) )
+	}
+}
+// ----------------------------------------------
+typealias Two = Couple
+try decode( 0 )	// decode the old file (format 0)
+try encode( 1 )	// encode the new file (format 1)
+try decode( 1 )	// decode the new file (format 1)
+
+```
+
+This second version was able to decode the data in the file *ModelNumber0.graph* (format 0), encode the data in the file *ModelNumber1.graph* (format 1) and is able to decode it. In particular, you can see all **classes replaced** when the new version of the code decodes the format 0 file:
+
+```
+••• Decoding format 0:
+Decoded Classes: --------------------------
+	'Couple<Couple<Couple<Double, Int>, Int>, String>'
+	'Couple<Couple<Double, Int>, Int>'
+	'Couple<Double, Int>'
+	'Model<Couple<Double, Int>>'
+where:
+	'Model<Pair<Double, Int>>'
+		was replaced by 'Model<Couple<Double, Int>>'
+	'Pair<Double, Int>'
+		was replaced by 'Couple<Double, Int>'
+	'Pair<Pair<Double, Int>, Int>'
+		was replaced by 'Couple<Couple<Double, Int>, Int>'
+	'Pair<Pair<Pair<Double, Int>, Int>, String>'
+		was replaced by 'Couple<Couple<Couple<Double, Int>, Int>, String>'
+Result:
+	Model<Couple<Double, Int>> = { value = (((1.0 <-> 3) <-> 1) <-> P) }
+
+••• Encoding format 1:
+	Model<Couple<Double, Int>> = { value = (((1.0 <-> 3) <-> 1) <-> P) }
+
+••• Decoding format 1:
+Decoded Classes: --------------------------
+	'Couple<Couple<Couple<Double, Int>, Int>, String>'
+	'Couple<Couple<Double, Int>, Int>'
+	'Couple<Double, Int>'
+	'Model<Couple<Double, Int>>'
+Result:
+	Model<Couple<Double, Int>> = { value = (((1.0 <-> 3) <-> 1) <-> P) }
+
+```
 

@@ -20,29 +20,34 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
-/// A protocol to mark GCodable obsolete class.
-public protocol GObsolete : AnyObject, GCodable {
-	/// The class that replaces this obsoleted class.
-	///
-	/// Returns the class that replaces the class that adopt this protocol
-	static var replacementType : (AnyObject & GDecodable).Type { get }
+/// A protocol that marks a class obsolete. The property
+/// `replacementType` must return the class that replaces it.
+///
+/// **See the UserGuide**.
+public protocol GObsolete : GReplaceable, GCodable {
 }
 
+/// dummy functions to satisfy the GCodable protocol
 public extension GObsolete {
-	init(from decoder: GraphCodable.GDecoder) throws {
+	init(from decoder: GDecoder) throws {
 		throw GCodableError.internalInconsistency(
 			Self.self, GCodableError.Context(
-				debugDescription: "Program must not reach \(#function)."
+				debugDescription: "Unreachable code."
 			)
 		)
 	}
 	
-	func encode(to encoder: GraphCodable.GEncoder) throws {
+	func encode(to encoder: GEncoder) throws {
 		throw GCodableError.internalInconsistency(
 			Self.self, GCodableError.Context(
-				debugDescription: "Program must not reach \(#function)."
+				debugDescription: "Unreachable code."
 			)
 		)
 	}
 }
+
+
+
+
+
 

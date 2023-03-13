@@ -338,9 +338,7 @@ extension FileBlock : CustomStringConvertible {
 			if let binSize {
 				if let binaryValue {
 					string.append( " \( small( binaryValue, options ) )")
-				} else if binSize == BinSize() {
-					string.append( " { size not yet determined }")
-				} else {
+				} else if binSize != BinSize() {
 					string.append( " { \(binSize.size) bytes }")
 				}
 			}

@@ -27,15 +27,15 @@ struct ClassInfo : CustomStringConvertible {
 	init( classData:ClassData, classNameMap:ClassNameMap? ) throws {
 		self.classData		= classData
 
-		if let decodableType = classData.decodableType {
-			self.decodableType	= decodableType
+		if let type = classData.decodableType {
+			self.decodableType	= type
 			return
 		} else if let classNameMap {
-			if let decodableType = classNameMap[ .qualifiedName(classData.qualifiedName) ] {
-				self.decodableType	= decodableType
+			if let type	= classNameMap[ .mangledName(classData.mangledName) ] {
+				self.decodableType	= type
 				return
-			} else if let decodableType	= classNameMap[ .mangledName(classData.mangledName) ] {
-				self.decodableType	= decodableType
+			} else if let type = classNameMap[ .qualifiedName(classData.qualifiedName) ] {
+				self.decodableType	= type
 				return
 			}
 		}

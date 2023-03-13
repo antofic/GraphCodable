@@ -36,32 +36,3 @@ extension GIdentifiable where Self:Identifiable {
 	/// For Identifiable values `gcodableID == id` by default.
 	public var gcodableID: Self.ID? { id }
 }
-
-/*
-extension String : GIdentifiable {
-	///	 String identity
-	///
-	///	 To avoid duplications of uqual strings.
-	public var gcodableID: String? {
-		self
-	}
-}
-
-extension Array : GIdentifiable where Element:GCodable {
-	///	 Array identity
-	///
-	///	 To avoid duplications of arrays with the same storage.
-	public var gcodableID: ObjectIdentifier? {
-		withUnsafeBytes { unsafeBitCast( $0.baseAddress, to: ObjectIdentifier?.self) }
-	}
-}
-
-extension ContiguousArray : GIdentifiable where Element:GCodable {
-	///	 ContiguousArray identity
-	///
-	///	 To avoid duplications of arrays with the same storage.
-	public var gcodableID: ObjectIdentifier? {
-		withUnsafeBytes { unsafeBitCast( $0.baseAddress, to: ObjectIdentifier?.self) }
-	}
-}
-*/

@@ -48,7 +48,7 @@ extension Optional: GEncodable where Wrapped: GEncodable {
 	public func encode(to encoder: GEncoder) throws {
 		throw GCodableError.internalInconsistency(
 			Self.self, GCodableError.Context(
-				debugDescription: "Program must not reach \(#function)."
+				debugDescription: "Unreachable code."
 			)
 		)
 	}
@@ -60,7 +60,7 @@ extension Optional: GDecodable where Wrapped: GDecodable {
 	public init(from decoder: GDecoder) throws {
 		throw GCodableError.internalInconsistency(
 			Self.self, GCodableError.Context(
-				debugDescription: "Program must not reach \(#function)."
+				debugDescription: "Unreachable code."
 			)
 		)
 	}

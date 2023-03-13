@@ -60,7 +60,7 @@ extension GDecoderImpl : GDecoder {
 		get throws { try constructor.encodedVersion }
 	}
 
-	var replacedType : GObsolete.Type?   {
+	var replacedType : GReplaceable.Type?   {
 		get throws { try constructor.replacedType }
 	}
 	

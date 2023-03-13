@@ -27,7 +27,7 @@ import Foundation
 /// The container must conform to `MutableDataProtocol`, i.e `Data`, `[UInt8]`, `ContiguousArray<UInt8>`
 public typealias Bytes	= [UInt8]
 
-/// A type that can write itself to a byte buffer
+/// A type that can write itself into a `BinaryWriteBuffer` istance
 public protocol BinaryOType {
 	/// Writes this value into the given istance of `BinaryWriteBuffer`.
 	///
@@ -51,7 +51,7 @@ public extension BinaryOType {
 	}
 }
 
-/// A type that can read itself from a byte buffer.
+/// A type that can read itself from a `BinaryReadBuffer` istance
 public protocol BinaryIType {
 	/// Creates a new instance by reading it from the given
 	/// istance of `BinaryReadBuffer`.

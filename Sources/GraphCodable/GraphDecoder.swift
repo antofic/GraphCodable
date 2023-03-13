@@ -22,8 +22,8 @@
 
 ///	last resort to decode a reference type with identity
 public enum ClassName : Hashable {
-	case qualifiedName( _:String )
 	case mangledName( _:String )
+	case qualifiedName( _:String )
 }
 
 public typealias ClassNameMap = [ClassName : (AnyObject & GDecodable).Type ]
@@ -67,15 +67,15 @@ public final class GraphDecoder {
 		return Array( map.values )
 	}
 
-	///	Returns all the obsolete classes encoded in the data byte buffer
-	public func obsoleteClasses<Q>( from data: Q ) throws -> [GObsolete.Type]
+	///	Returns all replaced classes encoded in the data byte buffer
+	public func replacedClasses<Q>( from data: Q ) throws -> [GReplaceable.Type]
 	where Q:Sequence, Q.Element==UInt8 {
-		let types	= try decoder.allClassData( from: data ).compactMap { $0.obsoleteType }
+		let types	= try decoder.allClassData( from: data ).compactMap { $0.replacedType }
 		let keys	= types.map { ObjectIdentifier($0) }
 		let map		= Dictionary( zip(keys,types) ) { v1,v2 in v1 }
 		return Array( map.values )
 	}
-	
+
 	private let decoder = GDecoderImpl()
 }
 

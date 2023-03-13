@@ -28,7 +28,7 @@ public protocol GDecoder {
 	
 	/// Returns the version of the encoded object during the object decoding
 	///
-	/// Corresponds to the value of encodedVersion() when encoding the
+	/// Corresponds to the value of `encodedVersion` when encoding the
 	/// data and can be used to decide on different decoding strategies.
 	/// To have a version a reference type must adopt the **GVersion** protocol
 	/// otherwise encodedVersion returns 0.
@@ -38,12 +38,12 @@ public protocol GDecoder {
 
 	/// Returns the replacedType type during the object decoding if exists
 	///
-	/// Corresponds to the class marked with GCodableObsolete protocol that
+	/// Corresponds to the class marked with `GRenamedType` protocol that
 	/// signals the replacingClass.
 	/// Can be used to decide on different decoding strategies.
 	///
 	/// Only reference types can have a version.
-	var replacedType : GObsolete.Type?  { get throws }
+	var replacedType : GReplaceable.Type?  { get throws }
 	
 	/// Returns a Boolean value indicating whether the decoder contains a value
 	/// associated with the given key.
