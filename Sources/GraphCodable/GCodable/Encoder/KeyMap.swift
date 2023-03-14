@@ -29,11 +29,10 @@ struct KeyMap  {
 		if let keyID = inverseMap[ key ] {
 			return keyID
 		} else {
-			let keyID = currentId
-			defer { currentId = keyID.next }
-			inverseMap[ key ]	= keyID
-			keyStringMap[ keyID ] = key
-			return keyID
+			defer { currentId = currentId.next }
+			inverseMap[ key ]	= currentId
+			keyStringMap[ currentId ] = key
+			return currentId
 		}
 	}
 }

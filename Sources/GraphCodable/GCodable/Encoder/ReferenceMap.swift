@@ -31,13 +31,10 @@ struct ReferenceMap {
 		if let typeID = identifierMap[ objIdentifier ] {
 			return typeID
 		} else {
-			let typeID = currentId
-			defer { currentId = typeID.next }
-			
-			classDataMap[ typeID ]	= try ClassData( type: type )
-			identifierMap[ objIdentifier ] = typeID
-			return typeID
+			defer { currentId = currentId.next }
+			classDataMap[ currentId ]	= try ClassData( type: type )
+			identifierMap[ objIdentifier ] = currentId
+			return currentId
 		}
 	}
 }
-

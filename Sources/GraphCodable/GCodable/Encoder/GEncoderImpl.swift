@@ -59,7 +59,7 @@ final class GEncoderImpl : FileBlockEncoderDelegate {
 	private let			binaryIOVersion		: UInt16
 	private let 		fileHeader			: FileHeader
 	private var 		currentKeys			= Set<String>()
-	private var			identifierMap		= AnyIdentifierMap()
+	private var			identityMap			= IdentityMap()
 	private var			referenceMap		= ReferenceMap()
 	private var			keyMap				= KeyMap()
 	
@@ -69,7 +69,7 @@ final class GEncoderImpl : FileBlockEncoderDelegate {
 		}
 		didSet {
 			self.currentKeys			= Set<String>()
-			self.identifierMap			= AnyIdentifierMap()
+			self.identityMap			= IdentityMap()
 			self.referenceMap			= ReferenceMap()
 			self.keyMap					= KeyMap()
 			self.dataEncoder?.delegate	= self
@@ -164,8 +164,8 @@ extension GEncoderImpl {
 			}
 			try dataEncoder.appendVal(keyID: keyID, typeID:nil, objID:nil, binaryValue: trivialValue )
 		} else if let value = value as? GEncodable {
-			if let identifier = identifier( of:value ) {	// IDENTITY
-				if let objID = identifierMap.strongID( identifier ) {
+			if let identity = identity( of:value ) {	// IDENTITY
+				if let objID = identityMap.strongID( identity ) {
 					// already encoded value: we encode a pointer
 					try dataEncoder.appendPtr(keyID: keyID, objID: objID, conditional: conditional)
 				} else if conditional {
@@ -176,13 +176,13 @@ extension GEncoderImpl {
 						try ClassData.throwIfNotConstructible( type: type )
 					}
 						
-					let objID	= identifierMap.createWeakID( identifier )
+					let objID	= identityMap.createWeakID( identity )
 					try dataEncoder.appendPtr(keyID: keyID, objID: objID, conditional: conditional)
 				} else {
 					// not encoded value: we encode it
 					// INHERITANCE: only classes have a typeID (value typeID == nil)
 					let typeID	= try createTypeIDIfNeeded( for: value )
-					let objID	= identifierMap.createStrongID( identifier )
+					let objID	= identityMap.createStrongID( identity )
 
 					if let binaryValue = value as? GBinaryEncodable {
 						// BinaryEncodable type
@@ -230,6 +230,44 @@ extension GEncoderImpl {
 		try value.encode(to: self)
 	}
 	
+	//	Identifier
+	
+	private func identity( of value:GEncodable ) -> Identity? {
+		if	encodeOptions.contains( .disableIdentity ) {
+			return nil
+		}
+		
+		if	encodeOptions.contains( .tryHashableIdentityAtFirst ) {
+			if let id = value as? (any Hashable) {
+				return Identity(id)
+			}
+		}
+		if	encodeOptions.contains( .ignoreGIdentifiableProtocol ) {
+			if	!encodeOptions.contains( .disableAutoObjectIdentifierIdentityForReferences ),
+				type( of:value) is AnyClass {
+				return Identity( ObjectIdentifier( value as AnyObject ) )
+			}
+		} else if let identifiable	= value as? (any GIdentifiable) {
+			if let id = identifiable.gcodableID {
+				return Identity(id)
+			}
+		} else if !encodeOptions.contains( .disableAutoObjectIdentifierIdentityForReferences ) {
+			if type( of:value) is AnyClass {
+				return Identity( ObjectIdentifier( value as AnyObject ) )
+			}
+		}
+		
+		if encodeOptions.contains( .tryHashableIdentityAtLast ) {
+			if let id = value as? (any Hashable) {
+				return Identity(id)
+			}
+		}
+		
+		return nil
+	}
+
+	
+/*
 	private func identifier( of value:GEncodable ) -> (any Hashable)? {
 		if	encodeOptions.contains( .disableIdentity ) {
 			return nil
@@ -263,7 +301,7 @@ extension GEncoderImpl {
 		
 		return nil
 	}
-	
+*/
 	private func throwIfNotTrivial<T:GTrivialEncodable>( trivialValue value:T ) throws {
 		guard _isPOD( T.self ) else {
 			throw GCodableError.valueMustBeTrivial(
