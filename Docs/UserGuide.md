@@ -1,26 +1,29 @@
 #  User Guide
 
+**To do: Update summary.**
+
 - [Premise](#Premise)
 - [Code examples](#Code-examples)
-	- [Native types](#Native-types)
-	- [Value types](#Value-types)
-		- [Keyed coding](#Keyed-coding)
-		- [Unkeyed coding](#Unkeyed-coding)
-	- [Reference types](#Reference-types)
-		- [Identity](#Identity)
-		- [Inheritance](#Inheritance)
-		- [Conditional encode](#Conditional-encode)
-		- [Directed acyclic graphs](#Directed-acyclic-graphs)
-		- [Directed cyclic graphs](#Directed-cyclic-graphs)
-	- [Encoding/Decoding Identity for value types](#ncoding/Decoding-Identity-for-value-types)
-		- [The GIdentifiable protocol](#The-GIdentifiable-protocol)
-		- [Identity for Array and ContiguosArray](#Identity-for-Array-and-ContiguosArray)
-	- [GraphCodable protocols](#GraphCodable-protocols)
-	- [Other features](#Other-features)
-		- [UserInfo dictionary](#UserInfo-dictionary)
-		- [Versioning of reference types](#Versioning-of-reference-types)
-		- [Obsolete reference types](#Obsolete-reference-types)
-	
+  - [Native types](#Native-types)
+  - [Value types](#Value-types)
+  	- [Keyed coding](#Keyed-coding)
+  	- [Unkeyed coding](#Unkeyed-coding)
+  - [Reference types](#Reference-types)
+  	- [Identity](#Identity)
+  	- [Inheritance](#Inheritance)
+  	- [Conditional encode](#Conditional-encode)
+  	- [Directed acyclic graphs](#Directed-acyclic-graphs)
+  	- [Directed cyclic graphs](#Directed-cyclic-graphs)
+  - [Encoding/Decoding Identity for value types](#ncoding/Decoding-Identity-for-value-types)
+  	- [The GIdentifiable protocol](#The-GIdentifiable-protocol)
+  	- [Identity for Array and ContiguosArray](#Identity-for-Array-and-ContiguosArray)
+  - [GraphCodable protocols](#GraphCodable-protocols)
+  - [Other features](#Other-features)
+  	- [UserInfo dictionary](#UserInfo-dictionary)
+  	- [Versioning of reference types](#Versioning-of-reference-types)
+  	- [Obsolete reference types](#Obsolete-reference-types)
+
+
 ## Premise
 GraphCodable is a Swift encode/decode package (similar to Codable at interface level) that does not treat reference types as second-class citizens. Indeed, it also offers for value types a possibility normally reserved only for reference types: that of taking into account their identity to avoid duplication of data during encoding and decoding.
 
@@ -1360,13 +1363,21 @@ Both `GraphEncoder` and `GraphDecoder` allow setting a dictionary accessible dur
 
 ### Versioning of reference types
 
-Reference types can adopt the `GVersion` protocol to define the version (a `UInt32` value) of their type so that they can handle different decoding strategies depending on it.
+Reference types can use the `encodeVersion` property in `GEncodable` protocol:
 
 ```swift
-public protocol GVersion : AnyObject {
-	static var encodeVersion : UInt32 { get }
+public protocol GEncodable {
+	/* ... */
+  static var encodeVersion : UInt32 { get }
 }
+
+extension GEncodable {
+	public static var encodeVersion : UInt32 { 0 }
+}
+
 ```
+
+ to define the version (a `UInt32` value) of their type so that they can handle different decoding strategies depending on it. The default `encodeVersion` value is 0.
 
 The encoder stores the value returned by `encodeVersion` together with the reference type information, only once for each reference type. During decoding, the version of the encoded reference type can be accessed through the decoder property `encodedVersion`.
 
@@ -1378,8 +1389,6 @@ public protocol GDecoder {
 }
 
 ```
-
-If the type does not adopt the GVersion protocol, `encodedVersion` returns 0. If the `GVersion` protocol is adopted, it is therefore appropriate that `encodeVersion` returns at least 1.
 
 **Note**: If inheritance is disabled, information about reference types, including version, is not encoded and therefore versions cannot be used.
 

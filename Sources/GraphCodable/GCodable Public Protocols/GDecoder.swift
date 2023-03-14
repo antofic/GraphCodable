@@ -30,8 +30,6 @@ public protocol GDecoder {
 	///
 	/// Corresponds to the value of `encodedVersion` when encoding the
 	/// data and can be used to decide on different decoding strategies.
-	/// To have a version a reference type must adopt the **GVersion** protocol
-	/// otherwise encodedVersion returns 0.
 	///
 	/// Only reference types can have a version.
 	var encodedVersion : UInt32  { get throws }

@@ -202,9 +202,6 @@ extension GEncoderImpl {
 					if conditional {
 						print( "### Warning: can't conditionally encode the type '\( type(of:value) )' without identity. It will be encoded unconditionally." )
 					}
-					if typeID != nil, value is GVersion {
-						print( "### Warning: the type '\( type(of:value) )' has no identity and cannot use the versioning system." )
-					}
 				}
 				
 				if let binaryValue = value as? GBinaryEncodable {

@@ -57,7 +57,7 @@ struct ClassData : BinaryIOType, CustomStringConvertible {
 		}
 
 		self.mangledName 	= mangledName
-		self.encodedVersion	= (type as? GVersion.Type)?.encodeVersion ?? 0
+		self.encodedVersion	= type.encodeVersion
 	}
 	
 	static func isConstructible( type:AnyObject.Type ) -> Bool {

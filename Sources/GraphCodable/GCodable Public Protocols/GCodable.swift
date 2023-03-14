@@ -28,6 +28,16 @@ public protocol GEncodable {
 	///
 	/// - Parameter encoder: The encoder to write data to.
 	func encode(to encoder: GEncoder) throws
+	/// The version of the encoded reference type.
+	///
+	/// Returns `0` by default
+	///
+	/// Only reference types support versioning.
+	static var encodeVersion : UInt32 { get }
+}
+
+extension GEncodable {
+	public static var encodeVersion : UInt32 { 0 }
 }
 
 extension GEncodable where Self:AnyObject {
@@ -46,7 +56,13 @@ public protocol GDecodable {
 	/// - Parameter decoder: The decoder to read data from.
 	init(from decoder: GDecoder) throws
 	
+	/// A replacementType for the encoded reference type.
+	///
+	/// Returns `Self.self` by default
+	///
+	/// Only reference types support replacementType.
 	static var replacementType : GDecodable.Type { get }
+
 }
 
 extension GDecodable {
