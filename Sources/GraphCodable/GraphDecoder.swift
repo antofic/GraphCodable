@@ -26,7 +26,7 @@ public enum ClassName : Hashable {
 	case qualifiedName( _:String )
 }
 
-public typealias ClassNameMap = [ClassName : (AnyObject & GDecodable).Type ]
+typealias ClassNameMap = [ClassName : (AnyObject & GDecodable).Type ]
 
 ///	An object that decodes instances of a **GDecodable** type
 ///	from a data buffer that uses **GraphCodable** format.
@@ -38,11 +38,9 @@ public final class GraphDecoder {
 		get { decoder.userInfo }
 		set { decoder.userInfo = newValue }
 	}
-
-	///	get/set the classNameMap dictionary
-	public var classNameMap : ClassNameMap? {
-		get { decoder.classNameMap }
-		set { decoder.classNameMap = newValue }
+	
+	public func setClass( _ type:(AnyObject & GDecodable).Type, for className:ClassName ) {
+		decoder.classNameMap[ className ] = type
 	}
 	
 	///	Decode the root value from the data byte buffer

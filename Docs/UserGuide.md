@@ -1485,13 +1485,13 @@ print( outRoot )	// MyData(string: "3")
 ```
 ### Obsolete reference types
 
-##### The easy part
-
 Now suppose it is absolutely necessary to change some class `MyData` to `MyNewData`. The problem is that there are already saved files in which reference of class `MyData` are stored and it is therefore necessary, during decoding, that objects of the new type `MyNewData` be created instead of these.
 
 To solve the problem the old objective-c NSKeyedUnarchiver offers the possibility to map the new class to the encoded class name using the function (and class function) `setClass( _ cls: AnyClass?, forClassName:String)`.
 
-On the other hand, in swift, class names are much more complicated than in objective-c, more difficult to manage and therefore GraphCodable employs a different method **which uses the swift type system avoiding the use of class name strings**.
+On the other hand, in swift, class names are much more complicated than in objective-c, more difficult to manage and therefore GraphCodable employs a different method **which uses the swift type system avoiding the use of class name strings**. However, it is still possible to use strings for class names as an alternative.
+
+##### Using the swift type system - the easy part
 
 The `GDecodable` protocol defines the static property `replacementType` which by default returns `Self.self`. 
 
@@ -1592,7 +1592,7 @@ print( outRoot )	// MyNewData(string: 3)
 ```
 Multiple classes can be replaced by only one if necessary. Use `decoder.replacedType` to find out which one was replaced during decoding. Versioning and class replacement can be combined.
 
-##### The hard part
+##### Using the swift type system - the hard part
 
 The illustrated mechanism **breaks down** when the class whose name is changed can be used as *a parameter types of a generic class* that adopts the `GDecodable` protocol:
 
@@ -1946,3 +1946,101 @@ Result:
 
 ```
 
+##### Using class name strings
+
+It is still possible to use strings for class names. Let's go back to the example that used the `MyData` class. You can view the name of the encoded classes:
+
+```swift
+let path = FileManager.default.urls(
+	for: .documentDirectory, in: .userDomainMask
+)[0].appendingPathComponent("MyFile.graph")
+
+let data	= try Data(contentsOf: path)
+
+let dump	= try GraphDecoder().dump(from: data, options: [.showReferenceMap,.showMangledNamesInReferenceMap])
+
+print(dump)
+```
+
+The output is:
+
+```
+= REFERENCEMAP ======================================================
+TYPE0001:	QualifiedName  = MyGraphCodableApp.MyData
+			MangledName    = 17MyGraphCodableApp0A4DataC
+			EncodedVersion = 0
+=====================================================================
+```
+
+You then see that the `MyData` class has been stored with the qualified name `MyGraphCodableApp.MyData` and the mangledName `17MyGraphCodableApp0A4DataC`. Then you can use the GraphDecoder function:
+
+```swift
+func setClass( _ type:(AnyObject & GDecodable).Type, for className:ClassName )
+```
+
+to match the encoded name to the class to decode. `ClassName` allows you to choose between the qualified name and the mangledName of the encoded class:
+
+```swift
+public enum ClassName : Hashable {
+	case mangledName( _:String )
+	case qualifiedName( _:String )
+}
+```
+
+It's best to use the mangledName, as in the following example:
+
+```swift
+import Foundation
+import GraphCodable
+
+class MyNewData :GCodable, CustomStringConvertible {
+	let string : String
+	
+	init( string: String ) {
+		self.string	= string
+	}
+	
+	private enum OldKey : String {
+		case number
+	}
+	
+	private enum Key : String {
+		case string
+	}
+	
+	required init(from decoder: GDecoder) throws {
+		let version = try decoder.encodedVersion
+		
+		switch version {
+		case 0:		// previous version
+			self.string	=  String( try decoder.decode( for: OldKey.number ) as Int )
+		default:	// current version
+			self.string	=  try decoder.decode( for: Key.string )
+		}
+	}
+	
+	func encode(to encoder: GEncoder) throws {
+		try encoder.encode( string, for:Key.string )
+	}
+	
+	var description: String {
+		return "\(type(of:self))(string: \(string))"
+	}
+}
+
+let path = FileManager.default.urls(
+	for: .documentDirectory, in: .userDomainMask
+)[0].appendingPathComponent("MyFile.graph")
+
+let data	= try Data(contentsOf: path)
+
+let graphDecoder = GraphDecoder()
+// set up the dictionary
+graphDecoder.setClass( MyNewData.self, for: .mangledName("17MyGraphCodableApp0A4DataC") )
+
+let outRoot	= try graphDecoder.decode( MyNewData.self, from: data )
+print( outRoot )	// MyNewData(string: 3)
+
+```
+
+This system becomes very difficult to manage especially if generic classes are employed.

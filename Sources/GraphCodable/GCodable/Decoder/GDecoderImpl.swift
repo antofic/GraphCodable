@@ -22,9 +22,8 @@
 
 final class GDecoderImpl {
 	var	userInfo			= [String:Any]()
-	var classNameMap		: ClassNameMap?
+	var classNameMap		= ClassNameMap()
 	private var constructor : TypeConstructor!
-
 	
 	func allClassData<Q>( from data: Q ) throws -> [ClassData]
 	where Q:Sequence, Q.Element==UInt8 {
