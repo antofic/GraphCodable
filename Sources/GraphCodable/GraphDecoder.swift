@@ -59,7 +59,7 @@ public final class GraphDecoder {
 	}
 	
 	///	Returns all the classes encoded in the data byte buffer
-	public func decodableClasses<Q>( from data: Q ) throws -> [(AnyObject & GDecodable).Type]
+	public func decodableClasses<Q>( from data: Q ) throws -> [GDecodable.Type]
 	where Q:Sequence, Q.Element==UInt8 {
 		let types	= try decoder.allClassData( from: data ).compactMap { $0.decodableType }
 		let keys	= types.map { ObjectIdentifier($0) }
@@ -68,9 +68,9 @@ public final class GraphDecoder {
 	}
 
 	///	Returns all replaced classes encoded in the data byte buffer
-	public func replacedClasses<Q>( from data: Q ) throws -> [(AnyObject & GDecodable).Type]
+	public func replacedClasses<Q>( from data: Q ) throws -> [GDecodable.Type]
 	where Q:Sequence, Q.Element==UInt8 {
-		let types	= try decoder.allClassData( from: data ).compactMap { $0.replacedType as? (AnyObject & GDecodable).Type  }
+		let types	= try decoder.allClassData( from: data ).compactMap { $0.replacedType }
 		let keys	= types.map { ObjectIdentifier($0) }
 		let map		= Dictionary( zip(keys,types) ) { v1,v2 in v1 }
 		return Array( map.values )

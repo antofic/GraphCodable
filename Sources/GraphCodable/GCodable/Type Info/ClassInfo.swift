@@ -21,7 +21,7 @@
 //	SOFTWARE.
 
 struct ClassInfo : CustomStringConvertible {
-	let	decodableType:	(AnyObject & GDecodable).Type
+	let	decodableType:	GDecodable.Type
 	let	classData:		ClassData
 	
 	init( classData:ClassData, classNameMap:ClassNameMap? ) throws {

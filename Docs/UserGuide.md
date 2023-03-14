@@ -1482,24 +1482,59 @@ Now suppose it is absolutely necessary to change some class `MyData` to `MyNewDa
 
 To solve the problem the old objective-c NSKeyedUnarchiver offers the possibility to map the new class to the encoded class name using the function (and class function) `setClass( _ cls: AnyClass?, forClassName:String)`.
 
-On the other hand, in swift, class names are much more complicated than in objective-c, more difficult to manage and therefore GraphCodable employs a different method **which uses the swift type system avoiding the use of class name strings**. To achieve this you shouldn't eliminate `MyData` from the code, but rather remove all its content and, adopting the `GObsolete` protocol, use the `replacementType` method to indicate that`MyNewData` replaces `MyData`:
+On the other hand, in swift, class names are much more complicated than in objective-c, more difficult to manage and therefore GraphCodable employs a different method **which uses the swift type system avoiding the use of class name strings**.
+
+The `GDecodable` protocol defines the static property `replacementType` which by default returns `Self.self`. 
+
+```swift
+public protocol GDecodable {
+	init(from decoder: GDecoder) throws
+	
+	static var replacementType : GDecodable.Type { get }
+}
+
+public extension GDecodable {
+	static var replacementType : GDecodable.Type { Self.self }
+}
+```
+
+And so, `MyData` remains in the code, "emptied" of all its internal code, and `replacementType` is used to indicate the type that `MyData` replaces. Notice how `replacementType` does not return `MyNewData.self`, but `MyNewData.replacementType`. This is the correct thing to do, for reasons that will become clearer in the next paragraph.
+
+```swift
+class MyData: GCodable {
+	class var replacementType: GDecodable.Type {
+		return MyNewData.replacementType
+	}
+	
+	required init(from decoder: GDecoder) throws {
+		preconditionFailure("Unreachable \(#function)")
+	}
+	
+	func encode(to encoder: GEncoder) throws {
+		preconditionFailure("Unreachable \(#function)")
+	}
+  // no other code
+}
+```
+To make this easier, GraphCodable provides the `GObsolete` protocol, which has no function in the library, but implements the two required but now unreachable methods `init(from decoder: GDecoder)` and `encode(to encoder: GEncoder)` of `GCodable` and allows you to mark the classes that have been replaced in a clear way. The code then becomes:
 
 ```swift
 class MyData : GObsolete {
-	class var replacementType: (AnyObject & GraphCodable.GDecodable).Type {
-		return MyNewData.self
+	class var replacementType: GDecodable.Type {
+		return MyNewData.replacementType
 	}
-  // no other code here...
 }
 ```
+
 Here is the full code:
+
 ```swift
 import Foundation
 import GraphCodable
 
 class MyData : GObsolete {
-	class var replacementType: (AnyObject & GraphCodable.GDecodable).Type {
-		return MyNewData.self
+	class var replacementType: GDecodable.Type {
+		return MyNewData.replacementType
 	}
 }
 
@@ -1546,7 +1581,7 @@ let data	= try Data(contentsOf: path)
 let outRoot	= try GraphDecoder().decode( MyNewData.self, from: data )
 print( outRoot )	// MyNewData(string: 3)
 ```
-Multiple classes can be replaced by only one if necessary: use `decoder.replacedType` to find out which one was replaced during decoding. Versioning and class replacement can be combined.
+Multiple classes can be replaced by only one if necessary. Use `decoder.replacedType` to find out which one was replaced during decoding. Versioning and class replacement can be combined.
 
 ##### The hard part
 
@@ -1556,66 +1591,32 @@ The illustrated mechanism **breaks down** when the class whose name is changed c
 class Generic<T:GDecodable> : GDecodable {
 	let data : T
 	
-	required init(from decoder: GraphCodable.GDecoder) throws {
+	required init(from decoder: GDecoder) throws {
 		self.data = try decoder.decode()
 	}
 }
 ```
 
-During decoding, the decoder knows what to do when it encounters `MyData` because through the `GObsolete` protocol it knows that it has to create `MyNewData` instead, but it doesn't know at all what to do with the `Generic<MyData>` class.
+Now suppose you encoded an instance of `Generic<MyData>`and replaced `MyData` with `MyNewData`.  During decoding, the decoder encounters the `Generic<MyData>` class and calls `Generic<MyData>.replacementType`, getting `Generic<MyData>.self` instead of  `Generic<MyNewData>.self`.
 
-The issue is therefore complicated for two reasons: firstly, the name of the generic class must be replaced if and only if the class of the parameter type changes; secondly, when a class name is changed, **all archivable generic types that potentially can use it as a type parameter must be able to handle the class name change**.
-
-Ideally, this could be done as follows:
-
-- expand the *mangledName* of  `Generic` class encoded in the archive; 
-- replace all occurrences of `MyData` that may be present with `MyNewData`,
-- recreate the new *mangledName*,
-- reify the class from the new *mangledName*.
-
-Since there is no API to operate on mangledNames, GraphCodable implements a different system ar type level, which unfortunately can't be fully automated but requires some user intervention.
-
-These are the relevant protocols:
+It follows that any generic class that adopts `GCodable` protocol **must** correctly implement `replacementType` if there is a chance that its parameter types are **renamed** classes. That's how:
 
 ```swift
-public protocol GReplaceable : AnyObject {
-	static var replacementType : (AnyObject & GDecodable).Type { get }
-}
+extension Generic {
+	class var replacementType: GDecodable.Type {
+		func buildSelf<T>( _ typeT:T.Type ) -> GDecodable.Type
+		where T:GDecodable { Generic<T>.self }
 
-public extension GReplaceable {
-	static func typeParameterReplacement<S:GDecodable>( for typeParameter:S.Type ) -> GDecodable.Type {
-		(typeParameter as? GReplaceable.Type)?.replacementType ?? typeParameter
+		let typeT = T.replacementType
+
+		return buildSelf( typeT )
 	}
 }
 ```
 
-```swift
-public protocol GObsolete : GReplaceable, GCodable {
-}
+**Note**: For some strange reason swift doesn't allow you to write `buildSelf( T.replacementType )` directly.
 
-/// dummy functions to satisfy the GCodable protocol
-public extension GObsolete {
-	init(from decoder: GDecoder) throws {
-		throw GCodableError.internalInconsistency(
-			Self.self, GCodableError.Context(
-				debugDescription: "Unreachable code."
-			)
-		)
-	}
-	
-	func encode(to encoder: GEncoder) throws {
-		throw GCodableError.internalInconsistency(
-			Self.self, GCodableError.Context(
-				debugDescription: "Unreachable code."
-			)
-		)
-	}
-}
-```
-
-In general, a non-generic class that changes its name adopts the `GObsolete` protocol, a generic class that changes its name and/or can have parameter types that change their names adopts the `GReplaceable` protocol.
-
-As an example, first we have some utility functions for the next code example (`GraphCodableUti.checkEncoder` and `GraphCodableUti.checkDecoder` are two utility/debug functions defined in GraphCodableUti.swift):
+What follows is a slightly more complex example. First we have some utility functions for the next code example (`GraphCodableUti.checkEncoder` and `GraphCodableUti.checkDecoder` are two utility/debug functions defined in GraphCodableUti.swift):
 
 ```swift
 func path( number:Int ) -> URL {
@@ -1761,58 +1762,46 @@ extension Couple: CustomStringConvertible {
 }
 ```
 
-First, `Model` is a generic class whose type could depend on `Pair` when passed as `S`. If `Pair` becomes `Couple`, the names of `Model` specializations that have `Pair` as a type parameter must also change accordingly. To handle during decoding **all situations** in which the name of `Model` argument types changes it is necessary that `Model` adopts the `GReplaceable` protocol:
+First, `Model` is a generic class whose type could depend on `Pair` when passed as `S`. If `Pair` becomes `Couple`, the names of `Model` specializations that have `Pair` as a type parameter must also change accordingly. To handle during decoding **all situations** in which the name of `Model` argument types changes,  `Model` implements the `replacementType` static property:
 
 ```swift
-extension Model : GReplaceable {
-	class var replacementType: (AnyObject & GDecodable).Type {
-		func buildSelf<T>( _ typeT:T.Type ) -> (AnyObject & GDecodable).Type
+extension Model {
+	class var replacementType: GDecodable.Type {
+		func buildSelf<T>( _ typeT:T.Type ) -> GDecodable.Type
 		where T:GDecodable { Model<T>.self }
-		
-		return buildSelf( typeParameterReplacement(for: S.self) )
+
+		let typeT = S.replacementType
+
+		return buildSelf( typeT )
 	}
 }
+
 ```
 
-Similarly, `Couple`, being generic, must adopt the `GReplaceable` protocol to handle during decoding **all situations** in which the name of one or more of its argument types changes:
+The code is substantially identical to the one already seen by `Generic` `replacementType`. Similarly, `Couple`, being generic, must implements the `replacementType` static property to handle during decoding **all situations** in which the name of one or more of its argument types changes:
 
 ```swift
-extension Couple : GReplaceable {
-	class var replacementType: (AnyObject & GraphCodable.GDecodable).Type {
-		func buildSelf<newT,newQ>( _ typeT:newT.Type, _ typeQ:newQ.Type ) -> (AnyObject & GDecodable).Type
+extension Couple {
+	class var replacementType: GDecodable.Type {
+		func buildSelf<newT,newQ>( _ typeT:newT.Type, _ typeQ:newQ.Type ) -> GDecodable.Type
 		where newT:GDecodable, newQ:GDecodable { Couple<newT,newQ>.self }
 		
-		return buildSelf(
-			typeParameterReplacement(for: T.self),
-			typeParameterReplacement(for: Q.self)
-		)
+		let typeT = T.replacementType
+		let typeQ = Q.replacementType
+		
+		return buildSelf( typeT, typeQ )
 	}
 }
 ```
 
-Compare these two properties! I hope the mechanism is clear:
-
-- `buildSelf` is a generic sub-function that returns the class specialization based on the parameter types it receives. `Couple` has 2 parameter types, `Model` has one parameter type and at least until variadic generics are available, it doesn't seem possible to generalize this functionality over different classes;
-
-- The parameter types are obtained from the function:
-
-  ```swift
-  public extension GReplaceable {
-  	static func typeParameterReplacement<S:GDecodable>( for typeParameter:S.Type ) -> GDecodable.Type {
-  		(typeParameter as? GReplaceable.Type)?.replacementType ?? typeParameter
-  	}
-  	//...
-  }
-  ```
-
-  definend in a `GReplaceable` extension.
+Compare these two properties! I hope the mechanism is clear:`buildSelf` is a generic sub-function that returns the class specialization based on the parameter types it receives. `Couple` has 2 type parameters, `Model` has one type parameter and at least until variadic generics are available, it doesn't seem possible to generalize this functionality over different classes;
 
 The final touch is to make the `Pair` class obsolete by telling us to replace it with `Couple`.
 
 ```swift
 final class Pair<T,Q> : GObsolete
 where T:GCodable, Q:GCodable {
-	static var replacementType: (AnyObject & GraphCodable.GDecodable).Type {
+	static var replacementType: GDecodable.Type {
 		return Couple<T,Q>.replacementType
 	}
 }
@@ -1825,7 +1814,7 @@ Code summary (format 1) for easy copy and paste:
 ```swift
 final class Pair<T,Q> : GObsolete
 where T:GCodable, Q:GCodable {
-	static var replacementType: (AnyObject & GraphCodable.GDecodable).Type {
+	static var replacementType: GDecodable.Type {
 		return Couple<T,Q>.replacementType
 	}
 }
@@ -1860,17 +1849,18 @@ extension Couple: CustomStringConvertible {
 	}
 }
 
-extension Couple : GReplaceable {
-	class var replacementType: (AnyObject & GraphCodable.GDecodable).Type {
-		func buildSelf<newT,newQ>( _ typeT:newT.Type, _ typeQ:newQ.Type ) -> (AnyObject & GDecodable).Type
+extension Couple {
+	class var replacementType: GDecodable.Type {
+		func buildSelf<newT,newQ>( _ typeT:newT.Type, _ typeQ:newQ.Type ) -> GDecodable.Type
 		where newT:GDecodable, newQ:GDecodable { Couple<newT,newQ>.self }
 		
-		return buildSelf(
-			typeParameterReplacement(for: T.self),
-			typeParameterReplacement(for: Q.self)
-		)
+		let typeT = T.replacementType
+		let typeQ = Q.replacementType
+		
+		return buildSelf( typeT, typeQ )
 	}
 }
+
 // ----------------------------------------------
 final class Model<S:GDecodable> : GDecodable {
 	let value	: Couple<Couple<S,Int>,String>
@@ -1895,21 +1885,21 @@ extension Model: CustomStringConvertible {
 	}
 }
 
-extension Model : GReplaceable {
-	class var replacementType: (AnyObject & GDecodable).Type {
-		func buildSelf<T>( _ typeT:T.Type ) -> (AnyObject & GDecodable).Type
+extension Model {
+	class var replacementType: GDecodable.Type {
+		func buildSelf<T>( _ typeT:T.Type ) -> GDecodable.Type
 		where T:GDecodable { Model<T>.self }
-				
-		
-		return buildSelf( typeParameterReplacement(for: S.self) )
+
+		let typeT = S.replacementType
+
+		return buildSelf( typeT )
 	}
 }
-// ----------------------------------------------
+ 
 typealias Two = Couple
-try decode( 0 )	// decode the old file (format 0)
-try encode( 1 )	// encode the new file (format 1)
-try decode( 1 )	// decode the new file (format 1)
-
+try decode( 0 )	// decode the old (format 0) file
+try encode( 1 )	// encode the new (format 1) file
+try decode( 1 )	// decode the new (format 1) file
 ```
 
 This second version was able to decode the data in the file *ModelNumber0.graph* (format 0), encode the data in the file *ModelNumber1.graph* (format 1) and is able to decode it. In particular, you can see all **classes replaced** when the new version of the code decodes the format 0 file:

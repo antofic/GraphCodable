@@ -295,7 +295,7 @@ extension TypeConstructor {
 		currentInfo	= classInfo
 		
 		let type	= classInfo.decodableType.self
-		let object	: GDecodable & AnyObject
+		let object	: GDecodable
 		if let binSize {
 			object = try decodeBinValue( type:type, binSize: binSize, element:element, from: decoder )
 		} else {

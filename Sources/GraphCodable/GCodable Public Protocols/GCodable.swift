@@ -31,7 +31,7 @@ public protocol GEncodable {
 }
 
 extension GEncodable where Self:AnyObject {
-	/// It depends on the ability to be constructed from its type name.
+	/// Returns true if the type can be constructed from its type name.
 	public static var supportsCodableInheritance: Bool {
 		ClassData.isConstructible( type:self )
 	}
@@ -49,8 +49,8 @@ public protocol GDecodable {
 	static var replacementType : GDecodable.Type { get }
 }
 
-public extension GDecodable {
-	static var replacementType : GDecodable.Type { Self.self }
+extension GDecodable {
+	public static var replacementType : GDecodable.Type { Self.self }
 }
 
 ///	GCodable allows you to store and decode value types and

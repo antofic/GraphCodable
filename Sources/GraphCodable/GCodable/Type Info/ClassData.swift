@@ -77,13 +77,6 @@ struct ClassData : BinaryIOType, CustomStringConvertible {
 			)
 		}
 	}
-
-	var replacedType : GDecodable.Type? {
-		if let type = encodedType as? GDecodable.Type, type != type.replacementType {
-			return type
-		}
-		return nil
-	}
 	
 	var isConstructible : Bool {
 		decodableType != nil
@@ -93,70 +86,20 @@ struct ClassData : BinaryIOType, CustomStringConvertible {
 		"\"\(qualifiedName)\" V\(encodedVersion) "
 	}
 	
-	private var encodedType : Any.Type? {
-		Self.constructType( mangledName: mangledName )
+	private var encodedType : GDecodable.Type? {
+		Self.constructType( mangledName: mangledName ) as? GDecodable.Type
 	}
 
-	var decodableType: (AnyObject & GDecodable).Type? {
-		let type = encodedType
-
-		if let type = type as? GDecodable.Type,
-		   let repl = type.replacementType as? (AnyObject & GDecodable).Type
-		{
-			return repl
-		}
-		
-		/*
-		let type = encodedType
-		
-		if let type = type as? GReplaceable.Type {
-			let replacement = type.replacementType
-			return replacement
-		} else if let type = type as? (AnyObject & GDecodable).Type {
-			return type
-		}
-		 */
-		return nil
-
+	var decodableType: GDecodable.Type? {
+		encodedType?.replacementType ?? nil
 	}
 	
-	/* DONT WORK
-	private func resolvedReplacementType( obsoleteType:GObsolete.Type ) -> (AnyObject & GDecodable).Type? {
-		func resolvedMangledName( _ obsoleteName:String,_ replacementName:String ) -> String {
-			func separator( _ mangled:String ) -> String.SubSequence.Index {
-				//	Example: 17MyGraphCodableApp4PairCySSSdG ->
-				//	17MyGraphCodableApp4Pair...CySSSdG
-				//	identifier...attributes
-
-				var	remaining	= mangled[...]
-				var lenString	= remaining.prefix { $0.isNumber && $0.isASCII }
-				
-				while lenString.isEmpty == false, let len = Int(lenString) {
-					remaining 	= remaining[ lenString.endIndex... ]
-					remaining.removeFirst( len )
-					lenString	= remaining.prefix { $0.isNumber && $0.isASCII }
-				}
-				return remaining.startIndex
-			}
-
-			//	contruct the new typename using:
-			//	- the replacementName identifier
-			//	- the obsoleteName attributes
-			let identifiers		= replacementName[ ..<separator( replacementName ) ]
-			let attributes		= obsoleteName[ separator( obsoleteName )... ]
-			return String( identifiers + attributes )
-		}
-
-		if let unresolvedName = _mangledTypeName( obsoleteType.replacementType ) {
-			let resolvedName = resolvedMangledName( mangledName, unresolvedName )
-			
-			if let replacement = _typeByName( resolvedName ) as? (AnyObject & GDecodable).Type {
-				return replacement
-			}
+	var replacedType : GDecodable.Type? {
+		if let type = encodedType, type != type.replacementType {
+			return type
 		}
 		return nil
 	}
-	*/
 }
 
 
