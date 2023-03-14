@@ -53,12 +53,6 @@ public extension GDecodable {
 	static var replacementType : GDecodable.Type { Self.self }
 }
 
-public extension GDecodable where Self:AnyObject {
-	static func typeParameterReplacement<S:GDecodable>( for typeParameter:S.Type ) -> GDecodable.Type {
-		typeParameter.replacementType
-	}
-}
-
 ///	GCodable allows you to store and decode value types and
 ///	arbitrarily complex reference graphs.
 /// GCodable offers a special "deferDecode" method to decode
