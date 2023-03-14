@@ -45,6 +45,8 @@ extension FileID {
 	}
 }
 
+//	three separate structs so as not to run
+//	the risk of swapping them
 struct ObjID : FileID {
 	let id: UIntID
 	init(_ id: UIntID) { self.id = id }
