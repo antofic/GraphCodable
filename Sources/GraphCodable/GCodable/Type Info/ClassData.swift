@@ -78,8 +78,8 @@ struct ClassData : BinaryIOType, CustomStringConvertible {
 		}
 	}
 
-	var replacedType : GReplaceable.Type? {
-		if let type = encodedType as? GReplaceable.Type, type != type.replacementType {
+	var replacedType : GDecodable.Type? {
+		if let type = encodedType as? GDecodable.Type, type != type.replacementType {
 			return type
 		}
 		return nil
@@ -99,6 +99,15 @@ struct ClassData : BinaryIOType, CustomStringConvertible {
 
 	var decodableType: (AnyObject & GDecodable).Type? {
 		let type = encodedType
+
+		if let type = type as? GDecodable.Type,
+		   let repl = type.replacementType as? (AnyObject & GDecodable).Type
+		{
+			return repl
+		}
+		
+		/*
+		let type = encodedType
 		
 		if let type = type as? GReplaceable.Type {
 			let replacement = type.replacementType
@@ -106,7 +115,9 @@ struct ClassData : BinaryIOType, CustomStringConvertible {
 		} else if let type = type as? (AnyObject & GDecodable).Type {
 			return type
 		}
+		 */
 		return nil
+
 	}
 	
 	/* DONT WORK

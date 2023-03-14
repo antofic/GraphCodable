@@ -91,7 +91,7 @@ final class TypeConstructor {
 		}
 	}
 	
-	var replacedType : GReplaceable.Type? {
+	var replacedType : GDecodable.Type? {
 		get throws {
 			guard let classInfo = currentInfo else {
 				throw GCodableError.typeMismatch(

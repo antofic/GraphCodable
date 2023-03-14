@@ -24,7 +24,7 @@
 /// `replacementType` must return the class that replaces it.
 ///
 /// **See the UserGuide**.
-public protocol GObsolete : GReplaceable, GCodable {
+public protocol GObsolete : GCodable {
 }
 
 /// dummy functions to satisfy the GCodable protocol

@@ -20,6 +20,8 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
+
+/*
 /// A protocol that marks **generic** classes whose **type parameters** are
 /// classes that can potentially be replaced or obsoleted.
 ///
@@ -51,3 +53,4 @@ public extension GReplaceable {
 		(typeParameter as? GReplaceable.Type)?.replacementType ?? typeParameter
 	}
 }
+*/

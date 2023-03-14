@@ -45,6 +45,18 @@ public protocol GDecodable {
 	///
 	/// - Parameter decoder: The decoder to read data from.
 	init(from decoder: GDecoder) throws
+	
+	static var replacementType : GDecodable.Type { get }
+}
+
+public extension GDecodable {
+	static var replacementType : GDecodable.Type { Self.self }
+}
+
+public extension GDecodable where Self:AnyObject {
+	static func typeParameterReplacement<S:GDecodable>( for typeParameter:S.Type ) -> GDecodable.Type {
+		typeParameter.replacementType
+	}
 }
 
 ///	GCodable allows you to store and decode value types and
