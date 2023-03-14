@@ -21,7 +21,6 @@
 //	SOFTWARE.
 
 // Int ------------------------------------------------------
-//	Uses Version: NO
 
 extension Int : BinaryIOType {
 	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self.init( try rbuffer.readInt() ) }
@@ -49,7 +48,6 @@ extension Int64 : BinaryIOType {
 }
 
 // UInt ------------------------------------------------------
-//	Uses Version: NO
 
 extension UInt : BinaryIOType {
 	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self.init( try rbuffer.readUInt() ) }
@@ -77,7 +75,6 @@ extension UInt64 : BinaryIOType {
 }
 
 // Float & Double ------------------------------------------------------
-//	Uses Version: NO
 
 extension Float : BinaryIOType {
 	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self.init( try rbuffer.readFloat() ) }
@@ -90,7 +87,6 @@ extension Double : BinaryIOType {
 }
 
 // Bool ------------------------------------------------------
-//	Uses Version: NO
 
 extension Bool : BinaryIOType {
 	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self.init( try rbuffer.readBool() ) }
@@ -99,7 +95,6 @@ extension Bool : BinaryIOType {
 
 
 // String ------------------------------------------------------
-//	Uses Version: NO
 
 extension String : BinaryIOType {
 	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
@@ -111,7 +106,6 @@ extension String : BinaryIOType {
 }
 
 // Optional ------------------------------------------------------
-//	Uses Version: NO
 
 extension Optional : BinaryIOType where Wrapped : BinaryIOType {
 	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
@@ -134,7 +128,6 @@ extension Optional : BinaryIOType where Wrapped : BinaryIOType {
 }
 
 // RawRepresentable ------------------------------------------------------
-//	Uses Version: NO
 
 extension RawRepresentable where Self.RawValue : BinaryIOType {
 	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
@@ -154,7 +147,6 @@ extension RawRepresentable where Self.RawValue : BinaryIOType {
 }
 
 // Array ------------------------------------------------------
-//	Uses Version: NO
 
 /*
 extension BinaryIType where Self:RangeReplaceableCollection, Self.Element: BinaryIType {
@@ -201,7 +193,6 @@ extension Array : BinaryIOType where Element : BinaryIOType {
 }
 
 // ContiguousArray ------------------------------------------------------
-//	Uses Version: NO
 
 extension ContiguousArray : BinaryIOType where Element : BinaryIOType {
 	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
@@ -222,7 +213,6 @@ extension ContiguousArray : BinaryIOType where Element : BinaryIOType {
 
 
 // Set ------------------------------------------------------
-//	Uses Version: NO
 
 extension Set : BinaryIOType where Element : BinaryIOType {
 	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
@@ -234,7 +224,6 @@ extension Set : BinaryIOType where Element : BinaryIOType {
 }
 
 // Dictionary ------------------------------------------------------
-//	Uses Version: NO
 
 extension Dictionary : BinaryIOType where Key : BinaryIOType, Value : BinaryIOType {
 	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
@@ -258,7 +247,6 @@ extension Dictionary : BinaryIOType where Key : BinaryIOType, Value : BinaryIOTy
 }
  
 // Range ------------------------------------------------------
-//	Uses Version: NO
 
 extension Range: BinaryIOType where Bound: BinaryIOType {
 	public init( from rbuffer: inout BinaryReadBuffer ) throws {
@@ -274,7 +262,6 @@ extension Range: BinaryIOType where Bound: BinaryIOType {
 }
 
 // ClosedRange ------------------------------------------------------
-//	Uses Version: NO
 
 extension ClosedRange: BinaryIOType where Bound: BinaryIOType {
 	public init( from rbuffer: inout BinaryReadBuffer ) throws {
@@ -290,7 +277,6 @@ extension ClosedRange: BinaryIOType where Bound: BinaryIOType {
 }
 
 // PartialRangeFrom ------------------------------------------------------
-//	Uses Version: NO
 
 extension PartialRangeFrom: BinaryIOType where Bound: BinaryIOType {
 	public init( from rbuffer: inout BinaryReadBuffer ) throws {
@@ -303,7 +289,6 @@ extension PartialRangeFrom: BinaryIOType where Bound: BinaryIOType {
 }
 
 // PartialRangeUpTo ------------------------------------------------------
-//	Uses Version: NO
 
 extension PartialRangeUpTo: BinaryIOType where Bound: BinaryIOType {
 	public init( from rbuffer: inout BinaryReadBuffer ) throws {
@@ -316,7 +301,6 @@ extension PartialRangeUpTo: BinaryIOType where Bound: BinaryIOType {
 }
 
 // PartialRangeFrom ------------------------------------------------------
-//	Uses Version: NO
 
 extension PartialRangeThrough: BinaryIOType where Bound: BinaryIOType {
 	public init( from rbuffer: inout BinaryReadBuffer ) throws {
@@ -329,7 +313,6 @@ extension PartialRangeThrough: BinaryIOType where Bound: BinaryIOType {
 }
 
 // CollectionDifference.Change ------------------------------------------------------
-//	Uses Version: NO (is frozen)
 
 extension CollectionDifference.Change : BinaryIOType where ChangeElement : BinaryIOType {
 	private enum ChangeType : UInt8, BinaryIOType { case insert, remove }
@@ -363,7 +346,6 @@ extension CollectionDifference.Change : BinaryIOType where ChangeElement : Binar
 }
 
 // CollectionDifference ------------------------------------------------------
-//	Uses Version: NO
 
 extension CollectionDifference : BinaryIOType where ChangeElement:BinaryIOType {
 	public init( from rbuffer: inout BinaryReadBuffer ) throws {

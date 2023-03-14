@@ -215,7 +215,7 @@ extension FileBlock {
 					firstWrite: {
 						try binaryValue.write(to: &$0)
 					},
-					thenInsert: { try BinSize( $1 ).write(to: &$0, pack: pack) }
+					thenInsert: { try BinSize( $1 ).write(to: &$0, pack: true) }
 				)
 			} else {
 				try wbuffer.prependingWrite(
@@ -223,7 +223,7 @@ extension FileBlock {
 					thenWrite: {
 						try binaryValue.write(to: &$0)
 					},
-					thenOverwriteDummy: { try BinSize( $1 ).write(to: &$0, pack: pack) }
+					thenOverwriteDummy: { try BinSize( $1 ).write(to: &$0, pack: false) }
 				)
 			}
 		}

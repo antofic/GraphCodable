@@ -34,13 +34,13 @@ public protocol GDecoder {
 	/// Only reference types can have a version.
 	var encodedVersion : UInt32  { get throws }
 
-	/// Returns the replacedType type during the object decoding if exists
+	/// The replacedType type during the object decoding if exists
 	///
-	/// Corresponds to the class marked with `GRenamedType` protocol that
-	/// signals the replacingClass.
 	/// Can be used to decide on different decoding strategies.
+	/// **See the UserGuide**.
 	///
-	/// Only reference types can have a version.
+	/// Only reference types can be replaced.
+	/// - returns: the replaced type if exists, nil otherwise
 	var replacedType : GDecodable.Type?  { get throws }
 	
 	/// Returns a Boolean value indicating whether the decoder contains a value
@@ -57,6 +57,16 @@ public protocol GDecoder {
 
 	/// Decodes a value/reference of the given type for the given key.
 	///
+	///	Example:
+	///
+	///		init(from decoder: GDecoder) throws {
+	///     	...
+	///	    	valueA	= try decoder.decode( for: Key.valueA )
+	///			...
+	///		}
+	///
+	/// **Note: Just as encoding a variable appends it to the encoder,**
+	/// **decoding it removes it from the decoder.**
 	/// - parameter key: The key that the decoded value is associated with.
 	/// - returns: A value of the requested type, if present for the given key
 	///   and convertible to the requested type.
@@ -69,6 +79,8 @@ public protocol GDecoder {
 	/// associated with `key`, or if the value is `nil`. The difference between
 	/// these states can be distinguished with a `contains(_:)` call.
 	///
+	/// **Note: Just as encoding a variable appends it to the encoder,**
+	/// **decoding it removes it from the decoder.**
 	/// - parameter key: The key that the decoded value is associated with.
 	/// - returns: A decoded value of the requested type, or `nil` if the
 	///   `Decoder` does not have an entry associated with the given key, or if
@@ -81,7 +93,15 @@ public protocol GDecoder {
 	///
 	/// If your data forms a cyclic graph, use this method to "break" the cycle
 	/// and decode the graph.
+	/// Example:
 	///
+	///    	init(from decoder: GDecoder) throws {
+	///     	...
+	///	    	try decoder.deferDecode( for: Key.valueA ) { self.valueA = $0 }
+	///			...
+	///		}
+	/// **Note: Just as encoding a variable appends it to the encoder,**
+	/// **decoding it removes it from the decoder.**
 	/// - parameter key: The key that the decoded reference is associated with.
 	/// - parameter setter: A closure to which the required value is provided.
 	func deferDecode<Key, Value>( for key: Key, _ setter: @escaping (Value) -> ()) throws where
@@ -94,6 +114,15 @@ public protocol GDecoder {
 	
 	/// Decodes a value/reference of the given type.
 	///
+	///	Example:
+	///
+	///		init(from decoder: GDecoder) throws {
+	///     	...
+	///	    	valueA	= try decoder.decode()
+	///			...
+	///		}
+	/// **Note: Just as encoding a variable appends it to the encoder,**
+	/// **decoding it removes it from the decoder.**
 	/// - returns: A value of the requested type, if present for the given key
 	///   and convertible to the requested type.
 	func decode<Value>() throws -> Value where
@@ -103,7 +132,15 @@ public protocol GDecoder {
 	///
 	/// If references in your data forms a cyclic graph, use this method to
 	/// "break" the cycle and decode the graph.
+	/// Example:
 	///
+	///    	init(from decoder: GDecoder) throws {
+	///     	...
+	///	    	try decoder.deferDecode() { self.valueA = $0 }
+	///			...
+	///		}
+	/// **Note: Just as encoding a variable appends it to the encoder,**
+	/// **decoding it removes it from the decoder.**
 	/// - parameter setter: A closure to which the required reference is provided.
 	func deferDecode<Value>( _ setter: @escaping (Value)->() ) throws where
 		Value : GDecodable

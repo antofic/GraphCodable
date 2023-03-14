@@ -30,25 +30,12 @@ extension FileDescriptor.OpenOptions : BinaryIOType {}
 extension FileDescriptor.SeekOrigin : BinaryIOType {}
 
 extension FilePath : BinaryIOType {
-	private enum Version : UInt8 { case v0 }
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try Version.v0.rawValue.write(to: &wbuffer)
 		try description.write(to: &wbuffer)
 	}
 	
 	public init(from rbuffer: inout BinaryReadBuffer) throws {
-		let versionRaw	= try Version.RawValue(from: &rbuffer)
-
-		switch versionRaw {
-		case Version.v0.rawValue:
-			self.init( try String( from: &rbuffer ) )
-		default:
-			throw BinaryIOError.versionError(
-				Self.self, BinaryIOError.Context(
-					debugDescription: "\(Self.self) data in a new unknown version -\(versionRaw)-."
-				)
-			)
-		}
+		self.init( try String( from: &rbuffer ) )
 	}
 }
 

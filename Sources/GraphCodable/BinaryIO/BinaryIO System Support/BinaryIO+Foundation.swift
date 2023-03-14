@@ -25,7 +25,6 @@ import Foundation
 
 
 // -- Data support (BinaryIOType) -------------------------------------------------------
-//	Uses Version: NO
 
 /*
 extension BinaryIType where Self:MutableDataProtocol, Self:ContiguousBytes {
@@ -53,7 +52,6 @@ extension Data : BinaryIOType {
 }
 
 // -- CGFloat (BinaryIOType) --------------------------------------------
-//	Uses Version: NO
 //	Su alcune piattaforme CGFloat == Float (32 bit).
 //	Salviamo sempre come Double 64bit
 
@@ -68,7 +66,6 @@ extension CGFloat : BinaryIOType {
 }
 
 //	CharacterSet SUPPORT ------------------------------------------------------
-//	Uses Version: NO
 
 extension CharacterSet : BinaryIOType {
 	public init(from rbuffer: inout BinaryReadBuffer) throws {
@@ -81,7 +78,6 @@ extension CharacterSet : BinaryIOType {
 }
 
 //	AffineTransform SUPPORT ------------------------------------------------------
-//	Uses Version: NO
 
 extension AffineTransform : BinaryIOType {
 	// m11: CGFloat, m12: CGFloat, m21: CGFloat, m22: CGFloat, tX: CGFloat, tY: CGFloat
@@ -107,7 +103,6 @@ extension AffineTransform : BinaryIOType {
 }
 
 //	Locale SUPPORT ------------------------------------------------------
-//	Uses Version: NO
 
 extension Locale : BinaryIOType {
 	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
@@ -120,7 +115,6 @@ extension Locale : BinaryIOType {
 }
 
 //	TimeZone SUPPORT ------------------------------------------------------
-//	Uses Version: NO
 
 extension TimeZone : BinaryIOType {
 	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
@@ -141,7 +135,6 @@ extension TimeZone : BinaryIOType {
 }
 
 // -- UUID support  -------------------------------------------------------
-//	Uses Version: NO
 
 extension UUID : BinaryIOType  {
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
@@ -163,7 +156,6 @@ extension UUID : BinaryIOType  {
 }
 
 //	Date SUPPORT ------------------------------------------------------
-//	Uses Version: NO
 
 extension Date : BinaryIOType {
 	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
@@ -177,7 +169,6 @@ extension Date : BinaryIOType {
 
 
 //	IndexSet SUPPORT ------------------------------------------------------
-//	Uses Version: NO
 
 extension IndexSet : BinaryIOType {
 	public init(from rbuffer: inout BinaryReadBuffer) throws {
@@ -197,7 +188,6 @@ extension IndexSet : BinaryIOType {
 }
 
 // -- IndexPath support  -------------------------------------------------------
-//	Uses Version: NO
 
 extension IndexPath : BinaryIOType {
 	public init(from rbuffer: inout BinaryReadBuffer) throws {
@@ -218,7 +208,6 @@ extension IndexPath : BinaryIOType {
 }
 
 //	CGSize SUPPORT ------------------------------------------------------
-//	Uses Version: NO
 
 extension CGSize : BinaryIOType {
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
@@ -234,7 +223,6 @@ extension CGSize : BinaryIOType {
 }
 
 //	CGPoint SUPPORT ------------------------------------------------------
-//	Uses Version: NO
 
 extension CGPoint : BinaryIOType {
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
@@ -250,7 +238,6 @@ extension CGPoint : BinaryIOType {
 }
 
 //	CGVector SUPPORT ------------------------------------------------------
-//	Uses Version: NO
 
 extension CGVector : BinaryIOType {
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
@@ -265,7 +252,6 @@ extension CGVector : BinaryIOType {
 }
 
 //	CGRect SUPPORT ------------------------------------------------------
-//	Uses Version: NO
 
 extension CGRect : BinaryIOType {
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
@@ -280,7 +266,6 @@ extension CGRect : BinaryIOType {
 }
 
 //	NSRange SUPPORT ------------------------------------------------------
-//	Uses Version: NO
 
 extension NSRange : BinaryIOType {
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
@@ -295,16 +280,9 @@ extension NSRange : BinaryIOType {
 }
 
 // -- Decimal support  -------------------------------------------------------
-//	Uses Version: YES
 
 extension Decimal : BinaryIOType {
-	private enum Version : UInt8 { case v0 }
-	
-	// CANDIDATO
-	
 	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
-		try Version.v0.rawValue.write(to: &wbuffer)
-		
 		try _exponent.write(to: &wbuffer)
 		try _length.write(to: &wbuffer)
 		try (_isNegative == 0 ? false : true).write(to: &wbuffer)
@@ -320,49 +298,32 @@ extension Decimal : BinaryIOType {
 	}
 
 	public init( from rbuffer: inout BinaryReadBuffer ) throws {
-		let versionRaw	= try Version.RawValue(from: &rbuffer)
-		
-		switch versionRaw {
-		case Version.v0.rawValue:
-			let exponent	= try Int32( from:&rbuffer )
-			let length		= try UInt32( from:&rbuffer )
-			let isNegative	= (try Bool( from:&rbuffer )) == false ? UInt32(0) : UInt32(1)
-			let isCompact	= (try Bool( from:&rbuffer )) == false ? UInt32(0) : UInt32(1)
-			let mantissa0	= try UInt16( from:&rbuffer )
-			let mantissa1	= try UInt16( from:&rbuffer )
-			let mantissa2	= try UInt16( from:&rbuffer )
-			let mantissa3	= try UInt16( from:&rbuffer )
-			let mantissa4	= try UInt16( from:&rbuffer )
-			let mantissa5	= try UInt16( from:&rbuffer )
-			let mantissa6	= try UInt16( from:&rbuffer )
-			let mantissa7	= try UInt16( from:&rbuffer )
+		let exponent	= try Int32( from:&rbuffer )
+		let length		= try UInt32( from:&rbuffer )
+		let isNegative	= (try Bool( from:&rbuffer )) == false ? UInt32(0) : UInt32(1)
+		let isCompact	= (try Bool( from:&rbuffer )) == false ? UInt32(0) : UInt32(1)
+		let mantissa0	= try UInt16( from:&rbuffer )
+		let mantissa1	= try UInt16( from:&rbuffer )
+		let mantissa2	= try UInt16( from:&rbuffer )
+		let mantissa3	= try UInt16( from:&rbuffer )
+		let mantissa4	= try UInt16( from:&rbuffer )
+		let mantissa5	= try UInt16( from:&rbuffer )
+		let mantissa6	= try UInt16( from:&rbuffer )
+		let mantissa7	= try UInt16( from:&rbuffer )
 
-			self.init(
-				_exponent: exponent, _length: length, _isNegative: isNegative, _isCompact: isCompact, _reserved: 0,
-				_mantissa: (mantissa0, mantissa1, mantissa2, mantissa3, mantissa4, mantissa5, mantissa6, mantissa7)
-			)
-		default:
-			throw BinaryIOError.versionError(
-				Self.self, BinaryIOError.Context(
-					debugDescription: "\(Self.self) data in a new unknown version -\(versionRaw)-."
-				)
-			)
-		}
-		
+		self.init(
+			_exponent: exponent, _length: length, _isNegative: isNegative, _isCompact: isCompact, _reserved: 0,
+			_mantissa: (mantissa0, mantissa1, mantissa2, mantissa3, mantissa4, mantissa5, mantissa6, mantissa7)
+		)
 	}
 }
 
 //	Calendar SUPPORT ------------------------------------------------------
-//	Uses Version: YES
-/*
+
 extension NSCalendar.Identifier : BinaryIOType {}
 
 extension Calendar : BinaryIOType {
-	private enum Version : UInt8 { case v0 }
-
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try Version.v0.rawValue.write(to: &wbuffer)
-
 		let nsIdentifier = (self as NSCalendar).calendarIdentifier
 		try nsIdentifier.write(to: &wbuffer)
 		try locale.write(to: &wbuffer)
@@ -372,44 +333,27 @@ extension Calendar : BinaryIOType {
 	}
 	
 	public init(from rbuffer: inout BinaryReadBuffer) throws {
-		let versionRaw	= try Version.RawValue(from: &rbuffer)
-
-		switch versionRaw {
-		case Version.v0.rawValue:
-			let nsIdentifier = try NSCalendar.Identifier(from: &rbuffer)
-			guard var calendar = NSCalendar(calendarIdentifier: nsIdentifier) as Calendar? else {
-				throw BinaryIOError.initTypeError(
-					Self.self, BinaryIOError.Context(
-						debugDescription: "Invalid calendar identifier -\(nsIdentifier)-"
-					)
-				)
-			}
-			calendar.locale					= try Locale(from: &rbuffer)
-			calendar.timeZone				= try TimeZone(from: &rbuffer)
-			calendar.firstWeekday			= try Int(from: &rbuffer)
-			calendar.minimumDaysInFirstWeek	= try Int(from: &rbuffer)
-			
-			self = calendar
-		default:
-			throw BinaryIOError.versionError(
+		let nsIdentifier = try NSCalendar.Identifier(from: &rbuffer)
+		guard var calendar = NSCalendar(calendarIdentifier: nsIdentifier) as Calendar? else {
+			throw BinaryIOError.initTypeError(
 				Self.self, BinaryIOError.Context(
-					debugDescription: "\(Self.self) data in a new unknown version -\(versionRaw)-."
+					debugDescription: "Invalid calendar identifier -\(nsIdentifier)-"
 				)
 			)
 		}
+		calendar.locale					= try Locale(from: &rbuffer)
+		calendar.timeZone				= try TimeZone(from: &rbuffer)
+		calendar.firstWeekday			= try Int(from: &rbuffer)
+		calendar.minimumDaysInFirstWeek	= try Int(from: &rbuffer)
+		
+		self = calendar
 	}
 }
-*/
+
 //	DateComponents SUPPORT ------------------------------------------------------
-//	Uses Version: YES
-/*
+
 extension DateComponents : BinaryIOType {
-	private enum Version : UInt8 { case v0 }
-
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try Version.v0.rawValue.write(to: &wbuffer)
-
-
 		try calendar   			.write(to: &wbuffer)
 		try timeZone   			.write(to: &wbuffer)
 		try era        			.write(to: &wbuffer)
@@ -429,95 +373,65 @@ extension DateComponents : BinaryIOType {
 	}
 
 	public init(from rbuffer: inout BinaryReadBuffer) throws {
-		let versionRaw	= try Version.RawValue(from: &rbuffer)
-
-		switch versionRaw {
-		case Version.v0.rawValue:
-			let calendar   			= try Calendar?(from: &rbuffer)
-			let timeZone   			= try TimeZone?(from: &rbuffer)
-			let era        			= try Int?(from: &rbuffer)
-			let year       			= try Int?(from: &rbuffer)
-			let month      			= try Int?(from: &rbuffer)
-			let day        			= try Int?(from: &rbuffer)
-			let hour       			= try Int?(from: &rbuffer)
-			let minute     			= try Int?(from: &rbuffer)
-			let second     			= try Int?(from: &rbuffer)
-			let nanosecond 			= try Int?(from: &rbuffer)
-			let weekday          	= try Int?(from: &rbuffer)
-			let weekdayOrdinal   	= try Int?(from: &rbuffer)
-			let quarter          	= try Int?(from: &rbuffer)
-			let weekOfMonth      	= try Int?(from: &rbuffer)
-			let weekOfYear       	= try Int?(from: &rbuffer)
-			let yearForWeekOfYear	= try Int?(from: &rbuffer)
+		let calendar   			= try Calendar?(from: &rbuffer)
+		let timeZone   			= try TimeZone?(from: &rbuffer)
+		let era        			= try Int?(from: &rbuffer)
+		let year       			= try Int?(from: &rbuffer)
+		let month      			= try Int?(from: &rbuffer)
+		let day        			= try Int?(from: &rbuffer)
+		let hour       			= try Int?(from: &rbuffer)
+		let minute     			= try Int?(from: &rbuffer)
+		let second     			= try Int?(from: &rbuffer)
+		let nanosecond 			= try Int?(from: &rbuffer)
+		let weekday          	= try Int?(from: &rbuffer)
+		let weekdayOrdinal   	= try Int?(from: &rbuffer)
+		let quarter          	= try Int?(from: &rbuffer)
+		let weekOfMonth      	= try Int?(from: &rbuffer)
+		let weekOfYear       	= try Int?(from: &rbuffer)
+		let yearForWeekOfYear	= try Int?(from: &rbuffer)
 		
-			self.init(calendar: calendar,
-					  timeZone: timeZone,
-					  era: era,
-					  year: year,
-					  month: month,
-					  day: day,
-					  hour: hour,
-					  minute: minute,
-					  second: second,
-					  nanosecond: nanosecond,
-					  weekday: weekday,
-					  weekdayOrdinal: weekdayOrdinal,
-					  quarter: quarter,
-					  weekOfMonth: weekOfMonth,
-					  weekOfYear: weekOfYear,
-					  yearForWeekOfYear: yearForWeekOfYear
-			)
-		default:
-			throw BinaryIOError.versionError(
-				Self.self, BinaryIOError.Context(
-					debugDescription: "\(Self.self) data in a new unknown version -\(versionRaw)-."
-				)
-			)
-		}
+		self.init(
+			calendar: calendar,
+			timeZone: timeZone,
+			era: era,
+			year: year,
+			month: month,
+			day: day,
+			hour: hour,
+			minute: minute,
+			second: second,
+			nanosecond: nanosecond,
+			weekday: weekday,
+			weekdayOrdinal: weekdayOrdinal,
+			quarter: quarter,
+			weekOfMonth: weekOfMonth,
+			weekOfYear: weekOfYear,
+			yearForWeekOfYear: yearForWeekOfYear
+		)
+		
 	}
 }
-*/
+
 
 //	DateInterval SUPPORT ------------------------------------------------------
-//	Uses Version: YES
-/*
+
 extension DateInterval : BinaryIOType {
-	private enum Version : UInt8 { case v0 }
-
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try Version.v0.rawValue.write(to: &wbuffer)
-
 		try start.write(to: &wbuffer)
 		try duration.write(to: &wbuffer)
 	}
 	
 	public init(from rbuffer: inout BinaryReadBuffer) throws {
-		let versionRaw	= try Version.RawValue(from: &rbuffer)
-
-		switch versionRaw {
-		case Version.v0.rawValue:
-			let start 		= try Date(from: &rbuffer)
-			let duration 	= try TimeInterval(from: &rbuffer)
-			self.init(start: start, duration: duration)
-		default:
-			throw BinaryIOError.versionError(
-				Self.self, BinaryIOError.Context(
-					debugDescription: "\(Self.self) data in a new unknown version -\(versionRaw)-."
-				)
-			)
-		}
+		let start 		= try Date(from: &rbuffer)
+		let duration 	= try TimeInterval(from: &rbuffer)
+		self.init(start: start, duration: duration)
 	}
 }
-*/
+
 //	PersonNameComponents SUPPORT ------------------------------------------------------
-//	Uses Version: YES
-/*
+
 extension PersonNameComponents : BinaryIOType {
-	private enum Version : UInt8 { case v0 }
-
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try Version.v0.rawValue.write(to: &wbuffer)
-
 		try namePrefix	.write(to: &wbuffer)
 		try givenName	.write(to: &wbuffer)
 		try middleName	.write(to: &wbuffer)
@@ -527,77 +441,45 @@ extension PersonNameComponents : BinaryIOType {
 	}
 	
 	public init(from rbuffer: inout BinaryReadBuffer) throws {
-		let versionRaw	= try Version.RawValue(from: &rbuffer)
-
-		switch versionRaw {
-		case Version.v0.rawValue:
-			self.init()
-			
-			namePrefix	= try String?(from: &rbuffer)
-			givenName	= try String?(from: &rbuffer)
-			middleName	= try String?(from: &rbuffer)
-			familyName	= try String?(from: &rbuffer)
-			nameSuffix	= try String?(from: &rbuffer)
-			nickname	= try String?(from: &rbuffer)
-		default:
-			throw BinaryIOError.versionError(
-				Self.self, BinaryIOError.Context(
-					debugDescription: "\(Self.self) data in a new unknown version -\(versionRaw)-."
-				)
-			)
-		}
+		self.init()
+		
+		namePrefix	= try String?(from: &rbuffer)
+		givenName	= try String?(from: &rbuffer)
+		middleName	= try String?(from: &rbuffer)
+		familyName	= try String?(from: &rbuffer)
+		nameSuffix	= try String?(from: &rbuffer)
+		nickname	= try String?(from: &rbuffer)
 	}
 }
-*/
+
 
 //	URL SUPPORT ------------------------------------------------------
-//	Uses Version: YES
-/*
+
 extension URL : BinaryIOType {
-	private enum Version : UInt8 { case v0 }
-
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try Version.v0.rawValue.write(to: &wbuffer)
-
 		try relativeString	.write(to: &wbuffer)
 		try baseURL			.write(to: &wbuffer)
 	}
 	
 	public init(from rbuffer: inout BinaryReadBuffer) throws {
-		let versionRaw	= try Version.RawValue(from: &rbuffer)
+		let relative	= try String(from: &rbuffer)
+		let base		= try URL?(from: &rbuffer)
 
-		switch versionRaw {
-		case Version.v0.rawValue:
-			let relative	= try String(from: &rbuffer)
-			let base		= try URL?(from: &rbuffer)
-
-			guard let url = URL(string: relative, relativeTo: base) else {
-				throw BinaryIOError.initTypeError(
-					Self.self, BinaryIOError.Context(
-						debugDescription: "Invalid relative -\(relative)- and base -\(base as Any)-"
-					)
-				)
-			}
-			self = url
-		default:
-			throw BinaryIOError.versionError(
+		guard let url = URL(string: relative, relativeTo: base) else {
+			throw BinaryIOError.initTypeError(
 				Self.self, BinaryIOError.Context(
-					debugDescription: "\(Self.self) data in a new unknown version -\(versionRaw)-."
+					debugDescription: "Invalid relative -\(relative)- and base -\(base as Any)-"
 				)
 			)
 		}
+		self = url
 	}
 }
-*/
+
 //	URLComponents SUPPORT ------------------------------------------------------
-//	Uses Version: YES
-/*
+
 extension URLComponents : BinaryIOType {
-	private enum Version : UInt8 { case v0 }
-
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try Version.v0.rawValue.write(to: &wbuffer)
-
 		try scheme		.write(to: &wbuffer)
 		try user		.write(to: &wbuffer)
 		try password	.write(to: &wbuffer)
@@ -609,66 +491,34 @@ extension URLComponents : BinaryIOType {
 	}
 	
 	public init(from rbuffer: inout BinaryReadBuffer) throws {
-		let versionRaw	= try Version.RawValue(from: &rbuffer)
-
-		switch versionRaw {
-		case Version.v0.rawValue:
-			self.init()
-			
-			scheme		= try String?(from: &rbuffer)
-			user		= try String?(from: &rbuffer)
-			password	= try String?(from: &rbuffer)
-			host		= try String?(from: &rbuffer)
-			port		= try Int?(from: &rbuffer)
-			path		= try String(from: &rbuffer)
-			query		= try String?(from: &rbuffer)
-			fragment	= try String?(from: &rbuffer)
-		default:
-			throw BinaryIOError.versionError(
-				Self.self, BinaryIOError.Context(
-					debugDescription: "\(Self.self) data in a new unknown version -\(versionRaw)-."
-				)
-			)
-		}
+		self.init()
+		
+		scheme		= try String?(from: &rbuffer)
+		user		= try String?(from: &rbuffer)
+		password	= try String?(from: &rbuffer)
+		host		= try String?(from: &rbuffer)
+		port		= try Int?(from: &rbuffer)
+		path		= try String(from: &rbuffer)
+		query		= try String?(from: &rbuffer)
+		fragment	= try String?(from: &rbuffer)
 	}
 }
-*/
-//	----------------------------------------------------------------------------
-//	----------------------------------------------------------------------------
-//	----------------------------------------------------------------------------
-//	----------------------------------------------------------------------------
-//	----------------------------------------------------------------------------
+
 //	Measurement SUPPORT ------------------------------------------------------
 
-/*
 extension Measurement : BinaryIOType {
-	private enum Version : UInt8 { case v0 }
-
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try Version.v0.rawValue.write(to: &wbuffer)
-
 		try value		.write(to: &wbuffer)
 		try unit.symbol	.write(to: &wbuffer)
 	}
 
 	public init(from rbuffer: inout BinaryReadBuffer) throws {
-		let versionRaw	= try Version.RawValue(from: &rbuffer)
-
-		switch versionRaw {
-		case Version.v0.rawValue:
-			let value	= try Double(from: &rbuffer)
-			let symbol	= try String(from: &rbuffer)
-			self.init( value: value, unit: UnitType(symbol: symbol) )
-		default:
-			throw BinaryIOError.versionError(
-				Self.self, BinaryIOError.Context(
-					debugDescription: "\(Self.self) data in a new unknown version -\(versionRaw)-."
-				)
-			)
-		}
+		let value	= try Double(from: &rbuffer)
+		let symbol	= try String(from: &rbuffer)
+		self.init( value: value, unit: UnitType(symbol: symbol) )
 	}
 }
-*/
+
 
 extension OperationQueue.SchedulerTimeType : BinaryIOType {
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws {

@@ -20,7 +20,7 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
-// A dummy protocol to mark trivial types
+/// A dummy protocol to mark trivial types
 public protocol GTrivial {}
 
 public typealias GTrivialEncodable	= GBinaryEncodable & GTrivial

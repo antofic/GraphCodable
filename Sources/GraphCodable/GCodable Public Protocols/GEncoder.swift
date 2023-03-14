@@ -28,6 +28,23 @@ public protocol GEncoder {
 	
 	/// Encodes the given value/reference for the given key.
 	///
+	/// Example:
+	///
+	///     func encode(to encoder: GEncoder) throws {
+	///			...
+	///    		try encoder.encode( valueA, for: Key.valueA )
+	///			...
+	///		}
+	///		
+	/// The storage keys for keyed encoding must be defined in an enum
+	/// with `rawValue == String`.
+	///	Idiomatically make the enum private and put it within the type
+	///	definition that we want conform to `GEncodable`.
+	///
+	///     private enum Key : String {
+	///			case valueA, ...
+	///		}
+	///
 	/// - parameter value: The value to encode.
 	/// - parameter key: The key to associate the value with.
 	func encode<Key,Value>(_ value: Value, for key:Key ) throws where
@@ -50,6 +67,14 @@ public protocol GEncoder {
 		Value : GEncodable, Key:RawRepresentable, Key.RawValue == String
 	
 	/// Encodes the given value.
+	///
+	/// Example:
+	///
+	///     func encode(to encoder: GEncoder) throws {
+	///			...
+	///    		try encoder.encode( valueA )
+	///			...
+	///		}
 	///
 	/// - parameter value: The value to encode.
 	func encode<Value>(_ value: Value ) throws where
