@@ -1586,10 +1586,6 @@ public extension GReplaceable {
 	static func typeParameterReplacement<S:GDecodable>( for typeParameter:S.Type ) -> GDecodable.Type {
 		(typeParameter as? GReplaceable.Type)?.replacementType ?? typeParameter
 	}
-	
-	static var isReplacedType : Bool {
-		self != replacementType
-	}
 }
 ```
 

@@ -50,9 +50,4 @@ public extension GReplaceable {
 	static func typeParameterReplacement<S:GDecodable>( for typeParameter:S.Type ) -> GDecodable.Type {
 		(typeParameter as? GReplaceable.Type)?.replacementType ?? typeParameter
 	}
-	
-	/// Returns true if this class specialization has been replaced.
-	static var isReplacedType : Bool {
-		self != replacementType
-	}
 }

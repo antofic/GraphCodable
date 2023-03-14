@@ -136,7 +136,7 @@ final class StringEncoder : FileBlockEncoder {
 			var string	= ""
 			if options.contains( .showMangledNamesInReferenceMap ) {
 				string.append( "QualifiedName  = \( classData.qualifiedName )"  )
-				string.append( "\n\t\t\tMangledName    = \( classData.mangledName ?? "nil" )"  )
+				string.append( "\n\t\t\tMangledName    = \( classData.mangledName )"  )
 				string.append( "\n\t\t\tEncodedVersion = \( classData.encodedVersion )"  )
 			} else {
 				string.append("\(classData.qualifiedName) V\(classData.encodedVersion)")

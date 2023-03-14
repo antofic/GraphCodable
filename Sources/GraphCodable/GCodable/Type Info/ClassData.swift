@@ -79,7 +79,7 @@ struct ClassData : BinaryIOType, CustomStringConvertible {
 	}
 
 	var replacedType : GReplaceable.Type? {
-		if let type = encodedType as? GReplaceable.Type, type.isReplacedType {
+		if let type = encodedType as? GReplaceable.Type, type != type.replacementType {
 			return type
 		}
 		return nil
@@ -101,25 +101,8 @@ struct ClassData : BinaryIOType, CustomStringConvertible {
 		let type = encodedType
 		
 		if let type = type as? GReplaceable.Type {
-			let repl = type.replacementType
-//			print("obsolete:    \(type)" )
-//			print("replacement: \(repl)" )
-
-			
-			return repl
-
-			/*
-			print("obsolete:    \(mangledName)" )
-			print("replacement: \(  _mangledTypeName( type.replacementType ) ?? ""   )" )
-			if mangledName == "17MyGraphCodableApp0A7ProgramO4PairCy_AEy_SSSiGSiG" {
-				let replName = "17MyGraphCodableApp0A10NewProgramV6CoupleCy_AEy_SSSiGSiG"
-				if let repl = _typeByName( replName ) as? (AnyObject & GDecodable).Type {
-					return repl
-				}
-			}
-
-			return resolvedReplacementType( obsoleteType:type )
-			*/
+			let replacement = type.replacementType
+			return replacement
 		} else if let type = type as? (AnyObject & GDecodable).Type {
 			return type
 		}
