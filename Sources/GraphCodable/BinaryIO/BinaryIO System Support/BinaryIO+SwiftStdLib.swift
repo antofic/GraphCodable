@@ -138,7 +138,7 @@ extension RawRepresentable where Self.RawValue : BinaryIOType {
 		guard let value = Self(rawValue: rawValue ) else {
 			throw BinaryIOError.initTypeError(
 				Self.self, BinaryIOError.Context(
-					debugDescription: "Invalid rawValue = \(rawValue) for \(Self.self)"
+					debugDescription: "Invalid rawValue = \(rawValue)"
 				)
 			)
 		}
@@ -358,7 +358,7 @@ extension CollectionDifference : BinaryIOType where ChangeElement:BinaryIOType {
 		guard let value = Self(changes) else {
 			throw BinaryIOError.initTypeError(
 				Self.self, BinaryIOError.Context(
-					debugDescription: "Can't initialize \(Self.self) with \(changes)"
+					debugDescription: "Invalid \(changes)"
 				)
 			)
 		}

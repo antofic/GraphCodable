@@ -27,11 +27,7 @@ protocol FileBlockEncoderDelegate : AnyObject {
 }
 
 protocol FileBlockEncoder : AnyObject {
-	associatedtype	Output
-	
 	var delegate	: FileBlockEncoderDelegate? { get set }
-	
-	func output() throws -> Output
 	
 	func appendEnd() throws
 	func appendNil( keyID:KeyID? ) throws

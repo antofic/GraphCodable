@@ -48,6 +48,7 @@ import Foundation
 //	Both data encoders produce their output as they receive the input values (single pass)
 //---------------------------------------------------------------------------------------------
 
+
 ///	A class that implements the GEncoder protocol
 ///
 /// GEncoderImpl produces:
@@ -63,7 +64,7 @@ final class GEncoderImpl : FileBlockEncoderDelegate {
 	private var			referenceMap		= ReferenceMap()
 	private var			keyMap				= KeyMap()
 	
-	private var			dataEncoder			: (any FileBlockEncoder)! {
+	private var			dataEncoder			: FileBlockEncoder! {
 		willSet {
 			self.dataEncoder?.delegate	= nil
 		}
@@ -85,8 +86,8 @@ final class GEncoderImpl : FileBlockEncoderDelegate {
 		#else
 		self.encodeOptions	= options
 		#endif
-		// packBinSize or not??? 
 		self.binaryIOVersion	= binaryIOVersion
+		// packBinSize or not???
 		self.fileHeader			= FileHeader( flags: .packBinSize )
 	}
 
@@ -138,14 +139,13 @@ extension GEncoderImpl : GEncoder {
 
 // MARK: GEncoderImpl private section
 extension GEncoderImpl {
-
 	private func encodeAnyValue(_ anyValue: Any, forKey key: String?, conditional:Bool ) throws {
 		//	anyValue cam really be a value, an Optional(value), an Optional(Optional(value)), etc…
 		//	Optional(fullUnwrapping:_) turns anyValue into an one-level Optional(value)
 		let value	= Optional(fullUnwrapping: anyValue)
 	
-		// if keyID != 0 only if key != nil (keyed values)
-		let keyID	= try createKeyID( key: key )
+		// if keyID != nil <=> key != nil (keyed values)
+		let keyID	= try createKeyID( for: key )
 		
 		// if value is nil, encode nil and return
 		guard let value = value else {
@@ -165,7 +165,7 @@ extension GEncoderImpl {
 			try dataEncoder.appendVal(keyID: keyID, typeID:nil, objID:nil, binaryValue: trivialValue )
 		} else if let value = value as? GEncodable {
 			if let identity = identity( of:value ) {	// IDENTITY
-				if let objID = identityMap.strongID( identity ) {
+				if let objID = identityMap.strongID( for:identity ) {
 					// already encoded value: we encode a pointer
 					try dataEncoder.appendPtr(keyID: keyID, objID: objID, conditional: conditional)
 				} else if conditional {
@@ -176,13 +176,13 @@ extension GEncoderImpl {
 						try ClassData.throwIfNotConstructible( type: type )
 					}
 						
-					let objID	= identityMap.createWeakID( identity )
+					let objID	= identityMap.createWeakID( for: identity )
 					try dataEncoder.appendPtr(keyID: keyID, objID: objID, conditional: conditional)
 				} else {
 					// not encoded value: we encode it
 					// INHERITANCE: only classes have a typeID (value typeID == nil)
 					let typeID	= try createTypeIDIfNeeded( for: value )
-					let objID	= identityMap.createStrongID( identity )
+					let objID	= identityMap.createStrongID( for: identity )
 
 					if let binaryValue = value as? GBinaryEncodable {
 						// BinaryEncodable type
@@ -312,7 +312,7 @@ extension GEncoderImpl {
 		}
 	}
 	
-	private func createKeyID( key: String? ) throws -> KeyID? {
+	private func createKeyID( for key: String? ) throws -> KeyID? {
 		if let key = key {
 			defer { currentKeys.insert( key ) }
 			if currentKeys.contains( key ) {

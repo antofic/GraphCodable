@@ -1,27 +1,32 @@
 #  User Guide
 
-**To do: Update summary.**
-
 - [Premise](#Premise)
-- [Code examples](#Code-examples)
-  - [Native types](#Native-types)
-  - [Value types](#Value-types)
-  	- [Keyed coding](#Keyed-coding)
-  	- [Unkeyed coding](#Unkeyed-coding)
-  - [Reference types](#Reference-types)
-  	- [Identity](#Identity)
-  	- [Inheritance](#Inheritance)
-  	- [Conditional encode](#Conditional-encode)
-  	- [Directed acyclic graphs](#Directed-acyclic-graphs)
-  	- [Directed cyclic graphs](#Directed-cyclic-graphs)
-  - [Encoding/Decoding Identity for value types](#ncoding/Decoding-Identity-for-value-types)
-  	- [The GIdentifiable protocol](#The-GIdentifiable-protocol)
-  	- [Identity for Array and ContiguosArray](#Identity-for-Array-and-ContiguosArray)
-  - [GraphCodable protocols](#GraphCodable-protocols)
-  - [Other features](#Other-features)
-  	- [UserInfo dictionary](#UserInfo-dictionary)
-  	- [Versioning of reference types](#Versioning-of-reference-types)
-  	- [Obsolete reference types](#Obsolete-reference-types)
+- [Supported system types](#Supported-system-types)
+- [Keyed coding](#Keyed-coding)
+- [Unkeyed coding](#Unkeyed-coding)
+- [Inheritance](#Inheritance)
+  - [How does inheritance work?](#How-does-inheritance-work?)
+  - [Disable inheritance](#Disable-inheritance)
+  - [Control inheritance globally](#Control-inheritance-globally)
+- [Identity](#Identity)
+  - [Reference types identity](#Reference-types-identity)
+  - [Value types identity](#Value-types-identity)
+  - [Conditional encoding](#Conditional-encoding)
+  - [Directed acyclic graphs (DAG)](#Directed-acyclic-graphs-(DAG))
+  - [Directed cyclic graphs (DCG)](#Directed-cyclic-graphs-(DCG))
+    - [Example: weak variables](#Example:-weak-variables)
+    - [A more general example](#A-more-general-example)
+  - [Identity for value types that use copy on write (COW)](#Identity-for-value-types-that-use-copy-on-write-(COW))
+    - [Trivial types optimization](#Trivial-types-optimization)
+  - [Identity for swift system value types that use copy on write (COW)](#Identity-for-swift-system-value-types-that-use-copy-on-write-(COW))
+  - [Control identity globally](#Control-identity-globally)
+- [UserInfo dictionary](#UserInfo-dictionary)
+- [Reference types versioning](#Reference-types-versioning)
+- [Obsolete reference types](#Obsolete-reference-types)
+  - [Non generic references](#Non-generic-references)
+  - [Generic references](#Generic-references)
+  - [Using class name strings](#Using-class-name-strings)
+
 
 
 ## Premise
@@ -852,7 +857,7 @@ What happens if you add a connection from `e` to `b` in the previous example?
 
 Just like ARC cannot autamatically release `e`, `b` and d because each retain the other, GraphCodable cannot initialize `e`, `b` and `d` because the initialization of each of them requires that the other be initialized and Swift does not allow to exit from an init method without inizializing all variables. So, when GraphCodable during decode encounters a cycle that it cannot resolve, it throws an exception.
 
-##### An example: weak variables
+##### Example: weak variables
 One possible solution for ARC is to use weak variables.
 Than, GraphCodable uses a slightly different way to decode weak variables used to break strong memory cycles: it postpones, calling a closure with the `deferDecode(...)` method, the setting of these variables (remember: they are optional, so they are auto-inizializated to nil) until the objects they point to have been initialized.
 
@@ -968,7 +973,7 @@ print( outRoot )	// print 'Screen [Window [View [], View [View []]], Window [Vie
 print( outRoot === outRoot.childs.first?.childs.first?.parent?.parent! )	// print true
 
 ```
-##### A more general example: elimination of ARC strong cycles
+##### A more general example
 Another possible workaround with ARC is to manually break the strong cycles to allow for memory release. In the following example, the Model class contains a collection of Node classes by name in a dictionary. Each node contains an array of nodes it is connected to and may also be connected to itself. To prevent memory from ever being freed, Model's `deinit` method calls `removeConnections` for each node it owns. So we have a model where the array of connections in each Node to other Nodes generates reference cycles.
 
 If `decode` is used for those connections, the decoding fails due to reference cycles. The solution, as the previous example, is to use `deferDecode` to decode the array:
@@ -1257,7 +1262,7 @@ The output becomes now:
 
 Not only array `a` (VAL0003) is encoded only once, but array `b` (VAL0002) is also encoded once.
 
-##### Optimization for trivial types  (advanced users).
+##### Trivial types optimization
 
 You can streamline and speed up encoding/decoding of **trivial** types using the BinaryIO library (see the BinaryIO documentation). The first step is to adopt the `BinaryIOType` protocol:
 
@@ -1361,7 +1366,7 @@ It should be noted that if the two options  `.disableIdentity`  and `.disableInh
 
 Both `GraphEncoder` and `GraphDecoder` allow setting a dictionary accessible during encoding and decoding respectively with the aim of adopting appropriate strategies. Usage is identical to that of Codable.
 
-### Versioning of reference types
+### Reference types versioning
 
 Reference types can use the `encodeVersion` property in `GEncodable` protocol:
 
@@ -1491,7 +1496,7 @@ To solve the problem the old objective-c NSKeyedUnarchiver offers the possibilit
 
 On the other hand, in swift, class names are much more complicated than in objective-c, more difficult to manage and therefore GraphCodable employs a different method **which uses the swift type system avoiding the use of class name strings**. However, it is still possible to use strings for class names as an alternative.
 
-##### Using the swift type system - the easy part
+#### Non generic references
 
 The `GDecodable` protocol defines the static property `replacementType` which by default returns `Self.self`. 
 
@@ -1592,7 +1597,7 @@ print( outRoot )	// MyNewData(string: 3)
 ```
 Multiple classes can be replaced by only one if necessary. Use `decoder.replacedType` to find out which one was replaced during decoding. Versioning and class replacement can be combined.
 
-##### Using the swift type system - the hard part
+#### Generic references
 
 The illustrated mechanism **breaks down** when the class whose name is changed can be used as *a parameter types of a generic class* that adopts the `GDecodable` protocol:
 
@@ -1946,7 +1951,7 @@ Result:
 
 ```
 
-##### Using class name strings
+#### Using class name strings
 
 It is still possible to use strings for class names. Let's go back to the example that used the `MyData` class. You can view the name of the encoded classes:
 

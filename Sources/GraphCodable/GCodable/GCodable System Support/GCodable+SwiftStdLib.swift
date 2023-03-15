@@ -82,7 +82,7 @@ extension RawRepresentable where Self.RawValue : GDecodable {
 		guard let value = Self.init(rawValue:rawValue ) else {
 			throw GCodableError.initTypeError(
 				Self.self, GCodableError.Context(
-					debugDescription: "Invalid rawValue = \(rawValue) for \(Self.self)"
+					debugDescription: "Invalid rawValue = \(rawValue)"
 				)
 			)
 		}
@@ -95,6 +95,7 @@ extension RawRepresentable where Self.RawValue : GBinaryCodable {}
 //	String SUPPORT ------------------------------------------------------
 extension String : GBinaryCodable {}
 
+//	Array SUPPORT ------------------------------------------------------
 /*
 extension GDecodable where Self:RangeReplaceableCollection, Self.Element: GDecodable {
 	public init(from decoder: GDecoder) throws {
@@ -125,7 +126,6 @@ extension ContiguousArray: GCodable where Element:GCodable {}
 extension ContiguousArray: GBinaryCodable where Element : GTrivialCodable {}
 */
 
-//	Array SUPPORT ------------------------------------------------------
 extension Array: GEncodable where Element:GEncodable {
 	public func encode(to encoder: GEncoder) throws {
 		for element in self {
@@ -353,7 +353,7 @@ extension CollectionDifference : GDecodable where ChangeElement:GDecodable {
 		guard let value = Self(changes) else {
 			throw GCodableError.initTypeError(
 				Self.self, GCodableError.Context(
-					debugDescription: "Can't initialize \(Self.self) with \(changes)"
+					debugDescription: "Invalid \(changes)"
 				)
 			)
 		}
