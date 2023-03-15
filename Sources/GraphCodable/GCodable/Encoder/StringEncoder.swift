@@ -38,7 +38,7 @@ final class StringEncoder : FileBlockEncoder {
 		self.dataSize			= dataSize
 	}
 
-	static func titleString( _ string: String, filler:Character = "=", lenght: Int = 69 ) -> String {
+	static func titleString( _ string: String, filler:Character = "=", lenght: Int = 88 ) -> String {
 		var title	= ""
 		if string.count > 0 {
 			title.append( String(repeating: filler, count: 1) )

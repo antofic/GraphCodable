@@ -266,42 +266,6 @@ extension GEncoderImpl {
 		return nil
 	}
 
-	
-/*
-	private func identifier( of value:GEncodable ) -> (any Hashable)? {
-		if	encodeOptions.contains( .disableIdentity ) {
-			return nil
-		}
-		
-		if	encodeOptions.contains( .tryHashableIdentityAtFirst ) {
-			if let id = value as? (any Hashable) {
-				return id
-			}
-		}
-		if	encodeOptions.contains( .ignoreGIdentifiableProtocol ) {
-			if	!encodeOptions.contains( .disableAutoObjectIdentifierIdentityForReferences ),
-				let object = value as? (GEncodable & AnyObject) {
-				return ObjectIdentifier( object )
-			}
-		} else if let identifiable	= value as? any GIdentifiable {
-			if let id = identifiable.gcodableID {
-				return id
-			}
-		} else if !encodeOptions.contains( .disableAutoObjectIdentifierIdentityForReferences ) {
-			if let object = value as? (GEncodable & AnyObject) {
-				return ObjectIdentifier( object )
-			}
-		}
-		
-		if encodeOptions.contains( .tryHashableIdentityAtLast ) {
-			if let id = value as? (any Hashable) {
-				return id
-			}
-		}
-		
-		return nil
-	}
-*/
 	private func throwIfNotTrivial<T:GPackEncodable>( trivialValue value:T ) throws {
 		guard _isPOD( T.self ) else {
 			throw GCodableError.valueMustBeTrivial(

@@ -14,7 +14,7 @@
   - [Conditional encoding](#Conditional-encoding)
   - [Directed acyclic graphs (DAG)](#Directed-acyclic-graphs-(DAG))
   - [Directed cyclic graphs (DCG)](#Directed-cyclic-graphs-(DCG))
-    - [Example: weak variables](#Example:-weak-variables)
+    - [Example: weak variables](#Example::-weak-variables)
     - [A more general example](#A-more-general-example)
   - [Identity for value types that use copy on write (COW)](#Identity-for-value-types-that-use-copy-on-write-(COW))
   - [Identity for swift system value types that use copy on write (COW)](#Identity-for-swift-system-value-types-that-use-copy-on-write-(COW))
@@ -2449,4 +2449,3 @@ extension PersonNameComponents : GCodable {
 }
 ```
 
-#### 
