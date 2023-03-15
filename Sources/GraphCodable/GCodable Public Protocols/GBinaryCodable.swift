@@ -39,11 +39,11 @@ public protocol	GBinaryDecodable : BinaryIType, GDecodable {}
 ///
 ///	For example, `Array` is defined as `GCodable` when its elements
 ///	are `GCodable` and `GBinaryEncodable` when its elements are
-///	`GTrivialCodable`:
+///	`GPackCodable`:
 /// ```
 ///	extension Array: GCodable where Element:GCodable ...
 ///
-///	extension Array: GBinaryCodable where Element: GTrivialCodable...
+///	extension Array: GBinaryCodable where Element: GPackCodable...
 /// ```
 /// In this way, an array of integers, for example, is stored quickly
 /// with the methods of `BinaryIO`, while an array of non-trivial elements,

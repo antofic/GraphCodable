@@ -33,7 +33,7 @@ extension DispatchTime : GCodable {
 	}
 }
 */
-extension DispatchTime : GTrivialCodable {}
+extension DispatchTime : GPackCodable {}
 
 /*
 extension DispatchTimeInterval : GCodable {
@@ -88,7 +88,7 @@ extension DispatchTimeInterval : GCodable {
 }
 */
 
-extension DispatchTimeInterval : GTrivialCodable {}
+extension DispatchTimeInterval : GPackCodable {}
 
 /*
 extension DispatchQueue.SchedulerTimeType : GCodable {
@@ -102,7 +102,7 @@ extension DispatchQueue.SchedulerTimeType : GCodable {
 }
 */
 
-extension DispatchQueue.SchedulerTimeType : GTrivialCodable {}
+extension DispatchQueue.SchedulerTimeType : GPackCodable {}
 
 /*
 extension DispatchQueue.SchedulerTimeType.Stride : GCodable {
@@ -116,4 +116,4 @@ extension DispatchQueue.SchedulerTimeType.Stride : GCodable {
 }
 */
 
-extension DispatchQueue.SchedulerTimeType.Stride : GTrivialCodable {}
+extension DispatchQueue.SchedulerTimeType.Stride : GPackCodable {}

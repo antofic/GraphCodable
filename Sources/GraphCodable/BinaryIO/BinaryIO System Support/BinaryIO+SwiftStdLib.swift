@@ -187,7 +187,7 @@ extension Array : BinaryIOType where Element : BinaryIOType {
 		let count = try Int( from: &rbuffer )
 		self.reserveCapacity( count )
 		for _ in 0..<count {
-			self.append( try Element.init(from: &rbuffer) )
+			self.append( try Element(from: &rbuffer) )
 		}
 	}
 }
@@ -206,7 +206,7 @@ extension ContiguousArray : BinaryIOType where Element : BinaryIOType {
 		let count = try Int( from: &rbuffer )
 		self.reserveCapacity( count )
 		for _ in 0..<count {
-			self.append( try Element.init(from: &rbuffer) )
+			self.append( try Element(from: &rbuffer) )
 		}
 	}
 }

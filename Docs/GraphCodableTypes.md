@@ -1,6 +1,6 @@
 #  GraphCodableTypes
 This is the list of types that GraphCodable is capable of automatically archiving/unarchiving.
-GraphCodable relies on an internal library (BinaryIO) to archive/dearchive data in binary format.
+GraphCodable relies on an internal package (BinaryIO) to archive/dearchive data in binary format.
 
 That said, NativeTypes are the system types that are always encoded/decoded directly by BinaryIO.
 Additional types (BinaryTypes) can be stored directly by BinaryIO using the `GraphEncoder( .allBinaryTypes )` option.

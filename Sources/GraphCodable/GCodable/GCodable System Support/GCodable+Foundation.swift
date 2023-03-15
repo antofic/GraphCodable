@@ -22,27 +22,27 @@
 
 import Foundation
 
-extension CGFloat			: GTrivialCodable {}
+extension CGFloat			: GPackCodable {}
 extension Data 				: GBinaryCodable {}
 extension CharacterSet		: GBinaryCodable {}
-extension AffineTransform	: GTrivialCodable {}
+extension AffineTransform	: GPackCodable {}
 extension Locale 			: GBinaryCodable {}
 extension TimeZone 			: GBinaryCodable {}
-extension UUID 				: GTrivialCodable {}
-extension Date				: GTrivialCodable {}
+extension UUID 				: GPackCodable {}
+extension Date				: GPackCodable {}
 extension IndexSet 			: GBinaryCodable {}
 extension IndexPath 		: GBinaryCodable {}
-extension CGSize 			: GTrivialCodable {}
-extension CGPoint 			: GTrivialCodable {}
-extension CGVector 			: GTrivialCodable {}
-extension CGRect 			: GTrivialCodable {}
-extension NSRange 			: GTrivialCodable {}
-extension Decimal 			: GTrivialCodable {}
+extension CGSize 			: GPackCodable {}
+extension CGPoint 			: GPackCodable {}
+extension CGVector 			: GPackCodable {}
+extension CGRect 			: GPackCodable {}
+extension NSRange 			: GPackCodable {}
+extension Decimal 			: GPackCodable {}
 
-extension OperationQueue.SchedulerTimeType 			: GTrivialCodable {}
-extension OperationQueue.SchedulerTimeType.Stride	: GTrivialCodable {}
-extension RunLoop.SchedulerTimeType					: GTrivialCodable {}
-extension RunLoop.SchedulerTimeType.Stride			: GTrivialCodable {}
+extension OperationQueue.SchedulerTimeType 			: GPackCodable {}
+extension OperationQueue.SchedulerTimeType.Stride	: GPackCodable {}
+extension RunLoop.SchedulerTimeType					: GPackCodable {}
+extension RunLoop.SchedulerTimeType.Stride			: GPackCodable {}
 
 
 //	Calendar SUPPORT ------------------------------------------------------

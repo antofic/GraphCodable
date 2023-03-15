@@ -23,23 +23,23 @@
 
 
 // -- BinaryInteger support -------------------------------------------------------
-extension Int		: GTrivialCodable {}
-extension Int8		: GTrivialCodable {}
-extension Int16		: GTrivialCodable {}
-extension Int32		: GTrivialCodable {}
-extension Int64		: GTrivialCodable {}
-extension UInt		: GTrivialCodable {}
-extension UInt8		: GTrivialCodable {}
-extension UInt16	: GTrivialCodable {}
-extension UInt32	: GTrivialCodable {}
-extension UInt64	: GTrivialCodable {}
+extension Int		: GPackCodable {}
+extension Int8		: GPackCodable {}
+extension Int16		: GPackCodable {}
+extension Int32		: GPackCodable {}
+extension Int64		: GPackCodable {}
+extension UInt		: GPackCodable {}
+extension UInt8		: GPackCodable {}
+extension UInt16	: GPackCodable {}
+extension UInt32	: GPackCodable {}
+extension UInt64	: GPackCodable {}
 
 // -- BinaryFloatingPoint support -------------------------------------------------------
-extension Float		: GTrivialCodable {}
-extension Double	: GTrivialCodable {}
+extension Float		: GPackCodable {}
+extension Double	: GPackCodable {}
 
 // -- Bool support -------------------------------------------------------
-extension Bool 		: GTrivialCodable {}
+extension Bool 		: GPackCodable {}
 
 //	Optional SUPPORT ------------------------------------------------------
 extension Optional: GEncodable where Wrapped: GEncodable {
@@ -67,7 +67,7 @@ extension Optional: GDecodable where Wrapped: GDecodable {
 }
 
 extension Optional: GBinaryCodable where Wrapped: GBinaryCodable {}
-extension Optional: GTrivial where Wrapped: GTrivial {}
+extension Optional: GPackable where Wrapped: GPackable {}
 
 //	RawRepresentable SUPPORT ------------------------------------------------------
 
@@ -116,14 +116,14 @@ extension GEncodable where Self:RandomAccessCollection, Self.Element: GEncodable
 	}
 }
 
-extension GBinaryDecodable where Self:RangeReplaceableCollection, Self.Element: GTrivialDecodable {}
-extension GBinaryEncodable where Self:RandomAccessCollection, Self.Element: GTrivialEncodable {}
+extension GBinaryDecodable where Self:RangeReplaceableCollection, Self.Element: GPackDecodable {}
+extension GBinaryEncodable where Self:RandomAccessCollection, Self.Element: GPackEncodable {}
 
 extension Array: GCodable where Element:GCodable {}
-extension Array: GBinaryCodable where Element : GTrivialCodable {}
+extension Array: GBinaryCodable where Element : GPackCodable {}
 
 extension ContiguousArray: GCodable where Element:GCodable {}
-extension ContiguousArray: GBinaryCodable where Element : GTrivialCodable {}
+extension ContiguousArray: GBinaryCodable where Element : GPackCodable {}
 */
 
 extension Array: GEncodable where Element:GEncodable {
@@ -144,7 +144,7 @@ extension Array: GDecodable where Element:GDecodable {
 	}
 }
 
-extension Array : GBinaryCodable where Element : GTrivialCodable {}
+extension Array : GBinaryCodable where Element : GPackCodable {}
 
 
 //	ContiguousArray SUPPORT ------------------------------------------------------
@@ -167,7 +167,7 @@ extension ContiguousArray: GDecodable where Element:GDecodable {
 	}
 }
 
-extension ContiguousArray : GBinaryCodable where Element : GTrivialCodable {}
+extension ContiguousArray : GBinaryCodable where Element : GPackCodable {}
 
 //	Set SUPPORT ------------------------------------------------------
 extension Set: GEncodable where Element:GEncodable {
@@ -189,7 +189,7 @@ extension Set: GDecodable where Element:GDecodable {
 	}
 }
 
-extension Set : GBinaryCodable where Element : GTrivialCodable {}
+extension Set : GBinaryCodable where Element : GPackCodable {}
 
 //	Dictionary SUPPORT ------------------------------------------------------
 
@@ -214,7 +214,7 @@ extension Dictionary: GDecodable where Key:GDecodable, Value:GDecodable {
 	}
 }
 
-extension Dictionary : GBinaryCodable where Key : GTrivialCodable, Value : GTrivialCodable {}
+extension Dictionary : GBinaryCodable where Key : GPackCodable, Value : GPackCodable {}
 
 
 // Range ------------------------------------------------------
@@ -234,7 +234,7 @@ extension Range: GEncodable where Bound: GEncodable {
 	}
 }
 
-extension Range: GTrivialCodable where Bound: GTrivialCodable {}
+extension Range: GPackCodable where Bound: GPackCodable {}
 
 // ClosedRange ------------------------------------------------------
 
@@ -252,7 +252,7 @@ extension ClosedRange: GEncodable where Bound: GEncodable {
 	}
 }
 
-extension ClosedRange: GTrivialCodable where Bound: GTrivialCodable {}
+extension ClosedRange: GPackCodable where Bound: GPackCodable {}
 
 
 // PartialRangeFrom ------------------------------------------------------
@@ -268,7 +268,7 @@ extension PartialRangeFrom: GEncodable where Bound: GEncodable {
 	}
 }
 
-extension PartialRangeFrom: GTrivialCodable where Bound: GTrivialCodable {}
+extension PartialRangeFrom: GPackCodable where Bound: GPackCodable {}
 
 // PartialRangeUpTo ------------------------------------------------------
 
@@ -283,7 +283,7 @@ extension PartialRangeUpTo: GEncodable where Bound: GEncodable {
 	}
 }
 
-extension PartialRangeUpTo: GTrivialCodable where Bound: GTrivialCodable {}
+extension PartialRangeUpTo: GPackCodable where Bound: GPackCodable {}
 
 
 // PartialRangeFrom ------------------------------------------------------
@@ -299,7 +299,7 @@ extension PartialRangeThrough: GEncodable where Bound: GEncodable {
 	}
 }
 
-extension PartialRangeThrough: GTrivialCodable where Bound: GTrivialCodable {}
+extension PartialRangeThrough: GPackCodable where Bound: GPackCodable {}
 
 
 // CollectionDifference ------------------------------------------------------

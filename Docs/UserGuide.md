@@ -17,7 +17,6 @@
     - [Example: weak variables](#Example:-weak-variables)
     - [A more general example](#A-more-general-example)
   - [Identity for value types that use copy on write (COW)](#Identity-for-value-types-that-use-copy-on-write-(COW))
-    - [Trivial types optimization](#Trivial-types-optimization)
   - [Identity for swift system value types that use copy on write (COW)](#Identity-for-swift-system-value-types-that-use-copy-on-write-(COW))
   - [Control identity globally](#Control-identity-globally)
 - [UserInfo dictionary](#UserInfo-dictionary)
@@ -26,13 +25,23 @@
   - [Non generic references](#Non-generic-references)
   - [Generic references](#Generic-references)
   - [Using class name strings](#Using-class-name-strings)
-
+- [GraphCodable and BinaryIO](#GraphCodable-and-BinaryIO)
+  - [An example](#An-example)
+  - [The `BinaryIOType` protocol](#The-`BinaryIOType`-protocol)
+  - [The `GBinaryCodable` protocol](#The-`GBinaryCodable`-protocol)
+  - [The `GPackCodable` protocol](#The-`GPackCodable`-protocol)
+  - [Remarks](#Remarks)
+  - [GraphCodable and BinaryIO for some system types](#GraphCodable-and-BinaryIO-for-som-system-types)
+    - [A Foundation type: `CGSize`](#A-Foundation-type:-`CGSize`)
+    - [A swift standard library type: `String`](#A-swift-standard-library-type:-`String`)
+    - [A swift standard library container: `Array`](#A-swift-standard-library-container:-`Array`)
+    - [Another Foundation type: `PersonNameComponents`](#Another-Foundation-type:-`PersonNameComponents`)
 
 
 ## Premise
 GraphCodable is a Swift encode/decode package (similar to Codable at interface level) that does not treat reference types as second-class citizens. Indeed, it also offers for value types a possibility normally reserved only for reference types: that of taking into account their identity to avoid duplication of data during encoding and decoding.
 
-GraphCodable was born as an experiment to understand if it is possible to write in Swift a library that offers for all Swift types the functions that NSCoder, NSKeyedArchiver and NSKeyedUnarchiver have for Objective-C types.
+GraphCodable was born as an experiment to understand if it is possible to write in Swift a package that offers for all Swift types the functions that NSCoder, NSKeyedArchiver and NSKeyedUnarchiver have for Objective-C types.
 
 The answer is basically yes and even with improvements in some cases.
 
@@ -89,7 +98,7 @@ Again, the original data structure is lost and furthermore an object has been du
 
 The way value types behave, it makes no sense to talk about which data structure to preserve; conversely, in certain cases their duplication/multiplication can be problematic if they contain a large amount of data. For this reason, in analogy to the `Identifiable` system protocol, GraphCodable allows to define an identity for encoding and decoding also for value types (by default they don't have one), via the `GIdentifiable` protocol. Reference types can also make use of the `GIdentifiable`protocol where for some reason it is necessary to define an identity other than the one derived from *ObjectIdentifier*.
 
-Clarified that the purpose of the library is to <u>get after decoding the same "thing" that was encoded</u>, the characteristics of GraphCodable are illustrated in the next paragraphs with simple but working examples that can be directly tested with copy and paste.
+Clarified that the purpose of the package is to <u>get after decoding the same "thing" that was encoded</u>, the characteristics of GraphCodable are illustrated in the next paragraphs with simple but working examples that can be directly tested with copy and paste.
 
 ## Supported system types
 
@@ -1262,51 +1271,6 @@ The output becomes now:
 
 Not only array `a` (VAL0003) is encoded only once, but array `b` (VAL0002) is also encoded once.
 
-##### Trivial types optimization
-
-You can streamline and speed up encoding/decoding of **trivial** types using the BinaryIO library (see the BinaryIO documentation). The first step is to adopt the `BinaryIOType` protocol:
-
-```swift
-extension MyArray: BinaryIOType where Element:BinaryIOType {
-	init(from rbuffer: inout BinaryReadBuffer) throws {
-		box	= RefBox( try Buffer(from: &rbuffer) )
-	}
-	
-	func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try box.value.write(to: &wbuffer)
-	}
-}
-```
-
-Next you need to specify when GraphCodable should use BinaryIO:
-
-```swift
-extension MyArray: GBinaryCodable where Element:GTrivialCodable {}
-```
-
-In essence we are telling the encoder that when the elements of `MyArray` are trivial (they adopt the `GTrivialCodable` protocol), the array can use BinaryIO. So a `GBinaryCodable` type **is** a `GCodable` type, but all its fields, elements, etc… are trivial, and therefore the encoder can use BinaryIO to encode them. The output becomes this:
-
-```
-••• MYArray = [[[1, 2], [1, 2]], [[1, 2], [1, 2]]] 
-== BODY ==========================================================
-- VAL0001
-	- VAL
-		- VAL0002
-			- VAL
-				- BIV0003 [1, 2]
-				- PTS0003
-			.
-		.
-		- PTS0002
-	.
-.
-==================================================================
-```
-
-GraphCodable marks commons trivial types with the dummy protocol `GTrivial` to speed up encoding and decoding. GraphCodable check during encoding if a value is really trivial with the function `_isPOD( _:)`; if not, the encoder generate an exception.
-
-If you have defined trivial types and want to take advantage of the functionality described, adopt the `GTrivial` or `GTrivialCodable` protocol for them.
-
 #### Identity for swift system value types that use copy on write (COW)
 
 Many swift system value types use the copy on write (COW) mechanism. Among these, the most common are `Array`, `ContiguousArray`, `Data`, `Set`, `Dictionary` and presumably `String`. Unfortunately, none of these types exposes the *ObjectIdentifier* of the reference type used as storage, otherwise it would be very simple to provide them with identities, exactly as it was done in the example of the previous paragraph with `MyArray`.
@@ -1530,7 +1494,7 @@ class MyData: GCodable {
   // no other code
 }
 ```
-To make this easier, GraphCodable provides the `GObsolete` protocol, which has no function in the library, but implements the two required but now unreachable methods `init(from decoder: GDecoder)` and `encode(to encoder: GEncoder)` of `GCodable` and allows you to mark the classes that have been replaced in a clear way. The code then becomes:
+To make this easier, GraphCodable provides the `GObsolete` protocol, which has no function in the package, but implements the two required but now unreachable methods `init(from decoder: GDecoder)` and `encode(to encoder: GEncoder)` of `GCodable` and allows you to mark the classes that have been replaced in a clear way. The code then becomes:
 
 ```swift
 class MyData : GObsolete {
@@ -2049,3 +2013,440 @@ print( outRoot )	// MyNewData(string: 3)
 ```
 
 This system becomes very difficult to manage especially if generic classes are employed.
+
+## GraphCodable and BinaryIO
+
+### An example
+
+In the following example, `Model` stores a value (pivot) of type `NumericData` and an array of instances of `NumericData`. `Model` employs *keyed* encoding, `NumericData` employs *unkeyed* encoding.
+
+```swift
+import Foundation
+import GraphCodable
+import simd
+
+struct NumericData {
+	let	vector : SIMD3<Double>
+	let	matrix : simd_double3x3
+
+	init(vector: SIMD3<Double>, matrix: simd_double3x3) {
+		self.vector = vector
+		self.matrix = matrix
+	}
+}
+
+extension NumericData : GCodable {
+	init(from decoder: GDecoder) throws {
+		self.vector = try decoder.decode()
+		self.matrix = try decoder.decode()
+	}
+	
+	func encode(to encoder: GEncoder) throws {
+		try encoder.encode(vector)
+		try encoder.encode(matrix)
+	}
+}
+
+struct Model {
+	var pivot : NumericData
+	var array : [NumericData]
+	
+	init( count:Int, range: ClosedRange<Double> ) {
+		precondition( count > 0)
+		let array = (0..<count).map {
+			_ in NumericData(
+				vector: SIMD3<Double>.random(in: range),
+				matrix: simd_double3x3.init(diagonal: SIMD3<Double>.random(in: range)))
+		}
+		self.pivot	= array.randomElement()!
+		self.array	= array
+	}
+}
+
+extension Model : GCodable {
+	private enum Key : String { case pivot,array }
+
+	init(from decoder: GDecoder) throws {
+		self.pivot	= try decoder.decode(for: Key.pivot)
+		self.array	= try decoder.decode(for: Key.array)
+	}
+	
+	func encode(to encoder: GEncoder) throws {
+		try encoder.encode(pivot, for: Key.pivot)
+		try encoder.encode(array, for: Key.array)
+	}
+}
+
+let largeCount	= 3
+let root		= Model( count: largeCount, range: -1.0...1.0 )
+let data		= try GraphCodableUti.checkEncoder(root: root, dumpOptions: .readable) as Bytes
+```
+
+The program prints:
+
+```
+-- Encoded Root Dump --------------
+= BODY ==============================================================
+- VAL
+	+ "pivot": VAL
+		- BIV SIMD3<Double>(0.8294736549289274, 0.14269044479226034, -0.860581…
+		- BIV simd_double3x3([[-0.0026016199388625427, 0.0, 0.0], [0.0, -0.449…
+	.
+	+ "array": VAL
+		- VAL
+			- BIV SIMD3<Double>(-0.18067309956797217, 0.7370822090462563, -0.71230…
+			- BIV simd_double3x3([[-0.5991889444408702, 0.0, 0.0], [0.0, -0.816300…
+		.
+		- VAL
+			- BIV SIMD3<Double>(0.8294736549289274, 0.14269044479226034, -0.860581…
+			- BIV simd_double3x3([[-0.0026016199388625427, 0.0, 0.0], [0.0, -0.449…
+		.
+		- VAL
+			- BIV SIMD3<Double>(0.2923536408884746, 0.44193030741630546, -0.478438…
+			- BIV simd_double3x3([[0.45346249230842317, 0.0, 0.0], [0.0, -0.951416…
+		.
+	.
+.
+=====================================================================
+```
+
+The structure of the encoded data is easy to recognize. But a question arises: `SIMD3<Double>` and `simd_double3x3` are respectively vectors of 3 double values and matrices of 3x3 double values. How come their structure is not visible but they appear to be stored as a <u>single data unit</u>? This is because GraphCodable uses the BinaryIO package to store "simple" types, and `SIMD3<Double>` and `simd_double3x3` are considered "simple" types, as are integers and float values. The GraphCodable encoded structure is in fact a graph whose terminal elements are always "simple" types encoded by BinaryIO. Storing a matrix of 3x3 elements directly with BinaryIO is much faster than storing these 9 elements with GraphCodable.
+
+This mechanism is accessible to the user: let's see how.
+
+### The `BinaryIOType` protocol
+
+First, we can see that in the proposed example `NumericData`, unlike `Model`, seems to be the ideal candidate to be encoded directly with BinaryIO: it's a trivial structure. The protocol to be used is `BinaryIOType`, defined as `typealias BinaryIOType	= BinaryIType & BinaryOType` in the BinaryIO package.
+
+```swift
+extension NumericData : BinaryIOType {
+	init(from rbuffer: inout BinaryReadBuffer) throws {
+		self.vector = try SIMD3<Double>( from:&rbuffer )
+		self.matrix = try simd_double3x3( from:&rbuffer )
+	}
+	
+	func write(to wbuffer: inout BinaryWriteBuffer) throws {
+		try vector.write(to: &wbuffer)
+		try matrix.write(to: &wbuffer)
+	}
+}
+```
+
+You can see how with BinaryIO the type that adopt the `BinaryIOType` protocol is stored by "writing" its fields to a `BinaryWriteBuffer`and instantiated by "reading" its fields **in the same order** from a `BinaryReadBuffer`. 
+
+```swift
+public protocol BinaryOType {
+	func write( to wbuffer: inout BinaryWriteBuffer ) throws
+}
+
+public protocol BinaryIType {
+	init( from rbuffer: inout BinaryReadBuffer ) throws
+}
+
+public typealias BinaryIOType	= BinaryIType & BinaryOType
+```
+
+BinaryIO is a fast low-level package and no keys are available. Also note that  `BinaryReadBuffer` and  `BinaryWriteBuffer` are value types.
+
+### The `GBinaryCodable` protocol
+
+Make `NumericData` adopt the `BinaryIOType` protocol doesn't change the output of our program though. In order for GraphCodable to realize that `NumericData` can be stored directly by BinayIO it is necessary to adopt the protocol `GBinaryCodable` defined in GraphCodable package as:
+
+```swift
+public protocol	GBinaryEncodable : BinaryOType, GEncodable {}
+public protocol	GBinaryDecodable : BinaryIType, GDecodable {}
+public typealias GBinaryCodable = GBinaryEncodable & GBinaryDecodable
+
+extension GBinaryEncodable {
+	public func encode(to encoder: GEncoder) throws	{
+		throw GCodableError.internalInconsistency(
+			Self.self, GCodableError.Context(
+				debugDescription: "Unreachable code."
+			)
+		)
+	}
+}
+extension GBinaryDecodable {
+	public init(from decoder: GDecoder) throws {
+		throw GCodableError.internalInconsistency(
+			Self.self, GCodableError.Context(
+				debugDescription: "Unreachable code."
+			)
+		)
+	}
+}
+```
+
+So let's change the extension of `NumericData` to:
+
+```swift
+extension NumericData : GBinaryCodable {
+	init(from rbuffer: inout BinaryReadBuffer) throws {
+		self.vector = try SIMD3<Double>( from:&rbuffer )
+		self.matrix = try simd_double3x3( from:&rbuffer )
+	}
+	
+	func write(to wbuffer: inout BinaryWriteBuffer) throws {
+		try vector.write(to: &wbuffer)
+		try matrix.write(to: &wbuffer)
+	}
+}
+```
+
+We can also remove the extension of `NumericData` which adopts the `GCodable` protocol, because `GBinaryCodable` adopts itself `GCodable` and implements the functions `encode(to: GEncoder) throws` and `init(from: GDecoder) throws` as "unreachable".
+
+Now the program prints:
+
+```
+-- Encoded Root Dump --------------
+= BODY ==============================================================
+- VAL
+	+ "pivot": BIV NumericData(vector: SIMD3<Double>(0.03227652046777307, -0.896923…
+	+ "array": VAL
+		- BIV NumericData(vector: SIMD3<Double>(0.03227652046777307, -0.896923…
+		- BIV NumericData(vector: SIMD3<Double>(-0.8256667426237219, 0.5888963…
+		- BIV NumericData(vector: SIMD3<Double>(0.44673587704747897, -0.219333…
+	.
+.
+=====================================================================
+```
+
+You see how each instance of NumericData is now encoded as a <u>single data unit</u>.
+
+Thus, to use BinaryIO it is sufficient to adopt the `GBinaryCodable` protocol <u>instead</u> of `GCodable` protocol.
+
+### The `GPackCodable` protocol
+
+But that's not all: just add one more line of code:
+
+```swift
+extension NumericData : GPackable {}
+```
+
+Now the program prints:
+
+```
+-- Encoded Root Dump --------------
+= BODY ==============================================================
+- VAL
+	+ "pivot": BIV NumericData(vector: SIMD3<Double>(-0.6854864341026428, 0.9593048…
+	+ "array": BIV [MyGraphCodableApp.NumericData(vector: SIMD3<Double>(-0.68548643…
+.
+=====================================================================
+```
+
+You can see how now the entire array has been stored as a <u>single data unit</u>!
+
+The same result would have been obtained by adopting the `GPackCodable` protocol instead of `GBinaryEncodable`:
+
+```swift
+extension NumericData : GPackCodable /* GBinaryEncodable */ {
+	init(from rbuffer: inout BinaryReadBuffer) throws {
+		self.vector = try SIMD3<Double>( from:&rbuffer )
+		self.matrix = try simd_double3x3( from:&rbuffer )
+	}
+	
+	func write(to wbuffer: inout BinaryWriteBuffer) throws {
+		try vector.write(to: &wbuffer)
+		try matrix.write(to: &wbuffer)
+	}
+}
+```
+
+In this way it is possible to encode and decode large arrays (or other containers) very quickly when they contain "simple" elements, where "simple" elements mean elements that adopt the `GPackCodable` protocol.
+
+Here is how the `GPackCodable` protocol is defined in GraphCodable:
+
+```swift
+public protocol GPackable {}
+
+public typealias GPackEncodable	= GBinaryEncodable & GPackable
+public typealias GPackDecodable	= GBinaryDecodable & GPackable
+public typealias GPackCodable	= GPackEncodable & GPackDecodable
+```
+
+### Remarks
+
+A type that adopts the `GBinaryCodable` protocol:
+
+- gain faster encoding and decoding speed;
+- if it is a value type, it can have an identity;
+- if it is a reference type, it maintains identity, inheritance, can be versioned and can be obsoleted;
+- but its fields, being encoded with BinaryIO, cannot use keys, do not benefit from inheritance, identity, cannot be versioned, and cannot be obsoleted.
+
+A type that adopts the `GPackCodable` protocol:
+
+- gain even faster encoding and decoding speed when it is an element of suitably prepared containers;
+- loses **itself** (as its fileds) identity, inheritance, cannot be versioned, and cannot be obsoleted because encoded directly by BinaryIO bypassing GraphCodable features;
+
+### GraphCodable and BinaryIO for some system types
+
+To further clarify how GraphCodable and BinaryIO interact, let's see how some system types adopt their protocols.
+
+#### A Foundation type: `CGSize`
+
+**BinaryIO package**:
+
+```swift
+extension CGSize : BinaryIOType {
+	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
+		try width.write(to: &wbuffer)
+		try height.write(to: &wbuffer)
+	}
+
+	public init(from rbuffer: inout BinaryReadBuffer) throws {
+		let width	= try CGFloat( from: &rbuffer )
+		let height	= try CGFloat( from: &rbuffer )
+		self.init(width: width, height: height)
+	}
+}
+```
+
+**GraphCodable package**: GraphCodable always uses BinaryIO to encode/decode `CGSize`.
+
+```swift
+extension CGSize : GPackCodable {}
+```
+
+#### A swift standard library type: `String`
+
+**BinaryIO package**:
+
+```swift
+extension String : BinaryIOType {
+	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
+		try wbuffer.writeString( self )
+	}
+	public init( from rbuffer: inout BinaryReadBuffer ) throws {
+		self = try rbuffer.readString()
+	}
+}
+```
+
+**Note**: Strings use internal functions of BinaryIO that are not accessible to the user.
+
+**GraphCodable package**: GraphCodable always uses BinaryIO to encode/decode `String`.
+
+```swift
+extension String : GBinaryCodable {}
+```
+
+Note the difference with `CGSize`: `CGSize` adopt the `GPackCodable` protocol because it doesn't make sense that they can use identities, `String` adopt the `GBinaryCodable` protocol because they could use identities. This implies that `CGSize` arrays are encoded as a single data unit while `String` arrays are not.
+
+#### A swift standard library container: `Array`
+
+Let's see how GraphCodable implements these mechanisms for swift containers, taking into consideration the case of `Array` (the others are completely analogous).
+
+**BinaryIO package**: `Array` adopts the `BinaryIOType` protocols: if the elements are `BinaryIOType`, Array is `BinaryIOType` so BinaryIO can encode ed decode it.
+
+```swift
+extension Array : BinaryIOType where Element : BinaryIOType {
+	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
+		try count.write(to: &wbuffer)
+		for element in self {
+			try element.write(to: &wbuffer)
+		}
+	}
+	public init( from rbuffer: inout BinaryReadBuffer ) throws {
+		self.init()
+		let count = try Int( from: &rbuffer )
+		self.reserveCapacity( count )
+		for _ in 0..<count {
+			self.append( try Element(from: &rbuffer) )
+		}
+	}
+}
+```
+
+**GraphCodable package**: `Array` adopts the `GCodable` protocols: if the elements are `GCodable`, Array is `GCodable` so GraphCodable can encode ed decode it.
+
+```swift
+extension Array: GEncodable where Element:GEncodable {
+	public func encode(to encoder: GEncoder) throws {
+		for element in self {
+			try encoder.encode( element )
+		}
+	}
+}
+extension Array: GDecodable where Element:GDecodable {
+	public init(from decoder: GDecoder) throws {
+		self.init()
+		
+		self.reserveCapacity( decoder.unkeyedCount )
+		while decoder.unkeyedCount > 0 {
+			self.append( try decoder.decode() )
+		}
+	}
+}
+```
+
+This additional line of code allows array to encode its elements with BinaryIO when they adopt `PackCodable`:
+
+```swift
+extension Array : GBinaryCodable where Element : GPackCodable {}
+```
+
+#### Another Foundation type: `PersonNameComponents`
+
+**BinaryIO package**:
+
+```swift
+extension PersonNameComponents : BinaryIOType {
+	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
+		try namePrefix	.write(to: &wbuffer)
+		try givenName	.write(to: &wbuffer)
+		try middleName	.write(to: &wbuffer)
+		try familyName	.write(to: &wbuffer)
+		try nameSuffix	.write(to: &wbuffer)
+		try nickname	.write(to: &wbuffer)
+	}
+	
+	public init(from rbuffer: inout BinaryReadBuffer) throws {
+		self.init()
+		
+		namePrefix	= try String?(from: &rbuffer)
+		givenName	= try String?(from: &rbuffer)
+		middleName	= try String?(from: &rbuffer)
+		familyName	= try String?(from: &rbuffer)
+		nameSuffix	= try String?(from: &rbuffer)
+		nickname	= try String?(from: &rbuffer)
+	}
+}
+```
+
+**GraphCodable package**: In this case GraphCodable does not use BinaryIO but stores `PersonNameComponents` using keys with `GCodable` methods. This means that the BinaryIO implementation in `PersonNameComponents` is only accessible by extracting the BinaryIO package and using it without the GraphCodable.
+
+```swift
+extension PersonNameComponents : GCodable {
+	private enum Key : String {
+		case namePrefix
+		case givenName
+		case middleName
+		case familyName
+		case nameSuffix
+		case nickname
+	}
+	
+	public init(from decoder: GDecoder) throws {
+		self.init()
+		
+		namePrefix = try decoder.decodeIfPresent( for: Key.namePrefix )
+		givenName  = try decoder.decodeIfPresent( for: Key.givenName )
+		middleName = try decoder.decodeIfPresent( for: Key.middleName )
+		familyName = try decoder.decodeIfPresent( for: Key.familyName )
+		nameSuffix = try decoder.decodeIfPresent( for: Key.nameSuffix )
+		nickname   = try decoder.decodeIfPresent( for: Key.nickname )
+	}
+	
+	public func encode(to encoder: GEncoder) throws {
+		try encoder.encodeIfPresent( namePrefix, for: Key.namePrefix)
+		try encoder.encodeIfPresent( givenName, for: Key.givenName)
+		try encoder.encodeIfPresent( middleName, for: Key.middleName)
+		try encoder.encodeIfPresent( familyName, for: Key.familyName)
+		try encoder.encodeIfPresent( nameSuffix, for: Key.nameSuffix)
+		try encoder.encodeIfPresent( nickname, 	for: Key.nickname)
+	}
+}
+```
+
+#### 

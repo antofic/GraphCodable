@@ -21,20 +21,18 @@
 //	SOFTWARE.
 
 /// A dummy protocol to mark trivial types
-public protocol GTrivial {}
+public protocol GPackable {}
 
-public typealias GTrivialEncodable	= GBinaryEncodable & GTrivial
-public typealias GTrivialDecodable	= GBinaryDecodable & GTrivial
+public typealias GPackEncodable	= GBinaryEncodable & GPackable
+public typealias GPackDecodable	= GBinaryDecodable & GPackable
 
 
 ///	Use this protocol to encode and decode trivial types.
 ///
-///	`GTrivialCodable` types bypass the standard coding mechanism and use the faster
+///	`GPackCodable` types bypass the standard coding mechanism and use the faster
 ///	`BinaryIOType` one. It also bypasses inheritance and identity.
-///
-///	The type **must be trivial**, as defined by `_isPOD( _ type: )`.
-///
+//////
 ///	- Note: The library generate a runtime error if you mark a non trivial type
-///	with the `GTrivialCodable` protocol and try to encode it.
-public typealias GTrivialCodable	= GTrivialEncodable & GTrivialDecodable
+///	with the `GPackCodable` protocol and try to encode it.
+public typealias GPackCodable	= GPackEncodable & GPackDecodable
 

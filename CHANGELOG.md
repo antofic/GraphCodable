@@ -67,7 +67,7 @@ This subdivision is an unnecessary complication: we keep only the GCodable proto
 
 # 0.1.0
 
-This is the first minor, unstable release of GraphCodable. The public API for this library is subject to change unexpectedly until 1.0.0 is reached, at which point breaking changes will be mitigated and communicated ahead of time.
+This is the first minor, unstable release of GraphCodable. The public API for this package is subject to change unexpectedly until 1.0.0 is reached, at which point breaking changes will be mitigated and communicated ahead of time.
 
 ## Be aware
 **The data format may be subject to future changes.**

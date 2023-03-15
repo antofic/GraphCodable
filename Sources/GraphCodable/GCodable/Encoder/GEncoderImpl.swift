@@ -153,8 +153,8 @@ extension GEncoderImpl {
 			return
 		}
 		// now value is not nil
-		if let trivialValue = value as? GTrivialEncodable {
-			try throwIfNotTrivial( trivialValue: trivialValue )
+		if let trivialValue = value as? GPackEncodable {
+			//	try throwIfNotTrivial( trivialValue: trivialValue )
 			// note: only value types can be trivial
 			// trivial value don't have identity
 			if encodeOptions.contains( .printWarnings ) {
@@ -302,11 +302,11 @@ extension GEncoderImpl {
 		return nil
 	}
 */
-	private func throwIfNotTrivial<T:GTrivialEncodable>( trivialValue value:T ) throws {
+	private func throwIfNotTrivial<T:GPackEncodable>( trivialValue value:T ) throws {
 		guard _isPOD( T.self ) else {
 			throw GCodableError.valueMustBeTrivial(
 				Self.self, GCodableError.Context(
-					debugDescription: "Not trivial type \( T.self ) marked as \(GTrivial.self)."
+					debugDescription: "Not trivial type \( T.self ) marked as \(GPackable.self)."
 				)
 			)
 		}
