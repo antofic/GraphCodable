@@ -14,7 +14,7 @@
   - [Conditional encoding](#Conditional-encoding)
   - [Directed acyclic graphs (DAG)](#Directed-acyclic-graphs-(DAG))
   - [Directed cyclic graphs (DCG)](#Directed-cyclic-graphs-(DCG))
-    - [Example: weak variables](#Example::-weak-variables)
+    - [Weak variables example](#Weak-variables-example)
     - [A more general example](#A-more-general-example)
   - [Identity for value types that use copy on write (COW)](#Identity-for-value-types-that-use-copy-on-write-(COW))
   - [Identity for swift system value types that use copy on write (COW)](#Identity-for-swift-system-value-types-that-use-copy-on-write-(COW))
@@ -32,10 +32,10 @@
   - [The `GPackCodable` protocol](#The-`GPackCodable`-protocol)
   - [Remarks](#Remarks)
   - [GraphCodable and BinaryIO for some system types](#GraphCodable-and-BinaryIO-for-som-system-types)
-    - [A Foundation type: `CGSize`](#A-Foundation-type:-`CGSize`)
-    - [A swift standard library type: `String`](#A-swift-standard-library-type:-`String`)
-    - [A swift standard library container: `Array`](#A-swift-standard-library-container:-`Array`)
-    - [Another Foundation type: `PersonNameComponents`](#Another-Foundation-type:-`PersonNameComponents`)
+    - [Foundation type `CGSize`](#Foundation-type-`CGSize`)
+    - [Swift standard library type `String`](#Swift-standard-library-type-`String`)
+    - [Swift standard library type `Array`](#Swift-standard-library-type-`Array`)
+    - [Foundation type `PersonNameComponents`](#Foundation-type-`PersonNameComponents`)
 
 
 ## Premise
@@ -866,7 +866,7 @@ What happens if you add a connection from `e` to `b` in the previous example?
 
 Just like ARC cannot autamatically release `e`, `b` and d because each retain the other, GraphCodable cannot initialize `e`, `b` and `d` because the initialization of each of them requires that the other be initialized and Swift does not allow to exit from an init method without inizializing all variables. So, when GraphCodable during decode encounters a cycle that it cannot resolve, it throws an exception.
 
-##### Example: weak variables
+##### Weak variables example
 One possible solution for ARC is to use weak variables.
 Than, GraphCodable uses a slightly different way to decode weak variables used to break strong memory cycles: it postpones, calling a closure with the `deferDecode(...)` method, the setting of these variables (remember: they are optional, so they are auto-inizializated to nil) until the objects they point to have been initialized.
 
@@ -2283,7 +2283,7 @@ A type that adopts the `GPackCodable` protocol:
 
 To further clarify how GraphCodable and BinaryIO interact, let's see how some system types adopt their protocols.
 
-#### A Foundation type: `CGSize`
+#### Foundation type `CGSize`
 
 **BinaryIO package**:
 
@@ -2308,7 +2308,7 @@ extension CGSize : BinaryIOType {
 extension CGSize : GPackCodable {}
 ```
 
-#### A swift standard library type: `String`
+#### Swift standard library type `String`
 
 **BinaryIO package**:
 
@@ -2333,7 +2333,7 @@ extension String : GBinaryCodable {}
 
 Note the difference with `CGSize`: `CGSize` adopt the `GPackCodable` protocol because it doesn't make sense that they can use identities, `String` adopt the `GBinaryCodable` protocol because they could use identities. This implies that `CGSize` arrays are encoded as a single data unit while `String` arrays are not.
 
-#### A swift standard library container: `Array`
+#### Swift standard library type `Array`
 
 Let's see how GraphCodable implements these mechanisms for swift containers, taking into consideration the case of `Array` (the others are completely analogous).
 
@@ -2386,7 +2386,7 @@ This additional line of code allows array to encode its elements with BinaryIO w
 extension Array : GBinaryCodable where Element : GPackCodable {}
 ```
 
-#### Another Foundation type: `PersonNameComponents`
+#### Foundation type `PersonNameComponents`
 
 **BinaryIO package**:
 
