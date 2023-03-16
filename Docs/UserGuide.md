@@ -2144,7 +2144,21 @@ This mechanism is accessible to the user: let's see how.
 
 ### The `BinaryIOType` protocol
 
-First, we can see that in the proposed example `NumericData`, unlike `Model`, seems to be the ideal candidate to be encoded directly with BinaryIO: it's a trivial structure. The protocol to be used is `BinaryIOType`, defined as `typealias BinaryIOType	= BinaryIType & BinaryOType` in the BinaryIO package.
+First, we can see that in the proposed example `NumericData`, unlike `Model`, seems to be the ideal candidate to be encoded directly with BinaryIO: it's a trivial structure. The protocol to be used is `BinaryIOType`, defined as `typealias BinaryIOType	= BinaryIType & BinaryOType` in the BinaryIO package:
+
+```swift
+public protocol BinaryOType {
+	func write( to wbuffer: inout BinaryWriteBuffer ) throws
+}
+
+public protocol BinaryIType {
+	init( from rbuffer: inout BinaryReadBuffer ) throws
+}
+
+public typealias BinaryIOType	= BinaryIType & BinaryOType
+```
+
+You can see how with BinaryIO the type that adopt the `BinaryIOType` protocol is stored by "writing" its fields to a `BinaryWriteBuffer`and instantiated by "reading" its fields **in the same order** from a `BinaryReadBuffer`:
 
 ```swift
 extension NumericData : BinaryIOType {
@@ -2158,20 +2172,6 @@ extension NumericData : BinaryIOType {
 		try matrix.write(to: &wbuffer)
 	}
 }
-```
-
-You can see how with BinaryIO the type that adopt the `BinaryIOType` protocol is stored by "writing" its fields to a `BinaryWriteBuffer`and instantiated by "reading" its fields **in the same order** from a `BinaryReadBuffer`. 
-
-```swift
-public protocol BinaryOType {
-	func write( to wbuffer: inout BinaryWriteBuffer ) throws
-}
-
-public protocol BinaryIType {
-	init( from rbuffer: inout BinaryReadBuffer ) throws
-}
-
-public typealias BinaryIOType	= BinaryIType & BinaryOType
 ```
 
 BinaryIO is a fast low-level package and no keys are available. Also note that  `BinaryReadBuffer` and  `BinaryWriteBuffer` are value types.
