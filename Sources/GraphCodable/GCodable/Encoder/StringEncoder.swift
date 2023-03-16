@@ -137,9 +137,9 @@ final class StringEncoder : FileBlockEncoder {
 			if options.contains( .showMangledNamesInReferenceMap ) {
 				string.append( "QualifiedName  = \( classData.qualifiedName )"  )
 				string.append( "\n\t\t\tMangledName    = \( classData.mangledName )"  )
-				string.append( "\n\t\t\tEncodedVersion = \( classData.encodedVersion )"  )
+				string.append( "\n\t\t\tEncodedVersion = \( classData.encodedTypeVersion )"  )
 			} else {
-				string.append("\(classData.qualifiedName) V\(classData.encodedVersion)")
+				string.append("\(classData.qualifiedName) V\(classData.encodedTypeVersion)")
 			}
 			return string
 		}

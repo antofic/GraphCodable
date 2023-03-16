@@ -93,7 +93,7 @@ final class GEncoderImpl : FileBlockEncoderDelegate {
 
 	func encodeRoot<T,Q>( _ value: T ) throws -> Q where T:GEncodable, Q:MutableDataProtocol {
 		defer { self.dataEncoder = nil }
-		let binaryWriteBuffer	= BinaryWriteBuffer(version: binaryIOVersion)
+		let binaryWriteBuffer	= BinaryWriteBuffer( version: binaryIOVersion, userInfo:userInfo )
 		let dataEncoder			= BinaryEncoder<Q>( binaryWriteBuffer: binaryWriteBuffer, fileHeader: fileHeader )
 		self.dataEncoder 		= dataEncoder
 		try encode( value )

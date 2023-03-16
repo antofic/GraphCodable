@@ -28,11 +28,11 @@ public protocol GDecoder {
 	
 	/// Returns the version of the encoded object during the object decoding
 	///
-	/// Corresponds to the value of `encodedVersion` when encoding the
+	/// Corresponds to the value of `encodedTypeVersion` when encoding the
 	/// data and can be used to decide on different decoding strategies.
 	///
 	/// Only reference types can have a version.
-	var encodedVersion : UInt32  { get throws }
+	var encodedTypeVersion : UInt32  { get throws }
 
 	/// The replacedType type during the object decoding if exists
 	///

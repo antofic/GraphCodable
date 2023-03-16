@@ -30,13 +30,14 @@ BinaryWriteBuffer data format uses always:
 
 /// Buffer to write instances of BinaryOType types to.
 public struct BinaryWriteBuffer {
+	private (set) var 	bytes 			: Bytes
+	private var 		_position		: Int
+	private var			insertMode		: Bool
 	// actual private version for library types
 	static let			privateVersion	: UInt16 = 0
 	// public version for user defined types
 	public let			version			: UInt16
-	private (set) var 	bytes 			: Bytes
-	private var 		_position		: Int
-	private var			insertMode		: Bool
+	public let 			userInfo		: [String:Any]
 }
 
 //	MAKE THIS EXTENSION PUBLIC IF YOU WANT TO USE BinaryIO AS A STANDALONE LIBRARY
@@ -55,11 +56,12 @@ extension BinaryWriteBuffer {
 		}
 	}
 	
-	init( version: UInt16 ) {
+	init( version: UInt16, userInfo:[String:Any] = [:] ) {
 		self.version		= version
 		self.bytes			= Bytes()
 		self._position		= 0
-		self.insertMode			= false
+		self.insertMode		= false
+		self.userInfo		= userInfo
 		// really can't throw
 		try! self.writeValue( Self.privateVersion )
 		try! self.writeValue( version )

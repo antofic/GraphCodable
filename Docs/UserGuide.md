@@ -1333,28 +1333,28 @@ Both `GraphEncoder` and `GraphDecoder` allow setting a dictionary accessible dur
 
 ### Reference types versioning
 
-Reference types can use the `encodeVersion` property in `GEncodable` protocol:
+Reference types can use the `typeVersion` property in `GEncodable` protocol:
 
 ```swift
 public protocol GEncodable {
 	/* ... */
-  static var encodeVersion : UInt32 { get }
+  static var typeVersion : UInt32 { get }
 }
 
 extension GEncodable {
-	public static var encodeVersion : UInt32 { 0 }
+	public static var typeVersion : UInt32 { 0 }
 }
 
 ```
 
- to define the version (a `UInt32` value) of their type so that they can handle different decoding strategies depending on it. The default `encodeVersion` value is 0.
+ to define the version (a `UInt32` value) of their type so that they can handle different decoding strategies depending on it. The default `typeVersion` value is 0.
 
-The encoder stores the value returned by `encodeVersion` together with the reference type information, only once for each reference type. During decoding, the version of the encoded reference type can be accessed through the decoder property `encodedVersion`.
+The encoder stores the value returned by `typeVersion` together with the reference type information, only once for each reference type. During decoding, the version of the encoded reference type can be accessed through the decoder property `encodedTypeVersion`.
 
 ```swift
 public protocol GDecoder {
 	...
-	var encodedVersion : UInt32  { get throws }
+	var encodedTypeVersion : UInt32  { get throws }
   ...
 }
 
@@ -1425,7 +1425,7 @@ class MyData :GCodable, CustomStringConvertible {
 	}
 	
 	required init(from decoder: GDecoder) throws {
-		let version = try decoder.encodedVersion
+		let version = try decoder.encodedTypeVersion
 		
 		switch version {
 		case 0:		// previous version
@@ -1979,7 +1979,7 @@ class MyNewData :GCodable, CustomStringConvertible {
 	}
 	
 	required init(from decoder: GDecoder) throws {
-		let version = try decoder.encodedVersion
+		let version = try decoder.encodedTypeVersion
 		
 		switch version {
 		case 0:		// previous version

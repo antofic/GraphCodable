@@ -78,7 +78,7 @@ final class TypeConstructor {
 	}
 	
 	
-	var encodedVersion : UInt32 {
+	var encodedTypeVersion : UInt32 {
 		get throws {
 			guard let classInfo = currentInfo else {
 				throw GCodableError.typeMismatch(
@@ -87,7 +87,7 @@ final class TypeConstructor {
 					)
 				)
 			}
-			return classInfo.classData.encodedVersion
+			return classInfo.classData.encodedTypeVersion
 		}
 	}
 	

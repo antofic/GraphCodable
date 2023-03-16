@@ -35,12 +35,12 @@ public protocol GEncodable {
 	/// Returns `0` by default
 	///
 	/// Only reference types support versioning.
-	static var encodeVersion : UInt32 { get }
+	static var typeVersion : UInt32 { get }
 }
 
 extension GEncodable {
-	/// Default encodeVersion = 0
-	public static var encodeVersion : UInt32 { 0 }
+	/// Default typeVersion = 0
+	public static var typeVersion : UInt32 { 0 }
 }
 
 extension GEncodable where Self:AnyObject {

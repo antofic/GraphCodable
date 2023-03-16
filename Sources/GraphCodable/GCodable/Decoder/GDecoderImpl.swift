@@ -27,7 +27,7 @@ final class GDecoderImpl {
 	
 	func allClassData<Q>( from data: Q ) throws -> [ClassData]
 	where Q:Sequence, Q.Element==UInt8 {
-		let readBuffer 		= try BinaryReadBuffer(data: data)
+		let readBuffer 		= try BinaryReadBuffer(data: data, userInfo:userInfo )
 		let decodedNames	= try ClassNamesDecoder(from: readBuffer)
 		
 		return Array( decodedNames.classDataMap.values )
@@ -37,7 +37,7 @@ final class GDecoderImpl {
 	where T:GDecodable, Q:Sequence, Q.Element==UInt8 {
 		defer { constructor = nil }
 		
-		let readBuffer	= try BinaryReadBuffer(data: data)
+		let readBuffer	= try BinaryReadBuffer(data: data, userInfo:userInfo )
 		constructor		= try TypeConstructor( readBuffer: readBuffer, classNameMap:classNameMap )
 		
 		return try constructor.decodeRoot(type, from: self)
@@ -46,7 +46,7 @@ final class GDecoderImpl {
 	func dumpRoot<Q>( from data: Q, options: GraphDumpOptions ) throws -> String
 	where Q:Sequence, Q.Element==UInt8 {
 		
-		let readBuffer	= try BinaryReadBuffer(data: data)
+		let readBuffer	= try BinaryReadBuffer(data: data, userInfo:userInfo )
 		let decodedDump	= try StringDecoder(from: readBuffer, options: options)
 		
 		return try decodedDump.dump()
@@ -55,8 +55,8 @@ final class GDecoderImpl {
 
 // MARK: GDecoderImpl conformance to GDecoder protocol
 extension GDecoderImpl : GDecoder {
-	var encodedVersion : UInt32 {
-		get throws { try constructor.encodedVersion }
+	var encodedTypeVersion : UInt32 {
+		get throws { try constructor.encodedTypeVersion }
 	}
 
 	var replacedType : GDecodable.Type?   {

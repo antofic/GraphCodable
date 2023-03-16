@@ -199,7 +199,7 @@ extension FileBlock {
 		try keyID?.write( to: &wbuffer )
 		try objID.write( to: &wbuffer )
 	}
-
+	
 	static func writeVal(
 		keyID:KeyID?, objID:ObjID?, typeID:TypeID?, binaryValue:BinaryOType?,
 		to wbuffer: inout BinaryWriteBuffer, fileHeader:FileHeader
@@ -269,7 +269,7 @@ extension FileBlock : CustomStringConvertible {
 		func typeName( _ typeID:TypeID, _ options:GraphDumpOptions, _ classDataMap:ClassDataMap? ) -> String {
 			if let classData	= classDataMap?[typeID] {
 				if options.contains( .showClassVersionsInBody ) {
-					return "\(classData.qualifiedName) V\(classData.encodedVersion)"
+					return "\(classData.qualifiedName) V\(classData.encodedTypeVersion)"
 				} else {
 					return classData.qualifiedName
 				}

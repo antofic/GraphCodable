@@ -25,18 +25,18 @@ import Foundation
 struct ClassData : BinaryIOType, CustomStringConvertible {
 	let	qualifiedName:	String	// the TypeName Generated _typeName( type, qualified:true )
 	let	mangledName:	String	// the TypeName Generated _mangledTypeName( type )
-	let	encodedVersion:	UInt32
+	let	encodedTypeVersion:	UInt32
 	
 	func write(to wbuffer: inout BinaryWriteBuffer) throws {
 		try qualifiedName.write(to: &wbuffer)
 		try mangledName.write(to: &wbuffer)
-		try encodedVersion.write(to: &wbuffer)
+		try encodedTypeVersion.write(to: &wbuffer)
 	}
 	
 	init(from rbuffer: inout BinaryReadBuffer) throws {
 		self.qualifiedName	= try String( from: &rbuffer )
 		self.mangledName	= try String( from: &rbuffer )
-		self.encodedVersion	= try UInt32( from: &rbuffer )
+		self.encodedTypeVersion	= try UInt32( from: &rbuffer )
 	}
 	
 	static private func constructType( mangledName:String ) -> AnyClass? {
@@ -56,8 +56,8 @@ struct ClassData : BinaryIOType, CustomStringConvertible {
 			)
 		}
 
-		self.mangledName 	= mangledName
-		self.encodedVersion	= type.encodeVersion
+		self.mangledName 		= mangledName
+		self.encodedTypeVersion	= type.typeVersion
 	}
 	
 	static func isConstructible( type:AnyObject.Type ) -> Bool {
@@ -83,7 +83,7 @@ struct ClassData : BinaryIOType, CustomStringConvertible {
 	}
 	
 	var description: String {
-		"\"\(qualifiedName)\" V\(encodedVersion) "
+		"\"\(qualifiedName)\" V\(encodedTypeVersion) "
 	}
 	
 	private var encodedType : GDecodable.Type? {

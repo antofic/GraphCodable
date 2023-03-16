@@ -35,15 +35,15 @@ BinaryReadBuffer:
 ///
 ///
 public struct BinaryReadBuffer {
-	// private version for library types
-	let	privateVersion		: UInt16
-	
 	private let base		: Bytes
 	private var bytes		: Bytes.SubSequence
 	
+	// private version for library types
+	let	privateVersion		: UInt16
 	//	public version for user defined types
 	public	let	version 	: UInt16
-	public	var	dataSize	: Int 			{ base.count }
+	public	var	dataSize	: Int 	{ base.count }
+	public	let userInfo	: [String:Any]
 }
 
 //	MAKE THIS EXTENSION PUBLIC IF YOU WANT TO USE BinaryIO AS A STANDALONE LIBRARY
@@ -59,20 +59,21 @@ extension BinaryReadBuffer {
 	var fullRegion			: Range<Int>	{ startOfFile ..< base.endIndex }
 	
 	//	MAKE THIS FUNCTION PUBLIC IF YOU WANT TO USE BinaryIO AS A STANDALONE LIBRARY
-	init( bytes base: Bytes ) throws {
+	init( bytes base: Bytes, userInfo:[String:Any] = [:] ) throws {
 		var bytes			= base[...]
 		self.privateVersion	= try Self.readValue(from: &bytes)
 		self.version		= try Self.readValue(from: &bytes)
 		self.base			= base
 		self.bytes			= bytes
+		self.userInfo		= userInfo
 	}
 	
 	//	MAKE THIS FUNCTION PUBLIC IF YOU WANT TO USE BinaryIO AS A STANDALONE LIBRARY
-	init<Q>( data: Q ) throws where Q:Sequence, Q.Element==UInt8 {
+	init<Q>( data: Q, userInfo:[String:Any] = [:] ) throws where Q:Sequence, Q.Element==UInt8 {
 		if let bytes = data as? Bytes {
-			try self.init( bytes: bytes )
+			try self.init( bytes: bytes, userInfo:userInfo )
 		} else {
-			try self.init( bytes: Bytes(data) )
+			try self.init( bytes: Bytes(data), userInfo:userInfo )
 		}
 	}
 	
