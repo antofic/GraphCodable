@@ -30,13 +30,13 @@
   - [The `BinaryIOType` protocol](#The-`BinaryIOType`-protocol)
   - [The `GBinaryCodable` protocol](#The-`GBinaryCodable`-protocol)
   - [The `GPackCodable` protocol](#The-`GPackCodable`-protocol)
-  - [Advice](#Advice)
   - [BinaryIO versioning](#BinaryIO-versioning)
   - [GraphCodable and BinaryIO for some system types](#GraphCodable-and-BinaryIO-for-som-system-types)
     - [Foundation type `CGSize`](#Foundation-type-`CGSize`)
     - [Swift standard library type `String`](#Swift-standard-library-type-`String`)
     - [Swift standard library type `Array`](#Swift-standard-library-type-`Array`)
     - [Foundation type `PersonNameComponents`](#Foundation-type-`PersonNameComponents`)
+  - [Final Advice](#Final-Advice)
 
 
 ## Premise
@@ -2293,25 +2293,6 @@ public typealias GPackDecodable	= GBinaryDecodable & GPackable
 public typealias GPackCodable	= GPackEncodable & GPackDecodable
 ```
 
-### Advice
-
-A type that adopts the `GBinaryCodable` protocol:
-
-- gain faster encoding and decoding speed;
-- if it is a value type, it can have an identity;
-- if it is a reference type, it maintains identity, inheritance, can be versioned and can be obsoleted;
-- but its fields, being encoded with BinaryIO, cannot use keys, do not benefit from inheritance, identity, cannot be versioned, and cannot be obsoleted.
-
-A type that adopts the `GPackCodable` protocol:
-
-- gain even faster encoding and decoding speed when it is an element of suitably prepared containers;
-- loses **itself** (as its fileds) identity, inheritance, cannot be versioned, and cannot be obsoleted because encoded directly by BinaryIO bypassing GraphCodable features;
-
-**<u>IMPORTANT!</u>** It is recommended to use BinaryIO only if strictly necessary (encoding and decoding too slow), following these rules:
-
-- a **value** type should adopt the `GPackCodable` protocol only if it is trivial, that is, if `_isPOD( type )` returns `true`. Reference types are not trivial.
-- a **value** or **reference** type can adopt protocol  `GBinaryCodable` if it is a user-defined container of types that adopt protocol `GPackCodable` or if its fields adopt protocol `GBinaryCodable` and do not need the functions of GraphCodable (identity, inheritance, etc…).
-
 #### BinaryIO versioning
 
 What to do if during the evolution of the program it becomes necessary to modify a type that uses BinaryIO?
@@ -2710,3 +2691,22 @@ extension PersonNameComponents : GCodable {
 	}
 }
 ```
+
+### Final Advice
+
+A type that adopts the `GBinaryCodable` protocol:
+
+- gain faster encoding and decoding speed;
+- if it is a value type, it can have an identity;
+- if it is a reference type, it maintains identity, inheritance, can be versioned and can be obsoleted;
+- but its fields, being encoded with BinaryIO, cannot use keys, do not benefit from inheritance, identity, cannot be versioned, and cannot be obsoleted.
+
+A type that adopts the `GPackCodable` protocol:
+
+- gain even faster encoding and decoding speed when it is an element of suitably prepared containers;
+- loses **itself** (as its fileds) identity, inheritance, cannot be versioned, and cannot be obsoleted because encoded directly by BinaryIO bypassing GraphCodable features;
+
+**<u>IMPORTANT!</u>** It is recommended to use BinaryIO only if strictly necessary (encoding and decoding too slow), following these rules:
+
+- a **value** type should adopt the `GPackCodable` protocol only if it is trivial, that is, if `_isPOD( type )` returns `true`. Reference types are not trivial.
+- a **value** or **reference** type can adopt protocol  `GBinaryCodable` if it is a user-defined container of types that adopt protocol `GPackCodable` or if its fields adopt protocol `GBinaryCodable` and do not need the functions of GraphCodable (identity, inheritance, etc…).
