@@ -25,16 +25,14 @@ final class StringEncoder : FileBlockEncoder {
 	weak var			delegate			: FileBlockEncoderDelegate?
 	private var			fileHeader			: FileHeader
 	private var			options				: GraphDumpOptions
-	private var			binaryIOVersion		: UInt16
 	private var			dataSize			: Int?
 	private var			dump		= String()
 	private var 		dumpStart	= false
 	private var 		tabs		: String?
 
-	init( fileHeader: FileHeader, dumpOptions:GraphDumpOptions, binaryIOVersion:UInt16, dataSize:Int? ) {
+	init( fileHeader: FileHeader, dumpOptions:GraphDumpOptions, dataSize:Int? ) {
 		self.fileHeader			= fileHeader
 		self.options			= dumpOptions
-		self.binaryIOVersion	= binaryIOVersion
 		self.dataSize			= dataSize
 	}
 
@@ -65,11 +63,8 @@ final class StringEncoder : FileBlockEncoder {
 					dump.append( Self.titleString( "HEADER" ) )
 				}
 				dump.append( fileHeader.description )
-				dump.append( "\n" )
-				dump.append( Self.titleString( "BinaryIO",filler:"-" ) )
-				dump.append( "- Version   = \(binaryIOVersion.format("10")) {\(MemoryLayout.size(ofValue: binaryIOVersion)) bytes}\n" )
 				if let dataSize = dataSize {
-					dump.append( "- Data size = \(dataSize.format("10")) bytes\n" )
+					dump.append( "- Data size      = \(dataSize.format("10")) bytes\n" )
 				}
 			}
 			

@@ -45,7 +45,7 @@ public extension BinaryOType {
 	///	The root value must conform to the BinaryOType protocol
 	/// - returns: The byte buffer.
 	func binaryData<Q>( version:UInt16, userInfo:[String:Any] = [:] ) throws -> Q where Q:MutableDataProtocol {
-		var wbuffer = BinaryWriteBuffer( version:version,userInfo:userInfo )
+		var wbuffer = BinaryWriteBuffer( userVersion:version,userInfo:userInfo )
 		try write( to:&wbuffer )
 		return wbuffer.data()
 	}

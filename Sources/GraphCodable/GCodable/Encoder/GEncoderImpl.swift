@@ -57,7 +57,6 @@ import Foundation
 final class GEncoderImpl : FileBlockEncoderDelegate {
 	var userInfo							= [String:Any]()
 	private let 		encodeOptions		: GraphEncoder.Options
-	private let			binaryIOVersion		: UInt16
 	private let 		fileHeader			: FileHeader
 	private var 		currentKeys			= Set<String>()
 	private var			identityMap			= IdentityMap()
@@ -81,18 +80,17 @@ final class GEncoderImpl : FileBlockEncoderDelegate {
 	var keyStringMap: KeyStringMap 	{ keyMap.keyStringMap }
 	
 	private func writeBuffer() -> BinaryWriteBuffer {
-		BinaryWriteBuffer( version: binaryIOVersion, userInfo:userInfo )
+		BinaryWriteBuffer( userVersion: fileHeader.userVersion, userInfo:userInfo )
 	}
 	
-	init( _ options: GraphEncoder.Options, binaryIOVersion:UInt16 ) {
+	init( _ options: GraphEncoder.Options, userVersion:UInt16 ) {
 		#if DEBUG
 		self.encodeOptions	= [options, .printWarnings]
 		#else
 		self.encodeOptions	= options
 		#endif
-		self.binaryIOVersion	= binaryIOVersion
 		// packBinSize or not???
-		self.fileHeader			= FileHeader( flags: .packBinSize )
+		self.fileHeader			= FileHeader( userVersion:userVersion, flags: .packBinSize )
 	}
 
 	func encodeRoot<T,Q>( _ value: T ) throws -> Q where T:GEncodable, Q:MutableDataProtocol {
@@ -109,7 +107,6 @@ final class GEncoderImpl : FileBlockEncoderDelegate {
 		let dataEncoder		= StringEncoder(
 			fileHeader:			fileHeader,
 			dumpOptions:		options,
-			binaryIOVersion:	binaryIOVersion,
 			dataSize: 			nil	// no data size during encode
 		)
 		self.dataEncoder	= dataEncoder
@@ -120,6 +117,10 @@ final class GEncoderImpl : FileBlockEncoderDelegate {
 
 // MARK: GEncoderImpl conformance to GEncoder protocol
 extension GEncoderImpl : GEncoder {
+	var	userVersion	: UInt16 {
+		return fileHeader.userVersion
+	}
+	
 	func encode<Value>(_ value: Value) throws where Value:GEncodable {
 		try encodeAnyValue( value, forKey: nil, conditional:false )
 	}

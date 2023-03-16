@@ -28,8 +28,8 @@ public final class GraphEncoder {
 	private let encoder	: GEncoderImpl
 
 	/// GraphEncoder init method
-	public init( _ options: Options = .defaultOption, binaryIOVersion: UInt16 = 0 ) {
-		encoder	= GEncoderImpl( options, binaryIOVersion:binaryIOVersion )
+	public init( _ options: Options = .defaultOption, userVersion: UInt16 = 0 ) {
+		encoder	= GEncoderImpl( options, userVersion:userVersion )
 	}
 
 	///	Get/Set the userInfo dictionary
@@ -64,7 +64,6 @@ extension GraphEncoder {
 		public init(rawValue: UInt) {
 			self.rawValue	= rawValue
 		}
-		
 		
 		///	Enable printing of warnings
 		///

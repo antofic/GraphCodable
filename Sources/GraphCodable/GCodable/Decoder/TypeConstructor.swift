@@ -30,6 +30,8 @@ final class TypeConstructor {
 	private var			objectRepository 	= [ ObjID: Any ]()
 	private var			setterRepository 	= [ () throws -> () ]()
 	
+	var fileHeader : FileHeader { binaryDecoder.fileHeader }
+	
 	init( readBuffer:BinaryReadBuffer, classNameMap:ClassNameMap? ) throws {
 		self.readBuffer		= readBuffer
 		self.binaryDecoder	= try BinaryDecoder(from: readBuffer, classNameMap:classNameMap )

@@ -35,23 +35,23 @@ BinaryReadBuffer:
 ///
 ///
 public struct BinaryReadBuffer {
-	private let base		: Bytes
-	private var bytes		: Bytes.SubSequence
+	private let base				: Bytes
+	private var bytes				: Bytes.SubSequence
 	
 	// private version for library types
-	let	privateVersion		: UInt16
+	let	privateVersion				: UInt16
 	//	public version for user defined types
-	public let	version 	: UInt16
-	public var	dataSize	: Int 	{ base.count }
-	public let	userInfo	: [String:Any]
-	public let	userObject	: AnyObject?
+	public let	encodedUserVersion	: UInt16
+	public var	dataSize			: Int 	{ base.count }
+	public let	userInfo			: [String:Any]
+	public let	userObject			: AnyObject?
 }
 
 //	MAKE THIS EXTENSION PUBLIC IF YOU WANT TO USE BinaryIO AS A STANDALONE LIBRARY
 //	public extension BinaryReadBuffer {
 extension BinaryReadBuffer {
 	//	MAKE THIS PROPERTY PUBLIC IF YOU WANT TO USE BinaryIO AS A STANDALONE LIBRARY
-	var startOfFile			: Int			{ MemoryLayout.size(ofValue: privateVersion) + MemoryLayout.size(ofValue: version) }
+	var startOfFile			: Int			{ MemoryLayout.size(ofValue: privateVersion) + MemoryLayout.size(ofValue: encodedUserVersion) }
 	
 	//	MAKE THIS PROPERTY PUBLIC IF YOU WANT TO USE BinaryIO AS A STANDALONE LIBRARY
 	var isEndOfFile			: Bool			{ bytes.count == 0 }
@@ -61,13 +61,13 @@ extension BinaryReadBuffer {
 	
 	//	MAKE THIS FUNCTION PUBLIC IF YOU WANT TO USE BinaryIO AS A STANDALONE LIBRARY
 	init( bytes base: Bytes, userInfo:[String:Any] = [:], userObject:AnyObject? = nil ) throws {
-		var bytes			= base[...]
-		self.privateVersion	= try Self.readValue(from: &bytes)
-		self.version		= try Self.readValue(from: &bytes)
-		self.base			= base
-		self.bytes			= bytes
-		self.userInfo		= userInfo
-		self.userObject		= userObject
+		var bytes				= base[...]
+		self.privateVersion		= try Self.readValue(from: &bytes)
+		self.encodedUserVersion	= try Self.readValue(from: &bytes)
+		self.base				= base
+		self.bytes				= bytes
+		self.userInfo			= userInfo
+		self.userObject			= userObject
 	}
 	
 	//	MAKE THIS FUNCTION PUBLIC IF YOU WANT TO USE BinaryIO AS A STANDALONE LIBRARY

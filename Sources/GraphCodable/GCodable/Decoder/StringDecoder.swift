@@ -23,7 +23,6 @@
 import Foundation
 
 final class StringDecoder: FileBlockEncoderDelegate {
-	let	binaryIOVersion	: UInt16
 	let	dataSize		: Int
 	let fileHeader		: FileHeader
 	let rFileBlocks		: ReadBlocks
@@ -34,7 +33,6 @@ final class StringDecoder: FileBlockEncoderDelegate {
 	init( from readBuffer:BinaryReadBuffer, options:GraphDumpOptions ) throws {
 		var readBlockDecoder	= try ReadBlockDecoder( from: readBuffer )
 		
-		self.binaryIOVersion	= readBuffer.version
 		self.dataSize			= readBuffer.dataSize
 		self.fileHeader			= readBlockDecoder.fileHeader
 		self.rFileBlocks		= try readBlockDecoder.readBlocks()
@@ -47,7 +45,6 @@ final class StringDecoder: FileBlockEncoderDelegate {
 		let stringEncoder	= StringEncoder(
 			fileHeader:			fileHeader,
 			dumpOptions:		dumpOptions,
-			binaryIOVersion:	binaryIOVersion,
 			dataSize: 			dataSize
 		)
 		stringEncoder.delegate	= self

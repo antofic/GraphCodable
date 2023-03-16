@@ -60,6 +60,10 @@ final class GDecoderImpl {
 
 // MARK: GDecoderImpl conformance to GDecoder protocol
 extension GDecoderImpl : GDecoder, GDecoderView {
+	var	encodedUserVersion	: UInt16 {
+		constructor.fileHeader.userVersion
+	}
+	
 	var encodedTypeVersion : UInt32 {
 		get throws { try constructor.encodedTypeVersion }
 	}
