@@ -154,9 +154,6 @@ extension GEncoderImpl {
 		}
 		// now value is not nil
 		if let trivialValue = value as? GPackEncodable {
-			//	try throwIfNotTrivial( trivialValue: trivialValue )
-			// note: only value types can be trivial
-			// trivial value don't have identity
 			if encodeOptions.contains( .printWarnings ) {
 				if conditional {
 					print( "### Warning: can't conditionally encode the type '\( type(of:value) )' without identity. It will be encoded unconditionally." )
@@ -266,16 +263,6 @@ extension GEncoderImpl {
 		return nil
 	}
 
-	private func throwIfNotTrivial<T:GPackEncodable>( trivialValue value:T ) throws {
-		guard _isPOD( T.self ) else {
-			throw GCodableError.valueMustBeTrivial(
-				Self.self, GCodableError.Context(
-					debugDescription: "Not trivial type \( T.self ) marked as \(GPackable.self)."
-				)
-			)
-		}
-	}
-	
 	private func createKeyID( for key: String? ) throws -> KeyID? {
 		if let key = key {
 			defer { currentKeys.insert( key ) }
@@ -296,9 +283,17 @@ extension GEncoderImpl {
 		if encodeOptions.contains( .disableInheritance ) {
 			return nil
 		}
-		guard let object = value as? GEncodable & AnyObject else {
+		
+		/*
+		guard type(of:value) is AnyClass else {
 			return nil
 		}
+		*/
+		guard let object = value as? (GEncodable & AnyObject) else {
+			return nil
+		}
+
+		
 		if encodeOptions.contains( .ignoreGInheritanceProtocol ) == false,
 		   let typeInfo = object as? (AnyObject & GInheritance),
 		   typeInfo.disableInheritance {

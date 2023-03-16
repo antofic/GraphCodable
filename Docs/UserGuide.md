@@ -30,7 +30,8 @@
   - [The `BinaryIOType` protocol](#The-`BinaryIOType`-protocol)
   - [The `GBinaryCodable` protocol](#The-`GBinaryCodable`-protocol)
   - [The `GPackCodable` protocol](#The-`GPackCodable`-protocol)
-  - [Remarks](#Remarks)
+  - [Advice](#Advice)
+  - [BinaryIO versioning](#BinaryIO-versioning)
   - [GraphCodable and BinaryIO for some system types](#GraphCodable-and-BinaryIO-for-som-system-types)
     - [Foundation type `CGSize`](#Foundation-type-`CGSize`)
     - [Swift standard library type `String`](#Swift-standard-library-type-`String`)
@@ -2078,15 +2079,42 @@ extension Model : GCodable {
 }
 
 let largeCount	= 3
-let root		= Model( count: largeCount, range: -1.0...1.0 )
-let data		= try GraphCodableUti.checkEncoder(root: root, dumpOptions: .readable) as Bytes
+let inRoot		= Model( count: largeCount, range: -1.0...1.0 )
+let encoder		= GraphEncoder()
+let dump		= try encoder.dump( inRoot, options:[.readable,.showHelp] )
+print( dump )]
 ```
 
-The program prints:
+The `.showHelp` option in tha penultimate line prints a little help in addition. So the program prints:
 
 ```
 -- Encoded Root Dump --------------
-= BODY ==============================================================
+= HELP =================================================================================
+Codes:
+	VAL<objID?>   = GCodable value tipe
+	REF<objID?>   = GCodable reference type
+	BIV<objID?>   = BinaryIO value type
+	BIR<objID?>   = BinaryIO reference type
+	NIL<objID?>   = nil (Optional.none) VAL,REF,BIV,BIR
+	PTS<objID>    = Strong pointer to VAL,REF,BIV,BIR
+	PTC<objID>    = Conditional pointer to VAL,REF,BIV,BIR
+
+	• VAL, REF are followed by their internal fields ending with '.'
+	• The '+ key/KEY<keyID>' symbol precedes keyed fields.
+	• The '-' symbol precedes unkeyed fields.
+	• objID is an unique integer code associated with REF, VAL, BIV,
+	  BIR, NIL only if they have identities. The PTC and PTS objID
+	  code is the same as the REF, VAL, BIV, BIR, NIL the pointer
+	  points to.
+
+Other codes:
+	TYPE<typeID>  = uniquely identifies the class of a reference
+	                (REF, BIR). Depending on the options selected,
+	                the qualified name of the class may be displayed
+	                alternatively.
+	KEY<keyID>    = uniquely identifies the key used in keyed coding.
+				    Only used by the VAL and REF fields.
+= BODY =================================================================================
 - VAL
 	+ "pivot": VAL
 		- BIV SIMD3<Double>(0.8294736549289274, 0.14269044479226034, -0.860581…
@@ -2107,10 +2135,10 @@ The program prints:
 		.
 	.
 .
-=====================================================================
+========================================================================================
 ```
 
-The structure of the encoded data is easy to recognize. But a question arises: `SIMD3<Double>` and `simd_double3x3` are respectively vectors of 3 double values and matrices of 3x3 double values. How come their structure is not visible but they appear to be stored as a <u>single data unit</u>? This is because GraphCodable uses the BinaryIO package to store "simple" types, and `SIMD3<Double>` and `simd_double3x3` are considered "simple" types, as are integers and float values. The GraphCodable encoded structure is in fact a graph whose terminal elements are always "simple" types encoded by BinaryIO. Storing a matrix of 3x3 elements directly with BinaryIO is much faster than storing these 9 elements with GraphCodable.
+The structure of the encoded data is easy to recognize. But a question arises: `SIMD3<Double>` and `simd_double3x3` are respectively vectors of 3 double values and matrices of 3x3 double values. How come their structure is not visible but they appear to be stored as <u>single data unit</u> of type `BIV` = *BinaryIO value type*? This is because GraphCodable uses the BinaryIO package to store "simple" types, and `SIMD3<Double>` and `simd_double3x3` are considered "simple" types, as are single integers or float values. The GraphCodable encoded structure is in fact a graph whose terminal elements are **always** "simple" types encoded by BinaryIO. Storing a matrix of 3x3 elements directly with BinaryIO is much faster than storing these 9 elements with GraphCodable.
 
 This mechanism is accessible to the user: let's see how.
 
@@ -2265,7 +2293,7 @@ public typealias GPackDecodable	= GBinaryDecodable & GPackable
 public typealias GPackCodable	= GPackEncodable & GPackDecodable
 ```
 
-### Remarks
+### Advice
 
 A type that adopts the `GBinaryCodable` protocol:
 
@@ -2278,6 +2306,240 @@ A type that adopts the `GPackCodable` protocol:
 
 - gain even faster encoding and decoding speed when it is an element of suitably prepared containers;
 - loses **itself** (as its fileds) identity, inheritance, cannot be versioned, and cannot be obsoleted because encoded directly by BinaryIO bypassing GraphCodable features;
+
+**<u>IMPORTANT!</u>** It is recommended to use BinaryIO only if strictly necessary (encoding and decoding too slow), following these rules:
+
+- a **value** type should adopt the `GPackCodable` protocol only if it is trivial, that is, if `_isPOD( type )` returns `true`. Reference types are not trivial.
+- a **value** or **reference** type can adopt protocol  `GBinaryCodable` if it is a user-defined container of types that adopt protocol `GPackCodable` or if its fields adopt protocol `GBinaryCodable` and do not need the functions of GraphCodable (identity, inheritance, etc…).
+
+#### BinaryIO versioning
+
+What to do if during the evolution of the program it becomes necessary to modify a type that uses BinaryIO?
+
+BinaryIO uses two `UInt16` values to globally specify a version:
+
+- an internal, non-accessible value to handle any changes to the package's predefined types;
+- a second accessible value to allow the user to manage any changes of its BinaryIO types.
+
+Starting from the previous example we add a flag of tipe `Flag` in `NumericData` and define two versions of BinaryIO in the `MyBinaryIOVersion` enum: the initial (`.initial`) one, which does not include it, and the subsequent one (`.newNumericData`) which does include it. During decoding the `NumericData` type must be able to instantiate itself according to the encoded version. And maybe we also want to provide in the function `write(to: inout BinaryWriteBuffer) throws` the ability to continue using the initial version for archiving as well.
+
+Here's how you can do it:
+
+```swift
+enum MyBinaryIOVersion : UInt16 {
+	case initial, newNumericData
+}
+
+struct NumericData {
+	enum Flag : UInt8 { case even, odd }
+	
+	let	vector	: SIMD3<Double>
+	let	matrix	: simd_double3x3
+	let flag	: Flag	// new field
+	
+	init( vector: SIMD3<Double>, matrix: simd_double3x3, flag:Flag ) {
+		self.vector = vector
+		self.matrix = matrix
+		self.flag	= flag
+	}
+}
+
+extension NumericData : GPackCodable {
+	//	her we implement the ability to read all versions:
+	init(from rbuffer: inout BinaryReadBuffer) throws {
+		self.vector = try SIMD3<Double>( from:&rbuffer )
+		self.matrix = try simd_double3x3( from:&rbuffer )
+		
+		// let's take the encoded version:
+		switch rbuffer.version {
+			case MyBinaryIOVersion.newNumericData.rawValue...:
+				//	it is at least the 'newNumericData' version
+				self.flag = try Flag( from:&rbuffer )
+			default:
+				//	the version is less than .newNumericData
+				self.flag = .even
+		}
+	}
+	
+	//	here we implement the possibility to write also
+	//	in previous versions
+	func write(to wbuffer: inout BinaryWriteBuffer) throws {
+		try vector.write(to: &wbuffer)
+		try matrix.write(to: &wbuffer)
+		
+		//	we encode according to the requested version:
+		switch wbuffer.version {
+			case MyBinaryIOVersion.newNumericData.rawValue...:
+				//	it is at least the .newNumericData version
+				try flag.write(to: &wbuffer)
+			default:
+				//	the version is less than .newNumericData
+				break
+		}
+	}
+}
+
+struct Model {
+	var pivot : NumericData
+	var array : [NumericData]
+	
+	init( count:Int, range: ClosedRange<Double> ) {
+		precondition( count > 0)
+		let array = (0..<count).map {
+			_ in NumericData(
+				vector	: SIMD3<Double>.random(in: range),
+				matrix	: simd_double3x3.init(diagonal: SIMD3<Double>.random(in: range)),
+				flag	: count.isMultiple(of: 2) ? .even : .odd
+			)
+		}
+		self.pivot	= array.randomElement()!
+		self.array	= array
+	}
+}
+
+extension Model : GCodable {
+	private enum Key : String { case pivot,array }
+	
+	init(from decoder: GDecoder) throws {
+		self.pivot	= try decoder.decode(for: Key.pivot)
+		self.array	= try decoder.decode(for: Key.array)
+	}
+	
+	func encode(to encoder: GEncoder) throws {
+		try encoder.encode(pivot, for: Key.pivot)
+		try encoder.encode(array, for: Key.array)
+	}
+}
+```
+
+With this other extension we directly give `Model` the possibility of encoding (in a 'MyBinaryIOVersion' of your choice) and decoding itself from a URL:
+
+```swift
+extension Model {
+	func write( binaryIOVersion:MyBinaryIOVersion, path:URL, dump:Bool ) throws {
+		let encoder	= GraphEncoder( binaryIOVersion: binaryIOVersion.rawValue )
+		if dump {	// -- just to show what is being encoded
+			print( "Encoding and writing version: '\(binaryIOVersion)(\(binaryIOVersion.rawValue))':")
+			print( try encoder.dump( self, options:[.readable,.showHeader] ) )
+		}
+		let data	= try encoder.encode( self ) as Data
+		try data.write( to: path )
+	}
+	
+	static func read( path:URL, dump:Bool ) throws -> Model {
+		let data	= try Data.init(contentsOf: path)
+		let decoder	= GraphDecoder()
+		if dump {	// -- just to show what will be decoded
+			print( "Reading and decoding:")
+			print( try decoder.dump( from: data, options:[.readable,.showHeader] ) )
+		}
+		// -----------------------------------
+		return try decoder.decode( Model.self, from: data )
+	}
+}
+```
+
+Note how the BinaryIO version must be specified in the GraphEncoder init method:
+
+```swift
+let encoder	= GraphEncoder( binaryIOVersion: binaryIOVersion.rawValue )
+```
+
+We also put the `dump` option to print the archive contents when reading and writing. In particular, in addition to the structure (BODY) of the archive, we also choose to print the header as well using the `.showHeader` flag.
+
+And so we can test the program by trying to archive and dearchive the file in different versions:
+
+```swift
+let fileURL	 = FileManager.default.urls(
+	for: .documentDirectory, in: .userDomainMask
+   )[0].appendingPathComponent("NumericModel.graph")
+
+
+let largeCount	= 3
+var model 		= Model( count: largeCount, range: -1.0...1.0 )
+
+try model.write( binaryIOVersion: .initial, path: fileURL, dump:true )
+
+model = try Model.read( path:fileURL, dump:true )
+
+try model.write(binaryIOVersion: .newNumericData, path: fileURL, dump:true )
+
+model = try Model.read( path:fileURL, dump:true )
+```
+
+The program prints:
+
+```
+Encoding and writing version: 'initial(0)':
+= HEADER ===============================================================================
+- FileType  = 'gcodable' {8 bytes}
+- Version   =          4 {4 bytes}
+- Flags     =          1 {2 bytes}
+- Unused0   =          0 {2 bytes}
+- Unused1   =          0 {8 bytes}
+- BinaryIO -----------------------------------------------------------------------------
+- Version   =          0 {2 bytes}
+= BODY =================================================================================
+- VAL
+	+ "pivot": BIV NumericData(vector: SIMD3<Double>(-0.4974170157849398, 0.4615048…
+	+ "array": BIV [MyGraphCodableApp.NumericData(vector: SIMD3<Double>(-0.25581721…
+.
+========================================================================================
+
+Reading and decoding:
+= HEADER ===============================================================================
+- FileType  = 'gcodable' {8 bytes}
+- Version   =          4 {4 bytes}
+- Flags     =          1 {2 bytes}
+- Unused0   =          0 {2 bytes}
+- Unused1   =          0 {8 bytes}
+- BinaryIO -----------------------------------------------------------------------------
+- Version   =          0 {2 bytes}
+- Data size =        521 bytes
+= BODY =================================================================================
+- VAL
+	+ "pivot": BIV { 96 bytes }
+	+ "array": BIV { 296 bytes }
+.
+========================================================================================
+
+Encoding and writing version: 'newNumericData(1)':
+= HEADER ===============================================================================
+- FileType  = 'gcodable' {8 bytes}
+- Version   =          4 {4 bytes}
+- Flags     =          1 {2 bytes}
+- Unused0   =          0 {2 bytes}
+- Unused1   =          0 {8 bytes}
+- BinaryIO -----------------------------------------------------------------------------
+- Version   =          1 {2 bytes}
+= BODY =================================================================================
+- VAL
+	+ "pivot": BIV NumericData(vector: SIMD3<Double>(-0.4974170157849398, 0.4615048…
+	+ "array": BIV [MyGraphCodableApp.NumericData(vector: SIMD3<Double>(-0.25581721…
+.
+========================================================================================
+
+Reading and decoding:
+= HEADER ===============================================================================
+- FileType  = 'gcodable' {8 bytes}
+- Version   =          4 {4 bytes}
+- Flags     =          1 {2 bytes}
+- Unused0   =          0 {2 bytes}
+- Unused1   =          0 {8 bytes}
+- BinaryIO -----------------------------------------------------------------------------
+- Version   =          1 {2 bytes}
+- Data size =        525 bytes
+= BODY =================================================================================
+- VAL
+	+ "pivot": BIV { 97 bytes }
+	+ "array": BIV { 299 bytes }
+.
+========================================================================================
+```
+
+You can see how the version of BinaryIO both in reading and in writing is indicated in the header. Also note that during encoding the value of the types adopting the `BinaryIOType` protocol is displayed, while during encoding the size in bytes of the types adopting the `BinaryIOType` protocol is displayed because the types have not been instantiated yet.
+
+Finally, it is **important** to note that the version of BinaryIO is unique and global for the entire archive. It follows that whenever any of the BinaryIO types being encoded changes **it is necessary to increment the version**.
 
 ### GraphCodable and BinaryIO for some system types
 
@@ -2448,4 +2710,3 @@ extension PersonNameComponents : GCodable {
 	}
 }
 ```
-
