@@ -23,23 +23,54 @@
 
 
 // -- BinaryInteger support -------------------------------------------------------
-extension Int		: GPackCodable {}
-extension Int8		: GPackCodable {}
-extension Int16		: GPackCodable {}
-extension Int32		: GPackCodable {}
-extension Int64		: GPackCodable {}
-extension UInt		: GPackCodable {}
-extension UInt8		: GPackCodable {}
-extension UInt16	: GPackCodable {}
-extension UInt32	: GPackCodable {}
-extension UInt64	: GPackCodable {}
+extension Int		: GBinaryEncodable {}
+extension Int8		: GBinaryEncodable {}
+extension Int16		: GBinaryEncodable {}
+extension Int32		: GBinaryEncodable {}
+extension Int64		: GBinaryEncodable {}
+extension UInt		: GBinaryEncodable {}
+extension UInt8		: GBinaryEncodable {}
+extension UInt16	: GBinaryEncodable {}
+extension UInt32	: GBinaryEncodable {}
+extension UInt64	: GBinaryEncodable {}
+
+extension Int		: GBinaryDecodable {}
+extension Int8		: GBinaryDecodable {}
+extension Int16		: GBinaryDecodable {}
+extension Int32		: GBinaryDecodable {}
+extension Int64		: GBinaryDecodable {}
+extension UInt		: GBinaryDecodable {}
+extension UInt8		: GBinaryDecodable {}
+extension UInt16	: GBinaryDecodable {}
+extension UInt32	: GBinaryDecodable {}
+extension UInt64	: GBinaryDecodable {}
+
+extension Int		: GPackable {}
+extension Int8		: GPackable {}
+extension Int16		: GPackable {}
+extension Int32		: GPackable {}
+extension Int64		: GPackable {}
+extension UInt		: GPackable {}
+extension UInt8		: GPackable {}
+extension UInt16	: GPackable {}
+extension UInt32	: GPackable {}
+extension UInt64	: GPackable {}
 
 // -- BinaryFloatingPoint support -------------------------------------------------------
-extension Float		: GPackCodable {}
-extension Double	: GPackCodable {}
+extension Float		: GBinaryEncodable {}
+extension Double	: GBinaryEncodable {}
+
+extension Float		: GBinaryDecodable {}
+extension Double	: GBinaryDecodable {}
+
+extension Float		: GPackable {}
+extension Double	: GPackable {}
+
 
 // -- Bool support -------------------------------------------------------
-extension Bool 		: GPackCodable {}
+extension Bool 		: GBinaryEncodable {}
+extension Bool 		: GBinaryDecodable {}
+extension Bool 		: GPackable {}
 
 //	Optional SUPPORT ------------------------------------------------------
 extension Optional: GEncodable where Wrapped: GEncodable {
@@ -66,7 +97,8 @@ extension Optional: GDecodable where Wrapped: GDecodable {
 	}
 }
 
-extension Optional: GBinaryCodable where Wrapped: GBinaryCodable {}
+extension Optional: GBinaryEncodable where Wrapped: GBinaryEncodable {}
+extension Optional: GBinaryDecodable where Wrapped: GBinaryDecodable {}
 extension Optional: GPackable where Wrapped: GPackable {}
 
 //	RawRepresentable SUPPORT ------------------------------------------------------
@@ -90,41 +122,15 @@ extension RawRepresentable where Self.RawValue : GDecodable {
 	}
 }
 
-extension RawRepresentable where Self.RawValue : GBinaryCodable {}
+extension RawRepresentable where Self.RawValue : GBinaryEncodable {}
+extension RawRepresentable where Self.RawValue : GBinaryDecodable {}
+extension RawRepresentable where Self.RawValue : GPackable {}
 
 //	String SUPPORT ------------------------------------------------------
-extension String : GBinaryCodable {}
+extension String : GBinaryEncodable {}
+extension String : GBinaryDecodable {}
 
 //	Array SUPPORT ------------------------------------------------------
-/*
-extension GDecodable where Self:RangeReplaceableCollection, Self.Element: GDecodable {
-	public init(from decoder: GDecoder) throws {
-		self.init()
-		
-		self.reserveCapacity( decoder.unkeyedCount )
-		while decoder.unkeyedCount > 0 {
-			self.append( try decoder.decode() )
-		}
-	}
-}
-
-extension GEncodable where Self:RandomAccessCollection, Self.Element: GEncodable {
-	public func encode(to encoder: GEncoder) throws {
-		for element in self {
-			try encoder.encode( element )
-		}
-	}
-}
-
-extension GBinaryDecodable where Self:RangeReplaceableCollection, Self.Element: GPackDecodable {}
-extension GBinaryEncodable where Self:RandomAccessCollection, Self.Element: GPackEncodable {}
-
-extension Array: GCodable where Element:GCodable {}
-extension Array: GBinaryCodable where Element : GPackCodable {}
-
-extension ContiguousArray: GCodable where Element:GCodable {}
-extension ContiguousArray: GBinaryCodable where Element : GPackCodable {}
-*/
 
 extension Array: GEncodable where Element:GEncodable {
 	public func encode(to encoder: GEncoder) throws {
@@ -144,7 +150,8 @@ extension Array: GDecodable where Element:GDecodable {
 	}
 }
 
-extension Array : GBinaryCodable where Element : GPackCodable {}
+extension Array : GBinaryEncodable where Element : GPackEncodable {}
+extension Array : GBinaryDecodable where Element : GPackDecodable {}
 
 
 //	ContiguousArray SUPPORT ------------------------------------------------------
@@ -167,7 +174,8 @@ extension ContiguousArray: GDecodable where Element:GDecodable {
 	}
 }
 
-extension ContiguousArray : GBinaryCodable where Element : GPackCodable {}
+extension ContiguousArray : GBinaryEncodable where Element : GPackEncodable {}
+extension ContiguousArray : GBinaryDecodable where Element : GPackDecodable {}
 
 //	Set SUPPORT ------------------------------------------------------
 extension Set: GEncodable where Element:GEncodable {
@@ -189,7 +197,8 @@ extension Set: GDecodable where Element:GDecodable {
 	}
 }
 
-extension Set : GBinaryCodable where Element : GPackCodable {}
+extension Set : GBinaryEncodable where Element : GPackEncodable {}
+extension Set : GBinaryDecodable where Element : GPackDecodable {}
 
 //	Dictionary SUPPORT ------------------------------------------------------
 
@@ -214,7 +223,8 @@ extension Dictionary: GDecodable where Key:GDecodable, Value:GDecodable {
 	}
 }
 
-extension Dictionary : GBinaryCodable where Key : GPackCodable, Value : GPackCodable {}
+extension Dictionary : GBinaryEncodable where Key : GPackEncodable, Value : GPackEncodable {}
+extension Dictionary : GBinaryDecodable where Key : GPackDecodable, Value : GPackDecodable {}
 
 
 // Range ------------------------------------------------------
@@ -233,8 +243,9 @@ extension Range: GEncodable where Bound: GEncodable {
 		try encoder.encode( upperBound )
 	}
 }
-
-extension Range: GPackCodable where Bound: GPackCodable {}
+extension Range: GBinaryEncodable where Bound: GBinaryEncodable {}
+extension Range: GBinaryDecodable where Bound: GBinaryDecodable {}
+extension Range: GPackable where Bound: GPackable {}
 
 // ClosedRange ------------------------------------------------------
 
@@ -252,7 +263,9 @@ extension ClosedRange: GEncodable where Bound: GEncodable {
 	}
 }
 
-extension ClosedRange: GPackCodable where Bound: GPackCodable {}
+extension ClosedRange: GBinaryEncodable where Bound: GBinaryEncodable {}
+extension ClosedRange: GBinaryDecodable where Bound: GBinaryDecodable {}
+extension ClosedRange: GPackable where Bound: GPackable {}
 
 
 // PartialRangeFrom ------------------------------------------------------
@@ -268,7 +281,9 @@ extension PartialRangeFrom: GEncodable where Bound: GEncodable {
 	}
 }
 
-extension PartialRangeFrom: GPackCodable where Bound: GPackCodable {}
+extension PartialRangeFrom: GBinaryEncodable where Bound: GBinaryEncodable {}
+extension PartialRangeFrom: GBinaryDecodable where Bound: GBinaryDecodable {}
+extension PartialRangeFrom: GPackable where Bound: GPackable {}
 
 // PartialRangeUpTo ------------------------------------------------------
 
@@ -283,7 +298,9 @@ extension PartialRangeUpTo: GEncodable where Bound: GEncodable {
 	}
 }
 
-extension PartialRangeUpTo: GPackCodable where Bound: GPackCodable {}
+extension PartialRangeUpTo: GBinaryEncodable where Bound: GBinaryEncodable {}
+extension PartialRangeUpTo: GBinaryDecodable where Bound: GBinaryDecodable {}
+extension PartialRangeUpTo: GPackable where Bound: GPackable {}
 
 
 // PartialRangeFrom ------------------------------------------------------
@@ -299,7 +316,9 @@ extension PartialRangeThrough: GEncodable where Bound: GEncodable {
 	}
 }
 
-extension PartialRangeThrough: GPackCodable where Bound: GPackCodable {}
+extension PartialRangeThrough: GBinaryEncodable where Bound: GBinaryEncodable {}
+extension PartialRangeThrough: GBinaryDecodable where Bound: GBinaryDecodable {}
+extension PartialRangeThrough: GPackable where Bound: GPackable {}
 
 
 // CollectionDifference ------------------------------------------------------
@@ -341,7 +360,9 @@ extension CollectionDifference.Change : GEncodable where ChangeElement : GEncoda
 	}
 }
 
-extension CollectionDifference.Change : GBinaryCodable where ChangeElement : GBinaryCodable {}
+extension CollectionDifference.Change : GBinaryEncodable where ChangeElement : GBinaryEncodable {}
+extension CollectionDifference.Change : GBinaryDecodable where ChangeElement : GBinaryDecodable {}
+extension CollectionDifference.Change : GPackable where ChangeElement : GPackable {}
 
 
 extension CollectionDifference : GDecodable where ChangeElement:GDecodable {
@@ -370,6 +391,8 @@ extension CollectionDifference : GEncodable where ChangeElement:GEncodable {
 	}
 }
 
-extension CollectionDifference : GBinaryCodable where ChangeElement:GBinaryCodable {}
+extension CollectionDifference : GBinaryEncodable where ChangeElement : GBinaryEncodable {}
+extension CollectionDifference : GBinaryDecodable where ChangeElement : GBinaryDecodable {}
+extension CollectionDifference : GPackable where ChangeElement : GPackable {}
 
 

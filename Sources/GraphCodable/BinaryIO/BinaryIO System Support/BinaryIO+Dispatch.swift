@@ -23,21 +23,46 @@
 import Dispatch
 
 
-extension DispatchTime : BinaryIOType {
+extension DispatchTime : BinaryIType {
 	public init(from rbuffer: inout BinaryReadBuffer) throws {
 		self.init( uptimeNanoseconds: try UInt64( from: &rbuffer) )
 	}
-	
+}
+extension DispatchTime : BinaryOType {
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
 		try uptimeNanoseconds.write(to: &wbuffer)
 	}
 }
 
-extension DispatchTimeInterval : BinaryIOType {
+extension DispatchTimeInterval {
 	private enum IntervalType : UInt8, BinaryIOType {
 		case seconds,milliseconds,microseconds,nanoseconds,never
 	}
-	
+}
+
+extension DispatchTimeInterval : BinaryIType {
+	public init(from rbuffer: inout BinaryReadBuffer) throws {
+		let intervalType	= try IntervalType.init(from: &rbuffer)
+		switch intervalType {
+			case .seconds:
+				let value = try Int( from: &rbuffer )
+				self = .seconds(value)
+			case .milliseconds:
+				let value = try Int( from: &rbuffer )
+				self = .milliseconds(value)
+			case .microseconds:
+				let value = try Int( from: &rbuffer )
+				self = .microseconds(value)
+			case .nanoseconds:
+				let value = try Int( from: &rbuffer )
+				self = .nanoseconds(value)
+			case .never:
+				self = .never
+		}
+	}
+}
+
+extension DispatchTimeInterval : BinaryOType {
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
 		switch self {
 		case .seconds( let value ):
@@ -63,44 +88,30 @@ extension DispatchTimeInterval : BinaryIOType {
 		}
 	}
 	
-	public init(from rbuffer: inout BinaryReadBuffer) throws {
-		let intervalType	= try IntervalType.init(from: &rbuffer)
-		switch intervalType {
-		case .seconds:
-			let value = try Int( from: &rbuffer )
-			self = .seconds(value)
-		case .milliseconds:
-			let value = try Int( from: &rbuffer )
-			self = .milliseconds(value)
-		case .microseconds:
-			let value = try Int( from: &rbuffer )
-			self = .microseconds(value)
-		case .nanoseconds:
-			let value = try Int( from: &rbuffer )
-			self = .nanoseconds(value)
-		case .never:
-			self = .never
-		}
-	}
 }
 
-extension DispatchQueue.SchedulerTimeType : BinaryIOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try dispatchTime.write(to: &wbuffer)
-	}
-	
+extension DispatchQueue.SchedulerTimeType : BinaryIType {
 	public init(from rbuffer: inout BinaryReadBuffer) throws {
 		self.init( try DispatchTime(from: &rbuffer) )
 	}
 }
+extension DispatchQueue.SchedulerTimeType : BinaryOType {
+	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
+		try dispatchTime.write(to: &wbuffer)
+	}
+	
+}
 
-extension DispatchQueue.SchedulerTimeType.Stride : BinaryIOType {
+extension DispatchQueue.SchedulerTimeType.Stride : BinaryIType {
+	public init(from rbuffer: inout BinaryReadBuffer) throws {
+		self.init( try DispatchTimeInterval( from:&rbuffer) )
+	}
+}
+
+extension DispatchQueue.SchedulerTimeType.Stride : BinaryOType {
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
 		try timeInterval.write(to: &wbuffer)
 	}
 	
-	public init(from rbuffer: inout BinaryReadBuffer) throws {
-		self.init( try DispatchTimeInterval( from:&rbuffer) )
-	}
 }
 

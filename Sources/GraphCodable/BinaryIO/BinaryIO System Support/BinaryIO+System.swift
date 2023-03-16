@@ -23,21 +23,32 @@
 import System
 
 
-extension Errno : BinaryIOType {}
-extension FileDescriptor : BinaryIOType {}
-extension FileDescriptor.AccessMode : BinaryIOType {}
-extension FileDescriptor.OpenOptions : BinaryIOType {}
-extension FileDescriptor.SeekOrigin : BinaryIOType {}
+extension Errno : BinaryIType {}
+extension Errno : BinaryOType {}
 
-extension FilePath : BinaryIOType {
+extension FileDescriptor : BinaryIType {}
+extension FileDescriptor : BinaryOType {}
+
+extension FileDescriptor.AccessMode : BinaryIType {}
+extension FileDescriptor.AccessMode : BinaryOType {}
+
+extension FileDescriptor.OpenOptions : BinaryIType {}
+extension FileDescriptor.OpenOptions : BinaryOType {}
+
+extension FileDescriptor.SeekOrigin : BinaryIType {}
+extension FileDescriptor.SeekOrigin : BinaryOType {}
+
+extension FilePath : BinaryOType {
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
 		try description.write(to: &wbuffer)
 	}
-	
+}
+extension FilePath : BinaryIType {
 	public init(from rbuffer: inout BinaryReadBuffer) throws {
 		self.init( try String( from: &rbuffer ) )
 	}
 }
 
-extension FilePermissions : BinaryIOType {}
+extension FilePermissions : BinaryIType {}
+extension FilePermissions : BinaryOType {}
 

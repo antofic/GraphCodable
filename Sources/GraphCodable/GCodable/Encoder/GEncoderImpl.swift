@@ -80,6 +80,10 @@ final class GEncoderImpl : FileBlockEncoderDelegate {
 	var classDataMap: ClassDataMap 	{ referenceMap.classDataMap }
 	var keyStringMap: KeyStringMap 	{ keyMap.keyStringMap }
 	
+	private func writeBuffer() -> BinaryWriteBuffer {
+		BinaryWriteBuffer( version: binaryIOVersion, userInfo:userInfo )
+	}
+	
 	init( _ options: GraphEncoder.Options, binaryIOVersion:UInt16 ) {
 		#if DEBUG
 		self.encodeOptions	= [options, .printWarnings]
@@ -93,7 +97,7 @@ final class GEncoderImpl : FileBlockEncoderDelegate {
 
 	func encodeRoot<T,Q>( _ value: T ) throws -> Q where T:GEncodable, Q:MutableDataProtocol {
 		defer { self.dataEncoder = nil }
-		let binaryWriteBuffer	= BinaryWriteBuffer( version: binaryIOVersion, userInfo:userInfo )
+		let binaryWriteBuffer	= writeBuffer()
 		let dataEncoder			= BinaryEncoder<Q>( binaryWriteBuffer: binaryWriteBuffer, fileHeader: fileHeader )
 		self.dataEncoder 		= dataEncoder
 		try encode( value )

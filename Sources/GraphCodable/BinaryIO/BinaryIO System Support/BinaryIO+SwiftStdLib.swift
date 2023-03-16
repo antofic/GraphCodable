@@ -22,84 +22,113 @@
 
 // Int ------------------------------------------------------
 
-extension Int : BinaryIOType {
+
+extension Int : BinaryIType {
 	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self.init( try rbuffer.readInt() ) }
+}
+extension Int : BinaryOType {
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws		{ try wbuffer.writeInt( self ) }
 }
 
-extension Int8 : BinaryIOType {
+extension Int8 : BinaryIType {
 	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self.init( try rbuffer.readInt8() ) }
+}
+extension Int8 : BinaryOType {
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws		{ try wbuffer.writeInt8( self ) }
 }
 
-extension Int16 : BinaryIOType {
+extension Int16 : BinaryIType {
 	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self.init( try rbuffer.readInt16() ) }
+}
+extension Int16 : BinaryOType {
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws		{ try wbuffer.writeInt16( self ) }
 }
 
-extension Int32 : BinaryIOType {
+extension Int32 : BinaryIType {
 	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self.init( try rbuffer.readInt32() ) }
+}
+extension Int32 : BinaryOType {
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws		{ try wbuffer.writeInt32( self ) }
 }
 
-extension Int64 : BinaryIOType {
+extension Int64 : BinaryIType {
 	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self.init( try rbuffer.readInt64() ) }
+}
+extension Int64 : BinaryOType {
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws		{ try wbuffer.writeInt64( self ) }
 }
 
 // UInt ------------------------------------------------------
 
-extension UInt : BinaryIOType {
+extension UInt : BinaryIType {
 	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self.init( try rbuffer.readUInt() ) }
+}
+extension UInt : BinaryOType {
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws		{ try wbuffer.writeUInt( self ) }
 }
 
-extension UInt8 : BinaryIOType {
+extension UInt8 : BinaryIType {
 	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self.init( try rbuffer.readUInt8() ) }
+}
+extension UInt8 : BinaryOType {
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws		{ try wbuffer.writeUInt8( self ) }
 }
 
-extension UInt16 : BinaryIOType {
+extension UInt16 : BinaryIType {
 	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self.init( try rbuffer.readUInt16() ) }
+}
+extension UInt16 : BinaryOType {
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws		{ try wbuffer.writeUInt16( self ) }
 }
 
-extension UInt32 : BinaryIOType {
+extension UInt32 : BinaryIType {
 	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self.init( try rbuffer.readUInt32() ) }
+}
+extension UInt32 : BinaryOType {
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws		{ try wbuffer.writeUInt32( self ) }
 }
 
-extension UInt64 : BinaryIOType {
+extension UInt64 : BinaryIType {
 	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self.init( try rbuffer.readUInt64() ) }
+}
+extension UInt64 : BinaryOType {
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws		{ try wbuffer.writeUInt64( self ) }
 }
 
 // Float & Double ------------------------------------------------------
 
-extension Float : BinaryIOType {
+extension Float : BinaryIType {
 	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self.init( try rbuffer.readFloat() ) }
+}
+extension Float : BinaryOType {
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws		{ try wbuffer.writeFloat( self ) }
 }
 
-extension Double : BinaryIOType {
+extension Double : BinaryIType {
 	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self.init( try rbuffer.readDouble() ) }
+}
+extension Double : BinaryOType {
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws		{ try wbuffer.writeDouble( self ) }
 }
 
 // Bool ------------------------------------------------------
 
-extension Bool : BinaryIOType {
+extension Bool : BinaryIType {
 	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self.init( try rbuffer.readBool() ) }
+}
+extension Bool : BinaryOType {
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws		{ try wbuffer.writeBool( self ) }
 }
 
 
 // String ------------------------------------------------------
 
-extension String : BinaryIOType {
+extension String : BinaryOType {
 	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
 		try wbuffer.writeString( self )
 	}
+}
+extension String : BinaryIType {
 	public init( from rbuffer: inout BinaryReadBuffer ) throws {
 		self = try rbuffer.readString()
 	}
@@ -107,7 +136,7 @@ extension String : BinaryIOType {
 
 // Optional ------------------------------------------------------
 
-extension Optional : BinaryIOType where Wrapped : BinaryIOType {
+extension Optional : BinaryOType where Wrapped : BinaryOType {
 	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
 		switch self {
 		case .none:
@@ -117,6 +146,8 @@ extension Optional : BinaryIOType where Wrapped : BinaryIOType {
 			try wrapped.write(to: &wbuffer)
 		}
 	}
+}
+extension Optional : BinaryIType where Wrapped : BinaryIType {
 	public init( from rbuffer: inout BinaryReadBuffer ) throws {
 		switch try Bool(from: &rbuffer) {
 		case false:
@@ -129,10 +160,12 @@ extension Optional : BinaryIOType where Wrapped : BinaryIOType {
 
 // RawRepresentable ------------------------------------------------------
 
-extension RawRepresentable where Self.RawValue : BinaryIOType {
+extension RawRepresentable where Self.RawValue : BinaryOType {
 	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
 		try self.rawValue.write(to: &wbuffer)
 	}
+}
+extension RawRepresentable where Self.RawValue : BinaryIType {
 	public init( from rbuffer: inout BinaryReadBuffer ) throws {
 		let rawValue	= try Self.RawValue(from: &rbuffer)
 		guard let value = Self(rawValue: rawValue ) else {
@@ -148,20 +181,7 @@ extension RawRepresentable where Self.RawValue : BinaryIOType {
 
 // Array ------------------------------------------------------
 
-/*
-extension BinaryIType where Self:RangeReplaceableCollection, Self.Element: BinaryIType {
-	public init( from rbuffer: inout BinaryReadBuffer ) throws {
-		self.init()
-		let count = try Int( from: &rbuffer )
-		self.reserveCapacity( count )
-		for _ in 0..<count {
-			self.append( try Element.init(from: &rbuffer) )
-		}
-	}
-}
-
-
-extension BinaryOType where Self:RandomAccessCollection, Self.Element: BinaryOType {
+extension Array : BinaryOType where Element : BinaryOType {
 	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
 		try count.write(to: &wbuffer)
 		for element in self {
@@ -169,19 +189,7 @@ extension BinaryOType where Self:RandomAccessCollection, Self.Element: BinaryOTy
 		}
 	}
 }
-
-extension Array : BinaryIOType where Element : BinaryIOType {}
-extension ContiguousArray : BinaryIOType where Element : BinaryIOType {}
-*/
-
-
-extension Array : BinaryIOType where Element : BinaryIOType {
-	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
-		try count.write(to: &wbuffer)
-		for element in self {
-			try element.write(to: &wbuffer)
-		}
-	}
+extension Array : BinaryIType where Element : BinaryIType {
 	public init( from rbuffer: inout BinaryReadBuffer ) throws {
 		self.init()
 		let count = try Int( from: &rbuffer )
@@ -194,13 +202,15 @@ extension Array : BinaryIOType where Element : BinaryIOType {
 
 // ContiguousArray ------------------------------------------------------
 
-extension ContiguousArray : BinaryIOType where Element : BinaryIOType {
+extension ContiguousArray : BinaryOType where Element : BinaryOType {
 	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
 		try count.write(to: &wbuffer)
 		for element in self {
 			try element.write(to: &wbuffer)
 		}
 	}
+}
+extension ContiguousArray : BinaryIType where Element : BinaryIType {
 	public init( from rbuffer: inout BinaryReadBuffer ) throws {
 		self.init()
 		let count = try Int( from: &rbuffer )
@@ -214,10 +224,12 @@ extension ContiguousArray : BinaryIOType where Element : BinaryIOType {
 
 // Set ------------------------------------------------------
 
-extension Set : BinaryIOType where Element : BinaryIOType {
+extension Set : BinaryOType where Element : BinaryOType {
 	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
 		try Array( self ).write(to: &wbuffer)
 	}
+}
+extension Set : BinaryIType where Element : BinaryIType {
 	public init( from rbuffer: inout BinaryReadBuffer ) throws {
 		self = Set( try Array(from: &rbuffer) )
 	}
@@ -225,7 +237,7 @@ extension Set : BinaryIOType where Element : BinaryIOType {
 
 // Dictionary ------------------------------------------------------
 
-extension Dictionary : BinaryIOType where Key : BinaryIOType, Value : BinaryIOType {
+extension Dictionary : BinaryOType where Key : BinaryOType, Value : BinaryOType {
 	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
 		try count.write(to: &wbuffer)
 		for (key,value) in self {
@@ -233,7 +245,8 @@ extension Dictionary : BinaryIOType where Key : BinaryIOType, Value : BinaryIOTy
 			try value.write(to: &wbuffer)
 		}
 	}
-
+}
+extension Dictionary : BinaryIType where Key : BinaryIType, Value : BinaryIType {
 	public init( from rbuffer: inout BinaryReadBuffer ) throws {
 		self.init()
 		let count = try Int( from: &rbuffer )
@@ -248,13 +261,14 @@ extension Dictionary : BinaryIOType where Key : BinaryIOType, Value : BinaryIOTy
  
 // Range ------------------------------------------------------
 
-extension Range: BinaryIOType where Bound: BinaryIOType {
+extension Range: BinaryIType where Bound: BinaryIType {
 	public init( from rbuffer: inout BinaryReadBuffer ) throws {
 		let lowerBound	= try Bound(from: &rbuffer)
 		let upperBound	= try Bound(from: &rbuffer)
 		self.init(uncheckedBounds: (lowerBound,upperBound) )
 	}
-
+}
+extension Range: BinaryOType where Bound: BinaryOType {
 	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
 		try lowerBound.write(to: &wbuffer )
 		try upperBound.write(to: &wbuffer )
@@ -263,13 +277,14 @@ extension Range: BinaryIOType where Bound: BinaryIOType {
 
 // ClosedRange ------------------------------------------------------
 
-extension ClosedRange: BinaryIOType where Bound: BinaryIOType {
+extension ClosedRange: BinaryIType where Bound: BinaryIType {
 	public init( from rbuffer: inout BinaryReadBuffer ) throws {
 		let lowerBound	= try Bound(from: &rbuffer)
 		let upperBound	= try Bound(from: &rbuffer)
 		self.init(uncheckedBounds: (lowerBound,upperBound) )
 	}
-
+}
+extension ClosedRange: BinaryOType where Bound: BinaryOType {
 	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
 		try lowerBound.write(to: &wbuffer )
 		try upperBound.write(to: &wbuffer )
@@ -278,11 +293,12 @@ extension ClosedRange: BinaryIOType where Bound: BinaryIOType {
 
 // PartialRangeFrom ------------------------------------------------------
 
-extension PartialRangeFrom: BinaryIOType where Bound: BinaryIOType {
+extension PartialRangeFrom: BinaryIType where Bound: BinaryIType {
 	public init( from rbuffer: inout BinaryReadBuffer ) throws {
 		self.init( try Bound(from: &rbuffer) )
 	}
-
+}
+extension PartialRangeFrom: BinaryOType where Bound: BinaryOType {
 	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
 		try lowerBound.write(to: &wbuffer )
 	}
@@ -290,11 +306,12 @@ extension PartialRangeFrom: BinaryIOType where Bound: BinaryIOType {
 
 // PartialRangeUpTo ------------------------------------------------------
 
-extension PartialRangeUpTo: BinaryIOType where Bound: BinaryIOType {
+extension PartialRangeUpTo: BinaryIType where Bound: BinaryIType {
 	public init( from rbuffer: inout BinaryReadBuffer ) throws {
 		self.init( try Bound(from: &rbuffer) )
 	}
-
+}
+extension PartialRangeUpTo: BinaryOType where Bound: BinaryOType {
 	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
 		try upperBound.write(to: &wbuffer )
 	}
@@ -302,11 +319,12 @@ extension PartialRangeUpTo: BinaryIOType where Bound: BinaryIOType {
 
 // PartialRangeFrom ------------------------------------------------------
 
-extension PartialRangeThrough: BinaryIOType where Bound: BinaryIOType {
+extension PartialRangeThrough: BinaryIType where Bound: BinaryIType {
 	public init( from rbuffer: inout BinaryReadBuffer ) throws {
 		self.init( try Bound(from: &rbuffer) )
 	}
-
+}
+extension PartialRangeThrough: BinaryOType where Bound: BinaryOType {
 	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
 		try upperBound.write(to: &wbuffer )
 	}
@@ -314,9 +332,11 @@ extension PartialRangeThrough: BinaryIOType where Bound: BinaryIOType {
 
 // CollectionDifference.Change ------------------------------------------------------
 
-extension CollectionDifference.Change : BinaryIOType where ChangeElement : BinaryIOType {
+extension CollectionDifference.Change {
 	private enum ChangeType : UInt8, BinaryIOType { case insert, remove }
+}
 
+extension CollectionDifference.Change : BinaryIType where ChangeElement : BinaryIType {
 	public init( from rbuffer: inout BinaryReadBuffer ) throws {
 		let changeType		= try ChangeType( from:&rbuffer )
 		let offset			= try Int( from:&rbuffer )
@@ -324,11 +344,12 @@ extension CollectionDifference.Change : BinaryIOType where ChangeElement : Binar
 		let associatedWith	= try Int?( from:&rbuffer )
 		
 		switch changeType {
-		case .insert:	self = .insert(offset: offset, element: element, associatedWith: associatedWith)
-		case .remove:	self = .remove(offset: offset, element: element, associatedWith: associatedWith)
+			case .insert:	self = .insert(offset: offset, element: element, associatedWith: associatedWith)
+			case .remove:	self = .remove(offset: offset, element: element, associatedWith: associatedWith)
 		}
 	}
-	
+}
+extension CollectionDifference.Change : BinaryOType where ChangeElement : BinaryOType {
 	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
 		switch self {
 		case .insert(let offset, let element, let associatedWith ):
@@ -347,7 +368,7 @@ extension CollectionDifference.Change : BinaryIOType where ChangeElement : Binar
 
 // CollectionDifference ------------------------------------------------------
 
-extension CollectionDifference : BinaryIOType where ChangeElement:BinaryIOType {
+extension CollectionDifference : BinaryIType where ChangeElement:BinaryIType {
 	public init( from rbuffer: inout BinaryReadBuffer ) throws {
 		var changes	= [CollectionDifference<ChangeElement>.Change]()
 		
@@ -365,7 +386,8 @@ extension CollectionDifference : BinaryIOType where ChangeElement:BinaryIOType {
 		
 		self = value
 	}
-	
+}
+extension CollectionDifference : BinaryOType where ChangeElement:BinaryOType {
 	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
 		try self.count.write(to: &wbuffer)
 		for element in self {

@@ -22,34 +22,75 @@
 
 import Foundation
 
-extension CGFloat			: GPackCodable {}
-extension Data 				: GBinaryCodable {}
-extension CharacterSet		: GBinaryCodable {}
-extension AffineTransform	: GPackCodable {}
-extension Locale 			: GBinaryCodable {}
-extension TimeZone 			: GBinaryCodable {}
-extension UUID 				: GPackCodable {}
-extension Date				: GPackCodable {}
-extension IndexSet 			: GBinaryCodable {}
-extension IndexPath 		: GBinaryCodable {}
-extension CGSize 			: GPackCodable {}
-extension CGPoint 			: GPackCodable {}
-extension CGVector 			: GPackCodable {}
-extension CGRect 			: GPackCodable {}
-extension NSRange 			: GPackCodable {}
-extension Decimal 			: GPackCodable {}
+extension Data 				: GBinaryEncodable {}
+extension CharacterSet		: GBinaryEncodable {}
+extension Locale 			: GBinaryEncodable {}
+extension TimeZone 			: GBinaryEncodable {}
+extension IndexSet 			: GBinaryEncodable {}
+extension IndexPath 		: GBinaryEncodable {}
 
-extension OperationQueue.SchedulerTimeType 			: GPackCodable {}
-extension OperationQueue.SchedulerTimeType.Stride	: GPackCodable {}
-extension RunLoop.SchedulerTimeType					: GPackCodable {}
-extension RunLoop.SchedulerTimeType.Stride			: GPackCodable {}
+extension Data 				: GBinaryDecodable {}
+extension CharacterSet		: GBinaryDecodable {}
+extension Locale 			: GBinaryDecodable {}
+extension TimeZone 			: GBinaryDecodable {}
+extension IndexSet 			: GBinaryDecodable {}
+extension IndexPath 		: GBinaryDecodable {}
+
+extension CGFloat			: GBinaryEncodable {}
+extension AffineTransform	: GBinaryEncodable {}
+extension UUID 				: GBinaryEncodable {}
+extension Date				: GBinaryEncodable {}
+extension CGSize 			: GBinaryEncodable {}
+extension CGPoint 			: GBinaryEncodable {}
+extension CGVector 			: GBinaryEncodable {}
+extension CGRect 			: GBinaryEncodable {}
+extension NSRange 			: GBinaryEncodable {}
+extension Decimal 			: GBinaryEncodable {}
+
+extension CGFloat			: GBinaryDecodable {}
+extension AffineTransform	: GBinaryDecodable {}
+extension UUID 				: GBinaryDecodable {}
+extension Date				: GBinaryDecodable {}
+extension CGSize 			: GBinaryDecodable {}
+extension CGPoint 			: GBinaryDecodable {}
+extension CGVector 			: GBinaryDecodable {}
+extension CGRect 			: GBinaryDecodable {}
+extension NSRange 			: GBinaryDecodable {}
+extension Decimal 			: GBinaryDecodable {}
+
+extension CGFloat			: GPackable {}
+extension AffineTransform	: GPackable {}
+extension UUID 				: GPackable {}
+extension Date				: GPackable {}
+extension CGSize 			: GPackable {}
+extension CGPoint 			: GPackable {}
+extension CGVector 			: GPackable {}
+extension CGRect 			: GPackable {}
+extension NSRange 			: GPackable {}
+extension Decimal 			: GPackable {}
+
+extension OperationQueue.SchedulerTimeType 			: GBinaryEncodable {}
+extension OperationQueue.SchedulerTimeType.Stride	: GBinaryEncodable {}
+extension RunLoop.SchedulerTimeType					: GBinaryEncodable {}
+extension RunLoop.SchedulerTimeType.Stride			: GBinaryEncodable {}
+
+extension OperationQueue.SchedulerTimeType 			: GBinaryDecodable {}
+extension OperationQueue.SchedulerTimeType.Stride	: GBinaryDecodable {}
+extension RunLoop.SchedulerTimeType					: GBinaryDecodable {}
+extension RunLoop.SchedulerTimeType.Stride			: GBinaryDecodable {}
+
+extension OperationQueue.SchedulerTimeType 			: GPackable {}
+extension OperationQueue.SchedulerTimeType.Stride	: GPackable {}
+extension RunLoop.SchedulerTimeType					: GPackable {}
+extension RunLoop.SchedulerTimeType.Stride			: GPackable {}
 
 
 //	Calendar SUPPORT ------------------------------------------------------
 
-extension NSCalendar.Identifier : GCodable {}
+extension NSCalendar.Identifier : GEncodable {}
+extension NSCalendar.Identifier : GDecodable {}
 
-extension Calendar : GCodable {
+extension Calendar : GEncodable {
 	private enum Key: String {
 		case nsIdentifier, locale, timeZone, firstWeekday, minimumDaysInFirstWeek
 	}
@@ -63,7 +104,9 @@ extension Calendar : GCodable {
 		try encoder.encode( firstWeekday, 			for: Key.firstWeekday )
 		try encoder.encode( minimumDaysInFirstWeek, for: Key.minimumDaysInFirstWeek )
 	}
-	
+}
+
+extension Calendar : GDecodable {
 	public init(from decoder: GDecoder) throws {
 		let nsIdentifier	= try decoder.decode(for: Key.nsIdentifier) as NSCalendar.Identifier
 		guard var calendar = NSCalendar(calendarIdentifier: nsIdentifier) as Calendar? else {
@@ -83,7 +126,7 @@ extension Calendar : GCodable {
 }
 
 //	DateComponents SUPPORT ------------------------------------------------------
-extension DateComponents : GCodable {
+extension DateComponents {
 	private enum Key : String {
 		case calendar
 		case timeZone
@@ -102,7 +145,9 @@ extension DateComponents : GCodable {
 		case weekOfYear
 		case yearForWeekOfYear
 	}
-	
+}
+
+extension DateComponents : GDecodable {
 	public init(from decoder: GDecoder) throws {
 		self.init(
 			calendar:			try decoder.decodeIfPresent( for: Key.calendar 			),
@@ -123,7 +168,8 @@ extension DateComponents : GCodable {
 			yearForWeekOfYear:	try decoder.decodeIfPresent( for: Key.yearForWeekOfYear )
 		)
 	}
-	
+}
+extension DateComponents : GEncodable {
 	public func encode(to encoder: GEncoder) throws {
 		try encoder.encodeIfPresent( calendar, 			for: Key.calendar 			)
 		try encoder.encodeIfPresent( timeZone, 			for: Key.timeZone 			)
@@ -146,18 +192,20 @@ extension DateComponents : GCodable {
 
 //	DateInterval SUPPORT ------------------------------------------------------
 
-extension DateInterval : GCodable {
+extension DateInterval {
 	private enum Key : String {
 		case start
 		case duration
 	}
-	
+}
+extension DateInterval : GDecodable {
 	public init(from decoder: GDecoder) throws {
 		let start 		= try decoder.decode( for: Key.start) as Date
 		let duration 	= try decoder.decode( for: Key.duration) as TimeInterval
 		self.init(start: start, duration: duration)
 	}
-	
+}
+extension DateInterval : GEncodable {
 	public func encode(to encoder: GEncoder) throws {
 		try encoder.encode( start, 		for: Key.start)
 		try encoder.encode( duration, 	for: Key.duration)
@@ -166,7 +214,7 @@ extension DateInterval : GCodable {
 
 //	PersonNameComponents SUPPORT ------------------------------------------------------
 
-extension PersonNameComponents : GCodable {
+extension PersonNameComponents {
 	private enum Key : String {
 		case namePrefix
 		case givenName
@@ -175,7 +223,9 @@ extension PersonNameComponents : GCodable {
 		case nameSuffix
 		case nickname
 	}
-	
+}
+
+extension PersonNameComponents : GDecodable {
 	public init(from decoder: GDecoder) throws {
 		self.init()
 		
@@ -186,7 +236,8 @@ extension PersonNameComponents : GCodable {
 		nameSuffix = try decoder.decodeIfPresent( for: Key.nameSuffix )
 		nickname   = try decoder.decodeIfPresent( for: Key.nickname )
 	}
-	
+}
+extension PersonNameComponents : GEncodable {
 	public func encode(to encoder: GEncoder) throws {
 		try encoder.encodeIfPresent( namePrefix, for: Key.namePrefix)
 		try encoder.encodeIfPresent( givenName, for: Key.givenName)
@@ -199,9 +250,11 @@ extension PersonNameComponents : GCodable {
 
 //	URL SUPPORT ------------------------------------------------------
 
-extension URL : GCodable {
+extension URL {
 	private enum Key : String { case baseURL, relativeString }
+}
 
+extension URL : GDecodable {
 	public init(from decoder: GDecoder) throws {
 		let relative	= try decoder.decode( for: Key.relativeString ) as String
 		let base		= try decoder.decodeIfPresent( for: Key.baseURL ) as URL?
@@ -215,7 +268,8 @@ extension URL : GCodable {
 		}
 		self = url
 	}
-	
+}
+extension URL : GEncodable {
 	public func encode(to encoder: GEncoder) throws {
 		try encoder.encode( relativeString, for: Key.relativeString )
 		try encoder.encodeIfPresent( baseURL, for: Key.baseURL )
@@ -223,8 +277,7 @@ extension URL : GCodable {
 }
 
 //	URLComponents SUPPORT ------------------------------------------------------
-
-extension URLComponents : GCodable {
+extension URLComponents {
 	private enum Key : String {
 		case scheme
 		case user
@@ -235,8 +288,10 @@ extension URLComponents : GCodable {
 		case query
 		case fragment
 	}
+}
 
-	
+
+extension URLComponents : GEncodable {
 	public func encode(to encoder: GEncoder) throws {
 		try encoder.encodeIfPresent	( scheme,	for: Key.scheme )
 		try encoder.encodeIfPresent	( user,	 	for: Key.user )
@@ -247,7 +302,8 @@ extension URLComponents : GCodable {
 		try encoder.encodeIfPresent	( query,	for: Key.query )
 		try encoder.encodeIfPresent	( fragment,	for: Key.fragment )
 	}
-
+}
+extension URLComponents : GDecodable {
 	public init(from decoder: GDecoder) throws {
 		self.init()
 		
@@ -264,17 +320,20 @@ extension URLComponents : GCodable {
 
 //	Measurement SUPPORT ------------------------------------------------------
 
-extension Measurement : GCodable {
+extension Measurement {
 	private enum Key : String {
 		case value
 		case symbol
 	}
-	
+}
+
+extension Measurement : GEncodable {
 	public func encode(to encoder: GEncoder) throws {
 		try encoder.encode ( value,	 for: Key.value )
 		try encoder.encode ( unit.symbol, for: Key.symbol )
 	}
-
+}
+extension Measurement : GDecodable {
 	public init(from decoder: GDecoder) throws {
 		let value = try decoder.decode( for:Key.value ) as Double
 		let symbol = try decoder.decode( for:Key.symbol ) as String

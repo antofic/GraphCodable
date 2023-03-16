@@ -22,16 +22,19 @@
 
 import UniformTypeIdentifiers
 
-extension UTTagClass : GCodable {}
+extension UTTagClass : GEncodable {}
+extension UTTagClass : GDecodable {}
 
-extension UTType : GCodable {
+extension UTType {
 	private enum Key : String { case identifier }
+}
 
+extension UTType : GEncodable {
 	public func encode(to encoder: GEncoder) throws {
 		try encoder.encode(identifier, for: Key.identifier)
 	}
-	
-
+}
+extension UTType : GDecodable {
 	public init(from decoder: GDecoder) throws {
 		let identifier = try decoder.decode(for: Key.identifier) as String
 		

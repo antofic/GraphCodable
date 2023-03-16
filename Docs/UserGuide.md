@@ -1,5 +1,3 @@
-[TOC]
-
 #  User Guide
 
 - [Premise](#Premise)
@@ -32,6 +30,7 @@
   - [The `BinaryIOType` protocol](#The-`BinaryIOType`-protocol)
   - [The `GBinaryCodable` protocol](#The-`GBinaryCodable`-protocol)
   - [The `GPackCodable` protocol](#The-`GPackCodable`-protocol)
+  - [BinaryIO userInfo dictionary](#BinaryIO-userInfo-dictionary)
   - [BinaryIO versioning](#BinaryIO-versioning)
   - [GraphCodable and BinaryIO for some system types](#GraphCodable-and-BinaryIO-for-som-system-types)
     - [Foundation type `CGSize`](#Foundation-type-`CGSize`)
@@ -2295,9 +2294,27 @@ public typealias GPackDecodable	= GBinaryDecodable & GPackable
 public typealias GPackCodable	= GPackEncodable & GPackDecodable
 ```
 
-### UserInfo dictionary
+### BinaryIO userInfo dictionary
 
-Both `GraphEncoder` and `GraphDecoder` allow setting a dictionary accessible during encoding and decoding respectively with the aim of adopting appropriate strategies. Usage is identical to that of Codable.
+The `userInfo` dictionary set in the `GraphEncoder` is accessible to types adopting the `BinaryOType` protocol with:
+
+```swift
+	func write(to wbuffer: inout BinaryWriteBuffer) throws {
+		let userInfo = wbuffer.userInfo
+		/* ... */
+	}
+
+```
+
+The `userInfo` dictionary set in the `GraphDecoder` is accessible to types adopting the `BinaryIType` protocol with:
+
+```swift
+	init(from rbuffer: inout BinaryReadBuffer) throws {
+		let userInfo = rbuffer.userInfo
+		/* ... */
+	}
+
+```
 
 ### BinaryIO versioning
 
@@ -2537,12 +2554,14 @@ To further clarify how GraphCodable and BinaryIO interact, let's see how some sy
 **BinaryIO package**:
 
 ```swift
-extension CGSize : BinaryIOType {
+extension CGSize : BinaryOType {
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
 		try width.write(to: &wbuffer)
 		try height.write(to: &wbuffer)
 	}
+}
 
+extension CGSize : BinaryIType {
 	public init(from rbuffer: inout BinaryReadBuffer) throws {
 		let width	= try CGFloat( from: &rbuffer )
 		let height	= try CGFloat( from: &rbuffer )
@@ -2554,7 +2573,9 @@ extension CGSize : BinaryIOType {
 **GraphCodable package**: GraphCodable always uses BinaryIO to encode/decode `CGSize`.
 
 ```swift
-extension CGSize : GPackCodable {}
+extension CGSize 			: GBinaryEncodable {}
+extension CGSize 			: GBinaryDecodable {}
+extension CGSize 			: GPackable {}
 ```
 
 #### Swift standard library type `String`
@@ -2562,10 +2583,13 @@ extension CGSize : GPackCodable {}
 **BinaryIO package**:
 
 ```swift
-extension String : BinaryIOType {
+extension String : BinaryOType {
 	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
 		try wbuffer.writeString( self )
 	}
+}
+
+extension String : BinaryIType {
 	public init( from rbuffer: inout BinaryReadBuffer ) throws {
 		self = try rbuffer.readString()
 	}
@@ -2577,7 +2601,8 @@ extension String : BinaryIOType {
 **GraphCodable package**: GraphCodable always uses BinaryIO to encode/decode `String`.
 
 ```swift
-extension String : GBinaryCodable {}
+extension String : GBinaryEncodable {}
+extension String : GBinaryDecodable {}
 ```
 
 Note the difference with `CGSize`: `CGSize` adopt the `GPackCodable` protocol because it doesn't make sense that they can use identities, `String` adopt the `GBinaryCodable` protocol because they could use identities. This implies that `CGSize` arrays are encoded as a single data unit while `String` arrays are not.
@@ -2589,13 +2614,16 @@ Let's see how GraphCodable implements these mechanisms for swift containers, tak
 **BinaryIO package**: `Array` adopts the `BinaryIOType` protocols: if the elements are `BinaryIOType`, Array is `BinaryIOType` so BinaryIO can encode ed decode it.
 
 ```swift
-extension Array : BinaryIOType where Element : BinaryIOType {
+extension Array : BinaryOType where Element : BinaryOType {
 	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
 		try count.write(to: &wbuffer)
 		for element in self {
 			try element.write(to: &wbuffer)
 		}
 	}
+}
+
+extension Array : BinaryIType where Element : BinaryIType {
 	public init( from rbuffer: inout BinaryReadBuffer ) throws {
 		self.init()
 		let count = try Int( from: &rbuffer )
@@ -2617,6 +2645,7 @@ extension Array: GEncodable where Element:GEncodable {
 		}
 	}
 }
+
 extension Array: GDecodable where Element:GDecodable {
 	public init(from decoder: GDecoder) throws {
 		self.init()
@@ -2632,7 +2661,8 @@ extension Array: GDecodable where Element:GDecodable {
 This additional line of code allows array to encode its elements with BinaryIO when they adopt `PackCodable`:
 
 ```swift
-extension Array : GBinaryCodable where Element : GPackCodable {}
+extension Array : GBinaryEncodable where Element : GPackEncodable {}
+extension Array : GBinaryDecodable where Element : GPackDecodable {}
 ```
 
 #### Foundation type `PersonNameComponents`
@@ -2640,7 +2670,7 @@ extension Array : GBinaryCodable where Element : GPackCodable {}
 **BinaryIO package**:
 
 ```swift
-extension PersonNameComponents : BinaryIOType {
+extension PersonNameComponents : BinaryOType {
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
 		try namePrefix	.write(to: &wbuffer)
 		try givenName	.write(to: &wbuffer)
@@ -2649,7 +2679,9 @@ extension PersonNameComponents : BinaryIOType {
 		try nameSuffix	.write(to: &wbuffer)
 		try nickname	.write(to: &wbuffer)
 	}
-	
+}
+
+extension PersonNameComponents : BinaryIType {
 	public init(from rbuffer: inout BinaryReadBuffer) throws {
 		self.init()
 		
@@ -2666,7 +2698,7 @@ extension PersonNameComponents : BinaryIOType {
 **GraphCodable package**: In this case GraphCodable does not use BinaryIO but stores `PersonNameComponents` using keys with `GCodable` methods. This means that the BinaryIO implementation in `PersonNameComponents` is only accessible by extracting the BinaryIO package and using it without the GraphCodable.
 
 ```swift
-extension PersonNameComponents : GCodable {
+extension PersonNameComponents {
 	private enum Key : String {
 		case namePrefix
 		case givenName
@@ -2675,7 +2707,9 @@ extension PersonNameComponents : GCodable {
 		case nameSuffix
 		case nickname
 	}
-	
+}
+
+extension PersonNameComponents : GDecodable {
 	public init(from decoder: GDecoder) throws {
 		self.init()
 		
@@ -2686,7 +2720,9 @@ extension PersonNameComponents : GCodable {
 		nameSuffix = try decoder.decodeIfPresent( for: Key.nameSuffix )
 		nickname   = try decoder.decodeIfPresent( for: Key.nickname )
 	}
-	
+}
+
+extension PersonNameComponents : GEncodable {
 	public func encode(to encoder: GEncoder) throws {
 		try encoder.encodeIfPresent( namePrefix, for: Key.namePrefix)
 		try encoder.encodeIfPresent( givenName, for: Key.givenName)

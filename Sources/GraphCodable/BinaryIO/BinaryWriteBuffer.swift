@@ -38,6 +38,7 @@ public struct BinaryWriteBuffer {
 	// public version for user defined types
 	public let			version			: UInt16
 	public let 			userInfo		: [String:Any]
+	public let			userObject		: AnyObject?
 }
 
 //	MAKE THIS EXTENSION PUBLIC IF YOU WANT TO USE BinaryIO AS A STANDALONE LIBRARY
@@ -56,12 +57,13 @@ extension BinaryWriteBuffer {
 		}
 	}
 	
-	init( version: UInt16, userInfo:[String:Any] = [:] ) {
+	init( version: UInt16, userInfo:[String:Any] = [:], userObject:AnyObject? = nil ) {
 		self.version		= version
 		self.bytes			= Bytes()
 		self._position		= 0
 		self.insertMode		= false
 		self.userInfo		= userInfo
+		self.userObject		= userObject
 		// really can't throw
 		try! self.writeValue( Self.privateVersion )
 		try! self.writeValue( version )

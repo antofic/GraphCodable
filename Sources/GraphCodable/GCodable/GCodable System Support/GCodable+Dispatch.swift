@@ -22,98 +22,17 @@
 
 import Dispatch
 
-/*
-extension DispatchTime : GCodable {
-	public func encode(to encoder: GEncoder) throws {
-		try encoder.encode( uptimeNanoseconds )
-	}
-	
-	public init(from decoder: GDecoder) throws {
-		self.init( uptimeNanoseconds: try decoder.decode() )
-	}
-}
-*/
-extension DispatchTime : GPackCodable {}
+extension DispatchTime : GBinaryEncodable {}
+extension DispatchTimeInterval : GBinaryEncodable {}
+extension DispatchQueue.SchedulerTimeType : GBinaryEncodable {}
+extension DispatchQueue.SchedulerTimeType.Stride : GBinaryEncodable {}
 
-/*
-extension DispatchTimeInterval : GCodable {
-	private enum IntervalType : UInt8, GCodable {
-		case seconds,milliseconds,microseconds,nanoseconds,never
-	}
+extension DispatchTime : GBinaryDecodable {}
+extension DispatchTimeInterval : GBinaryDecodable {}
+extension DispatchQueue.SchedulerTimeType : GBinaryDecodable {}
+extension DispatchQueue.SchedulerTimeType.Stride : GBinaryDecodable {}
 
-	public func encode(to encoder: GEncoder) throws {
-		switch self {
-		case .seconds( let value ):
-			try encoder.encode( IntervalType.seconds )
-			try encoder.encode( value )
-		case .milliseconds( let value ):
-			try encoder.encode( IntervalType.milliseconds )
-			try encoder.encode( value )
-		case .microseconds( let value ):
-			try encoder.encode( IntervalType.microseconds )
-			try encoder.encode( value )
-		case .nanoseconds( let value ):
-			try encoder.encode( IntervalType.nanoseconds )
-			try encoder.encode( value )
-		case .never:
-			try encoder.encode( IntervalType.never )
-		@unknown default:
-			throw GCodableError.versionError(
-				Self.self, GCodableError.Context(
-					debugDescription: "\(Self.self) in a new unknown case -\(self)-."
-				)
-			)
-		}
-	}
-	
-	public init(from decoder: GDecoder) throws {
-		let intervalType	= try decoder.decode() as IntervalType
-		switch intervalType {
-		case .seconds:
-			let value = try decoder.decode() as Int
-			self = .seconds(value)
-		case .milliseconds:
-			let value = try decoder.decode() as Int
-			self = .milliseconds(value)
-		case .microseconds:
-			let value = try decoder.decode() as Int
-			self = .microseconds(value)
-		case .nanoseconds:
-			let value = try decoder.decode() as Int
-			self = .nanoseconds(value)
-		case .never:
-			self = .never
-		}
-	}
-}
-*/
-
-extension DispatchTimeInterval : GPackCodable {}
-
-/*
-extension DispatchQueue.SchedulerTimeType : GCodable {
-	public func encode(to encoder: GEncoder) throws {
-		try encoder.encode( dispatchTime )
-	}
-	
-	public init(from decoder: GDecoder) throws {
-		self.init( try decoder.decode() )
-	}
-}
-*/
-
-extension DispatchQueue.SchedulerTimeType : GPackCodable {}
-
-/*
-extension DispatchQueue.SchedulerTimeType.Stride : GCodable {
-	public func encode(to encoder: GEncoder) throws {
-		try encoder.encode( timeInterval )
-	}
-
-	public init(from decoder: GDecoder) throws {
-		self.init( try decoder.decode() )
-	}
-}
-*/
-
-extension DispatchQueue.SchedulerTimeType.Stride : GPackCodable {}
+extension DispatchTime : GPackable {}
+extension DispatchTimeInterval : GPackable {}
+extension DispatchQueue.SchedulerTimeType : GPackable {}
+extension DispatchQueue.SchedulerTimeType.Stride : GPackable {}

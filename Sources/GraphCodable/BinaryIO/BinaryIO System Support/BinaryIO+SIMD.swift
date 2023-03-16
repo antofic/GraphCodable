@@ -22,13 +22,14 @@
 
 import simd
 
-extension SIMDStorage where Scalar:BinaryIOType {
+extension SIMDStorage where Scalar:BinaryOType {
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
 		for i in 0..<Self.scalarCount {
 			try self[i].write(to: &wbuffer)
 		}
 	}
-
+}
+extension SIMDStorage where Scalar:BinaryIType {
 	public init(from rbuffer: inout BinaryReadBuffer) throws {
 		self.init()
 		for i in 0..<Self.scalarCount {
@@ -37,14 +38,24 @@ extension SIMDStorage where Scalar:BinaryIOType {
 	}
 }
 
-extension SIMD2:BinaryIOType where Scalar:BinaryIOType {}
-extension SIMD3:BinaryIOType where Scalar:BinaryIOType {}
-extension SIMD4:BinaryIOType where Scalar:BinaryIOType {}
-extension SIMD8:BinaryIOType where Scalar:BinaryIOType {}
-extension SIMD16:BinaryIOType where Scalar:BinaryIOType {}
-extension SIMD32:BinaryIOType where Scalar:BinaryIOType {}
-extension SIMD64:BinaryIOType where Scalar:BinaryIOType {}
-extension SIMDMask:BinaryIOType {}
+extension SIMD2:BinaryIType where Scalar:BinaryIType {}
+extension SIMD3:BinaryIType where Scalar:BinaryIType {}
+extension SIMD4:BinaryIType where Scalar:BinaryIType {}
+extension SIMD8:BinaryIType where Scalar:BinaryIType {}
+extension SIMD16:BinaryIType where Scalar:BinaryIType {}
+extension SIMD32:BinaryIType where Scalar:BinaryIType {}
+extension SIMD64:BinaryIType where Scalar:BinaryIType {}
+
+extension SIMD2:BinaryOType where Scalar:BinaryOType {}
+extension SIMD3:BinaryOType where Scalar:BinaryOType {}
+extension SIMD4:BinaryOType where Scalar:BinaryOType {}
+extension SIMD8:BinaryOType where Scalar:BinaryOType {}
+extension SIMD16:BinaryOType where Scalar:BinaryOType {}
+extension SIMD32:BinaryOType where Scalar:BinaryOType {}
+extension SIMD64:BinaryOType where Scalar:BinaryOType {}
+
+extension SIMDMask:BinaryIType {}
+extension SIMDMask:BinaryOType {}
 
 // Matrix support
 

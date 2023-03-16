@@ -70,3 +70,22 @@ extension GBinaryDecodable {
 	}
 }
 
+public protocol GDecoderView {
+	var encodedTypeVersion : UInt32  { get throws }
+	var replacedType : GDecodable.Type?  { get throws }
+}
+
+extension BinaryReadBuffer {
+	public var decoderView : GDecoderView {
+		get throws {
+			guard let decoderView = userObject as? GDecoderView else {
+				throw GCodableError.internalInconsistency(
+					Self.self, GCodableError.Context(
+						debugDescription: "decoderView can be accessed only from the GraphCodable BinaryReadBuffer"
+					)
+				)
+			}
+			return decoderView
+		}
+	}
+}

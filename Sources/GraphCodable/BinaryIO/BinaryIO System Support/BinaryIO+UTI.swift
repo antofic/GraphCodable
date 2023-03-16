@@ -23,13 +23,15 @@
 
 import UniformTypeIdentifiers
 
-extension UTTagClass : BinaryIOType {}
+extension UTTagClass : BinaryIType {}
+extension UTTagClass : BinaryOType {}
 
-extension UTType : BinaryIOType {
+extension UTType : BinaryOType {
 	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
 		try identifier.write(to: &wbuffer)
 	}
-	
+}
+extension UTType : BinaryIType {
 	public init(from rbuffer: inout BinaryReadBuffer) throws {
 		let identifier = try String( from: &rbuffer )
 		
