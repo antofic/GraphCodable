@@ -2293,7 +2293,7 @@ public typealias GPackDecodable	= GBinaryDecodable & GPackable
 public typealias GPackCodable	= GPackEncodable & GPackDecodable
 ```
 
-#### BinaryIO versioning
+### BinaryIO versioning
 
 What to do if during the evolution of the program it becomes necessary to modify a type that uses BinaryIO?
 
