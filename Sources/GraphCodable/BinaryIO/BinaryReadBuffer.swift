@@ -41,9 +41,9 @@ public struct BinaryReadBuffer {
 	// private version for library types
 	let	privateVersion		: UInt16
 	//	public version for user defined types
-	public	let	version 	: UInt16
-	public	var	dataSize	: Int 	{ base.count }
-	public	let userInfo	: [String:Any]
+	public let	version 	: UInt16
+	public var	dataSize	: Int 	{ base.count }
+	public let	userInfo	: [String:Any]
 }
 
 //	MAKE THIS EXTENSION PUBLIC IF YOU WANT TO USE BinaryIO AS A STANDALONE LIBRARY
