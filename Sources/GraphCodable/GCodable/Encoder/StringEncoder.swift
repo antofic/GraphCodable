@@ -62,10 +62,8 @@ final class StringEncoder : FileBlockEncoder {
 				if options.contains( .hideSectionTitles ) == false {
 					dump.append( Self.titleString( "HEADER" ) )
 				}
-				dump.append( fileHeader.description )
-				if let dataSize = dataSize {
-					dump.append( "- Data size      = \(dataSize.format("10")) bytes\n" )
-				}
+				dump.append( fileHeader.description(dataSize: dataSize) )
+				dump.append( "\n" )
 			}
 			
 			if options.contains( .showHelp ) {

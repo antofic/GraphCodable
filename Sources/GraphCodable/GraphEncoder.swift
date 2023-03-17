@@ -28,7 +28,7 @@ public final class GraphEncoder {
 	private let encoder	: GEncoderImpl
 
 	/// GraphEncoder init method
-	public init( _ options: Options = .defaultOption, userVersion: UInt16 = 0 ) {
+	public init( _ options: Options = .defaultOption, userVersion: UInt32 = 0 ) {
 		encoder	= GEncoderImpl( options, userVersion:userVersion )
 	}
 

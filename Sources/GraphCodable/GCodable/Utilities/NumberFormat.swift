@@ -8,6 +8,7 @@
 import Foundation
 import simd
 
+
 //****************************************************
 // integer format
 

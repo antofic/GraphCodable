@@ -34,17 +34,16 @@ public struct BinaryWriteBuffer {
 	private var 		_position		: Int
 	private var			insertMode		: Bool
 	// actual private version for library types
-	static let			privateVersion	: UInt16 = 0
+	static let			binaryIOVersion	: UInt32 = 0
 	// public version for user defined types
-	public let			userVersion		: UInt16
-	public let 			userInfo		: [String:Any]
-	public let			userObject		: AnyObject?
+	public let			userVersion		: UInt32
+	public let			userData		: Any?
 }
 
 //	MAKE THIS EXTENSION PUBLIC IF YOU WANT TO USE BinaryIO AS A STANDALONE LIBRARY
 //	public extension BinaryWriteBuffer {
 extension BinaryWriteBuffer {
-	var startOfFile	: Int { MemoryLayout.size(ofValue: Self.privateVersion) + MemoryLayout.size(ofValue: userVersion) }
+	var startOfFile	: Int { MemoryLayout.size(ofValue: Self.binaryIOVersion) + MemoryLayout.size(ofValue: userVersion) }
 	var endOfFile	: Int { bytes.endIndex }
 	mutating func setPositionToStart()	{ _position = startOfFile }
 	mutating func setPositionToEnd()	{ _position = endOfFile }
@@ -57,15 +56,14 @@ extension BinaryWriteBuffer {
 		}
 	}
 	
-	init( userVersion: UInt16, userInfo:[String:Any] = [:], userObject:AnyObject? = nil ) {
+	init( userVersion: UInt32, userData:Any? = nil ) {
 		self.userVersion	= userVersion
 		self.bytes			= Bytes()
 		self._position		= 0
 		self.insertMode		= false
-		self.userInfo		= userInfo
-		self.userObject		= userObject
+		self.userData		= userData
 		// really can't throw
-		try! self.writeValue( Self.privateVersion )
+		try! self.writeValue( Self.binaryIOVersion )
 		try! self.writeValue( userVersion )
 	}
 	

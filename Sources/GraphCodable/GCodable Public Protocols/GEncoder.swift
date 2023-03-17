@@ -26,7 +26,7 @@ public protocol GEncoder {
 	/// Any contextual information set by the user for encoding.
 	var	userInfo	: [String:Any] { get }
 
-	var	userVersion	: UInt16 { get }
+	var	userVersion	: UInt32 { get }
 
 	
 	/// Encodes the given value/reference for the given key.

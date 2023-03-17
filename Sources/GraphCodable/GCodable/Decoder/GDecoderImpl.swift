@@ -27,7 +27,7 @@ final class GDecoderImpl {
 	
 	private func readBuffer<Q>( from data: Q ) throws -> BinaryReadBuffer
 	where Q:Sequence, Q.Element==UInt8 {
-		try BinaryReadBuffer(data: data, userInfo:userInfo, userObject:self )
+		try BinaryReadBuffer(data: data, userData:self )
 	}
 	
 	func allClassData<Q>( from data: Q ) throws -> [ClassData]
@@ -60,7 +60,7 @@ final class GDecoderImpl {
 
 // MARK: GDecoderImpl conformance to GDecoder protocol
 extension GDecoderImpl : GDecoder, GDecoderView {
-	var	encodedUserVersion	: UInt16 {
+	var	encodedUserVersion	: UInt32 {
 		constructor.fileHeader.userVersion
 	}
 	

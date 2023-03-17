@@ -44,8 +44,8 @@ public extension BinaryOType {
 	///
 	///	The root value must conform to the BinaryOType protocol
 	/// - returns: The byte buffer.
-	func binaryData<Q>( version:UInt16, userInfo:[String:Any] = [:] ) throws -> Q where Q:MutableDataProtocol {
-		var wbuffer = BinaryWriteBuffer( userVersion:version,userInfo:userInfo )
+	func binaryData<Q>( userVersion:UInt32, userData:Any? = nil ) throws -> Q where Q:MutableDataProtocol {
+		var wbuffer = BinaryWriteBuffer( userVersion:userVersion,userData: userData )
 		try write( to:&wbuffer )
 		return wbuffer.data()
 	}
@@ -67,8 +67,8 @@ public extension BinaryIType {
 	///	Decode the root value from the byte buffer
 	///
 	///	The root value must conform to the `BinaryIType` protocol
-	init<Q>( binaryData: Q, userInfo:[String:Any] = [:] ) throws where Q:Sequence, Q.Element==UInt8 {
-		var rbuffer = try BinaryReadBuffer( data:binaryData,userInfo:userInfo )
+	init<Q>( binaryData: Q, userData:Any? = nil ) throws where Q:Sequence, Q.Element==UInt8 {
+		var rbuffer = try BinaryReadBuffer( data:binaryData, userData:userData )
 		try self.init( from: &rbuffer )
 	}
 	

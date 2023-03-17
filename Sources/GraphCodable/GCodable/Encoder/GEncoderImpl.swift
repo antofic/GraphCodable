@@ -80,17 +80,21 @@ final class GEncoderImpl : FileBlockEncoderDelegate {
 	var keyStringMap: KeyStringMap 	{ keyMap.keyStringMap }
 	
 	private func writeBuffer() -> BinaryWriteBuffer {
-		BinaryWriteBuffer( userVersion: fileHeader.userVersion, userInfo:userInfo )
+		BinaryWriteBuffer( userVersion: fileHeader.userVersion, userData: self )
 	}
 	
-	init( _ options: GraphEncoder.Options, userVersion:UInt16 ) {
+	init( _ options: GraphEncoder.Options, userVersion:UInt32 ) {
 		#if DEBUG
 		self.encodeOptions	= [options, .printWarnings]
 		#else
 		self.encodeOptions	= options
 		#endif
 		// packBinSize or not???
-		self.fileHeader			= FileHeader( userVersion:userVersion, flags: .packBinSize )
+		self.fileHeader = FileHeader(
+			userVersion: userVersion,
+			binaryIOVersion: BinaryWriteBuffer.binaryIOVersion,
+			flags: .packBinSize
+		)
 	}
 
 	func encodeRoot<T,Q>( _ value: T ) throws -> Q where T:GEncodable, Q:MutableDataProtocol {
@@ -116,8 +120,8 @@ final class GEncoderImpl : FileBlockEncoderDelegate {
 }
 
 // MARK: GEncoderImpl conformance to GEncoder protocol
-extension GEncoderImpl : GEncoder {
-	var	userVersion	: UInt16 {
+extension GEncoderImpl : GEncoder, GEncoderView {
+	var	userVersion	: UInt32 {
 		return fileHeader.userVersion
 	}
 	

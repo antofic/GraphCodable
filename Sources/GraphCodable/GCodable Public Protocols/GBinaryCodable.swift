@@ -70,15 +70,36 @@ extension GBinaryDecodable {
 	}
 }
 
+public protocol GEncoderView {
+	var	userInfo			: [String:Any] { get }
+}
+
+extension BinaryWriteBuffer {
+	public var encoderView : GEncoderView {
+		get throws {
+			guard let encoderView = userData as? GEncoderView else {
+				throw GCodableError.internalInconsistency(
+					Self.self, GCodableError.Context(
+						debugDescription: "encoderView can be accessed only from the GraphCodable BinaryWriteBuffer"
+					)
+				)
+			}
+			return encoderView
+		}
+	}
+}
+
+
 public protocol GDecoderView {
-	var encodedTypeVersion : UInt32  { get throws }
-	var replacedType : GDecodable.Type?  { get throws }
+	var	userInfo			: [String:Any] { get }
+	var encodedTypeVersion	: UInt32  { get throws }
+	var replacedType		: GDecodable.Type?  { get throws }
 }
 
 extension BinaryReadBuffer {
 	public var decoderView : GDecoderView {
 		get throws {
-			guard let decoderView = userObject as? GDecoderView else {
+			guard let decoderView = userData as? GDecoderView else {
 				throw GCodableError.internalInconsistency(
 					Self.self, GCodableError.Context(
 						debugDescription: "decoderView can be accessed only from the GraphCodable BinaryReadBuffer"

@@ -26,7 +26,7 @@ public protocol GDecoder {
 	/// Any contextual information set by the user for encoding.
 	var userInfo : [String:Any] { get }
 
-	var	encodedUserVersion	: UInt16 { get }
+	var	encodedUserVersion	: UInt32 { get }
 
 	/// Returns the version of the encoded object during the object decoding
 	///
