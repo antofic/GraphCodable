@@ -11,7 +11,7 @@ import Foundation
 ///	we use it to compact typeID's, objID's, keyID's
 ///	**Note:** Packed data is variable in size.
 extension UnsignedInteger {
-	init( unpackFrom rbuffer: inout BinaryReadBuffer ) throws {
+	init( decompressFrom rbuffer: inout BinaryReadBuffer ) throws {
 		if MemoryLayout<Self>.size > 1 {
 			var	word	= try UInt8( from: &rbuffer )
 			var	val		= Self( word & 0x7F )
@@ -30,7 +30,7 @@ extension UnsignedInteger {
 		}
 	}
 
-	func write(packTo wbuffer: inout BinaryWriteBuffer) throws {
+	func write(compressTo wbuffer: inout BinaryWriteBuffer) throws {
 		if MemoryLayout<Self>.size > 1 {
 			var	val		= self
 			var word	= UInt8( val & 0x7F )

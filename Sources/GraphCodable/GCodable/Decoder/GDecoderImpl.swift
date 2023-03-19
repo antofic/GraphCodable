@@ -34,7 +34,7 @@ final class GDecoderImpl {
 	where Q:Sequence, Q.Element==UInt8 {
 		let readBuffer 		= try readBuffer(from: data)
 		let decodedNames	= try ClassNamesDecoder(from: readBuffer)
-		
+
 		return Array( decodedNames.classDataMap.values )
 	}
 	
@@ -52,7 +52,7 @@ final class GDecoderImpl {
 	where Q:Sequence, Q.Element==UInt8 {
 		
 		let readBuffer 	= try readBuffer(from: data)
-		let decodedDump	= try StringDecoder(from: readBuffer, options: options)
+		let decodedDump	= try StringDecoder(from: readBuffer, classNameMap:classNameMap, options: options)
 		
 		return try decodedDump.dump()
 	}
@@ -64,12 +64,12 @@ extension GDecoderImpl : GDecoder, GDecoderView {
 		constructor.fileHeader.userVersion
 	}
 	
-	var encodedTypeVersion : UInt32 {
-		get throws { try constructor.encodedTypeVersion }
+	var encodedClassVersion : UInt32 {
+		get throws { try constructor.encodedClassVersion }
 	}
 
-	var replacedType : GDecodable.Type?   {
-		get throws { try constructor.replacedType }
+	var replacedClass : (AnyObject & GDecodable).Type?   {
+		get throws { try constructor.replacedClass }
 	}
 	
 	// ------ keyed support

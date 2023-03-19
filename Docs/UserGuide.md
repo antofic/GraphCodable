@@ -1276,7 +1276,7 @@ Not only array `a` (VAL0003) is encoded only once, but array `b` (VAL0002) is al
 
 ### Identity for swift system value types that use copy on write (COW)
 
-Many swift system value types use the copy on write (COW) mechanism. Among these, the most common are `Array`, `ContiguousArray`, `Data`, `Set`, `Dictionary` and presumably `String`. Unfortunately, none of these types exposes the *ObjectIdentifier* of the reference type used as storage, otherwise it would be very simple to provide them with identities, exactly as it was done in the example of the previous paragraph with `MyArray`.
+Many swift system value types use the copy on write (COW) mechanism. Among these, the most common are `Array`, `ContiguousArray`, `Data`, `Set`, `Dictionary` and presumably `String` beyond a certain number of characters. Unfortunately, none of these types exposes the *ObjectIdentifier* of the reference type used as storage, otherwise it would be very simple to provide them with identities, exactly as it was done in the example of the previous paragraph with `MyArray`.
 
 In the case of `Array` and `ContiguousArray` it is possible to obtain the *ObjectIdentifier* of the internal storage with the following trick:
 
@@ -1306,13 +1306,13 @@ extension String : GIdentifiable {
 }
 ```
 
-each string (a string is `Hashable`) acquires its own self-defined identity, and all equal strings are encoded only once. However, care must be taken when using this method (or generalize it) because it involves checking potentially complex and large values for equality during encoding, which can slow down the procedure. This is very different from checking the equality of *ObjectIdentifiers* (which are 64bit values) or *UUIDs* (which are 128bit values).
+each string (a string is `Hashable`) acquires its own self-defined identity, and all equal strings are encoded only once. However, care must be taken when using this method (or generalizing it) because it involves checking potentially complex and large values for equality during encoding, which can slow down the procedure. This is very different from checking the equality of *ObjectIdentifiers* (which are 64bit values) or *UUIDs* (which are 128bit values).
 
 For this reason GraphCodable does not implement a *hashable-based* automatic identity for strings or any other type, although this is not a trick, and leaves that choice up to the user. However, it is possible to activate it with two options, as we will see in the next paragraph.
 
 ### Control identity globally
 
-Some options in the `GraphEncoder(  _ options: )` method control identity **globally**, that is, they apply to all encoded reference types.
+Some options in the `GraphEncoder( _ options: )` init method control identity **globally**, that is, they apply to all encoded types.
 
 - the `.disableIdentity` option disable identity for all types, regardless of protocol `GIdentifiable` and any other options.
 
@@ -1335,28 +1335,28 @@ Both `GraphEncoder` and `GraphDecoder` allow setting a dictionary accessible dur
 
 ## Reference types versioning
 
-Reference types can use the `typeVersion` property in `GEncodable` protocol:
+Reference types can use the `classVersion` property in `GEncodable` protocol:
 
 ```swift
 public protocol GEncodable {
 	/* ... */
-  static var typeVersion : UInt32 { get }
+  static var classVersion : UInt32 { get }
 }
 
 extension GEncodable {
-	public static var typeVersion : UInt32 { 0 }
+	public static var classVersion : UInt32 { 0 }
 }
 
 ```
 
- to define the version (a `UInt32` value) of their type so that they can handle different decoding strategies depending on it. The default `typeVersion` value is 0.
+ to define the version (a `UInt32` value) of their type so that they can handle different decoding strategies depending on it. The default `classVersion` value is 0.
 
-The encoder stores the value returned by `typeVersion` together with the reference type information, only once for each reference type. During decoding, the version of the encoded reference type can be accessed through the decoder property `encodedTypeVersion`.
+The encoder stores the value returned by `classVersion` together with the reference type information, only once for each reference type. During decoding, the version of the encoded reference type can be accessed through the decoder property `encodedClassVersion`.
 
 ```swift
 public protocol GDecoder {
 	...
-	var encodedTypeVersion : UInt32  { get throws }
+	var encodedClassVersion : UInt32  { get throws }
   ...
 }
 
@@ -1405,7 +1405,7 @@ let path = FileManager.default.urls(
 
 try data.write(to: path)
 ```
-The new version of the program uses a different implementation of the MyData class. It is therefore necessary to be able to read the data saved by both versions of MyData. That's how:
+The new version of the program uses a different implementation of the MyData class. It is therefore necessary to be able to read the data saved by both versions of `MyData`. That's how:
 
 ```swift
 import Foundation
@@ -1427,7 +1427,7 @@ class MyData :GCodable, CustomStringConvertible {
 	}
 	
 	required init(from decoder: GDecoder) throws {
-		let version = try decoder.encodedTypeVersion
+		let version = try decoder.encodedClassVersion
 		
 		switch version {
 		case 0:		// previous version
@@ -1459,32 +1459,34 @@ print( outRoot )	// MyData(string: "3")
 
 Now suppose it is absolutely necessary to change some class `MyData` to `MyNewData`. The problem is that there are already saved files in which reference of class `MyData` are stored and it is therefore necessary, during decoding, that objects of the new type `MyNewData` be created instead of these.
 
-To solve the problem the old objective-c NSKeyedUnarchiver offers the possibility to map the new class to the encoded class name using the function (and class function) `setClass( _ cls: AnyClass?, forClassName:String)`.
+To solve the problem the old objective-c `NSKeyedUnarchiver` offers the possibility to map the new class to the encoded class name using the function (and class function) `setClass( _ cls: AnyClass?, forClassName:String)`.
 
-On the other hand, in swift, class names are much more complicated than in objective-c, more difficult to manage and therefore GraphCodable employs a different method **which uses the swift type system avoiding the use of class name strings**. However, it is still possible to use strings for class names as an alternative.
+On the other hand, in swift, class names are much more complicated than in objective-c, more difficult to manage and therefore GraphCodable employs a different method **which uses the swift type system avoiding the use of class name strings**. However, it is still possible to use strings for class names as a (discouraged) alternative.
+
+**Note**: A reference type can be replaced by either another reference type or a value type.
 
 ### Non generic references
 
-The `GDecodable` protocol defines the static property `replacementType` which by default returns `Self.self`. 
+The `GDecodable` protocol defines the static property `decodeType` which by default returns `Self.self`. 
 
 ```swift
 public protocol GDecodable {
 	init(from decoder: GDecoder) throws
 	
-	static var replacementType : GDecodable.Type { get }
+	static var decodeType : GDecodable.Type { get }
 }
 
 public extension GDecodable {
-	static var replacementType : GDecodable.Type { Self.self }
+	static var decodeType : GDecodable.Type { Self.self }
 }
 ```
 
-And so, `MyData` remains in the code, "emptied" of all its internal code, and `replacementType` is used to indicate the type that `MyData` replaces. Notice how `replacementType` does not return `MyNewData.self`, but `MyNewData.replacementType`. This is the correct thing to do, for reasons that will become clearer in the next paragraph.
+And so, `MyData` remains in the code, "emptied" of all its internal code, and `decodeType` is used to indicate the `MyData`  replacement type: `MyNewData`. Notice how `MyData.decodeType` does not return `MyNewData.self`, but `MyNewData.decodeType`. This is the correct thing to do: `MyNewData` could in turn indicate a type that replaces it. The further reason will become clearer in the next paragraph.
 
 ```swift
 class MyData: GCodable {
-	class var replacementType: GDecodable.Type {
-		return MyNewData.replacementType
+	class var decodeType: GDecodable.Type {
+		return MyNewData.decodeType
 	}
 	
 	required init(from decoder: GDecoder) throws {
@@ -1501,8 +1503,8 @@ To make this easier, GraphCodable provides the `GObsolete` protocol, which has n
 
 ```swift
 class MyData : GObsolete {
-	class var replacementType: GDecodable.Type {
-		return MyNewData.replacementType
+	class var decodeType: GDecodable.Type {
+		return MyNewData.decodeType
 	}
 }
 ```
@@ -1514,8 +1516,8 @@ import Foundation
 import GraphCodable
 
 class MyData : GObsolete {
-	class var replacementType: GDecodable.Type {
-		return MyNewData.replacementType
+	class var decodeType: GDecodable.Type {
+		return MyNewData.decodeType
 	}
 }
 
@@ -1535,7 +1537,7 @@ class MyNewData :GCodable, CustomStringConvertible {
 	}
 	
 	required init(from decoder: GDecoder) throws {
-		if try decoder.replacedType != nil {
+		if try decoder.replacedClass != nil {
 			// I'm decoding MyData and replacing with MyNewData
 			self.string	=  String( try decoder.decode( for: OldKey.number ) as Int )
 		} else {
@@ -1562,7 +1564,7 @@ let data	= try Data(contentsOf: path)
 let outRoot	= try GraphDecoder().decode( MyNewData.self, from: data )
 print( outRoot )	// MyNewData(string: 3)
 ```
-Multiple classes can be replaced by only one if necessary. Use `decoder.replacedType` to find out which one was replaced during decoding. Versioning and class replacement can be combined.
+Multiple classes can be replaced by only one if necessary. Use `decoder.replacedClass` to find out which one was replaced during decoding. Versioning and class replacement can be combined.
 
 ### Generic references
 
@@ -1578,24 +1580,24 @@ class Generic<T:GDecodable> : GDecodable {
 }
 ```
 
-Now suppose you encoded an instance of `Generic<MyData>`and replaced `MyData` with `MyNewData`.  During decoding, the decoder encounters the `Generic<MyData>` class and calls `Generic<MyData>.replacementType`, getting `Generic<MyData>.self` instead of  `Generic<MyNewData>.self`.
+Now suppose you encoded an instance of `Generic<MyData>`and replaced `MyData` with `MyNewData`.  During decoding, the decoder encounters the `Generic<MyData>` class and calls `Generic<MyData>.decodeType`, getting `Generic<MyData>.self` instead of  `Generic<MyNewData>.self`.
 
-It follows that any generic class that adopts `GCodable` protocol **must** correctly implement `replacementType` if there is a chance that its parameter types are **renamed** classes. That's how:
+It follows that any generic class that adopts `GCodable` protocol **must** correctly implement `decodeType` if there is a chance that its parameter types are **replaced**. That's how:
 
 ```swift
 extension Generic {
-	class var replacementType: GDecodable.Type {
+	class var decodeType: GDecodable.Type {
 		func buildSelf<T>( _ typeT:T.Type ) -> GDecodable.Type
 		where T:GDecodable { Generic<T>.self }
 
-		let typeT = T.replacementType
+		let typeT = T.decodeType
 
 		return buildSelf( typeT )
 	}
 }
 ```
 
-**Note**: For some strange reason swift doesn't allow you to write `buildSelf( T.replacementType )` directly.
+**Note**: For some strange reason swift doesn't allow you to write `buildSelf( T.decodeType )` directly.
 
 What follows is a slightly more complex example. First we have some utility functions for the next code example (`GraphCodableUti.checkEncoder` and `GraphCodableUti.checkDecoder` are two utility/debug functions defined in GraphCodableUti.swift):
 
@@ -1743,15 +1745,15 @@ extension Couple: CustomStringConvertible {
 }
 ```
 
-First, `Model` is a generic class whose type could depend on `Pair` when passed as `S`. If `Pair` becomes `Couple`, the names of `Model` specializations that have `Pair` as a type parameter must also change accordingly. To handle during decoding **all situations** in which the name of `Model` argument types changes,  `Model` implements the `replacementType` static property:
+First, `Model` is a generic class whose type could depend on `Pair` when passed as `S`. If `Pair` becomes `Couple`, the names of `Model` specializations that have `Pair` as a type parameter must also change accordingly. To handle during decoding **all situations** in which the name of `Model` argument types changes,  `Model` implements the `decodeType` static property:
 
 ```swift
 extension Model {
-	class var replacementType: GDecodable.Type {
+	class var decodeType: GDecodable.Type {
 		func buildSelf<T>( _ typeT:T.Type ) -> GDecodable.Type
 		where T:GDecodable { Model<T>.self }
 
-		let typeT = S.replacementType
+		let typeT = S.decodeType
 
 		return buildSelf( typeT )
 	}
@@ -1759,16 +1761,16 @@ extension Model {
 
 ```
 
-The code is substantially identical to the one already seen by `Generic` `replacementType`. Similarly, `Couple`, being generic, must implements the `replacementType` static property to handle during decoding **all situations** in which the name of one or more of its argument types changes:
+The code is substantially identical to the one already seen by `Generic` `decodeType`. Similarly, `Couple`, being generic, must implements the `decodeType` static property to handle during decoding **all situations** in which the name of one or more of its argument types changes:
 
 ```swift
 extension Couple {
-	class var replacementType: GDecodable.Type {
+	class var decodeType: GDecodable.Type {
 		func buildSelf<newT,newQ>( _ typeT:newT.Type, _ typeQ:newQ.Type ) -> GDecodable.Type
 		where newT:GDecodable, newQ:GDecodable { Couple<newT,newQ>.self }
 		
-		let typeT = T.replacementType
-		let typeQ = Q.replacementType
+		let typeT = T.decodeType
+		let typeQ = Q.decodeType
 		
 		return buildSelf( typeT, typeQ )
 	}
@@ -1782,21 +1784,21 @@ The final touch is to make the `Pair` class obsolete by telling us to replace it
 ```swift
 final class Pair<T,Q> : GObsolete
 where T:GCodable, Q:GCodable {
-	static var replacementType: GDecodable.Type {
-		return Couple<T,Q>.replacementType
+	static var decodeType: GDecodable.Type {
+		return Couple<T,Q>.decodeType
 	}
 }
 ```
 
-Note how replacementType must return `Couple<T,Q>.replacementType` and not just `Couple<T,Q>` to account for the fact that `T` and `Q` themselves could be replaced. The replacement process is therefore effectively recursive.
+Note how decodeType must return `Couple<T,Q>.decodeType` and not just `Couple<T,Q>` to account for the fact that `T` and `Q` themselves could be replaced. The replacement process is therefore effectively recursive.
 
 Code summary (format 1) for easy copy and paste:
 
 ```swift
 final class Pair<T,Q> : GObsolete
 where T:GCodable, Q:GCodable {
-	static var replacementType: GDecodable.Type {
-		return Couple<T,Q>.replacementType
+	static var decodeType: GDecodable.Type {
+		return Couple<T,Q>.decodeType
 	}
 }
 
@@ -1831,12 +1833,12 @@ extension Couple: CustomStringConvertible {
 }
 
 extension Couple {
-	class var replacementType: GDecodable.Type {
+	class var decodeType: GDecodable.Type {
 		func buildSelf<newT,newQ>( _ typeT:newT.Type, _ typeQ:newQ.Type ) -> GDecodable.Type
 		where newT:GDecodable, newQ:GDecodable { Couple<newT,newQ>.self }
 		
-		let typeT = T.replacementType
-		let typeQ = Q.replacementType
+		let typeT = T.decodeType
+		let typeQ = Q.decodeType
 		
 		return buildSelf( typeT, typeQ )
 	}
@@ -1867,11 +1869,11 @@ extension Model: CustomStringConvertible {
 }
 
 extension Model {
-	class var replacementType: GDecodable.Type {
+	class var decodeType: GDecodable.Type {
 		func buildSelf<T>( _ typeT:T.Type ) -> GDecodable.Type
 		where T:GDecodable { Model<T>.self }
 
-		let typeT = S.replacementType
+		let typeT = S.decodeType
 
 		return buildSelf( typeT )
 	}
@@ -1947,7 +1949,7 @@ TYPE0001:	QualifiedName  = MyGraphCodableApp.MyData
 You then see that the `MyData` class has been stored with the qualified name `MyGraphCodableApp.MyData` and the mangledName `17MyGraphCodableApp0A4DataC`. Then you can use the GraphDecoder function:
 
 ```swift
-func setClass( _ type:(AnyObject & GDecodable).Type, for className:ClassName )
+func setType( _ type:GDecodable.Type, for className:ClassName )
 ```
 
 to match the encoded name to the class to decode. `ClassName` allows you to choose between the qualified name and the mangledName of the encoded class:
@@ -1965,7 +1967,7 @@ It's best to use the mangledName, as in the following example:
 import Foundation
 import GraphCodable
 
-class MyNewData :GCodable, CustomStringConvertible {
+class MyNewData: GCodable, CustomStringConvertible {
 	let string : String
 	
 	init( string: String ) {
@@ -1981,7 +1983,7 @@ class MyNewData :GCodable, CustomStringConvertible {
 	}
 	
 	required init(from decoder: GDecoder) throws {
-		let version = try decoder.encodedTypeVersion
+		let version = try decoder.encodedClassVersion
 		
 		switch version {
 		case 0:		// previous version
@@ -2008,14 +2010,68 @@ let data	= try Data(contentsOf: path)
 
 let graphDecoder = GraphDecoder()
 // set up the dictionary
-graphDecoder.setClass( MyNewData.self, for: .mangledName("17MyGraphCodableApp0A4DataC") )
+graphDecoder.setType( MyNewData.self, for: .mangledName("17MyGraphCodableApp0A4DataC") )
 
 let outRoot	= try graphDecoder.decode( MyNewData.self, from: data )
 print( outRoot )	// MyNewData(string: 3)
 
 ```
 
-This system becomes very difficult to manage especially if generic classes are employed.
+This system becomes very difficult to manage especially if generic classes are employed. The type can also be a **value type**.  In the following example we substitute `struct MyNewData:...` for `class MyNewData:...`:
+
+```swift
+import Foundation
+import GraphCodable
+
+struct MyNewData: GCodable, CustomStringConvertible {
+	let string : String
+	
+	init( string: String ) {
+		self.string	= string
+	}
+	
+	private enum OldKey : String {
+		case number
+	}
+	
+	private enum Key : String {
+		case string
+	}
+	
+	init(from decoder: GDecoder) throws {
+		let version = try decoder.encodedClassVersion
+		
+		switch version {
+		case 0:		// previous version
+			self.string	=  String( try decoder.decode( for: OldKey.number ) as Int )
+		default:	// current version
+			self.string	=  try decoder.decode( for: Key.string )
+		}
+	}
+	
+	func encode(to encoder: GEncoder) throws {
+		try encoder.encode( string, for:Key.string )
+	}
+	
+	var description: String {
+		return "\(type(of:self))(string: \(string))"
+	}
+}
+
+
+let path = FileManager.default.urls(
+	for: .documentDirectory, in: .userDomainMask
+)[0].appendingPathComponent("MyFile.graph")
+
+let data	= try Data(contentsOf: path)
+
+let graphDecoder = GraphDecoder()
+// set up the dictionary
+graphDecoder.setType( MyNewData.self, for: .mangledName("17MyGraphCodableApp0A4DataC") )
+
+let outRoot	= try graphDecoder.decode( MyNewData.self, from: data )
+print( outRoot )	// MyNewData(string: 3)
+```
 
 ## GraphCodable and BinaryIO
 
@@ -2315,18 +2371,18 @@ The `userInfo` dictionary set in the `GraphDecoder` is accessible to types adopt
 
 ```
 
-When dearchiving `GBinaryDecodable` **reference** types, you may also need access to `encodedTypeVersion` and `replacedType`:
+When dearchiving `GBinaryDecodable` **reference** types, you may also need access to `encodedClassVersion` and `replacedClass`:
 
 ```swift
 	init(from rbuffer: inout BinaryReadBuffer) throws {
 		let decoderView					= try rbuffer.decoderView
-		let encodedTypeVersion	= try decoderView.encodedTypeVersion
-		let replacedType				= try decoderView.replacedType
+		let encodedClassVersion	= try decoderView.encodedClassVersion
+		let replacedClass				= try decoderView.replacedClass
 	}
 
 ```
 
-`encodedTypeVersion` and `replacedType` have no meaning for **value** types and in general for `GPackDecodable` types.
+`encodedClassVersion` and `replacedClass` have no meaning for **value** types and in general for `GPackDecodable` types.
 
 ### BinaryIO versioning
 

@@ -35,12 +35,12 @@ public protocol GEncodable {
 	/// Returns `0` by default
 	///
 	/// Only reference types support versioning.
-	static var typeVersion : UInt32 { get }
+	static var classVersion : UInt32 { get }
 }
 
 extension GEncodable {
-	/// Default typeVersion = 0
-	public static var typeVersion : UInt32 { 0 }
+	/// Default classVersion = 0
+	public static var classVersion : UInt32 { 0 }
 }
 
 extension GEncodable where Self:AnyObject {
@@ -61,19 +61,19 @@ public protocol GDecodable {
 	/// - Parameter decoder: The decoder to read data from.
 	init(from decoder: GDecoder) throws
 	
-	/// A replacementType for the encoded reference type.
+	/// A decodeType for the encoded reference type.
 	///
 	/// Generic classes may return `Self` if the current specialization is
 	/// not to be replaced.
 	///	**See the UserGuide**.
 	///
 	/// - returns: The class that replaces `Self` (`Self.self` by default).
-	static var replacementType : GDecodable.Type { get }
+	static var decodeType : GDecodable.Type { get }
 }
 
 extension GDecodable {
-	/// Default replacementType = `Self.self`
-	public static var replacementType : GDecodable.Type { Self.self }
+	/// Default decodeType = `Self.self`
+	public static var decodeType : GDecodable.Type { Self.self }
 }
 
 /// A type that can be encoded from in-memory representations

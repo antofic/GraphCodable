@@ -22,7 +22,6 @@
 
 import Foundation
 
-typealias ClassInfoMap	= [TypeID:ClassInfo]
 
 struct BinaryDecoder {
 	let fileHeader			: FileHeader
@@ -33,18 +32,18 @@ struct BinaryDecoder {
 	init( from readBuffer:BinaryReadBuffer, classNameMap:ClassNameMap? ) throws {
 		var readBlockDecoder	= try ReadBlockDecoder( from: readBuffer )
 		let fileHeader			= readBlockDecoder.fileHeader
-		let rFileBlocks			= try readBlockDecoder.readBlocks()
-		let classInfoMap		= try readBlockDecoder.classDataMap().mapValues {
-			try ClassInfo(classData: $0, classNameMap:classNameMap )
-		}
+		let readBlocks			= try readBlockDecoder.readBlocks()
+		let classInfoMap		= try ClassInfo.classInfoMap(
+			classDataMap: readBlockDecoder.classDataMap(), classNameMap: classNameMap
+		)
 		let keyStringMap		= try readBlockDecoder.keyStringMap()
 		
 		self.fileHeader			= fileHeader
 		self.classInfoMap		= classInfoMap
 		(self.rootElement,self.elementMap)	= try FlattenedElement.rootElement(
-			rFileBlocks:	rFileBlocks,
+			readBlocks:	readBlocks,
 			keyStringMap:	keyStringMap,
-			reverse:	true
+			reverse:		true
 		)
 	}
 	

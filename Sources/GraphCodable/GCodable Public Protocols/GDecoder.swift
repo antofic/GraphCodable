@@ -30,20 +30,20 @@ public protocol GDecoder {
 
 	/// Returns the version of the encoded object during the object decoding
 	///
-	/// Corresponds to the value of `encodedTypeVersion` when encoding the
+	/// Corresponds to the value of `encodedClassVersion` when encoding the
 	/// data and can be used to decide on different decoding strategies.
 	///
 	/// Only reference types can have a version.
-	var encodedTypeVersion : UInt32  { get throws }
+	var encodedClassVersion : UInt32  { get throws }
 
-	/// The replacedType type during the object decoding if exists
+	/// The replacedClass type during the object decoding if exists
 	///
 	/// Can be used to decide on different decoding strategies.
 	/// **See the UserGuide**.
 	///
 	/// Only reference types can be replaced.
 	/// - returns: the replaced type if exists, nil otherwise
-	var replacedType : GDecodable.Type?  { get throws }
+	var replacedClass : (AnyObject & GDecodable).Type?  { get throws }
 	
 	/// Returns a Boolean value indicating whether the decoder contains a value
 	/// associated with the given key.

@@ -80,7 +80,7 @@ final class TypeConstructor {
 	}
 	
 	
-	var encodedTypeVersion : UInt32 {
+	var encodedClassVersion : UInt32 {
 		get throws {
 			guard let classInfo = currentInfo else {
 				throw GCodableError.typeMismatch(
@@ -89,11 +89,11 @@ final class TypeConstructor {
 					)
 				)
 			}
-			return classInfo.classData.encodedTypeVersion
+			return classInfo.classData.encodedClassVersion
 		}
 	}
 	
-	var replacedType : GDecodable.Type? {
+	var replacedClass : (AnyObject & GDecodable).Type? {
 		get throws {
 			guard let classInfo = currentInfo else {
 				throw GCodableError.typeMismatch(
@@ -102,7 +102,7 @@ final class TypeConstructor {
 					)
 				)
 			}
-			return classInfo.classData.replacedType
+			return classInfo.classData.replacedClass
 		}
 	}
 	
@@ -222,8 +222,8 @@ extension TypeConstructor {
 			// check if conforms to GDecodable.Type,
 			// costruct the value and check if is T
 			guard
-				let decodableType = wrapped as? GDecodable.Type,
-				let value = try decodableType.init(from: decoder) as? T
+				let decodedType = wrapped as? GDecodable.Type,
+				let value = try decodedType.init(from: decoder) as? T
 			else {
 				throw GCodableError.typeMismatch(
 					Self.self, GCodableError.Context(
@@ -296,7 +296,7 @@ extension TypeConstructor {
 		defer { currentInfo = saved }
 		currentInfo	= classInfo
 		
-		let type	= classInfo.decodableType.self
+		let type	= classInfo.decodedType.self
 		let object	: GDecodable
 		if let binSize {
 			object = try decodeBinValue( type:type, binSize: binSize, element:element, from: decoder )

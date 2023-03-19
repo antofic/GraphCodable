@@ -116,10 +116,13 @@ enum FileBlock {	// size = 32 bytes
 			return code
 		}
 	}
-	
+	// END
 	case End
+	// NIL
 	case Nil( keyID:KeyID? )
+	// PTS<ObjID>, PTC<ObjID>
 	case Ptr( keyID:KeyID?, objID:ObjID, conditional:Bool )
+	//	VAL<objID?>, BIV<objID?>, REF<objID?>, BIR<objID?>
 	case Val( keyID:KeyID?, objID:ObjID?, typeID:TypeID?, binSize:BinSize? )
 }
 
@@ -209,21 +212,27 @@ extension FileBlock {
 		try objID?.write( to: &wbuffer )
 		try typeID?.write( to: &wbuffer )
 		if let binaryValue {
-			let pack = fileHeader.flags.contains( .packBinSize )
-			if pack {
+			let compress = fileHeader.flags.contains( .packBinSize )
+			//	I control this choice with the 'packBinSize' internal flag so
+			//	that I can always change it. The flag is saved in the fileHeader
+			//	so that the file can still be read.
+			if compress {	// compress == true
+				//	allows slightly reducing the file size by packing BinSize but
+				//	involves shifting a possibly large binSize.size amount of data
+				//	by a small offset (1-2-3-4-5 bytes). As much as it doesn't seem
+				//	to reduce performance I don't like it.
 				try wbuffer.insertingWrite(
-					firstWrite: {
-						try binaryValue.write(to: &$0)
-					},
-					thenInsert: { try BinSize( $1 ).write(to: &$0, pack: true) }
+					firstWrite: { try binaryValue.write(to: &$0) },
+					thenInsert: { try BinSize( $1 ).write(to: &$0, compress: compress) }
 				)
-			} else {
+			} else {	// compress == false
+				//	we write a bogus binSize = BinSize(), write the data and when
+				//	we know their size we update binSize. BinSize must have a known
+				//	size, so we don't pack BinSize and obtain slightly larger files.
 				try wbuffer.prependingWrite(
-					dummyWrite: { try BinSize().write(to: &$0, pack: pack) },
-					thenWrite: {
-						try binaryValue.write(to: &$0)
-					},
-					thenOverwriteDummy: { try BinSize( $1 ).write(to: &$0, pack: false) }
+					dummyWrite:			{ try BinSize().write(to: &$0, compress: compress) },
+					thenWrite:			{ try binaryValue.write(to: &$0) },
+					thenOverwriteDummy: { try BinSize( $1 ).write(to: &$0, compress: compress) }
 				)
 			}
 		}
@@ -249,7 +258,7 @@ extension FileBlock {
 			let keyID		= code.hasKeyID	?	try KeyID(from: &rbuffer) : nil
 			let objID		= code.hasObjID	?	try ObjID(from: &rbuffer) : nil
 			let typeID		= code.hasTypeID ?	try TypeID(from: &rbuffer) : nil
-			let binSize		= code.isBinary ?	try BinSize(from: &rbuffer, unpack: unpack) : nil
+			let binSize		= code.isBinary ?	try BinSize(from: &rbuffer, decompress: unpack) : nil
 			self = .Val( keyID: keyID, objID: objID, typeID: typeID, binSize: binSize )
 		}
 	}
@@ -269,12 +278,12 @@ extension FileBlock : CustomStringConvertible {
 		func typeName( _ typeID:TypeID, _ options:GraphDumpOptions, _ classDataMap:ClassDataMap? ) -> String {
 			if let classData	= classDataMap?[typeID] {
 				if options.contains( .showClassVersionsInBody ) {
-					return "\(classData.qualifiedName) V\(classData.encodedTypeVersion)"
+					return "\(classData.qualifiedName) V\(classData.encodedClassVersion)"
 				} else {
 					return classData.qualifiedName
 				}
 			} else {
-				return "TYPE\(typeID.id.format("04"))"
+				return "TYPE\(typeID)"
 			}
 		}
 
@@ -295,7 +304,7 @@ extension FileBlock : CustomStringConvertible {
 				if let key = keyStringMap?[keyID] {
 					return "+ \"\(key)\": "
 				} else {
-					return "+ KEY\(keyID.id.format("04")): "
+					return "+ KEY\(keyID): "
 				}
 			} else {
 				return "- "
@@ -315,16 +324,16 @@ extension FileBlock : CustomStringConvertible {
 		case .Ptr( let keyID, let objID, let conditional ):
 			string.append( keyName( keyID, keyStringMap ) )
 			string.append( conditional ? "PTC" : "PTS" )
-			string.append( objID.id.format("04") )
+			string.append( objID.description )
 		case .Val( let keyID, let objID, let typeID, let binSize ):
 			//	VAL			= []
 			//	BIV			= [bytes]
 			//	REF			= [typeID]
 			//	BIR			= [typeID,bytes]
-			//	VAL_objID	= [objID]
-			//	BIV_objID	= [objID,bytes]
-			//	REF_objID	= [objID,typeID]
-			//	BIR_objID	= [objID,typeID,bytes]
+			//	VAL<objID>	= [objID]
+			//	BIV<objID>	= [objID,bytes]
+			//	REF<objID>	= [objID,typeID]
+			//	BIR<objID>	= [objID,typeID,bytes]
 
 			string.append( keyName( keyID, keyStringMap ) )
 			switch (typeID != nil, binSize != nil ) {
@@ -333,7 +342,7 @@ extension FileBlock : CustomStringConvertible {
 			case (true,  false)	: string.append( "REF" )	//	Codable reference
 			case (true,  true)	: string.append( "BIR" )	//	BinaryCodable reference
 			}
-			if let objID	{ string.append( objID.id.format("04") ) }
+			if let objID	{ string.append( objID.description ) }
 			if let typeID	{ string.append( " \( typeName( typeID,options,classDataMap ) )") }
 			if let binSize {
 				if let binaryValue {

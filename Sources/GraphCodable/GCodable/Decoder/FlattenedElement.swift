@@ -39,11 +39,11 @@ final class FlattenedElement {
 	}
 	
 	static func rootElement<S>(
-		rFileBlocks:S, keyStringMap:KeyStringMap, reverse:Bool
+		readBlocks:S, keyStringMap:KeyStringMap, reverse:Bool
 	) throws -> ( rootElement: FlattenedElement, elementMap: ElementMap )
 	where S:Sequence, S.Element == ReadBlock {
 		var elementMap	= ElementMap()
-		var lineIterator = rFileBlocks.makeIterator()
+		var lineIterator = readBlocks.makeIterator()
 		
 		guard let readBlock = lineIterator.next() else {
 			throw GCodableError.decodingError(
@@ -180,7 +180,7 @@ extension FlattenedElement {
 		if elementMap.isEmpty == false {
 			dump.append( StringEncoder.titleString( "WHERE:", filler: "-") )
 			for (id,element) in elementMap {
-				dump.append( "# PTR\(id.id.format("04")) is:\n")
+				dump.append( "# PTR\(id) is:\n")
 				dump.append( element.subdump( elementMap:elementMap, classDataMap: classDataMap, keyStringMap: keyStringMap, options:options, level: level ))
 			}
 		}

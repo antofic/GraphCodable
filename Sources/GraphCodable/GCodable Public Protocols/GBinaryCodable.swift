@@ -71,7 +71,7 @@ extension GBinaryDecodable {
 }
 
 public protocol GEncoderView {
-	var	userInfo			: [String:Any] { get }
+	var	userInfo : [String:Any] { get }
 }
 
 extension BinaryWriteBuffer {
@@ -89,11 +89,10 @@ extension BinaryWriteBuffer {
 	}
 }
 
-
 public protocol GDecoderView {
 	var	userInfo			: [String:Any] { get }
-	var encodedTypeVersion	: UInt32  { get throws }
-	var replacedType		: GDecodable.Type?  { get throws }
+	var encodedClassVersion	: UInt32  { get throws }
+	var replacedClass		: (AnyObject & GDecodable).Type?  { get throws }
 }
 
 extension BinaryReadBuffer {

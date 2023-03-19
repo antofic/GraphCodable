@@ -32,12 +32,6 @@ struct FileHeader : CustomStringConvertible, BinaryIOType {
 		static var CURRENT_FILE_VERSION	: UInt32 { NEWFILEBLOCK_VERSION }
 	}
 
-	// *******************************
-	/*
-	private enum OLDHeaderID : UInt64 {
-		case gcodable	= 0x67636F6461626C65	// ascii = 'gcodable'
-	}
-	 */
 	private enum HeaderID : UInt32 {
 		case gcod	= 0x67636F64	// ascii = 'gcod'
 	}
@@ -50,15 +44,18 @@ struct FileHeader : CustomStringConvertible, BinaryIOType {
 	let unused1 		: UInt64
 		
 	func description( dataSize:Int? ) -> String {
-		var string = ""
+		func alignR( _ value:Any ) -> String  {
+			"\(value)".align( .right, length: 12 )
+		}
 		
-		string.append(		  "- fileType            =       '\(HeaderID.gcod)' {\(MemoryLayout<HeaderID.RawValue>.size) bytes}")
-		string.append(		"\n- userVersion         = \(userVersion.format("12")) {\(MemoryLayout.size(ofValue: userVersion)) bytes}")
-		string.append(		"\n- gcodableVersion     = \(gcodableVersion.format("12")) {\(MemoryLayout.size(ofValue: gcodableVersion)) bytes}")
-		string.append(		"\n- binaryIOVersion     = \(binaryIOVersion.format("12")) {\(MemoryLayout.size(ofValue: binaryIOVersion)) bytes}")
-		string.append(		"\n- flags               = \(flags.rawValue.format("12",.X)) {\(MemoryLayout.size(ofValue: flags)) bytes}")
+		var string = ""
+		string.append(		  "- fileType            = \( alignR(HeaderID.gcod) ) {\(MemoryLayout<HeaderID.RawValue>.size) bytes}")
+		string.append(		"\n- userVersion         = \( alignR(userVersion) ) {\(MemoryLayout.size(ofValue: userVersion)) bytes}")
+		string.append(		"\n- gcodableVersion     = \( alignR(gcodableVersion) ) {\(MemoryLayout.size(ofValue: gcodableVersion)) bytes}")
+		string.append(		"\n- binaryIOVersion     = \( alignR(binaryIOVersion) ) {\(MemoryLayout.size(ofValue: binaryIOVersion)) bytes}")
+		string.append(		"\n- flags               = \( alignR(flags.rawValue) ) {\(MemoryLayout.size(ofValue: flags)) bytes}")
 		if let dataSize {
-			string.append(	"\n- data size           = \(dataSize.format("12")) bytes")
+			string.append(	"\n- data size           = \( alignR(dataSize) ) bytes")
 		}
 		return string
 	}

@@ -22,7 +22,13 @@
 
 import Foundation
 
-protocol FileID: Hashable, BinaryIOType {
+//	ObjID's, KeyID's, TypeID's can consume a non-negligible amount
+//	of disk space. On the other hand they are generally small
+//	unsigned integers and for this we use a simple algorithm
+//	to compress them.
+//	Note: this will make written BinSize data variable in size
+
+protocol FileID: Hashable, BinaryIOType,CustomStringConvertible {
 	init( _ id:UIntID )
 	var id : UIntID { get }
 }
@@ -33,20 +39,24 @@ extension FileID {
 	}
 
 	init( from rbuffer:inout BinaryReadBuffer ) throws {
-		self.init( try UIntID(unpackFrom: &rbuffer) )
+		self.init( try UIntID(decompressFrom: &rbuffer) )
 	}
 
 	func write( to wbuffer:inout BinaryWriteBuffer ) throws {
-		try id.write(packTo: &wbuffer)
+		try id.write(compressTo: &wbuffer)
 	}
 
 	var next : Self {
 		return Self( id + 1 )
 	}
+	
+	var description: String {
+		return "\(id)".align(.right, length: 4, filler: "0")
+	}
 }
 
-//	three separate structs so as not to run
-//	the risk of swapping them
+//	We use three distinct structures so as not to run
+//	the risk of confusing them.
 struct ObjID : FileID {
 	let id: UIntID
 	init(_ id: UIntID) { self.id = id }
@@ -62,6 +72,9 @@ struct TypeID : FileID {
 	init(_ id: UIntID) { self.id = id }
 }
 
+
+//	We also make BinSize (the size of the GBinaryCodable)
+//	compressible as desired. The benefits are minor.
 struct BinSize: Equatable {
 	private let _usize: UInt
 	
@@ -70,15 +83,15 @@ struct BinSize: Equatable {
 	init(_ size: Int)	{ self._usize = UInt(size) }
 	var size: Int		{ Int(_usize) }
 	
-	init(from rbuffer: inout BinaryReadBuffer, unpack:Bool ) throws {
-		if unpack	{ _usize = try UInt( unpackFrom: &rbuffer ) }
-		else		{ _usize = try UInt( from: &rbuffer ) }
+	init(from rbuffer: inout BinaryReadBuffer, decompress:Bool ) throws {
+		if decompress	{ _usize = try UInt( decompressFrom: &rbuffer ) }
+		else			{ _usize = try UInt( from: &rbuffer ) }
 	}
 	
-	///	pack will make writed data variable in size
-	func write(to wbuffer: inout BinaryWriteBuffer, pack:Bool ) throws {
-		if pack 	{ try _usize.write( packTo: &wbuffer) }
-		else		{ try _usize.write( to: &wbuffer) }
+	//	compress will make writed BinSize data variable in size
+	func write(to wbuffer: inout BinaryWriteBuffer, compress:Bool ) throws {
+		if compress 	{ try _usize.write( compressTo: &wbuffer) }
+		else			{ try _usize.write( to: &wbuffer) }
 	}
 }
 

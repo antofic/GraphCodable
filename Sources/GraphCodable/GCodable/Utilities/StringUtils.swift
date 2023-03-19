@@ -20,37 +20,24 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
-/// A protocol that marks a class obsolete.
-///
-///  You shold define the GDecodable property
-///  `decodeType` and return the
-///  replacement class
-///
-/// **See the UserGuide**.
-public protocol GObsolete : GCodable {
-}
-
-/// dummy functions to satisfy the GCodable protocol
-public extension GObsolete {
-	init(from decoder: GDecoder) throws {
-		throw GCodableError.internalInconsistency(
-			Self.self, GCodableError.Context(
-				debugDescription: "Unreachable code."
-			)
-		)
+extension String {
+	enum Alignment {
+		case left
+		case right
 	}
-
-	func encode(to encoder: GEncoder) throws {
-		throw GCodableError.internalInconsistency(
-			Self.self, GCodableError.Context(
-				debugDescription: "Unreachable code."
-			)
-		)
+	
+	func align( _ align: Alignment, length: Int, filler:Character = " " ) -> String {
+		guard count < length else {
+			// nothing to align
+			return self
+		}
+		var string = String(repeating: filler, count: length - count)
+		switch align {
+			case .left:
+				string.insert(contentsOf: self, at: string.startIndex)
+			case .right:
+				string.insert(contentsOf: self, at: string.endIndex)
+		}
+		return string
 	}
 }
-
-
-
-
-
-

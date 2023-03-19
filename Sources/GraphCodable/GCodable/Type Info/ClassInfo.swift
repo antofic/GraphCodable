@@ -20,22 +20,24 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
+typealias ClassInfoMap	= [TypeID:ClassInfo]
+
 struct ClassInfo : CustomStringConvertible {
-	let	decodableType:	GDecodable.Type
+	let	decodedType:	GDecodable.Type
 	let	classData:		ClassData
 	
 	init( classData:ClassData, classNameMap:ClassNameMap? ) throws {
 		self.classData		= classData
-
-		if let type = classData.decodableType {
-			self.decodableType	= type
+		
+		if let type = classData.decodedType {
+			self.decodedType	= type
 			return
 		} else if let classNameMap {
 			if let type	= classNameMap[ .mangledName(classData.mangledName) ] {
-				self.decodableType	= type
+				self.decodedType	= type
 				return
 			} else if let type = classNameMap[ .qualifiedName(classData.qualifiedName) ] {
-				self.decodableType	= type
+				self.decodedType	= type
 				return
 			}
 		}
@@ -46,8 +48,26 @@ struct ClassInfo : CustomStringConvertible {
 			)
 		)
 	}
-
+	
 	var description: String {
 		return classData.description
+	}
+	
+	static func classInfoMap( classDataMap:ClassDataMap, classNameMap:ClassNameMap? ) throws -> ClassInfoMap {
+		try classDataMap.mapValues {
+			try ClassInfo(classData: $0, classNameMap:classNameMap )
+		}
+	}
+
+	static func classInfoMapNoThrow( classDataMap:ClassDataMap, classNameMap:ClassNameMap? ) -> ClassInfoMap {
+		classDataMap.compactMapValues {
+			try? ClassInfo(classData: $0, classNameMap:classNameMap )
+		}
+	}
+
+	static func undecodablesClassDataMap( classDataMap:ClassDataMap, classNameMap:ClassNameMap? ) -> ClassDataMap {
+		classDataMap.compactMapValues {
+			(try? ClassInfo(classData: $0, classNameMap:classNameMap )) == nil ? $0 : nil
+		}
 	}
 }

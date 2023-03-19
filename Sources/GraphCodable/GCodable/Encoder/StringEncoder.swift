@@ -127,12 +127,12 @@ final class StringEncoder : FileBlockEncoder {
 	func output() throws -> String {
 		func typeString( _ options:GraphDumpOptions, _ classData:ClassData ) -> String {
 			var string	= ""
-			if options.contains( .showMangledNamesInReferenceMap ) {
+			if options.contains( .showMangledNames ) {
 				string.append( "QualifiedName  = \( classData.qualifiedName )"  )
 				string.append( "\n\t\t\tMangledName    = \( classData.mangledName )"  )
-				string.append( "\n\t\t\tEncodedVersion = \( classData.encodedTypeVersion )"  )
+				string.append( "\n\t\t\tEncodedVersion = \( classData.encodedClassVersion )"  )
 			} else {
-				string.append("\(classData.qualifiedName) V\(classData.encodedTypeVersion)")
+				string.append("\(classData.qualifiedName) V\(classData.encodedClassVersion)")
 			}
 			return string
 		}
@@ -145,7 +145,7 @@ final class StringEncoder : FileBlockEncoder {
 			}
 			dump = delegate?.classDataMap.reduce( into: dump ) {
 				result, tuple in
-				result.append( "TYPE\( tuple.key.id.format("04") ):\t\( typeString( options, tuple.value ) )\n")
+				result.append( "TYPE\( tuple.key ):\t\( typeString( options, tuple.value ) )\n")
 			} ?? "UNAVAILABLE DELEGATE \(#function)\n"
 		}
 		
@@ -155,7 +155,7 @@ final class StringEncoder : FileBlockEncoder {
 			}
 			dump = delegate?.keyStringMap.reduce( into: dump ) {
 				result, tuple in
-				result.append( "KEY\( tuple.key.id.format("04") ):\t\"\( tuple.value )\"\n" )
+				result.append( "KEY\( tuple.key ):\t\"\( tuple.value )\"\n" )
 			} ?? "UNAVAILABLE DELEGATE \(#function)\n"
 		}
 		if options.contains( .hideSectionTitles ) == false {
