@@ -1599,45 +1599,12 @@ extension Generic {
 
 **Note**: For some strange reason swift doesn't allow you to write `buildSelf( T.decodeType )` directly.
 
-What follows is a slightly more complex example. First we have some utility functions for the next code example (`GraphCodableUti.checkEncoder` and `GraphCodableUti.checkDecoder` are two utility/debug functions defined in GraphCodableUti.swift):
-
-```swift
-func path( number:Int ) -> URL {
-	let string = number > 0 ? String(number) : ""
-	return FileManager.default.urls(
-		for: .documentDirectory, in: .userDomainMask
-	)[0].appendingPathComponent("ModelNumber\(string).graph")
-}
-
-typealias DataModel = Model<Two<Double, Int>>
-
-func encode( _ phase:Int ) throws {
-	let inRoot : DataModel = Model(integer: 1, string: "P", value: Two(1.0,3))
-	print( "••• Encoding format \(phase):" )
-	print( "\t\(inRoot)" )
-	try (
-		try GraphCodableUti.checkEncoder( root: inRoot ) as Data
-	).write( to: path(number: phase) )
-	print()
-}
-
-func decode( _ phase:Int ) throws {
-	print( "••• Decoding format \(phase):" )
-	let outRoot	= try GraphCodableUti.checkDecoder(
-		type: DataModel.self,
-		data: try Data.init(contentsOf: path(number: phase)),
-		qualifiedClassNames: false
-	)
-	print( "Result:\n\t\(outRoot)" )
-	print()
-}
-```
-
-and this is the **first version** of our code:
+What follows is a slightly more complex example. We have a generic class `Pair<T,Q>`:
 
 ```swift
 final class Pair<T,Q> : GDecodable
 where T:GDecodable, Q:GDecodable {
+	
 	let lhs	: T
 	let rhs	: Q
 	
@@ -1665,18 +1632,24 @@ extension Pair: CustomStringConvertible {
 		return "(\(lhs) <-> \(rhs))"
 	}
 }
-// ----------------------------------------------
+```
+
+We have a generic class `Model<S>`:
+
+```swift
 final class Model<S:GDecodable> : GDecodable {
-	let value	: Pair<Pair<S,Int>,String>
+	let value	: Pair<Pair<S,String>,Pair<Pair<S,String>,String>>
 	
-	init( integer:Int, string:String, value:S ) {
-		self.value = Pair(Pair(value,integer), string)
+	init( string:String, value:S ) {
+		let inner	= Pair(value,string)
+		self.value	= Pair(inner, Pair(inner, string))
 	}
 	
 	init(from decoder: GraphCodable.GDecoder) throws {
 		value	= try decoder.decode()
 	}
 }
+
 extension Model: GEncodable where S:GEncodable {
 	func encode(to encoder: GraphCodable.GEncoder) throws {
 		try encoder.encode( value )
@@ -1688,34 +1661,125 @@ extension Model: CustomStringConvertible {
 		return "\(Self.self) = { value = \(value) }"
 	}
 }
-// ----------------------------------------------
-typealias Two = Pair
-try encode( 0 )	// encode old version
-try decode( 0 )	// decode old version
 
+extension Model where S:GEncodable {
+	func encode( _ fileName:String, verbose:Bool ) throws {
+		let graphEncoder	= GraphEncoder()
+		if verbose {
+			print( "••• Encoding:\n\t\(self)\n••• to file:\n\t'\(fileName)'" )
+			print( try graphEncoder.dump(self, options: [.showBody,.showValueDescriptionInBody]))
+		}
+		
+		let data = try graphEncoder.encode(self) as Data
+		try data.write( to: Self.path( fileName:fileName ) )
+	}
+}
+
+extension Model {
+	static func path( fileName:String ) -> URL {
+		return FileManager.default.urls(
+			for: .documentDirectory, in: .userDomainMask
+		)[0].appendingPathComponent( fileName )
+	}
+	
+	static func decode( _ fileName:String, verbose:Bool ) throws -> Model {
+		print( "••• Decoding from file\n\t'\(fileName)'" )
+		let data			= try Data.init(contentsOf: path( fileName:fileName ))
+		let graphDecoder	= GraphDecoder()
+		
+		if verbose {
+			print( try graphDecoder.dump(from: data, options: [
+				.showBody,.showConstructionMap
+			]))
+		}
+		
+		let root = try graphDecoder.decode( Model.self, from: data )
+		if verbose {
+			print( "••• Decoded:\n\t\(root)" )
+		}
+		return root
+	}
+}
 ```
 
-This first version (format 0) encodes the data in the file *ModelNumber0.graph* and is able to decode it, as you can see from the console output. In particular, all classes encountered during dearchiving are shown:
+In the last two extensions we have included the functions to archive a `Model` instance on a file in the *Documents* folder and to dearchive it, in both cases with a suitable `verbose` option. Let's do it:
+
+```swift
+typealias Two 		= Pair
+typealias DataModel = Model<Two<Double, Int>>
+
+let fileName = "ModelPair.graph"
+var model	: DataModel
+
+model	= Model( string: "A", value: Two(1.0,3) )
+
+try model.encode( fileName, verbose: false )
+
+model	= try DataModel.decode( fileName, verbose: true )
+```
+
+The program prints:
 
 ```
-••• Encoding format 0:
-	Model<Pair<Double, Int>> = { value = (((1.0 <-> 3) <-> 1) <-> P) }
+••• Encoding:
+	Model<Pair<Double, Int>> = { value = (((1.0 <-> 3) <-> A) <-> (((1.0 <-> 3) <-> A) <-> A)) }
+••• to file:
+	'ModelPair.graph'
+= BODY =================================================================================
+- REF0001 TYPE0001
+	- REF0002 TYPE0002
+		- REF0003 TYPE0003
+			- REF0004 TYPE0004
+				- BIV 1.0
+				- BIV 3
+			.
+			- BIV "A"
+		.
+		- REF0005 TYPE0005
+			- PTS0003
+			- BIV "A"
+		.
+	.
+.
+========================================================================================
 
-••• Decoding format 0:
-Decoded Classes: --------------------------
-	'Model<Pair<Double, Int>>'
-	'Pair<Double, Int>'
-	'Pair<Pair<Double, Int>, Int>'
-	'Pair<Pair<Pair<Double, Int>, Int>, String>'
-Result:
-	Model<Pair<Double, Int>> = { value = (((1.0 <-> 3) <-> 1) <-> P) }
+••• Decoding from file
+	'ModelPair.graph'
+= BODY =================================================================================
+- REF0001 TYPE0001
+	- REF0002 TYPE0002
+		- REF0003 TYPE0003
+			- REF0004 TYPE0004
+				- BIV { 8 bytes }
+				- BIV { 8 bytes }
+			.
+			- BIV { 2 bytes }
+		.
+		- REF0005 TYPE0005
+			- PTS0003
+			- BIV { 2 bytes }
+		.
+	.
+.
+= CONSTRUCTIONMAP ======================================================================
+Encoded class types will create the following decoded types:
+	- TYPE0001: class Model<Pair<Double, Int>>
+	- TYPE0002: class Pair<Pair<Pair<Double, Int>, String>, Pair<Pair<Pair<Double, Int>, String>, String>>
+	- TYPE0003: class Pair<Pair<Double, Int>, String>
+	- TYPE0004: class Pair<Double, Int>
+	- TYPE0005: class Pair<Pair<Pair<Double, Int>, String>, String>
+========================================================================================
+
+••• Decoded:
+	Model<Pair<Double, Int>> = { value = (((1.0 <-> 3) <-> A) <-> (((1.0 <-> 3) <-> A) <-> A)) }
 ```
 
-Now suppose that in the new version (format 1) of the code we want to change the name of the `Pair` class to `Couple`:
+Now suppose that in the new version of our program we want to change the name of the `Pair` class to `Couple`:
 
 ```swift
 final class Couple<T,Q> : GDecodable
 where T:GDecodable, Q:GDecodable {
+	
 	let lhs	: T
 	let rhs	: Q
 	
@@ -1745,6 +1809,15 @@ extension Couple: CustomStringConvertible {
 }
 ```
 
+And then we updated `Model` to contain `Couples`:
+
+```swift
+final class Model<S:GDecodable> : GDecodable {
+	let value	: Couple<Couple<S,String>,Couple<Couple<S,String>,String>>
+	/* ... */
+}
+```
+
 First, `Model` is a generic class whose type could depend on `Pair` when passed as `S`. If `Pair` becomes `Couple`, the names of `Model` specializations that have `Pair` as a type parameter must also change accordingly. To handle during decoding **all situations** in which the name of `Model` argument types changes,  `Model` implements the `decodeType` static property:
 
 ```swift
@@ -1752,20 +1825,19 @@ extension Model {
 	class var decodeType: GDecodable.Type {
 		func buildSelf<T>( _ typeT:T.Type ) -> GDecodable.Type
 		where T:GDecodable { Model<T>.self }
-
+		
 		let typeT = S.decodeType
-
+		
 		return buildSelf( typeT )
 	}
 }
-
 ```
 
 The code is substantially identical to the one already seen by `Generic` `decodeType`. Similarly, `Couple`, being generic, must implements the `decodeType` static property to handle during decoding **all situations** in which the name of one or more of its argument types changes:
 
 ```swift
 extension Couple {
-	class var decodeType: GDecodable.Type {
+	static var decodeType: GDecodable.Type {
 		func buildSelf<newT,newQ>( _ typeT:newT.Type, _ typeQ:newQ.Type ) -> GDecodable.Type
 		where newT:GDecodable, newQ:GDecodable { Couple<newT,newQ>.self }
 		
@@ -1784,7 +1856,7 @@ The final touch is to make the `Pair` class obsolete by telling us to replace it
 ```swift
 final class Pair<T,Q> : GObsolete
 where T:GCodable, Q:GCodable {
-	static var decodeType: GDecodable.Type {
+	class var decodeType: GDecodable.Type {
 		return Couple<T,Q>.decodeType
 	}
 }
@@ -1792,132 +1864,211 @@ where T:GCodable, Q:GCodable {
 
 Note how decodeType must return `Couple<T,Q>.decodeType` and not just `Couple<T,Q>` to account for the fact that `T` and `Q` themselves could be replaced. The replacement process is therefore effectively recursive.
 
-Code summary (format 1) for easy copy and paste:
+Now let's try to decode the file and encode it with a new name:
 
 ```swift
-final class Pair<T,Q> : GObsolete
-where T:GCodable, Q:GCodable {
-	static var decodeType: GDecodable.Type {
-		return Couple<T,Q>.decodeType
-	}
-}
+typealias Two 		= Couple
+typealias DataModel = Model<Two<Double, Int>>
 
-final class Couple<T,Q> : GDecodable
+let fileName = "ModelPair.graph"
+var model	: DataModel
+
+model	= try DataModel.decode( fileName, verbose: true )
+
+let newFileName = "ModelPair2.graph"
+try model.encode( newFileName, verbose: true )
+```
+
+The program now print:
+
+```
+••• Decoding from file
+	'ModelPair.graph'
+= BODY =================================================================================
+- REF0001 TYPE0001
+	- REF0002 TYPE0002
+		- REF0003 TYPE0003
+			- REF0004 TYPE0004
+				- BIV { 8 bytes }
+				- BIV { 8 bytes }
+			.
+			- BIV { 2 bytes }
+		.
+		- REF0005 TYPE0005
+			- PTS0003
+			- BIV { 2 bytes }
+		.
+	.
+.
+= CONSTRUCTIONMAP ======================================================================
+Encoded class types will create the following decoded types:
+	- TYPE0001: class Model<Couple<Double, Int>>
+	- TYPE0002: class Couple<Couple<Couple<Double, Int>, String>, Couple<Couple<Couple<Double, Int>, String>, String>>
+	- TYPE0003: class Couple<Couple<Double, Int>, String>
+	- TYPE0004: class Couple<Double, Int>
+	- TYPE0005: class Couple<Couple<Couple<Double, Int>, String>, String>
+where:
+	- the encoded TYPE0001: class Model<Pair<Double, Int>>
+	  was replaced by class Model<Couple<Double, Int>>
+	- the encoded TYPE0002: class Pair<Pair<Pair<Double, Int>, String>, Pair<Pair<Pair<Double, Int>, String>, String>>
+	  was replaced by class Couple<Couple<Couple<Double, Int>, String>, Couple<Couple<Couple<Double, Int>, String>, String>>
+	- the encoded TYPE0003: class Pair<Pair<Double, Int>, String>
+	  was replaced by class Couple<Couple<Double, Int>, String>
+	- the encoded TYPE0004: class Pair<Double, Int>
+	  was replaced by class Couple<Double, Int>
+	- the encoded TYPE0005: class Pair<Pair<Pair<Double, Int>, String>, String>
+	  was replaced by class Couple<Couple<Couple<Double, Int>, String>, String>
+========================================================================================
+
+••• Decoded:
+	Model<Couple<Double, Int>> = { value = (((1.0 <-> 3) <-> A) <-> (((1.0 <-> 3) <-> A) <-> A)) }
+••• Encoding:
+	Model<Couple<Double, Int>> = { value = (((1.0 <-> 3) <-> A) <-> (((1.0 <-> 3) <-> A) <-> A)) }
+••• to file:
+	'ModelPair2.graph'
+= BODY =================================================================================
+- REF0001 TYPE0001
+	- REF0002 TYPE0002
+		- REF0003 TYPE0003
+			- REF0004 TYPE0004
+				- BIV 1.0
+				- BIV 3
+			.
+			- BIV "A"
+		.
+		- REF0005 TYPE0005
+			- PTS0003
+			- BIV "A"
+		.
+	.
+.
+========================================================================================
+```
+
+The `.showConstructionMap` option shows the *Construction Map* giving an overview of which type is actually being built and which is being replaced during decoding. In this it differs from the *Reference Map* which is instead the list of classes encoded in the file. 
+
+It is also possible to replace a reference type with a value type:
+
+```swift
+struct Couple<T,Q> : GDecodable
 where T:GDecodable, Q:GDecodable {
-	let lhs	: T
-	let rhs	: Q
-	
-	init( _ lhs: T, _ rhs: Q ) {
-		self.lhs	= lhs
-		self.rhs	= rhs
-	}
-	
-	init(from decoder: GDecoder) throws {
-		lhs	= try decoder.decode()
-		rhs	= try decoder.decode()
-	}
-}
-
-extension Couple: GEncodable
-where T:GEncodable, Q:GEncodable {
-	func encode(to encoder: GEncoder) throws {
-		try encoder.encode( lhs )
-		try encoder.encode( rhs )
-	}
-}
-
-extension Couple: CustomStringConvertible {
-	var description: String {
-		return "(\(lhs) <-> \(rhs))"
-	}
+	/* ... */
 }
 
 extension Couple {
-	class var decodeType: GDecodable.Type {
-		func buildSelf<newT,newQ>( _ typeT:newT.Type, _ typeQ:newQ.Type ) -> GDecodable.Type
-		where newT:GDecodable, newQ:GDecodable { Couple<newT,newQ>.self }
-		
-		let typeT = T.decodeType
-		let typeQ = Q.decodeType
-		
-		return buildSelf( typeT, typeQ )
-	}
+	static var decodeType: GDecodable.Type {
+	/* ... */
+  }
 }
-
-// ----------------------------------------------
-final class Model<S:GDecodable> : GDecodable {
-	let value	: Couple<Couple<S,Int>,String>
-	
-	init( integer:Int, string:String, value:S ) {
-		self.value = Couple(Couple(value,integer), string)
-	}
-	
-	init(from decoder: GraphCodable.GDecoder) throws {
-		value	= try decoder.decode()
-	}
-}
-extension Model: GEncodable where S:GEncodable {
-	func encode(to encoder: GraphCodable.GEncoder) throws {
-		try encoder.encode( value )
-	}
-}
-
-extension Model: CustomStringConvertible {
-	var description: String {
-		return "\(Self.self) = { value = \(value) }"
-	}
-}
-
-extension Model {
-	class var decodeType: GDecodable.Type {
-		func buildSelf<T>( _ typeT:T.Type ) -> GDecodable.Type
-		where T:GDecodable { Model<T>.self }
-
-		let typeT = S.decodeType
-
-		return buildSelf( typeT )
-	}
-}
- 
-typealias Two = Couple
-try decode( 0 )	// decode the old (format 0) file
-try encode( 1 )	// encode the new (format 1) file
-try decode( 1 )	// decode the new (format 1) file
 ```
 
-This second version was able to decode the data in the file *ModelNumber0.graph* (format 0), encode the data in the file *ModelNumber1.graph* (format 1) and is able to decode it. In particular, you can see all **classes replaced** when the new version of the code decodes the format 0 file:
+The program now print:
 
 ```
-••• Decoding format 0:
-Decoded Classes: --------------------------
-	'Couple<Couple<Couple<Double, Int>, Int>, String>'
-	'Couple<Couple<Double, Int>, Int>'
-	'Couple<Double, Int>'
-	'Model<Couple<Double, Int>>'
+••• Decoding from file
+	'ModelPair.graph'
+= BODY =================================================================================
+- REF0001 TYPE0001
+	- REF0002 TYPE0002
+		- REF0003 TYPE0003
+			- REF0004 TYPE0004
+				- BIV { 8 bytes }
+				- BIV { 8 bytes }
+			.
+			- BIV { 2 bytes }
+		.
+		- REF0005 TYPE0005
+			- PTS0003
+			- BIV { 2 bytes }
+		.
+	.
+.
+= CONSTRUCTIONMAP ======================================================================
+Encoded class types will create the following decoded types:
+	- TYPE0001: class Model<Couple<Double, Int>>
+	- TYPE0002: struct Couple<Couple<Couple<Double, Int>, String>, Couple<Couple<Couple<Double, Int>, String>, String>>
+	- TYPE0003: struct Couple<Couple<Double, Int>, String>
+	- TYPE0004: struct Couple<Double, Int>
+	- TYPE0005: struct Couple<Couple<Couple<Double, Int>, String>, String>
 where:
-	'Model<Pair<Double, Int>>'
-		was replaced by 'Model<Couple<Double, Int>>'
-	'Pair<Double, Int>'
-		was replaced by 'Couple<Double, Int>'
-	'Pair<Pair<Double, Int>, Int>'
-		was replaced by 'Couple<Couple<Double, Int>, Int>'
-	'Pair<Pair<Pair<Double, Int>, Int>, String>'
-		was replaced by 'Couple<Couple<Couple<Double, Int>, Int>, String>'
-Result:
-	Model<Couple<Double, Int>> = { value = (((1.0 <-> 3) <-> 1) <-> P) }
+	- the encoded TYPE0001: class Model<Pair<Double, Int>>
+	  was replaced by class Model<Couple<Double, Int>>
+	- the encoded TYPE0002: class Pair<Pair<Pair<Double, Int>, String>, Pair<Pair<Pair<Double, Int>, String>, String>>
+	  was replaced by struct Couple<Couple<Couple<Double, Int>, String>, Couple<Couple<Couple<Double, Int>, String>, String>>
+	- the encoded TYPE0003: class Pair<Pair<Double, Int>, String>
+	  was replaced by struct Couple<Couple<Double, Int>, String>
+	- the encoded TYPE0004: class Pair<Double, Int>
+	  was replaced by struct Couple<Double, Int>
+	- the encoded TYPE0005: class Pair<Pair<Pair<Double, Int>, String>, String>
+	  was replaced by struct Couple<Couple<Couple<Double, Int>, String>, String>
+========================================================================================
 
-••• Encoding format 1:
-	Model<Couple<Double, Int>> = { value = (((1.0 <-> 3) <-> 1) <-> P) }
+••• Decoded:
+	Model<Couple<Double, Int>> = { value = (((1.0 <-> 3) <-> A) <-> (((1.0 <-> 3) <-> A) <-> A)) }
+••• Encoding:
+	Model<Couple<Double, Int>> = { value = (((1.0 <-> 3) <-> A) <-> (((1.0 <-> 3) <-> A) <-> A)) }
+••• to file:
+	'ModelPair2.graph'
+= BODY =================================================================================
+- REF0001 TYPE0001
+	- VAL
+		- VAL
+			- VAL
+				- BIV 1.0
+				- BIV 3
+			.
+			- BIV "A"
+		.
+		- VAL
+			- VAL
+				- VAL
+					- BIV 1.0
+					- BIV 3
+				.
+				- BIV "A"
+			.
+			- BIV "A"
+		.
+	.
+.
+========================================================================================
+```
 
-••• Decoding format 1:
-Decoded Classes: --------------------------
-	'Couple<Couple<Couple<Double, Int>, Int>, String>'
-	'Couple<Couple<Double, Int>, Int>'
-	'Couple<Double, Int>'
-	'Model<Couple<Double, Int>>'
-Result:
-	Model<Couple<Double, Int>> = { value = (((1.0 <-> 3) <-> 1) <-> P) }
+In the *Construction Map* you can now see that all `Pair` reference types have been replaced by `Couple` value types. And because `Couple` is a value type, during the next archive `Couple(1.0,3)` was archived twice. But you can always provide an identity to `Couple`:
 
+```swift
+struct Couple<T,Q> : GDecodable, GIdentifiable
+where T:GDecodable, Q:GDecodable {
+	let gcodableID : UUID? = UUID()
+	/* ... */	
+}
+
+```
+
+thus obtaining:
+
+```
+••• Encoding:
+	Model<Couple<Double, Int>> = { value = (((1.0 <-> 3) <-> A) <-> (((1.0 <-> 3) <-> A) <-> A)) }
+••• to file:
+	'ModelPair2.graph'
+= BODY =================================================================================
+- REF0001 TYPE0001
+	- VAL0002
+		- VAL0003
+			- VAL0004
+				- BIV 1.0
+				- BIV 3
+			.
+			- BIV "A"
+		.
+		- VAL0005
+			- PTS0003
+			- BIV "A"
+		.
+	.
+.
+========================================================================================
 ```
 
 ### Using class name strings

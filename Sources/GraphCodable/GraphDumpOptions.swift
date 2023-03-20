@@ -86,7 +86,7 @@ public struct GraphDumpOptions: OptionSet {
 	]
 	public static let	fullInfo: Self = [
 		.readable, .showHeader, .showFlattenedBody, .showReferenceMap, .showKeyStringMap,
-		.showClassVersionsInBody, .showFlattenedBody, .showValueDescriptionInBody
+		.showClassVersionsInBody, .showFlattenedBody, .showValueDescriptionInBody, .showConstructionMap
 	]
 	public static let	referenceMapOnly: Self = [
 		.showReferenceMap,.showMangledNames

@@ -93,10 +93,10 @@ final class StringEncoder : FileBlockEncoder {
 		
 		if options.contains( .showBody ) {
 			if case .exit = fileBlock.level { tabs?.removeLast() }
-			if let tbs = tabs { dump.append( tbs ) }
 			
 			let binValue = options.contains( .showValueDescriptionInBody ) ? binaryValue : nil 
 			
+			if let tbs = tabs { dump.append( tbs ) }
 			dump.append( fileBlock.description(
 				options:		options,
 				binaryValue:	binValue,
