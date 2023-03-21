@@ -7,8 +7,6 @@
 
 import Foundation
 
-typealias UIntID = UInt32
-
 //---------------------------------------------------------------------------------------------
 //	Codable file format:
 //	5 parts A, B, C, D, E:

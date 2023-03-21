@@ -24,8 +24,14 @@
 protocol FileBlockEncoderDelegate : AnyObject {
 	var	classDataMap:		ClassDataMap { get }
 	var	keyStringMap:		KeyStringMap { get }
+	
+	var referenceMapDescription: String? { get }
 }
 
+extension FileBlockEncoderDelegate {
+	var referenceMapDescription: String? { nil }
+}
+ 
 protocol FileBlockEncoder : AnyObject {
 	var delegate	: FileBlockEncoderDelegate? { get set }
 	

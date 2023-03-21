@@ -93,7 +93,7 @@ extension FlattenedElement {
 		switch element.readBlock.fileBlock {
 		case .Val( let keyID, let objID, _, let binSize ):
 			if let objID {
-				//	l'oggetto non può trovarsi nella map
+				//	l'oggetto non può già trovarsi nella map
 				guard map.index(forKey: objID) == nil else {
 					throw GCodableError.internalInconsistency(
 						Self.self, GCodableError.Context(

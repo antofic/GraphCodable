@@ -46,8 +46,10 @@ enum FileBlock {	// size = 32 bytes
 		private static let	hasTypeID:		Self = [ b5 ]		// catVal
 		private static let	isBinary:		Self = [ b6 ]		// catVal
 		
-		private static let	conditional:	Self = hasTypeID	// conditional (!= hasObjID,hasKeyID )
-		
+		private static let	conditional:	Self = hasTypeID	// conditional (!= hasObjID,hasKeyID ) may overlap hasTypeID
+
+		private static let	ptr:			Self = [ catPtr, hasObjID ]	// ptr always has objID
+
 		//	b2, b7	= future use
 		
 		enum Category {
@@ -101,9 +103,9 @@ enum FileBlock {	// size = 32 bytes
 		}
 		
 		static func Ptr( keyID:KeyID?, objID:ObjID, conditional:Bool ) -> Self {
-			var code	= catPtr.union( hasObjID )
-			if keyID	!= nil { code.formUnion( hasKeyID ) }
-			if conditional { code.formUnion( Self.conditional ) }
+			var code	= ptr
+			if keyID	!= nil	{ code.formUnion( hasKeyID ) }
+			if conditional 		{ code.formUnion( Self.conditional ) }
 			return code
 		}
 		

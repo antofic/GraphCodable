@@ -28,18 +28,21 @@ import Foundation
 //	to compress them.
 //	Note: this will make written BinSize data variable in size
 
-protocol FileID: Hashable, BinaryIOType,CustomStringConvertible {
-	init( _ id:UIntID )
-	var id : UIntID { get }
+
+protocol UIntID: Hashable, BinaryIOType,CustomStringConvertible {
+	associatedtype uID : UnsignedInteger
+	
+	init( _ id:uID )
+	var id : uID { get }
 }
 
-extension FileID {
+extension UIntID {
 	init() {
 		self.init( 1 )
 	}
 
 	init( from rbuffer:inout BinaryReadBuffer ) throws {
-		self.init( try UIntID(decompressFrom: &rbuffer) )
+		self.init( try uID(decompressFrom: &rbuffer) )
 	}
 
 	func write( to wbuffer:inout BinaryWriteBuffer ) throws {
@@ -57,19 +60,19 @@ extension FileID {
 
 //	We use three distinct structures so as not to run
 //	the risk of confusing them.
-struct ObjID : FileID {
-	let id: UIntID
-	init(_ id: UIntID) { self.id = id }
+struct ObjID : UIntID {
+	let id: UInt32
+	init(_ id: UInt32) { self.id = id }
 }
 
-struct KeyID : FileID {
-	let id: UIntID
-	init(_ id: UIntID) { self.id = id }
+struct KeyID : UIntID {
+	let id: UInt32
+	init(_ id: UInt32) { self.id = id }
 }
 
-struct TypeID : FileID {
-	let id: UIntID
-	init(_ id: UIntID) { self.id = id }
+struct TypeID : UIntID {
+	let id: UInt32
+	init(_ id: UInt32) { self.id = id }
 }
 
 

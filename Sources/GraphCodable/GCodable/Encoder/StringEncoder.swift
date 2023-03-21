@@ -21,19 +21,18 @@
 //	SOFTWARE.
 
 final class StringEncoder : FileBlockEncoder {
-	typealias			Output		= String
-	weak var			delegate			: FileBlockEncoderDelegate?
-	private var			fileHeader			: FileHeader
-	private var			options				: GraphDumpOptions
-	private var			dataSize			: Int?
-	private var			dump		= String()
-	private var 		dumpStart	= false
+	weak var			delegate	: FileBlockEncoderDelegate?
+	private var			fileHeader	: FileHeader
+	private var			options		: GraphDumpOptions
+	private var			dataSize	: Int?
+	private var			dumpString	= String()
+	private var 		beforeBody	= false
 	private var 		tabs		: String?
 
 	init( fileHeader: FileHeader, dumpOptions:GraphDumpOptions, dataSize:Int? ) {
-		self.fileHeader			= fileHeader
-		self.options			= dumpOptions
-		self.dataSize			= dataSize
+		self.fileHeader	= fileHeader
+		self.options	= dumpOptions
+		self.dataSize	= dataSize
 	}
 
 	static func titleString( _ string: String, filler:Character = "=", lenght: Int = 88 ) -> String {
@@ -54,118 +53,151 @@ final class StringEncoder : FileBlockEncoder {
 		return title
 	}
 	
-	private func dumpInit() throws {
-		if dumpStart == false {
-			dumpStart	= true
-			
-			if options.contains( .showHeader ) {
-				if options.contains( .hideSectionTitles ) == false {
-					dump.append( Self.titleString( "HEADER" ) )
-				}
-				dump.append( fileHeader.description(dataSize: dataSize) )
-				dump.append( "\n" )
-			}
-			
-			if options.contains( .showHelp ) {
-				if options.contains( .hideSectionTitles ) == false {
-					dump.append( Self.titleString( "HELP" ) )
-				}
-				dump.append( infoString )
-				dump.append( "\n" )
-			}
-			
-			if options.contains( .showBody ) {
-				if options.contains( .hideSectionTitles ) == false {
-					dump.append( Self.titleString( "BODY" ) )
-				}
-				tabs = options.contains( .dontIndentBody ) ? nil : ""
-			}
-		}
+	func append(_ string: String ) {
+		beforeBodyAppend()
+		dumpString.append( string )
 	}
 	
-	func append(_ string: String ) throws {
-		try dumpInit()
-		dump.append( string )
-	}
-	
-	func append(_ fileBlock: FileBlock, binaryValue: BinaryOType?) throws {
-		try dumpInit()
+	func append(_ fileBlock: FileBlock, binaryValue: BinaryOType?) {
+		beforeBodyAppend()
 		
 		if options.contains( .showBody ) {
 			if case .exit = fileBlock.level { tabs?.removeLast() }
 			
 			let binValue = options.contains( .showValueDescriptionInBody ) ? binaryValue : nil 
 			
-			if let tbs = tabs { dump.append( tbs ) }
-			dump.append( fileBlock.description(
+			if let tbs = tabs { dumpString.append( tbs ) }
+			dumpString.append( fileBlock.description(
 				options:		options,
 				binaryValue:	binValue,
 				classDataMap:	delegate?.classDataMap,
 				keyStringMap:	delegate?.keyStringMap
 			) )
-			dump.append( "\n" )
+			dumpString.append( "\n" )
 			
 			if case .enter = fileBlock.level { tabs?.append("\t") }
 		}
 	}
 	
+	// FileBlockEncoder protocol
 	func appendEnd() throws {
-		try append( .End, binaryValue:nil )
+		append( .End, binaryValue:nil )
 	}
 	func appendNil( keyID:KeyID? ) throws {
-		try append( .Nil(keyID: keyID), binaryValue:nil )
+		append( .Nil(keyID: keyID), binaryValue:nil )
 	}
 	func appendPtr( keyID:KeyID?, objID:ObjID, conditional:Bool ) throws {
-		try append( .Ptr(keyID: keyID,objID:objID, conditional:conditional ), binaryValue:nil )
+		append( .Ptr(keyID: keyID,objID:objID, conditional:conditional ), binaryValue:nil )
 	}
 	func appendVal( keyID:KeyID?, typeID:TypeID?, objID:ObjID?, binaryValue:BinaryOType? ) throws {
 		let size = binaryValue != nil ? BinSize() : nil
+		append( .Val(keyID: keyID, objID:objID, typeID:typeID, binSize: size), binaryValue:binaryValue  )
+	}
+	// FileBlockEncoder protocol end
+
+	func dump() -> String {
+		beforeBodyAppend()
+
+		dumpString.append( referenceMapDescription )
+		dumpString.append( keyMapDescription )
+
+		if options.contains( .hideSectionTitles ) == false {
+			dumpString.append( Self.titleString( "" ) )
+		}
 		
-		try append( .Val(keyID: keyID, objID:objID, typeID:typeID, binSize: size), binaryValue:binaryValue  )
+		return dumpString
+	}
+
+	// private -----------------------------------
+	
+	private func beforeBodyAppend() {
+		if beforeBody == false {
+			beforeBody	= true
+			
+			dumpString.append( headerDescription )
+			dumpString.append( helpDescription )
+			
+			if options.contains( .showBody ) {
+				if options.contains( .hideSectionTitles ) == false {
+					dumpString.append( Self.titleString( "BODY" ) )
+				}
+				tabs = options.contains( .dontIndentBody ) ? nil : ""
+			}
+		}
 	}
 	
-	func output() throws -> String {
+	private var headerDescription : String {
+		var string = ""
+		if options.contains( .showHeader ) {
+			if options.contains( .hideSectionTitles ) == false {
+				string.append( Self.titleString( "HEADER" ) )
+			}
+			string.append( fileHeader.description(dataSize: dataSize) )
+			string.append( "\n" )
+		}
+		return string
+	}
+
+	private var helpDescription : String {
+		var string = ""
+		if options.contains( .showHelp ) {
+			if options.contains( .hideSectionTitles ) == false {
+				string.append( Self.titleString( "HELP" ) )
+			}
+			string.append( Self.helpString )
+			string.append( "\n" )
+		}
+		return string
+	}
+
+	private var referenceMapDescription : String {
 		func typeString( _ options:GraphDumpOptions, _ classData:ClassData ) -> String {
 			var string	= ""
 			if options.contains( .showMangledNames ) {
+				let version	= "\(classData.encodedClassVersion)".align(.right, length: 4, filler: "0")
 				string.append( "QualifiedName  = \( classData.qualifiedName )"  )
 				string.append( "\n\t\t\tMangledName    = \( classData.mangledName )"  )
-				string.append( "\n\t\t\tEncodedVersion = \( classData.encodedClassVersion )"  )
+				string.append( "\n\t\t\tEncodedVersion = \( version )"  )
 			} else {
-				string.append("\(classData.qualifiedName) V\(classData.encodedClassVersion)")
+				string.append("class \(classData.qualifiedName)")
 			}
 			return string
 		}
-		
-		try dumpInit()
-		
+
+		var string = ""
 		if options.contains( .showReferenceMap ) {
 			if options.contains( .hideSectionTitles ) == false {
-				dump.append( Self.titleString( "REFERENCEMAP" ) )
+				string.append( Self.titleString( "REFERENCEMAP" ) )
 			}
-			dump = delegate?.classDataMap.reduce( into: dump ) {
-				result, tuple in
-				result.append( "TYPE\( tuple.key ):\t\( typeString( options, tuple.value ) )\n")
-			} ?? "UNAVAILABLE DELEGATE \(#function)\n"
-		}
-		
-		if options.contains( .showKeyStringMap ) {
-			if options.contains( .hideSectionTitles ) == false {
-				dump.append( Self.titleString( "KEYMAP" ) )
+			if let description = delegate?.referenceMapDescription {
+				string.append( description )
+			} else {
+				string.append( "Encoded class types:\n" )
+				string = delegate?.classDataMap.reduce( into: string ) {
+					result, tuple in
+					result.append( "- TYPE\( tuple.key ): \( typeString( options, tuple.value ) )\n")
+				} ?? "UNAVAILABLE DELEGATE \(#function)\n"
 			}
-			dump = delegate?.keyStringMap.reduce( into: dump ) {
-				result, tuple in
-				result.append( "KEY\( tuple.key ):\t\"\( tuple.value )\"\n" )
-			} ?? "UNAVAILABLE DELEGATE \(#function)\n"
 		}
-		if options.contains( .hideSectionTitles ) == false {
-			dump.append( Self.titleString( "" ) )
-		}
-		
-		return dump
+		return string
 	}
 	
-	private var infoString : String  {
+	private var keyMapDescription : String {
+		var string = ""
+		if options.contains( .showKeyStringMap ) {
+			if options.contains( .hideSectionTitles ) == false {
+				string.append( Self.titleString( "KEYMAP" ) )
+			}
+			string = delegate?.keyStringMap.reduce( into: string ) {
+				result, tuple in
+				result.append( "- KEY\( tuple.key ): \"\( tuple.value )\"\n" )
+			} ?? "UNAVAILABLE DELEGATE \(#function)\n"
+		}
+		return string
+	}
+	
+	
+	static private var helpString : String  {
 """
 Codes:
 \tVAL<objID?>   = GCodable value tipe

@@ -40,8 +40,6 @@ public struct GraphDumpOptions: OptionSet {
 	public static let	showReferenceMap						= Self( rawValue: 1 << 4 )
 	///	show keyString map
 	public static let	showKeyStringMap						= Self( rawValue: 1 << 5 )
-	///	show construction map (DECODER DUMP ONLY)
-	public static let	showConstructionMap						= Self( rawValue: 1 << 6 )
 	
 	// BODY/FLATTENEDBODY OPTIONS:
 	///	disable indentation in body
@@ -63,11 +61,11 @@ public struct GraphDumpOptions: OptionSet {
 	///	truncation. (ENCODER DUMP ONLY)
 	public static let	dontTruncateValueDescriptionInBody		= Self( rawValue: 1 << 25 )
 
-	// REFERENCEMAP/CONSTRUCTIONMAP OPTIONS:
-	///	show mangledName/nsClassName in ReferenceMap/Instantiations
+	// REFERENCEMAP OPTIONS:
+	///	show mangledName/nsClassName
 	public static let	showMangledNames						= Self( rawValue: 1 << 32 )
 
-	// CONSTRUCTIONMAP OPTIONS:
+	// REFERENCEMAP OPTIONS (DECODER DUMP ONLY):
 	///	if disabled, unqualified type names will be shown when possible
 	public static let	qualifiedNamesInConstructionMap			= Self( rawValue: 1 << 33 )
 	public static let	hideTypeIDsInConstructionMap			= Self( rawValue: 1 << 34 )
@@ -86,7 +84,7 @@ public struct GraphDumpOptions: OptionSet {
 	]
 	public static let	fullInfo: Self = [
 		.readable, .showHeader, .showFlattenedBody, .showReferenceMap, .showKeyStringMap,
-		.showClassVersionsInBody, .showFlattenedBody, .showValueDescriptionInBody, .showConstructionMap
+		.showClassVersionsInBody, .showFlattenedBody, .showValueDescriptionInBody
 	]
 	public static let	referenceMapOnly: Self = [
 		.showReferenceMap,.showMangledNames

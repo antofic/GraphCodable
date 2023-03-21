@@ -115,7 +115,7 @@ final class GEncoderImpl : FileBlockEncoderDelegate {
 		)
 		self.dataEncoder	= dataEncoder
 		try encode( value )
-		return try dataEncoder.output()
+		return dataEncoder.dump()
 	}
 }
 

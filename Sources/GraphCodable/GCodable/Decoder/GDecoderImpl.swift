@@ -54,7 +54,7 @@ final class GDecoderImpl {
 		let readBuffer 	= try readBuffer(from: data)
 		let decodedDump	= try StringDecoder(from: readBuffer, classNameMap:classNameMap, options: options)
 		
-		return try decodedDump.dump()
+		return decodedDump.dump()
 	}
 }
 
