@@ -440,14 +440,7 @@ public protocol GIdentifiable<GID> {
 	associatedtype GID : Hashable
 	var gcodableID: Self.GID? { get }
 }
-
-extension GIdentifiable where Self:Identifiable {
-	public var gcodableID: Self.ID? { id }
-}
-
 ```
-
-**Note**: `gcodableID` automatically returns the `Identifiable.id` as `gcodableID` if the type adopt the `Identifiable` protocol. 
 
 A value type conforming to the `GIdentifiable` protocol acquires the same ability as reference types to not be duplicated during encoding and decoding. See the next example:
 
@@ -458,6 +451,8 @@ import GraphCodable
 struct Example : GCodable, Equatable, Codable, Identifiable, GIdentifiable {
 	var id = UUID()
 	
+	var gcodableID: UUID? { id }
+
 	private(set) var name		: String
 	private(set) var examples	: [Example]
 	

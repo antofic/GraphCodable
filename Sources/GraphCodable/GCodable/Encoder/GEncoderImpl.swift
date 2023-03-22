@@ -236,8 +236,6 @@ extension GEncoderImpl {
 		try value.encode(to: self)
 	}
 	
-	//	Identifier
-	
 	private func identity( of value:GEncodable ) -> Identity? {
 		if	encodeOptions.contains( .disableIdentity ) {
 			return nil
@@ -292,16 +290,10 @@ extension GEncoderImpl {
 		if encodeOptions.contains( .disableInheritance ) {
 			return nil
 		}
-		
-		/*
-		guard type(of:value) is AnyClass else {
-			return nil
-		}
-		*/
+
 		guard let object = value as? (GEncodable & AnyObject) else {
 			return nil
 		}
-
 		
 		if encodeOptions.contains( .ignoreGInheritanceProtocol ) == false,
 		   let typeInfo = object as? (AnyObject & GInheritance),

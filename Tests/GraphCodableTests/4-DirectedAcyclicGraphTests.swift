@@ -117,8 +117,11 @@ final class DirectedAcyclicGraphTests: XCTestCase {
 		///	See "DirectedCyclicGraphTrest as esamples.
 	}
 	
-	struct NodeStruct : Identifiable, GCodable, GIdentifiable, CustomStringConvertible {
+	struct NodeStruct : GCodable, GIdentifiable, CustomStringConvertible {
 		var id 		= UUID()
+		
+		var gcodableID: UUID? { id }
+		
 		//	Note: Equality '===' defined as 'same Identity'.
 		//	It is the counterpart of the '===' equality
 		//	between reference types based on their

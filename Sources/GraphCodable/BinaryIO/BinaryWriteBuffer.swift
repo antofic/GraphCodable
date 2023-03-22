@@ -32,16 +32,17 @@ BinaryWriteBuffer data format uses always:
 public struct BinaryWriteBuffer {
 	private (set) var 	bytes 			: Bytes
 	private var 		_position		: Int
-	private var			insertMode		: Bool
-	// actual private version for library types
+	private var			insertMode		: Bool	
+	
+	// actual version for BinaryIO library types
 	static let			binaryIOVersion	: UInt32 = 0
 	// public version for user defined types
 	public let			userVersion		: UInt32
 	public let			userData		: Any?
 }
 
-//	MAKE THIS EXTENSION PUBLIC IF YOU WANT TO USE BinaryIO AS A STANDALONE LIBRARY
-//	public extension BinaryWriteBuffer {
+//	MAKE THIS EXTENSION PUBLIC IF YOU WANT TO USE BinaryIO
+//	AS A STANDALONE LIBRARY WITH ADVANCED FUNCTIONALITIES
 extension BinaryWriteBuffer {
 	var startOfFile	: Int { MemoryLayout.size(ofValue: Self.binaryIOVersion) + MemoryLayout.size(ofValue: userVersion) }
 	var endOfFile	: Int { bytes.endIndex }
@@ -65,6 +66,9 @@ extension BinaryWriteBuffer {
 		// really can't throw
 		try! self.writeValue( Self.binaryIOVersion )
 		try! self.writeValue( userVersion )
+		//	try! Self.binaryIOVersion.write(to: &self)
+		//	try! self.userVersion.write(to: &self)
+
 	}
 	
 	func data<Q>() -> Q where Q:MutableDataProtocol {

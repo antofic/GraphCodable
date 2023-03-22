@@ -46,4 +46,20 @@ extension UnsignedInteger {
 			try UInt8( self ).write( to: &wbuffer )
 		}
 	}
+
+	var writeSize : Int {
+		var size	= 1
+		if MemoryLayout<Self>.size > 1 {
+			var	val		= self
+			var word	= UInt8( val & 0x7F )
+			
+			while val & (~0x7F) != 0 {
+				word 	|= 0x80
+				size	+= 1
+				val 	>>= 7
+				word	= UInt8( val & 0x7F )
+			}
+		}
+		return size
+	}
 }

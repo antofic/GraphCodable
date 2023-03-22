@@ -38,27 +38,21 @@ public struct BinaryReadBuffer {
 	private let base				: Bytes
 	private var bytes				: Bytes.SubSequence
 	
-	// private version for library types
+	//	readed version for library types
 	let	binaryIOVersion				: UInt32
-	//	public version for user defined types
+	//	public readed version for user defined types
 	public let	encodedUserVersion	: UInt32
 	public var	dataSize			: Int 	{ base.count }
 	public let	userData			: Any?
 }
 
-//	MAKE THIS EXTENSION PUBLIC IF YOU WANT TO USE BinaryIO AS A STANDALONE LIBRARY
-//	public extension BinaryReadBuffer {
+//	MAKE THIS EXTENSION PUBLIC IF YOU WANT TO USE BinaryIO
+//	AS A STANDALONE LIBRARY WITH ADVANCED FUNCTIONALITIES
 extension BinaryReadBuffer {
-	//	MAKE THIS PROPERTY PUBLIC IF YOU WANT TO USE BinaryIO AS A STANDALONE LIBRARY
-	var startOfFile			: Int			{ MemoryLayout.size(ofValue: binaryIOVersion) + MemoryLayout.size(ofValue: encodedUserVersion) }
+	var startOfFile	: Int			{ MemoryLayout.size(ofValue: binaryIOVersion) + MemoryLayout.size(ofValue: encodedUserVersion) }
+	var isEndOfFile	: Bool			{ bytes.count == 0 }
+	var fullRegion	: Range<Int>	{ startOfFile ..< base.endIndex }
 	
-	//	MAKE THIS PROPERTY PUBLIC IF YOU WANT TO USE BinaryIO AS A STANDALONE LIBRARY
-	var isEndOfFile			: Bool			{ bytes.count == 0 }
-	
-	//	MAKE THIS PROPERTY PUBLIC IF YOU WANT TO USE BinaryIO AS A STANDALONE LIBRARY
-	var fullRegion			: Range<Int>	{ startOfFile ..< base.endIndex }
-	
-	//	MAKE THIS FUNCTION PUBLIC IF YOU WANT TO USE BinaryIO AS A STANDALONE LIBRARY
 	init( bytes base: Bytes, userData:Any? = nil ) throws {
 		var bytes				= base[...]
 		self.binaryIOVersion	= try Self.readValue(from: &bytes)
@@ -68,7 +62,6 @@ extension BinaryReadBuffer {
 		self.userData			= userData
 	}
 	
-	//	MAKE THIS FUNCTION PUBLIC IF YOU WANT TO USE BinaryIO AS A STANDALONE LIBRARY
 	init<Q>( data: Q, userData:Any? = nil ) throws where Q:Sequence, Q.Element==UInt8 {
 		if let bytes = data as? Bytes {
 			try self.init( bytes: bytes, userData:userData )
@@ -77,7 +70,6 @@ extension BinaryReadBuffer {
 		}
 	}
 	
-	//	MAKE THIS FUNCTION PUBLIC IF YOU WANT TO USE BinaryIO AS A STANDALONE LIBRARY
 	///	regionStart can precede the current region start
 	///	but cannot exceed the current region end
 	var regionStart: Int {
@@ -91,7 +83,6 @@ extension BinaryReadBuffer {
 		}
 	}
 	
-	//	MAKE THIS FUNCTION PUBLIC IF YOU WANT TO USE BinaryIO AS A STANDALONE LIBRARY
 	var region: Range<Int> {
 		get { bytes.indices }
 		set {

@@ -32,7 +32,10 @@ public protocol GIdentifiable<GID> {
 	var gcodableID: Self.GID? { get }
 }
 
+
+/*
 extension GIdentifiable where Self:Identifiable {
 	/// For Identifiable values `gcodableID == id` by default.
 	public var gcodableID: Self.ID? { id }
 }
+*/
