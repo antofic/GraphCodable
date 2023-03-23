@@ -36,11 +36,24 @@ public protocol GEncodable {
 	///
 	/// Only reference types support versioning.
 	static var classVersion : UInt32 { get }
+	
+	///	A flag to control inheritance of reference types
+	///
+	/// Return `false` if you want disable inheritance.
+	/// If inheritanche is disabled, the reference type name
+	/// is not endcoed. Inheritance is enabled by default for
+	/// reference types
+	///
+	/// This flag has non effect for value types: they cannot have
+	/// inheritance and their type name is never archived
+	var inheritanceEnabled : Bool { get }
 }
 
 extension GEncodable {
 	/// Default classVersion = 0
 	public static var classVersion : UInt32 { 0 }
+	/// No inheritance for all types
+	public var inheritanceEnabled : Bool { false }
 }
 
 extension GEncodable where Self:AnyObject {
@@ -48,6 +61,8 @@ extension GEncodable where Self:AnyObject {
 	public static var supportsCodableInheritance: Bool {
 		ClassData.isConstructible( type:self )
 	}
+	/// inheritance enabled by default for reference types
+	public var inheritanceEnabled : Bool { true }
 }
 
 /// A type that can be decoded from a native data format

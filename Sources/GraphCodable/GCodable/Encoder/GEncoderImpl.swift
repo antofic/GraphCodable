@@ -300,6 +300,23 @@ extension GEncoderImpl {
 		}
 	}
 	
+	private func createTypeIDIfNeeded( for value:any GEncodable ) throws -> TypeID? {
+		
+		//	.ignoreGInheritanceProtocol REMOVED
+		
+		guard
+			!encodeOptions.contains( .disableInheritance ),
+			value.inheritanceEnabled,
+			let object = value as? any (AnyObject & GEncodable) else {
+			return nil
+		}
+		
+		
+		return try referenceMap.createTypeIDIfNeeded( type: type(of:object) )
+	}
+
+	
+	/*
 	private func createTypeIDIfNeeded( for value:GEncodable ) throws -> TypeID? {
 		if encodeOptions.contains( .disableInheritance ) {
 			return nil
@@ -316,6 +333,7 @@ extension GEncoderImpl {
 		}
 		return try referenceMap.createTypeIDIfNeeded( type: type(of:object) )
 	}
+	*/
 }
 
 

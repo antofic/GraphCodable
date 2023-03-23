@@ -87,7 +87,7 @@ extension GraphEncoder {
 		/// and values that adopt this protocol act as they have not adopted it.
 		///
 		/// - Note: This option is disabled by default
-		public static let	ignoreGIdentifiableProtocol							= Self( rawValue: 1 << 1 )
+		///	public static let	ignoreGIdentifiableProtocol							= Self( rawValue: 1 << 1 )
 
 		///	Ignore the `GInheritance` protocol
 		///
@@ -95,7 +95,7 @@ extension GraphEncoder {
 		/// and values that adopt this protocol act as they have not adopted it.
 		///
 		/// - Note: This option is disabled by default
-		public static let	ignoreGInheritanceProtocol							= Self( rawValue: 1 << 2 )
+		///	public static let	ignoreGInheritanceProtocol							= Self( rawValue: 1 << 2 )
 		
 		///	Disable the automatic reference type identity
 		///
@@ -106,7 +106,7 @@ extension GraphEncoder {
 		/// `ObjectIdentifier(self)` protocol to define their identity.
 		///
 		/// - Note: This option is disabled by default
-		public static let	disableAutoObjectIdentifierIdentityForReferences	= Self( rawValue: 1 << 3 )
+		///	public static let	disableAutoObjectIdentifierIdentityForReferences	= Self( rawValue: 1 << 3 )
 
 		///	Disable identity
 		///

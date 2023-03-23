@@ -20,6 +20,8 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
+
+/*
 /// A protocol to disable reference type names.
 public protocol GInheritance : AnyObject {
 	/// Encoding reference type name is enabled by default
@@ -27,3 +29,4 @@ public protocol GInheritance : AnyObject {
 	/// Return `true` if you don't want encode the reference type name
 	var disableInheritance : Bool { get }
 }
+*/

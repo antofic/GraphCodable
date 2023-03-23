@@ -31,11 +31,3 @@ public protocol GIdentifiable<GID> {
 	/// with this instance.
 	var gcodableID: Self.GID? { get }
 }
-
-
-/*
-extension GIdentifiable where Self:Identifiable {
-	/// For Identifiable values `gcodableID == id` by default.
-	public var gcodableID: Self.ID? { id }
-}
-*/
