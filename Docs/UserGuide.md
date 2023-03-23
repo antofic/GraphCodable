@@ -18,6 +18,7 @@
     - [A more general example](#A-more-general-example)
   - [Identity for value types that use copy on write (COW)](#Identity-for-value-types-that-use-copy-on-write-(COW))
   - [Identity for swift system value types that use copy on write (COW)](#Identity-for-swift-system-value-types-that-use-copy-on-write-(COW))
+  - [Identity alternative design](#Identity-alternative-design)
   - [Control identity globally](#Control-identity-globally)
 - [UserInfo dictionary](#UserInfo-dictionary)
 - [Reference types versioning](#Reference-types-versioning)
@@ -121,9 +122,11 @@ let outRoot	= try GraphDecoder().decode( type(of:inRoot), from: data )
 
 print( outRoot == inRoot )	// prints: true
 ```
+
 **Note:** `GraphEncoder().encode( value )` return type is a *generic sequence* of `UInt8`, so you need to specify the concrete type with `as Data`, o, for example, with `as [UInt8]`, generally sligtly more performant. GraphCodable define `Bytes` as typealias of `[UInt8]`.
 
 ## Keyed coding
+
 GraphCodable uses enums with string rawValue as keys.
 
 ```swift
@@ -167,10 +170,12 @@ let outRoot	= try GraphDecoder().decode( type(of:inRoot), from: data )
 
 print( outRoot == inRoot )	// prints: true
 ```
+
 You can check if a keyed value is present in the archive with `try decoder.contains(_ key:)` before decoding it.
 **Note**: Values are removed from the decoder data basket as they are decoded.
 
 ## Unkeyed coding
+
 The same example using unkeyed coding. With unkeyed coding you must decode values in the same order in which they are encoded.
 
 ```swift
@@ -214,6 +219,7 @@ let outRoot	= try GraphDecoder().decode( type(of:inRoot), from: data )
 
 print( outRoot == inRoot )	// prints: true
 ```
+
 It is also possible to mix keyed and unkeyed coding, as long as the unkeyed variables are decoded in the same order in which they were encoded.
 It is recommended that you use unkeyed coding not in cases like this, but rather when you need to encode only a single value or a sequence of values. The following example shows how array conformance is implemented in the GraphCodable package using unkeyed encode/decode:
 
@@ -237,6 +243,7 @@ extension Array: GDecodable where Element:GDecodable {
 	}
 }
 ```
+
 The `while decoder.unkeyedCount > 0 {…}` in the  `init( from:... )` method clearly shows that **values are removed from the decoder data basket as they are decoded**.
 
 ## Inheritance
@@ -373,6 +380,7 @@ The way value types behave, it makes no sense to talk about which data structure
 GraphCodable supports reference types identity <u>automatically</u> using the reference *ObjectIdentifier*. If, while encoding, it encounters a reference type that it has already encoded, instead of encoding it normally, it simply encode a token that identifies it. This way reference types are not duplicated. Codable duplicates it.
 
 See the next example:
+
 ```swift
 import Foundation
 import GraphCodable
@@ -440,7 +448,14 @@ public protocol GIdentifiable<GID> {
 	associatedtype GID : Hashable
 	var gcodableID: Self.GID? { get }
 }
+
+extension GIdentifiable where Self:Identifiable {
+	public var gcodableID: Self.ID? { id }
+}
+
 ```
+
+**Note**: `gcodableID` automatically returns the `Identifiable.id` as `gcodableID` if the type adopt the `Identifiable` protocol. 
 
 A value type conforming to the `GIdentifiable` protocol acquires the same ability as reference types to not be duplicated during encoding and decoding. See the next example:
 
@@ -451,8 +466,6 @@ import GraphCodable
 struct Example : GCodable, Equatable, Codable, Identifiable, GIdentifiable {
 	var id = UUID()
 	
-	var gcodableID: UUID? { id }
-
 	private(set) var name		: String
 	private(set) var examples	: [Example]
 	
@@ -755,6 +768,7 @@ The next example shows how GraphCodable encode and decode this [DAG](https://en.
   │ └──────────────┘       │
   └────────────────────────┘
 ```
+
 ```swift
 import Foundation
 import GraphCodable
@@ -832,7 +846,9 @@ do {	// same thing with Codable
 	print( e1 === e3 )	// prints: false --> we use '===': different references!
 }
 ```
+
 GraphCodable decodes the original structure of the graph. Codable duplicates the same reference reachable through different paths, destroying the original structure of the graph. The result of Codable decoding is this:
+
 ```
          ╭───╮   ╭───╮
          │ d │──▶︎│ e │
@@ -854,9 +870,11 @@ GraphCodable decodes the original structure of the graph. Codable duplicates the
   └─────▶︎│ e │
          ╰───╯
 ```
+
 ### Directed cyclic graphs (DCG)
 
 What happens if you add a connection from `e` to `b` in the previous example?
+
 - The graph become cyclic (DCG);
 - Your code leaks memory: ARC cannot release `e`, `b` and `d` because each retain the other;
 - GraphCodable encodes it but generates an exception during decoding;
@@ -865,6 +883,7 @@ What happens if you add a connection from `e` to `b` in the previous example?
 Just like ARC cannot autamatically release `e`, `b` and d because each retain the other, GraphCodable cannot initialize `e`, `b` and `d` because the initialization of each of them requires that the other be initialized and Swift does not allow to exit from an init method without inizializing all variables. So, when GraphCodable during decode encounters a cycle that it cannot resolve, it throws an exception.
 
 #### Weak variables example
+
 One possible solution for ARC is to use weak variables.
 Than, GraphCodable uses a slightly different way to decode weak variables used to break strong memory cycles: it postpones, calling a closure with the `deferDecode(...)` method, the setting of these variables (remember: they are optional, so they are auto-inizializated to nil) until the objects they point to have been initialized.
 
@@ -980,7 +999,9 @@ print( outRoot )	// print 'Screen [Window [View [], View [View []]], Window [Vie
 print( outRoot === outRoot.childs.first?.childs.first?.parent?.parent! )	// print true
 
 ```
+
 #### A more general example
+
 Another possible workaround with ARC is to manually break the strong cycles to allow for memory release. In the following example, the Model class contains a collection of Node classes by name in a dictionary. Each node contains an array of nodes it is connected to and may also be connected to itself. To prevent memory from ever being freed, Model's `deinit` method calls `removeConnections` for each node it owns. So we have a model where the array of connections in each Node to other Nodes generates reference cycles.
 
 If `decode` is used for those connections, the decoding fails due to reference cycles. The solution, as the previous example, is to use `deferDecode` to decode the array:
@@ -993,6 +1014,7 @@ required init(from decoder: GDecoder) throws {
 ```
 
 See the full example:
+
 ```swift
 import Foundation
 import GraphCodable
@@ -1305,6 +1327,33 @@ each string (a string is `Hashable`) acquires its own self-defined identity, and
 
 For this reason GraphCodable does not implement a *hashable-based* automatic identity for strings or any other type, although this is not a trick, and leaves that choice up to the user. However, it is possible to activate it with two options, as we will see in the next paragraph.
 
+### Identity alternative design
+
+An alternative design of the same functionality could have been the following which does not employ the additional `GIdentifiable` protocol:
+
+```swift
+public protocol GEncodable<GID> {
+	associatedtype GID : Hashable
+	var gcodableID: Self.GID? { get }
+  /* ... */
+}
+
+extension GEncodable {
+	public var gcodableID: Self.GID? { nil }
+	/* ... */
+}
+
+extension GEncodable where Self:AnyObject {
+	public var gcodableID: ObjectIdentifier? {
+		ObjectIdentifier( self )
+	}
+  /* ... */
+}
+
+```
+
+In fact it was the first choice, because it was simpler, but in this way it would have been impossible for the user to choose to provide identities to system types (like `String`) that already adopt the `GEncodable` protocol in the library. This is why I then chose to adopt a separate protocol.
+
 ### Control identity globally
 
 Some options in the `GraphEncoder( _ options: )` init method control identity **globally**, that is, they apply to all encoded types.
@@ -1313,16 +1362,12 @@ Some options in the `GraphEncoder( _ options: )` init method control identity **
 
 If the `.disableIdentity` option is **not** set:
 
-- the `.ignoreGIdentifiableProtocol` option override the adoption of the `GIdentifiable` protocol and make the encoder ignore it. This implies that reference types will have the identity defined by their *ObjectIdentifier* and value types will have no identity;
-- the `.disableAutoObjectIdentifierIdentityForReferences` option prevents reference types from automatically receiving the identity defined by their *ObjectIdentifier* (they can receive it adopting the `GIdentifiable` protocol, like value types);
 - the `.tryHashableIdentityAtFirst` option causes all *hashable* types to use themselves as an identity. The other options only come into play if the types are not *hashable*;
 - the `.tryHashableIdentityAtLast` option causes all *hashable* types to use themselves as the identity if they haven't obtained an identity otherwise.
 
 You can use one of these last two options to check if and how expensive it actually is to employ an identity of *hashable* types based on their own value.
 
 It should be noted that if the two options  `.disableIdentity`  and `.disableInheritance` are used together, the GraphCodable encoder behaves exactly like the swift Codable one, ignoring inheritance and identity. These two options are collected together in `.mimicSwiftCodable`.
-
-**Note**: if a reference type adopt the the `GIdentifiable` protocol and `gcodableID` returns `nil`, the type don't receive an identity unless the `.ignoreGIdentifiableProtocol`  option is set.
 
 ## UserInfo dictionary
 
@@ -1400,6 +1445,7 @@ let path = FileManager.default.urls(
 
 try data.write(to: path)
 ```
+
 The new version of the program uses a different implementation of the MyData class. It is therefore necessary to be able to read the data saved by both versions of `MyData`. That's how:
 
 ```swift
@@ -1450,6 +1496,7 @@ let data	= try Data(contentsOf: path)
 let outRoot	= try GraphDecoder().decode( MyData.self, from: data )
 print( outRoot )	// MyData(string: "3")
 ```
+
 ## Obsolete reference types
 
 Now suppose it is absolutely necessary to change some class `MyData` to `MyNewData`. The problem is that there are already saved files in which reference of class `MyData` are stored and it is therefore necessary, during decoding, that objects of the new type `MyNewData` be created instead of these.
@@ -1494,6 +1541,7 @@ class MyData: GCodable {
   // no other code
 }
 ```
+
 To make this easier, GraphCodable provides the `GObsolete` protocol, which has no function in the package, but implements the two required but now unreachable methods `init(from decoder: GDecoder)` and `encode(to encoder: GEncoder)` of `GCodable` and allows you to mark the classes that have been replaced in a clear way. The code then becomes:
 
 ```swift
@@ -1559,6 +1607,7 @@ let data	= try Data(contentsOf: path)
 let outRoot	= try GraphDecoder().decode( MyNewData.self, from: data )
 print( outRoot )	// MyNewData(string: 3)
 ```
+
 Multiple classes can be replaced by only one if necessary. Use `decoder.replacedClass` to find out which one was replaced during decoding. Versioning and class replacement can be combined.
 
 ### Generic references

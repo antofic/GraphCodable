@@ -236,40 +236,54 @@ extension GEncoderImpl {
 		try value.encode(to: self)
 	}
 	
+	/*
 	private func identity( of value:GEncodable ) -> Identity? {
+		if let value = value as? any (GIdentifiable & GEncodable) {
+			if let id = value.gcodableID {
+				return Identity( id )
+			}
+		} else if let value = value as? any (GEncodable & AnyObject) {
+			return Identity( ObjectIdentifier( value ) )
+		}
+		return nil
+	}
+	*/
+	
+	
+	private func identity( of value:GEncodable ) -> Identity? {
+		//	REMOVE:
+		//		.ignoreGIdentifiableProtocol
+		//		.disableAutoObjectIdentifierIdentityForReferences
+		
+		
 		if	encodeOptions.contains( .disableIdentity ) {
 			return nil
 		}
 		
 		if	encodeOptions.contains( .tryHashableIdentityAtFirst ) {
-			if let id = value as? (any Hashable) {
-				return Identity(id)
-			}
-		}
-		if	encodeOptions.contains( .ignoreGIdentifiableProtocol ) {
-			if	!encodeOptions.contains( .disableAutoObjectIdentifierIdentityForReferences ),
-				type( of:value) is AnyClass {
-				return Identity( ObjectIdentifier( value as AnyObject ) )
-			}
-		} else if let identifiable	= value as? (any GIdentifiable) {
-			if let id = identifiable.gcodableID {
-				return Identity(id)
-			}
-		} else if !encodeOptions.contains( .disableAutoObjectIdentifierIdentityForReferences ) {
-			if type( of:value) is AnyClass {
-				return Identity( ObjectIdentifier( value as AnyObject ) )
+			if let value = value as? (any Hashable) {
+				return Identity( value )
 			}
 		}
 		
+		if let value = value as? any (GEncodable & GIdentifiable) {
+			if let id = value.gcodableID {
+				return Identity( id )
+			}
+			// let's give .tryHashableIdentityAtLast a chance
+		} else if let value = value as? any (GEncodable & AnyObject) {
+			return Identity( ObjectIdentifier( value ) )
+		}
+		
 		if encodeOptions.contains( .tryHashableIdentityAtLast ) {
-			if let id = value as? (any Hashable) {
-				return Identity(id)
+			if let value = value as? (any Hashable) {
+				return Identity( value )
 			}
 		}
 		
 		return nil
 	}
-
+		 
 	private func createKeyID( for key: String? ) throws -> KeyID? {
 		if let key = key {
 			defer { currentKeys.insert( key ) }
