@@ -80,7 +80,7 @@ extension DispatchTimeInterval : BinaryOType {
 		case .never:
 			try IntervalType.never.write(to: &wbuffer)
 		default:
-			throw BinaryIOError.versionError(
+			throw BinaryIOError.libEncodingError(
 				Self.self, BinaryIOError.Context(
 					debugDescription: "\(Self.self) in a new unknown case -\(self)-."
 				)

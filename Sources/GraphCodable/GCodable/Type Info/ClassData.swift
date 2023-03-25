@@ -34,9 +34,9 @@ extension ClassData { 	// init
 		guard
 			let mangledName = Self.mangledName(of: type),
 			Self.classType( from:mangledName ) != nil else {
-			throw GCodableError.cantConstructClass(
-				Self.self, GCodableError.Context(
-					debugDescription:"The class -\(qualifiedName)- can't be constructed."
+			throw GraphCodableError.cantConstructClass(
+				Self.self, GraphCodableError.Context(
+					debugDescription:"The class \(qualifiedName) can't be constructed."
 				)
 			)
 		}
@@ -98,9 +98,9 @@ extension ClassData {	// static primitive functions
 	
 	static func throwIfNotConstructible( type:AnyClass ) throws {
 		guard isConstructible( type:type ) else {
-			throw GCodableError.cantConstructClass(
-				Self.self, GCodableError.Context(
-					debugDescription:"The class -\( _typeName( type, qualified:true ) )- can't be constructed."
+			throw GraphCodableError.cantConstructClass(
+				Self.self, GraphCodableError.Context(
+					debugDescription:"The class \( _typeName( type, qualified:true ) ) can't be constructed."
 				)
 			)
 		}

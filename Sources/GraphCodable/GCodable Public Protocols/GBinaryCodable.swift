@@ -53,8 +53,8 @@ public typealias GBinaryCodable = GBinaryEncodable & GBinaryDecodable
 
 extension GBinaryEncodable {
 	public func encode(to encoder: GEncoder) throws	{
-		throw GCodableError.internalInconsistency(
-			Self.self, GCodableError.Context(
+		throw GraphCodableError.internalInconsistency(
+			Self.self, GraphCodableError.Context(
 				debugDescription: "Unreachable code."
 			)
 		)
@@ -62,8 +62,8 @@ extension GBinaryEncodable {
 }
 extension GBinaryDecodable {
 	public init(from decoder: GDecoder) throws {
-		throw GCodableError.internalInconsistency(
-			Self.self, GCodableError.Context(
+		throw GraphCodableError.internalInconsistency(
+			Self.self, GraphCodableError.Context(
 				debugDescription: "Unreachable code."
 			)
 		)
@@ -78,8 +78,8 @@ extension BinaryWriteBuffer {
 	public var encoderView : GEncoderView {
 		get throws {
 			guard let encoderView = userData as? GEncoderView else {
-				throw GCodableError.internalInconsistency(
-					Self.self, GCodableError.Context(
+				throw GraphCodableError.internalInconsistency(
+					Self.self, GraphCodableError.Context(
 						debugDescription: "encoderView can be accessed only from the GraphCodable BinaryWriteBuffer"
 					)
 				)
@@ -99,8 +99,8 @@ extension BinaryReadBuffer {
 	public var decoderView : GDecoderView {
 		get throws {
 			guard let decoderView = userData as? GDecoderView else {
-				throw GCodableError.internalInconsistency(
-					Self.self, GCodableError.Context(
+				throw GraphCodableError.internalInconsistency(
+					Self.self, GraphCodableError.Context(
 						debugDescription: "decoderView can be accessed only from the GraphCodable BinaryReadBuffer"
 					)
 				)

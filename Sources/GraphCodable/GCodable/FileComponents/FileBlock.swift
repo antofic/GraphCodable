@@ -65,9 +65,9 @@ enum FileBlock {	// size = 32 bytes
 				case Self.catPtr:	return .Ptr
 				case Self.catVal:	return .Val
 				default:
-					throw GCodableError.decodingError(
-						Self.self, GCodableError.Context(
-							debugDescription: "Unknown code category \(cat)"
+					throw GraphCodableError.malformedArchive(
+						Self.self, GraphCodableError.Context(
+							debugDescription: "Unknown code category \(cat)."
 						)
 					)
 				}

@@ -177,11 +177,9 @@ extension GEncoderImpl {
 				} else if conditional {
 					// conditional encoding: we encode only a pointer
 					
-					if let type	= type(of:value) as? AnyClass {
-						// check if the reference class can be constructed from its name
-						try ClassData.throwIfNotConstructible( type: type )
-					}
-						
+					// Anyway we check if the reference class can be constructed from its name
+					try throwIfNotConstructibleType( of:value )
+
 					let objID	= identityMap.createWeakID( for: identity )
 					try dataEncoder.appendPtr(keyID: keyID, objID: objID, conditional: conditional)
 				} else {
@@ -220,8 +218,8 @@ extension GEncoderImpl {
 				}
 			}
 		} else {
-			throw GCodableError.internalInconsistency(
-				Self.self, GCodableError.Context(
+			throw GraphCodableError.internalInconsistency(
+				Self.self, GraphCodableError.Context(
 					debugDescription: "Not GEncodable value \(value)."
 				)
 			)
@@ -236,26 +234,7 @@ extension GEncoderImpl {
 		try value.encode(to: self)
 	}
 	
-	/*
 	private func identity( of value:GEncodable ) -> Identity? {
-		if let value = value as? any (GIdentifiable & GEncodable) {
-			if let id = value.gcodableID {
-				return Identity( id )
-			}
-		} else if let value = value as? any (GEncodable & AnyObject) {
-			return Identity( ObjectIdentifier( value ) )
-		}
-		return nil
-	}
-	*/
-	
-	
-	private func identity( of value:GEncodable ) -> Identity? {
-		//	REMOVE:
-		//		.ignoreGIdentifiableProtocol
-		//		.disableAutoObjectIdentifierIdentityForReferences
-		
-		
 		if	encodeOptions.contains( .disableIdentity ) {
 			return nil
 		}
@@ -288,9 +267,9 @@ extension GEncoderImpl {
 		if let key = key {
 			defer { currentKeys.insert( key ) }
 			if currentKeys.contains( key ) {
-				throw GCodableError.duplicateKey(
-					Self.self, GCodableError.Context(
-						debugDescription: "Key -\(key)- already used."
+				throw GraphCodableError.duplicateKey(
+					Self.self, GraphCodableError.Context(
+						debugDescription: "Key \(key) already used."
 					)
 				)
 			}
@@ -301,9 +280,6 @@ extension GEncoderImpl {
 	}
 	
 	private func createTypeIDIfNeeded( for value:any GEncodable ) throws -> TypeID? {
-		
-		//	.ignoreGInheritanceProtocol REMOVED
-		
 		guard
 			!encodeOptions.contains( .disableInheritance ),
 			value.inheritanceEnabled,
@@ -311,29 +287,17 @@ extension GEncoderImpl {
 			return nil
 		}
 		
-		
 		return try referenceMap.createTypeIDIfNeeded( type: type(of:object) )
 	}
-
 	
-	/*
-	private func createTypeIDIfNeeded( for value:GEncodable ) throws -> TypeID? {
-		if encodeOptions.contains( .disableInheritance ) {
-			return nil
+	private func throwIfNotConstructibleType( of value:any GEncodable ) throws {
+		if	!encodeOptions.contains( .disableInheritance ),
+			value.inheritanceEnabled,
+			let object = value as? any (AnyObject & GEncodable) {
+			try ClassData.throwIfNotConstructible( type: type(of:object) )
 		}
-
-		guard let object = value as? (GEncodable & AnyObject) else {
-			return nil
-		}
-		
-		if encodeOptions.contains( .ignoreGInheritanceProtocol ) == false,
-		   let typeInfo = object as? (AnyObject & GInheritance),
-		   typeInfo.disableInheritance {
-			return nil
-		}
-		return try referenceMap.createTypeIDIfNeeded( type: type(of:object) )
 	}
-	*/
+		
 }
 
 

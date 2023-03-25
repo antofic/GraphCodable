@@ -46,16 +46,16 @@ final class FlattenedElement {
 		var lineIterator = readBlocks.makeIterator()
 		
 		guard let readBlock = lineIterator.next() else {
-			throw GCodableError.decodingError(
-				Self.self, GCodableError.Context(
+			throw GraphCodableError.malformedArchive(
+				Self.self, GraphCodableError.Context(
 					debugDescription: "Root not found."
 				)
 			)
 		}
 		
 		guard readBlock.fileBlock.level != .exit else {
-			throw GCodableError.decodingError(
-				Self.self, GCodableError.Context(
+			throw GraphCodableError.malformedArchive(
+				Self.self, GraphCodableError.Context(
 					debugDescription: "The archive begins with an end block."
 				)
 			)
@@ -95,9 +95,9 @@ extension FlattenedElement {
 			if let objID {
 				//	l'oggetto non può già trovarsi nella map
 				guard map.index(forKey: objID) == nil else {
-					throw GCodableError.internalInconsistency(
-						Self.self, GCodableError.Context(
-							debugDescription: "Object -\(element.readBlock)- already exists."
+					throw GraphCodableError.internalInconsistency(
+						Self.self, GraphCodableError.Context(
+							debugDescription: "Object \(element.readBlock) already exists."
 						)
 					)
 				}
@@ -105,6 +105,7 @@ extension FlattenedElement {
 				let root = FlattenedElement( readBlock: element.readBlock )
 				// in quello vecchio metto un puntatore al vecchio elemento
 				element.readBlock	= ReadBlock( with: .Ptr( keyID: keyID, objID: objID, conditional: false ), copying: element.readBlock )
+				//	element.readBlock.valToPtr( conditional: false )
 				// metto il nuovo elelemnto nella mappa
 				map[ objID ]	= root
 								
@@ -140,16 +141,16 @@ extension FlattenedElement {
 				
 				if let keyID = readBlock.fileBlock.keyID {
 					guard let key = keyStringMap[keyID] else {
-						throw GCodableError.keyNotFound(
-							Self.self, GCodableError.Context(
-								debugDescription: "Key for keyID-\(keyID)- not found."
+						throw GraphCodableError.malformedArchive(
+							Self.self, GraphCodableError.Context(
+								debugDescription: "Key for keyID\(keyID) not found."
 							)
 						)
 					}
 					guard parentElement.keyedValues.index(forKey: key) == nil else {
-						throw GCodableError.duplicateKey(
-							Self.self, GCodableError.Context(
-								debugDescription: "Key -\(key)- already used."
+						throw GraphCodableError.malformedArchive(
+							Self.self, GraphCodableError.Context(
+								debugDescription: "Key \(key) already used."
 							)
 						)
 					}

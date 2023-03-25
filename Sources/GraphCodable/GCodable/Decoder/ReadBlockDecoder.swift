@@ -52,6 +52,18 @@ struct ReadBlock {
 	///	whe size > 0 this is the region of the BinaryReadBuffer that contains
 	///	the "binaryEncoded" value.
 	var valueRegion : Range<Int> { regionStart ..< (regionStart + fileBlock.binarySize) }
+	
+	mutating func valToPtr( conditional:Bool ) {
+		switch self.fileBlock {
+			case .Val( let keyID, let objID, _ , _ ):
+				if let objID {
+					self	= ReadBlock( with: .Ptr( keyID: keyID, objID: objID, conditional: conditional ), copying: self )
+				}
+			default:
+				break
+		}
+	}
+	
 }
 
 typealias ReadBlocks		= [ReadBlock]
@@ -120,8 +132,8 @@ struct ReadBlockDecoder {
 	
 	private mutating func setReaderRegionTo( section:FileSection ) throws -> Range<Int> {
 		guard let range = sectionMap[ section ] else {
-			throw GCodableError.decodingError(
-				Self.self, GCodableError.Context(
+			throw GraphCodableError.malformedArchive(
+				Self.self, GraphCodableError.Context(
 					debugDescription: "File section \(section) not found."
 				)
 			)

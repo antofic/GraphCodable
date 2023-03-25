@@ -42,9 +42,9 @@ struct ClassInfo : CustomStringConvertible {
 			}
 		}
 		
-		throw GCodableError.cantConstructClass(
-			Self.self, GCodableError.Context(
-				debugDescription:"The class -\(classData.qualifiedName)- can't be constructed."
+		throw GraphCodableError.cantConstructClass(
+			Self.self, GraphCodableError.Context(
+				debugDescription:"The class \(classData.qualifiedName) can't be constructed."
 			)
 		)
 	}

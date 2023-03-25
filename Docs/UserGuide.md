@@ -13,7 +13,7 @@
   - [Value types identity](#Value-types-identity)
   - [Conditional encoding](#Conditional-encoding)
   - [Directed acyclic graphs (DAG)](#Directed-acyclic-graphs-(DAG))
-  - [Directed cyclic graphs (DCG)](#Directed-cyclic-graphs-(DCG))
+  - [Directed cyclic graphs (DCG): using `deferDecode(...)`](#Directed-cyclic-graphs-(DCG):-using-`deferDecode(...)`)
     - [Weak variables example](#Weak-variables-example)
     - [A more general example](#A-more-general-example)
   - [Identity for value types that use copy on write (COW)](#Identity-for-value-types-that-use-copy-on-write-(COW))
@@ -21,8 +21,9 @@
   - [Identity alternative design](#Identity-alternative-design)
   - [Control identity globally](#Control-identity-globally)
 - [UserInfo dictionary](#UserInfo-dictionary)
-- [Reference types versioning](#Reference-types-versioning)
-- [Obsolete reference types](#Obsolete-reference-types)
+- [Versioning with `userVersion`](#Versioning-with-`userVersion`)
+- [Versioning of reference types](#Versioning-of-reference-types)
+- [Renaming reference types](#Renaming-reference-types)
   - [Non generic references](#Non-generic-references)
   - [Generic references](#Generic-references)
   - [Using class name strings](#Using-class-name-strings)
@@ -31,6 +32,7 @@
   - [The `BinaryIOType` protocol](#The-`BinaryIOType`-protocol)
   - [The `GBinaryCodable` protocol](#The-`GBinaryCodable`-protocol)
   - [The `GPackCodable` protocol](#The-`GPackCodable`-protocol)
+  - [Switch from `GCodable` to `GBinary/PackCodable` and vice versa](#Switch-from-`GCodable`-to-`GBinary/PackCodable`-and-vice-versa)
   - [UserInfo dictionary and other informations](#UserInfo-dictionary-and-other-informations)
   - [BinaryIO versioning](#BinaryIO-versioning)
   - [GraphCodable and BinaryIO for some system types](#GraphCodable-and-BinaryIO-for-som-system-types)
@@ -320,28 +322,42 @@ There are situations where it is necessary or desirable to **disable** inheritan
 - A **private** reference type cannot be decoded because it cannot be constructed from its type name. The encoder always checks if a type is constructible: if not, it throws an exception at runtime. You can also check whether a `GEncodable` reference type is constructible by calling the `supportsCodableInheritance` property.
 - If a reference type **is not part of a class hierarchy**, encoding its type name to support inheritance is unnecessary.
 
-For cases like these, GraphCodable provides the `GInheritance` protocol:
+For cases like these, the `GEncodable` protocol provides  the `inheritanceEnabled` property:
 
 ```swift
-public protocol GInheritance : AnyObject {
-	var disableInheritance : Bool { get }
+public protocol GEncodable {
+	var inheritanceEnabled : Bool { get }
+  /* ... */
+}
+
+extension GEncodable {
+	public var inheritanceEnabled : Bool { false }
+  /* ... */  
+}
+
+extension GEncodable where Self:AnyObject {
+	public var inheritanceEnabled : Bool { true }
+    /* ... */  
+}
+
+```
+
+So by default  `inheritanceEnabled` returns `false` for value types and `true` for reference types. A reference type can disable inheritance by "overriding" the `inheritanceEnabled` property and return `false`:
+
+```swift
+class MyReferenceType: GEncodable {
+	var inheritanceEnabled: Bool { false }
+  /* ... */
 }
 ```
 
-To disable inheritance it is therefore sufficient to adopt the `GInheritance` protocol and define the `disableInheritance` property so that it returns `true`:
-
-```swift
-extension MyReferenceType: GInheritance {
-	var disableInheritance: Bool { true }
-}
-```
+**Note**: `inheritanceEnabled`  has no effect for a value type.
 
 ### Control inheritance globally
 
-Some options in the `GraphEncoder(  _ options: )` method control inheritance **globally**, that is, they apply to all encoded reference types.
+Some options in the `GraphEncoder(  _ options: )` method control inheritance **globally**, that is, they apply to all encoded reference types:
 
 - the `.disableInheritance` option disable inheritance for all reference types, regardless of protocol `GInheritance`;
-- the `.ignoreGInheritanceProtocol` option override the adoption of the `GInheritance` protocol and make the encoder ignore it.
 
 ## Identity
 
@@ -373,7 +389,9 @@ Using Codable, after decoding we get:
 
 Again, the original data structure is lost and furthermore an object has been duplicated, with what follows in terms of memory. This happens because Codable doesn't store the *identity* of the references. Now, for references it is essential that the data structure is preserved: after decoding the program logic is compromised if two objects are decoded instead of one object. In GraphCodable, the identity of references is automatically derived from their *ObjectIdentifier*, although you can change this behavior.
 
-The way value types behave, it makes no sense to talk about which data structure to preserve; conversely, in certain cases their duplication/multiplication can be problematic if they contain a large amount of data. For this reason, in analogy to the `Identifiable` system protocol, GraphCodable allows to define an identity for encoding and decoding also for value types (by default they don't have one), via the `GIdentifiable` protocol. Reference types can also make use of the `GIdentifiable`protocol where for some reason it is necessary to define an identity other than the one derived from *ObjectIdentifier*.
+The way value types behave, it makes no sense to talk about which data structure to preserve; conversely, in certain cases their duplication/multiplication can be problematic if they contain a large amount of data. Consider for example a value type that implements the copy-on-write (COW) mechanism. Each time an instance of the type is archived, its internal buffer (a reference type) is encoded and re-encoded multiple times even though it is shared (i.e.: when `isKnownUniquelyReferenced( buffer )` returns `false`), multiplying the size of the encoded data. During decoding separate buffers are created, all with identical content, multiplying the the memory required after dearchiving.
+
+For this reason, in analogy to the `Identifiable` system protocol, GraphCodable allows to define an identity for encoding and decoding also for value types (by default they don't have one), via the `GIdentifiable` protocol. Reference types can also make use of the `GIdentifiable`protocol where for some reason it is necessary to define an identity other than the one derived from *ObjectIdentifier* or remove at all their identity.
 
 ### Reference types identity
 
@@ -871,7 +889,7 @@ GraphCodable decodes the original structure of the graph. Codable duplicates the
          ╰───╯
 ```
 
-### Directed cyclic graphs (DCG)
+### Directed cyclic graphs (DCG): using `deferDecode(...)`
 
 What happens if you add a connection from `e` to `b` in the previous example?
 
@@ -1291,6 +1309,8 @@ The output becomes now:
 
 Not only array `a` (VAL0003) is encoded only once, but array `b` (VAL0002) is also encoded once.
 
+Of course, identity for value types is not limited only to those implementing the COW mechanism, but can be used any time that it makes sense to talk about identity for the type in question in order to avoid "identical" instances being encoded and decoded multiple times.
+
 ### Identity for swift system value types that use copy on write (COW)
 
 Many swift system value types use the copy on write (COW) mechanism. Among these, the most common are `Array`, `ContiguousArray`, `Data`, `Set`, `Dictionary` and presumably `String` beyond a certain number of characters. Unfortunately, none of these types exposes the *ObjectIdentifier* of the reference type used as storage, otherwise it would be very simple to provide them with identities, exactly as it was done in the example of the previous paragraph with `MyArray`.
@@ -1373,7 +1393,46 @@ It should be noted that if the two options  `.disableIdentity`  and `.disableInh
 
 Both `GraphEncoder` and `GraphDecoder` allow setting a dictionary accessible during encoding and decoding respectively with the aim of adopting appropriate strategies. Usage is identical to that of Codable.
 
-## Reference types versioning
+## Versioning with `userVersion`
+
+What to do if during the evolution of the program it becomes necessary to modify a type that uses `GCodable` and it is therefore necessary to archive additional and/or different fields? How to distinguish old versions of a type from the current one so that it can be decoded correctly?
+
+- If the type uses keyed encoding, employing new keys while retaining the ability to read the old ones is generally the easiest way to manage different versions of a type.
+- Reference types have the ability to store a version (a `UInt32` value) per type (see  [Versioning of reference types](#Versioning-of-reference-types)).
+- If the type doesn't use keyed encoding, you can use a **global** version  (a `UInt32` value) named `userVersion`.
+
+The current version of the archive is set with:
+
+```swift
+let myCurrentGlobalVersion	= UInt32(3)
+let graphEncoder = GraphEncoder(userVersion: myCurrentGlobalVersion)
+...
+```
+
+During decoding you can access the encoded version with:
+
+```swift
+init(from decoder: GDecoder) throws {
+	let version = decoder.encodedUserVersion
+  /* ... */
+}
+```
+
+This  version is also available during encoding (useful if the program should support the possibility of saving a document also in previous formats):
+
+```swift
+func encode(to encoder: GEncoder) throws {
+	let version = encoder.userVersion
+  /* ... */
+}
+
+```
+
+It is **important** to note that the **`userVersion`** is unique and global for the entire archive and is shared with the BinaryIO package (see [GraphCodable and BinaryIO](#GraphCodable-and-BinaryIO)). It follows that whenever any `GCodable` or  `BinaryIOType` type changes encoding it is necessary to increment **`userVersion`** (see [BinaryIO versioning](#BinaryIO-versioning)).
+
+**Note**: **`userVersion`** is really a feature of BinaryIO that GraphCodable takes advantage of.
+
+## Versioning of reference types
 
 Reference types can use the `classVersion` property in `GEncodable` protocol:
 
@@ -1389,7 +1448,7 @@ extension GEncodable {
 
 ```
 
- to define the version (a `UInt32` value) of their type so that they can handle different decoding strategies depending on it. The default `classVersion` value is 0.
+ to define the version (a `UInt32` value) of their type so that they can handle different decoding strategies depending on it. The default `classVersion` value is 0. This is a unique value available to each reference type and not shared with other types.
 
 The encoder stores the value returned by `classVersion` together with the reference type information, only once for each reference type. During decoding, the version of the encoded reference type can be accessed through the decoder property `encodedClassVersion`.
 
@@ -1402,7 +1461,7 @@ public protocol GDecoder {
 
 ```
 
-**Note**: If inheritance is disabled, information about reference types, including version, is not encoded and therefore versions cannot be used.
+**Note**: If inheritance is disabled, information about reference types (including classVersion) is not encoded and therefore versions cannot be used.
 
 A very simple example: suppose that your program saves its data in the "Documents/MyFile.graph" file:
 
@@ -1497,7 +1556,7 @@ let outRoot	= try GraphDecoder().decode( MyData.self, from: data )
 print( outRoot )	// MyData(string: "3")
 ```
 
-## Obsolete reference types
+## Renaming reference types
 
 Now suppose it is absolutely necessary to change some class `MyData` to `MyNewData`. The problem is that there are already saved files in which reference of class `MyData` are stored and it is therefore necessary, during decoding, that objects of the new type `MyNewData` be created instead of these.
 
@@ -2439,8 +2498,8 @@ public typealias GBinaryCodable = GBinaryEncodable & GBinaryDecodable
 
 extension GBinaryEncodable {
 	public func encode(to encoder: GEncoder) throws	{
-		throw GCodableError.internalInconsistency(
-			Self.self, GCodableError.Context(
+		throw GraphCodableError.internalInconsistency(
+			Self.self, GraphCodableError.Context(
 				debugDescription: "Unreachable code."
 			)
 		)
@@ -2448,8 +2507,8 @@ extension GBinaryEncodable {
 }
 extension GBinaryDecodable {
 	public init(from decoder: GDecoder) throws {
-		throw GCodableError.internalInconsistency(
-			Self.self, GCodableError.Context(
+		throw GraphCodableError.internalInconsistency(
+			Self.self, GraphCodableError.Context(
 				debugDescription: "Unreachable code."
 			)
 		)
@@ -2518,7 +2577,7 @@ You can see how now the entire array has been stored as a <u>single data unit</u
 The same result would have been obtained by adopting the `GPackCodable` protocol instead of `GBinaryEncodable`:
 
 ```swift
-extension NumericData : GPackCodable /* GBinaryEncodable */ {
+extension NumericData : GPackCodable /* GBinaryCodable */ {
 	init(from rbuffer: inout BinaryReadBuffer) throws {
 		self.vector = try SIMD3<Double>( from:&rbuffer )
 		self.matrix = try simd_double3x3( from:&rbuffer )
@@ -2541,6 +2600,69 @@ public protocol GPackable {}
 public typealias GPackEncodable	= GBinaryEncodable & GPackable
 public typealias GPackDecodable	= GBinaryDecodable & GPackable
 public typealias GPackCodable	= GPackEncodable & GPackDecodable
+```
+
+Just to get an idea of the difference, these are the cumulative encode + decode times with `largeCount = 100000`:
+
+```
+iMac i7 2017:
+   NumericData adopt GCodable protocol:         713.36ms (σ/avg = 2.1%) size = 10200229 bytes
+   NumericData adopt GBinaryCodable protocol:   330.02ms (σ/avg = 1.9%) size =  9800225 bytes
+   NumericData adopt GPackCodable protocol:      63.81ms (σ/avg = 7.6%) size =  9600236 bytes
+Mac Studio Ultra 2022:
+   NumericData adopt GCodable protocol:         355.69ms (σ/avg = 2.0%) size = 10200229 bytes
+   NumericData adopt GBinaryCodable protocol:   160.20ms (σ/avg = 2.7%) size =  9800225 bytes
+   NumericData adopt GPackCodable protocol:      37.71ms (σ/avg = 3.6%) size =  9600236 bytes
+```
+
+### Switch from `GCodable` to `GBinary/PackCodable` and vice versa
+
+If some archives where `NumericData` adopts `GCodable` exist and you want to keep the ability to read them when adopting `GBinaryCodable` or `GPackCodable` protocol, just keep the `init` method of `GDecodable` and the program will keep the ability to read the old archives which employ  `GCodable`:
+
+```swift
+extension NumericData : GDecodable {
+	init(from decoder: GDecoder) throws {
+		self.vector = try decoder.decode()
+		self.matrix = try decoder.decode()
+	}
+}
+
+extension NumericData : GPackCodable /* or GBinaryCodable */ {
+	init(from rbuffer: inout BinaryReadBuffer) throws {
+		self.vector = try SIMD3<Double>( from:&rbuffer )
+		self.matrix = try simd_double3x3( from:&rbuffer )
+	}
+	
+	func write(to wbuffer: inout BinaryWriteBuffer) throws {
+		try vector.write(to: &wbuffer)
+		try matrix.write(to: &wbuffer)
+	}
+}
+```
+
+Conversely, if some archives in which `NumericData` adopts `GBinaryCodable` or `GPackCodable` exist and you want to keep the ability to read them when adopting only `GCodable` protocol, just keep the init method of `GBinaryDecodable` and the program will keep the ability to read old archives which employ  `GBinaryCodable` or `GPackCodable`:
+
+```swift
+extension Model : GCodable {
+	private enum Key : String { case pivot,array }
+
+	init(from decoder: GDecoder) throws {
+		self.pivot	= try decoder.decode(for: Key.pivot)
+		self.array	= try decoder.decode(for: Key.array)
+	}
+	
+	func encode(to encoder: GEncoder) throws {
+		try encoder.encode(pivot, for: Key.pivot)
+		try encoder.encode(array, for: Key.array)
+	}
+}
+
+extension NumericData : GBinaryDecodable {
+	init(from rbuffer: inout BinaryReadBuffer) throws {
+		self.vector = try SIMD3<Double>( from:&rbuffer )
+		self.matrix = try simd_double3x3( from:&rbuffer )
+	}
+}
 ```
 
 ### UserInfo dictionary and other informations
@@ -2802,7 +2924,7 @@ You can see how  **`userVersion`** both in reading and in writing is indicated i
 
 Instead, `gcodableVersion` and `binaryIOVersion` are versions for internal use of the two packages and the user cannot use them.
 
-Finally, it is **important** to note that the version of BinaryIO is unique and global for the entire archive and shared with GraphCodable. It follows that whenever any BinaryIO type (or any GraphCodable type using it) being encoded changes  it is necessary to increment **`userVersion`**.
+Finally, it is **important** to note that the **userVersion** of BinaryIO is unique and global for the entire archive and shared with GraphCodable. It follows that whenever any BinaryIO type (or any GraphCodable type using it) being encoded changes  it is necessary to increment **`userVersion`**.
 
 ### GraphCodable and BinaryIO for some system types
 

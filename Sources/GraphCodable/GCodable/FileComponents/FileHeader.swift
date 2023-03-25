@@ -79,16 +79,16 @@ struct FileHeader : CustomStringConvertible, BinaryIOType {
 	init(from rbuffer: inout BinaryReadBuffer) throws {
 		let headerID	= try HeaderID	( from: &rbuffer )
 		guard headerID == .gcod else {
-			throw GCodableError.decodingError(
-				Self.self, GCodableError.Context(
+			throw GraphCodableError.malformedArchive(
+				Self.self, GraphCodableError.Context(
 					debugDescription: "Not a gcodable file."
 				)
 			)
 		}
 		let gcodableVersion		= try UInt32	( from: &rbuffer )
 		if gcodableVersion < Versions.NEWFILEBLOCK_VERSION {
-			throw GCodableError.decodingError(
-				Self.self, GCodableError.Context(
+			throw GraphCodableError.malformedArchive(
+				Self.self, GraphCodableError.Context(
 					debugDescription: "GCodable file version < \(Versions.NEWFILEBLOCK_VERSION) are non more supported."
 				)
 			)

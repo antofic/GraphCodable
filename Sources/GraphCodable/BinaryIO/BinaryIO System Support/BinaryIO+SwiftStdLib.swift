@@ -169,7 +169,7 @@ extension RawRepresentable where Self.RawValue : BinaryIType {
 	public init( from rbuffer: inout BinaryReadBuffer ) throws {
 		let rawValue	= try Self.RawValue(from: &rbuffer)
 		guard let value = Self(rawValue: rawValue ) else {
-			throw BinaryIOError.initTypeError(
+			throw BinaryIOError.libDecodingError(
 				Self.self, BinaryIOError.Context(
 					debugDescription: "Invalid rawValue = \(rawValue)"
 				)
@@ -377,7 +377,7 @@ extension CollectionDifference : BinaryIType where ChangeElement:BinaryIType {
 			changes.append( try CollectionDifference.Change(from: &rbuffer) )
 		}
 		guard let value = Self(changes) else {
-			throw BinaryIOError.initTypeError(
+			throw BinaryIOError.libDecodingError(
 				Self.self, BinaryIOError.Context(
 					debugDescription: "Invalid \(changes)"
 				)

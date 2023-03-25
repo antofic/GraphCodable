@@ -36,7 +36,7 @@ extension UTType : BinaryIType {
 		let identifier = try String( from: &rbuffer )
 		
 		guard let uttype = Self.init( identifier ) else {
-			throw BinaryIOError.initTypeError(
+			throw BinaryIOError.libDecodingError(
 				Self.self, BinaryIOError.Context(
 					debugDescription: "Invalid UTType identifier -\(identifier)-"
 				)

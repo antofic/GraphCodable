@@ -77,8 +77,8 @@ extension Optional: GEncodable where Wrapped: GEncodable {
 	//	The encoder always unwraps optional values
 	//	and so this function is never called.
 	public func encode(to encoder: GEncoder) throws {
-		throw GCodableError.internalInconsistency(
-			Self.self, GCodableError.Context(
+		throw GraphCodableError.internalInconsistency(
+			Self.self, GraphCodableError.Context(
 				debugDescription: "Unreachable code."
 			)
 		)
@@ -89,8 +89,8 @@ extension Optional: GDecodable where Wrapped: GDecodable {
 	//	The encoder always unwraps optional values
 	//	and so this function is never called.
 	public init(from decoder: GDecoder) throws {
-		throw GCodableError.internalInconsistency(
-			Self.self, GCodableError.Context(
+		throw GraphCodableError.internalInconsistency(
+			Self.self, GraphCodableError.Context(
 				debugDescription: "Unreachable code."
 			)
 		)
@@ -112,9 +112,9 @@ extension RawRepresentable where Self.RawValue : GDecodable {
 	public init(from decoder: GDecoder) throws {
 		let rawValue = try decoder.decode() as RawValue
 		guard let value = Self.init(rawValue:rawValue ) else {
-			throw GCodableError.initTypeError(
-				Self.self, GCodableError.Context(
-					debugDescription: "Invalid rawValue = \(rawValue)"
+			throw GraphCodableError.libDecodingError(
+				Self.self, GraphCodableError.Context(
+					debugDescription: "Invalid rawValue = \(rawValue)."
 				)
 			)
 		}
@@ -372,9 +372,9 @@ extension CollectionDifference : GDecodable where ChangeElement:GDecodable {
 			changes.append( try decoder.decode() )
 		}
 		guard let value = Self(changes) else {
-			throw GCodableError.initTypeError(
-				Self.self, GCodableError.Context(
-					debugDescription: "Invalid \(changes)"
+			throw GraphCodableError.libDecodingError(
+				Self.self, GraphCodableError.Context(
+					debugDescription: "Invalid \(changes)."
 				)
 			)
 		}

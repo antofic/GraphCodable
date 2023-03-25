@@ -76,51 +76,20 @@ extension GraphEncoder {
 		///
 		/// - Note: This option is auto-enabled if DEBUG is active.
 		public static let	printWarnings										= Self( rawValue: 1 << 0 )
-		///	Ignore the `GIdentifiable` protocol
-		///
-		/// By default, reference types have the automatic identity defined by
-		/// `ObjectIdentifier(self)` and value types don't have an identity.
-		/// If the type adopts the `GIdentifiable` protocol, its identity is defined by the
-		/// `gcodableID` property: if `gcodableID` returns nil, the type has no identity
-		/// even if it is a reference type.
-		/// By activating this option, the encoder will ignore the `GIdentifiable` protocol
-		/// and values that adopt this protocol act as they have not adopted it.
-		///
-		/// - Note: This option is disabled by default
-		///	public static let	ignoreGIdentifiableProtocol							= Self( rawValue: 1 << 1 )
-
-		///	Ignore the `GInheritance` protocol
-		///
-		/// By activating this option, the encoder will ignore the `GInheritance` protocol
-		/// and values that adopt this protocol act as they have not adopted it.
-		///
-		/// - Note: This option is disabled by default
-		///	public static let	ignoreGInheritanceProtocol							= Self( rawValue: 1 << 2 )
-		
-		///	Disable the automatic reference type identity
-		///
-		/// By default, in GraphCodable reference types have the automatic identity
-		/// defined by `ObjectIdentifier(self)` and value types don't have an identity.
-		/// By activating this option, **even reference type don't receive an identity**.
-		/// When this active option is active, reference types must adopt the
-		/// `ObjectIdentifier(self)` protocol to define their identity.
-		///
-		/// - Note: This option is disabled by default
-		///	public static let	disableAutoObjectIdentifierIdentityForReferences	= Self( rawValue: 1 << 3 )
 
 		///	Disable identity
 		///
 		/// All types will be encoded with no identity regardless of how they are defined.
 		///
 		/// - Note: This option is disabled by default
-		public static let	disableIdentity										= Self( rawValue: 1 << 4 )
+		public static let	disableIdentity										= Self( rawValue: 1 << 1 )
 		
 		///	Disable inheritance
 		///
 		/// All reference types will be encoded with no class name info's.
 		///
 		/// - Note: This option is disabled by default
-		public static let	disableInheritance									= Self( rawValue: 1 << 5 )
+		public static let	disableInheritance									= Self( rawValue: 1 << 2 )
 
 		///	Resort to hashable identity
 		///
@@ -128,7 +97,7 @@ extension GraphEncoder {
 		///
 		/// - Note: This option is disabled by default
 		/// - Note: The option can be expensive in certain situations
-		public static let	tryHashableIdentityAtFirst							= Self( rawValue: 1 << 6 )
+		public static let	tryHashableIdentityAtFirst							= Self( rawValue: 1 << 3 )
 		///	Resort to hashable identity if any other fails
 		///
 		/// If .disableIdentity == false, any other tentative to aquire an identity
@@ -136,7 +105,7 @@ extension GraphEncoder {
 		///
 		/// - Note: This option is disabled by default
 		/// - Note: The option can be expensive in certain situations
-		public static let	tryHashableIdentityAtLast							= Self( rawValue: 1 << 7 )
+		public static let	tryHashableIdentityAtLast							= Self( rawValue: 1 << 4 )
 		
 		public static let	mimicSwiftCodable:				Self 	= [ disableIdentity, disableInheritance ]
 		public static let	defaultOption:					Self 	= []

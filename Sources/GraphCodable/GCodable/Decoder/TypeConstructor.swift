@@ -58,9 +58,9 @@ final class TypeConstructor {
 	func popBodyElement( key:String ) throws -> FlattenedElement {
 		// keyed case
 		guard let element = currentElement.pop(key: key) else {
-			throw GCodableError.childNotFound(
-				Self.self, GCodableError.Context(
-					debugDescription: "Keyed child for key-\(key)- not found in \(currentElement.readBlock)."
+			throw GraphCodableError.valueNotFound(
+				Self.self, GraphCodableError.Context(
+					debugDescription: "Keyed value for key \(key) not found in \(currentElement.readBlock)."
 				)
 			)
 		}
@@ -70,9 +70,9 @@ final class TypeConstructor {
 	func popBodyElement() throws -> FlattenedElement {
 		// keyed case
 		guard let element = currentElement.pop() else {
-			throw GCodableError.childNotFound(
-				Self.self, GCodableError.Context(
-					debugDescription: "Unkeyed child not found in \(currentElement.readBlock)."
+			throw GraphCodableError.valueNotFound(
+				Self.self, GraphCodableError.Context(
+					debugDescription: "Unkeyed value not found in \(currentElement.readBlock)."
 				)
 			)
 		}
@@ -83,8 +83,8 @@ final class TypeConstructor {
 	var encodedClassVersion : UInt32 {
 		get throws {
 			guard let classInfo = currentInfo else {
-				throw GCodableError.typeMismatch(
-					Self.self, GCodableError.Context(
+				throw GraphCodableError.referenceTypeRequired(
+					Self.self, GraphCodableError.Context(
 						debugDescription: "\(#function) not available for value types."
 					)
 				)
@@ -96,8 +96,8 @@ final class TypeConstructor {
 	var replacedClass : (AnyObject & GDecodable).Type? {
 		get throws {
 			guard let classInfo = currentInfo else {
-				throw GCodableError.typeMismatch(
-					Self.self, GCodableError.Context(
+				throw GraphCodableError.referenceTypeRequired(
+					Self.self, GraphCodableError.Context(
 						debugDescription: "\(#function) not available for value types."
 					)
 				)
@@ -124,9 +124,9 @@ final class TypeConstructor {
 			break
 		}
 		guard let value = try decodeAny( element:element, from:decoder, type:T.self ) as? T else {
-			throw GCodableError.typeMismatch(
-				Self.self, GCodableError.Context(
-					debugDescription: "Block \(element) doesn't contains a -\(T.self)- type."
+			throw GraphCodableError.malformedArchive(
+				Self.self, GraphCodableError.Context(
+					debugDescription: "Block \(element) doesn't contains a \(T.self) type."
 				)
 			)
 		}
@@ -158,8 +158,8 @@ extension TypeConstructor {
 				default:
 					break
 				}
-				throw GCodableError.internalInconsistency(
-					Self.self, GCodableError.Context(
+				throw GraphCodableError.internalInconsistency(
+					Self.self, GraphCodableError.Context(
 						debugDescription: "Inappropriate fileblock \(element.readBlock.fileBlock) here."
 					)
 				)
@@ -176,18 +176,18 @@ extension TypeConstructor {
 				return try decodeIdentifiable( type:T.self, objID:objID, from:decoder ) as Any
 			} else {
 				guard let object = try decodeIdentifiable( type:T.self, objID:objID, from:decoder ) else {
-					throw GCodableError.decodingError(
-						Self.self, GCodableError.Context(
+					throw GraphCodableError.possibleCyclicGraphDetected(
+						Self.self, GraphCodableError.Context(
 							debugDescription:
-								"Value pointed from -\(element.readBlock.fileBlock)- not found. Try deferDecode to break the cycle."
+								"Value pointed from \(element.readBlock.fileBlock) not found. Try deferDecode to break the cycle."
 						)
 					)
 				}
 				return object
 			}
 		default:	// .Struct & .Object are inappropriate here!
-			throw GCodableError.internalInconsistency(
-				Self.self, GCodableError.Context(
+			throw GraphCodableError.internalInconsistency(
+				Self.self, GraphCodableError.Context(
 					debugDescription: "Inappropriate fileblock \(element.readBlock.fileBlock) here."
 				)
 			)
@@ -225,9 +225,9 @@ extension TypeConstructor {
 				let decodedType = wrapped as? GDecodable.Type,
 				let value = try decodedType.init(from: decoder) as? T
 			else {
-				throw GCodableError.typeMismatch(
-					Self.self, GCodableError.Context(
-						debugDescription: "Block \(element) wrapped type -\(wrapped)- not GDecodable."
+				throw GraphCodableError.malformedArchive(
+					Self.self, GraphCodableError.Context(
+						debugDescription: "Block \(element) wrapped type \(wrapped) not GDecodable."
 					)
 				)
 			}
@@ -252,9 +252,9 @@ extension TypeConstructor {
 		}
 
 		guard let binaryIType = wrapped as? BinaryIType.Type else {
-			throw GCodableError.typeMismatch(
-				Self.self, GCodableError.Context(
-					debugDescription: "\(element) wrapped type -\(wrapped)- is not a BinaryIType."
+			throw GraphCodableError.malformedArchive(
+				Self.self, GraphCodableError.Context(
+					debugDescription: "\(element) wrapped type \(wrapped) is not a BinaryIType."
 				)
 			)
 		}
@@ -262,18 +262,18 @@ extension TypeConstructor {
 		readBuffer.region	= element.readBlock.valueRegion
 
 		guard let value = try binaryIType.init(from: &readBuffer) as? T else {
-			throw GCodableError.typeMismatch(
-				Self.self, GCodableError.Context(
-					debugDescription: "\(element) decoded type is not a -\(T.self)- type."
+			throw GraphCodableError.malformedArchive(
+				Self.self, GraphCodableError.Context(
+					debugDescription: "\(element) decoded type is not a \(T.self) type."
 				)
 			)
 		}
 
 		let readSize	= readBuffer.regionStart - element.readBlock.valueRegion.startIndex
 		guard binSize.size == readSize else {
-			throw GCodableError.decodingError(
-				Self.self, GCodableError.Context(
-					debugDescription: "\(binSize.size) bytes required, \(readSize) bytes read"
+			throw GraphCodableError.malformedArchive(
+				Self.self, GraphCodableError.Context(
+					debugDescription: "\(binSize.size) bytes required, \(readSize) bytes read."
 				)
 			)
 		}
@@ -285,9 +285,9 @@ extension TypeConstructor {
 		type:T.Type, typeID:TypeID, binSize: BinSize?, element:FlattenedElement, from decoder:GDecoder
 	) throws -> T where T:GDecodable {
 		guard let classInfo = binaryDecoder.classInfoMap[ typeID ] else {
-			throw GCodableError.internalInconsistency(
-				Self.self, GCodableError.Context(
-					debugDescription: "Type name not found for typeID -\(typeID)-: can't construct it."
+			throw GraphCodableError.internalInconsistency(
+				Self.self, GraphCodableError.Context(
+					debugDescription: "Type name not found for typeID \(typeID)."
 				)
 			)
 		}
@@ -305,8 +305,8 @@ extension TypeConstructor {
 		}
 
 		guard let object = object as? T else {
-			throw GCodableError.internalInconsistency(
-				Self.self, GCodableError.Context(
+			throw GraphCodableError.internalInconsistency(
+				Self.self, GraphCodableError.Context(
 					debugDescription: "\(type) must be a subtype of \(T.self)."
 				)
 			)

@@ -123,29 +123,6 @@ extension BinaryWriteBuffer {
 }
 
 
-// internal section: Data and String support -------------------------------
-extension BinaryWriteBuffer {
-	mutating func writeData<T>( _ value:T, insert:Bool = false ) throws where T:MutableDataProtocol, T:ContiguousBytes {
-		try writeInt64( Int64(value.count) )
-		try value.withUnsafeBytes { source in
-			try write(contentsOf: source)
-		}
-	}
-
-	// write a null terminated utf8 string
-	mutating func writeString( _ value:String, insert:Bool = false ) throws {
-		try value.withCString() { ptr in
-			var endptr	= ptr
-			while endptr.pointee != 0 { endptr += 1 }	// null terminated
-			let size = endptr - ptr + 1
-			try ptr.withMemoryRebound(to: UInt8.self, capacity: size ) {
-				try write( contentsOf: UnsafeBufferPointer( start: $0, count: size ) )
-			}
-		}
-		
-	}
-}
-
 // private section ---------------------------------------------------------
 extension BinaryWriteBuffer {
 	private mutating func write<C>( contentsOf source:C ) throws
@@ -186,8 +163,10 @@ extension BinaryWriteBuffer {
 
 // internal section: utilities ---------------------------------------------------------
 extension BinaryWriteBuffer {
+	//	Bool
 	mutating func writeBool( _ value:Bool ) throws			{ try writeValue( value ) }
 
+	//	Integers
 	mutating func writeInt8( _ value:Int8 ) throws			{ try writeValue( value ) }
 	mutating func writeInt16( _ value:Int16 ) throws		{ try writeValue( value.littleEndian ) }
 	mutating func writeInt32( _ value:Int32 ) throws		{ try writeValue( value.littleEndian ) }
@@ -198,12 +177,9 @@ extension BinaryWriteBuffer {
 	mutating func writeUInt32( _ value:UInt32 ) throws		{ try writeValue( value.littleEndian ) }
 	mutating func writeUInt64( _ value:UInt64 ) throws		{ try writeValue( value.littleEndian ) }
 
-	mutating func writeFloat( _ value:Float ) throws		{ try writeUInt32( value.bitPattern ) }
-	mutating func writeDouble( _ value:Double ) throws		{ try writeUInt64( value.bitPattern ) }
-
 	mutating func writeInt( _ value:Int ) throws {
 		guard let value64 = Int64( exactly: value ) else {
-			throw BinaryIOError.initTypeError(
+			throw BinaryIOError.libDecodingError(
 				Self.self, BinaryIOError.Context(
 					debugDescription: "Int \(value) can't be converted to Int64."
 				)
@@ -214,13 +190,37 @@ extension BinaryWriteBuffer {
 
 	mutating func writeUInt( _ value:UInt ) throws {
 		guard let value64 = UInt64( exactly: value ) else {
-			throw BinaryIOError.initTypeError(
+			throw BinaryIOError.libDecodingError(
 				Self.self, BinaryIOError.Context(
 					debugDescription: "UInt \(value) can't be converted to UInt64."
 				)
 			)
 		}
 		try writeUInt64( value64 )
+	}
+
+	//	Floats
+	mutating func writeFloat( _ value:Float ) throws		{ try writeUInt32( value.bitPattern ) }
+	mutating func writeDouble( _ value:Double ) throws		{ try writeUInt64( value.bitPattern ) }
+
+	//	Strings
+	mutating func writeString( _ value:String, insert:Bool = false ) throws {
+		try value.withCString() { ptr in
+			var endptr	= ptr
+			while endptr.pointee != 0 { endptr += 1 }	// null terminated
+			let size = endptr - ptr + 1
+			try ptr.withMemoryRebound(to: UInt8.self, capacity: size ) {
+				try write( contentsOf: UnsafeBufferPointer( start: $0, count: size ) )
+			}
+		}
+	}
+	
+	//	Data
+	mutating func writeData<T>( _ value:T, insert:Bool = false ) throws where T:MutableDataProtocol, T:ContiguousBytes {
+		try writeInt64( Int64(value.count) )
+		try value.withUnsafeBytes { source in
+			try write(contentsOf: source)
+		}
 	}
 }
 

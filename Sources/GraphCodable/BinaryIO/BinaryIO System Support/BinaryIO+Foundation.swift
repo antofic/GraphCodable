@@ -114,7 +114,7 @@ extension TimeZone : BinaryIType {
 	public init( from rbuffer: inout BinaryReadBuffer ) throws {
 		let identifier = try String( from: &rbuffer)
 		guard let timeZone = TimeZone( identifier: identifier ) else {
-			throw BinaryIOError.initTypeError(
+			throw BinaryIOError.libDecodingError(
 				Self.self, BinaryIOError.Context(
 					debugDescription: "Invalid timezone identifier -\(identifier)-"
 				)
@@ -136,7 +136,7 @@ extension UUID : BinaryIType  {
 		let uuidString	= try String( from: &rbuffer)
 		
 		guard let uuid = UUID(uuidString: uuidString) else {
-			throw BinaryIOError.initTypeError(
+			throw BinaryIOError.libDecodingError(
 				Self.self, BinaryIOError.Context(
 					debugDescription: "Attempted to decode UUID from invalid UUID string -\(uuidString)-."
 				)
@@ -340,7 +340,7 @@ extension Calendar : BinaryIType {
 	public init(from rbuffer: inout BinaryReadBuffer) throws {
 		let nsIdentifier = try NSCalendar.Identifier(from: &rbuffer)
 		guard var calendar = NSCalendar(calendarIdentifier: nsIdentifier) as Calendar? else {
-			throw BinaryIOError.initTypeError(
+			throw BinaryIOError.libDecodingError(
 				Self.self, BinaryIOError.Context(
 					debugDescription: "Invalid calendar identifier -\(nsIdentifier)-"
 				)
@@ -475,7 +475,7 @@ extension URL : BinaryIType {
 		let base		= try URL?(from: &rbuffer)
 
 		guard let url = URL(string: relative, relativeTo: base) else {
-			throw BinaryIOError.initTypeError(
+			throw BinaryIOError.libDecodingError(
 				Self.self, BinaryIOError.Context(
 					debugDescription: "Invalid relative -\(relative)- and base -\(base as Any)-"
 				)

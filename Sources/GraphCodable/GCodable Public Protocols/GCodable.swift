@@ -30,11 +30,13 @@ public protocol GEncodable {
 	///
 	/// - Parameter encoder: The encoder to write data to.
 	func encode(to encoder: GEncoder) throws
+	
 	/// The version of the encoded reference type.
 	///
 	/// Returns `0` by default
 	///
-	/// Only reference types support versioning.
+	/// Only reference types **that don't disable** inheritance
+	/// support versions
 	static var classVersion : UInt32 { get }
 	
 	///	A flag to control inheritance of reference types
