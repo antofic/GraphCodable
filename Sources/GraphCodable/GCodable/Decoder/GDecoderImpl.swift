@@ -20,18 +20,20 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
+import Foundation
+
 final class GDecoderImpl {
 	var	userInfo			= [String:Any]()
 	var classNameMap		= ClassNameMap()
 	private var constructor : TypeConstructor!
 	
 	private func readBuffer<Q>( from data: Q ) throws -> BinaryReadBuffer
-	where Q:Sequence, Q.Element==UInt8 {
+	where Q:DataProtocol {
 		try BinaryReadBuffer(data: data, userData:self )
 	}
 	
 	func allClassData<Q>( from data: Q ) throws -> [ClassData]
-	where Q:Sequence, Q.Element==UInt8 {
+	where Q:DataProtocol {
 		let readBuffer 		= try readBuffer(from: data)
 		let decodedNames	= try ClassNamesDecoder(from: readBuffer)
 
@@ -39,7 +41,7 @@ final class GDecoderImpl {
 	}
 	
 	func decodeRoot<T,Q>( _ type: T.Type, from data: Q ) throws -> T
-	where T:GDecodable, Q:Sequence, Q.Element==UInt8 {
+	where T:GDecodable, Q:DataProtocol {
 		defer { constructor = nil }
 		
 		let readBuffer 	= try readBuffer(from: data)
@@ -49,8 +51,7 @@ final class GDecoderImpl {
 	}
 	
 	func dumpRoot<Q>( from data: Q, options: GraphDumpOptions ) throws -> String
-	where Q:Sequence, Q.Element==UInt8 {
-		
+	where Q:DataProtocol {
 		let readBuffer 	= try readBuffer(from: data)
 		let decodedDump	= try StringDecoder(from: readBuffer, classNameMap:classNameMap, options: options)
 		

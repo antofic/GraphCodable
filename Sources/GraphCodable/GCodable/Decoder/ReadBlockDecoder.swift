@@ -80,8 +80,8 @@ struct ReadBlockDecoder {
 	mutating func classDataMap() throws -> ClassDataMap {
 		if let classDataMap = self._classDataMap { return classDataMap }
 		
-		let saveRegion	= try setReaderRegionTo(section: .classDataMap)
-		defer { rbuffer.region = saveRegion }
+		let saveRegion	= try setReaderRegionRangeTo(section: .classDataMap)
+		defer { rbuffer.regionRange = saveRegion }
 
 		let classDataMap	= try ClassDataMap(from: &rbuffer)
 		self._classDataMap	= classDataMap
@@ -93,8 +93,8 @@ struct ReadBlockDecoder {
 	mutating func readBlocks() throws -> ReadBlocks {
 		if let fileBlocks = self._readBlocks { return fileBlocks }
 
-		let saveRegion	= try setReaderRegionTo(section: .body)
-		defer { rbuffer.region = saveRegion }
+		let saveRegion	= try setReaderRegionRangeTo(section: .body)
+		defer { rbuffer.regionRange = saveRegion }
 
 		var fileBlocks	= [ReadBlock]()
 		while rbuffer.isEndOfFile == false {
@@ -110,15 +110,15 @@ struct ReadBlockDecoder {
 	mutating func keyStringMap() throws -> KeyStringMap {
 		if let keyStringMap = self._keyStringMap { return keyStringMap }
 
-		let saveRegion		= try setReaderRegionTo(section: .keyStringMap)
-		defer { rbuffer.region = saveRegion }
+		let saveRegion		= try setReaderRegionRangeTo(section: .keyStringMap)
+		defer { rbuffer.regionRange = saveRegion }
 		
 		let keyStringMap 	= try KeyStringMap(from: &rbuffer)
 		self._keyStringMap	= keyStringMap
 		return keyStringMap
 	}
 	
-	private mutating func setReaderRegionTo( section:FileSection ) throws -> Range<Int> {
+	private mutating func setReaderRegionRangeTo( section:FileSection ) throws -> Range<Int> {
 		guard let range = sectionMap[ section ] else {
 			throw GraphCodableError.malformedArchive(
 				Self.self, GraphCodableError.Context(
@@ -126,8 +126,8 @@ struct ReadBlockDecoder {
 				)
 			)
 		}
-		defer { rbuffer.region = range }
-		return rbuffer.region
+		defer { rbuffer.regionRange = range }
+		return rbuffer.regionRange
 	}
 }
 

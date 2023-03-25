@@ -259,7 +259,7 @@ extension TypeConstructor {
 			)
 		}
 
-		readBuffer.region	= element.readBlock.valueRegion
+		readBuffer.regionRange	= element.readBlock.valueRegion
 
 		guard let value = try binaryIType.init(from: &readBuffer) as? T else {
 			throw GraphCodableError.malformedArchive(

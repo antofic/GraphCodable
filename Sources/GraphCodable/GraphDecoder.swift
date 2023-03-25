@@ -20,6 +20,8 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
+import Foundation
+
 ///	last resort to decode a reference type with identity
 public enum ClassName : Hashable {
 	case mangledName( _:String )
@@ -69,12 +71,12 @@ public final class GraphDecoder {
 	///
 	///	The root value must conform to the GDecodable protocol
 	public func decode<T,Q>( _ type: T.Type, from data: Q ) throws -> T
-	where T:GDecodable, Q:Sequence, Q.Element==UInt8 {
+	where T:GDecodable, Q:DataProtocol {
 		try decoder.decodeRoot( type, from: data)
 	}
 
 	public func dump<Q>( from data: Q, options: GraphDumpOptions = .readable ) throws -> String
-	where Q:Sequence, Q.Element==UInt8 {
+	where Q:DataProtocol {
 		try decoder.dumpRoot( from: data, options:options )
 	}
 	
@@ -83,20 +85,20 @@ public final class GraphDecoder {
 	///
 	///	as a result of the replacements, types may not be classes
 	public func decodableTypes<Q>( from data: Q ) throws -> [GDecodable.Type]
-	where Q:Sequence, Q.Element==UInt8 {
+	where Q:DataProtocol {
 		return try decoder.allClassData( from: data ).compactMap { $0.decodedType }
 	}
 
 	///	Returns all replaced classes encoded in the data byte buffer
 	public func replacedClasses<Q>( from data: Q ) throws -> [GDecodable.Type]
-	where Q:Sequence, Q.Element==UInt8 {
+	where Q:DataProtocol {
 		return try decoder.allClassData( from: data ).compactMap { $0.replacedClass }
 	}
 
 	///	Returns a UndecodableClass struct for every undecodable class in the data byte buffer
 	public func undecodableClasses<Q>( from data: Q )
 	throws -> [UndecodableClass]
-	where Q:Sequence, Q.Element==UInt8 {
+	where Q:DataProtocol {
 		return try decoder.allClassData( from: data ).compactMap {
 			$0.decodedType == nil ?
 			UndecodableClass( $0.qualifiedName, $0.mangledName, $0.encodedClassVersion ) : nil

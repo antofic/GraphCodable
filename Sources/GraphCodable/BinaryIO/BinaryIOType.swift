@@ -67,7 +67,7 @@ public extension BinaryIType {
 	///	Decode the root value from the byte buffer
 	///
 	///	The root value must conform to the `BinaryIType` protocol
-	init<Q>( binaryData: Q, userData:Any? = nil ) throws where Q:Sequence, Q.Element==UInt8 {
+	init<Q>( binaryData: Q, userData:Any? = nil ) throws where Q:DataProtocol {
 		var rbuffer = try BinaryReadBuffer( data:binaryData, userData:userData )
 		try self.init( from: &rbuffer )
 	}

@@ -62,7 +62,7 @@ extension BinaryReadBuffer {
 		self.userData			= userData
 	}
 	
-	init<Q>( data: Q, userData:Any? = nil ) throws where Q:Sequence, Q.Element==UInt8 {
+	init<Q>( data: Q, userData:Any? = nil ) throws where Q:DataProtocol {
 		if let bytes = data as? Bytes {
 			try self.init( bytes: bytes, userData:userData )
 		} else {
@@ -83,7 +83,7 @@ extension BinaryReadBuffer {
 		}
 	}
 	
-	var region: Range<Int> {
+	var regionRange: Range<Int> {
 		get { bytes.indices }
 		set {
 			precondition(
