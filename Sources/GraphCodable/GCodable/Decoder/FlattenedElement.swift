@@ -105,7 +105,6 @@ extension FlattenedElement {
 				let root = FlattenedElement( readBlock: element.readBlock )
 				// in quello vecchio metto un puntatore al vecchio elemento
 				element.readBlock	= ReadBlock( with: .Ptr( keyID: keyID, objID: objID, conditional: false ), copying: element.readBlock )
-				//	element.readBlock.valToPtr( conditional: false )
 				// metto il nuovo elelemnto nella mappa
 				map[ objID ]	= root
 								
