@@ -102,7 +102,7 @@ final class BinaryEncoder<Output:MutableDataProtocol> : FileBlockEncoder {
 		do {
 			//	sovrascrivo la sectionMapPosition
 			//	ora che ho tutti i valori
-			defer { wbuffer.setPositionToEnd() }
+			defer { wbuffer.position = wbuffer.endOfFile }
 			wbuffer.position	= sectionMapPosition
 			try sectionMap.write(to: &wbuffer)
 		}

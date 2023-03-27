@@ -25,7 +25,7 @@ import Foundation
 /// The bytes container used by `BinaryReadBuffer` and `BinaryWriteBuffer`
 ///
 /// The container must conform to `MutableDataProtocol`, i.e `Data`, `[UInt8]`, `ContiguousArray<UInt8>`
-public typealias Bytes	= [UInt8]
+public typealias Bytes	= Data
 
 /// A type that can write itself into a `BinaryWriteBuffer` istance
 public protocol BinaryOType {
@@ -44,7 +44,7 @@ public extension BinaryOType {
 	///
 	///	The root value must conform to the BinaryOType protocol
 	/// - returns: The byte buffer.
-	func binaryData<Q>( userVersion:UInt32, userData:Any? = nil ) throws -> Q where Q:MutableDataProtocol {
+	func binaryIOData<Q>( userVersion:UInt32, userData:Any? = nil ) throws -> Q where Q:MutableDataProtocol {
 		var wbuffer = BinaryWriteBuffer( userVersion:userVersion,userData: userData )
 		try write( to:&wbuffer )
 		return wbuffer.data()
@@ -67,8 +67,8 @@ public extension BinaryIType {
 	///	Decode the root value from the byte buffer
 	///
 	///	The root value must conform to the `BinaryIType` protocol
-	init<Q>( binaryData: Q, userData:Any? = nil ) throws where Q:DataProtocol {
-		var rbuffer = try BinaryReadBuffer( data:binaryData, userData:userData )
+	init<Q>( binaryIOData: Q, userData:Any? = nil ) throws where Q:DataProtocol {
+		var rbuffer = try BinaryReadBuffer( data:binaryIOData, userData:userData )
 		try self.init( from: &rbuffer )
 	}
 	

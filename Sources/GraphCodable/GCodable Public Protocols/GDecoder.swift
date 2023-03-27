@@ -125,7 +125,7 @@ public protocol GDecoder {
 	///		}
 	/// **Note: Just as encoding a variable appends it to the encoder,**
 	/// **decoding it removes it from the decoder.**
-	/// - returns: A value of the requested type, if present for the given key
+	/// - returns: A value of the requested type, if present
 	///   and convertible to the requested type.
 	func decode<Value>() throws -> Value where
 		Value : GDecodable

@@ -24,75 +24,75 @@
 
 
 extension Int : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self.init( try rbuffer.readInt() ) }
+	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self = try rbuffer.readFixedSizeInteger() }
 }
 extension Int : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws		{ try wbuffer.writeInt( self ) }
+	public func write(to wbuffer: inout BinaryWriteBuffer) throws		{ try wbuffer.writeFixedWidthInteger( self ) }
 }
 
 extension Int8 : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self.init( try rbuffer.readInt8() ) }
+	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self = try rbuffer.readFixedSizeInteger() }
 }
 extension Int8 : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws		{ try wbuffer.writeInt8( self ) }
+	public func write(to wbuffer: inout BinaryWriteBuffer) throws		{ try wbuffer.writeFixedWidthInteger( self ) }
 }
 
 extension Int16 : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self.init( try rbuffer.readInt16() ) }
+	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self = try rbuffer.readFixedSizeInteger() }
 }
 extension Int16 : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws		{ try wbuffer.writeInt16( self ) }
+	public func write(to wbuffer: inout BinaryWriteBuffer) throws		{ try wbuffer.writeFixedWidthInteger( self ) }
 }
 
 extension Int32 : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self.init( try rbuffer.readInt32() ) }
+	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self = try rbuffer.readFixedSizeInteger() }
 }
 extension Int32 : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws		{ try wbuffer.writeInt32( self ) }
+	public func write(to wbuffer: inout BinaryWriteBuffer) throws		{ try wbuffer.writeFixedWidthInteger( self ) }
 }
 
 extension Int64 : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self.init( try rbuffer.readInt64() ) }
+	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self = try rbuffer.readFixedSizeInteger() }
 }
 extension Int64 : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws		{ try wbuffer.writeInt64( self ) }
+	public func write(to wbuffer: inout BinaryWriteBuffer) throws		{ try wbuffer.writeFixedWidthInteger( self ) }
 }
 
 // UInt ------------------------------------------------------
 
 extension UInt : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self.init( try rbuffer.readUInt() ) }
+	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self = try rbuffer.readFixedSizeInteger() }
 }
 extension UInt : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws		{ try wbuffer.writeUInt( self ) }
+	public func write(to wbuffer: inout BinaryWriteBuffer) throws		{ try wbuffer.writeFixedWidthInteger( self ) }
 }
 
 extension UInt8 : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self.init( try rbuffer.readUInt8() ) }
+	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self = try rbuffer.readFixedSizeInteger() }
 }
 extension UInt8 : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws		{ try wbuffer.writeUInt8( self ) }
+	public func write(to wbuffer: inout BinaryWriteBuffer) throws		{ try wbuffer.writeFixedWidthInteger( self ) }
 }
 
 extension UInt16 : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self.init( try rbuffer.readUInt16() ) }
+	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self = try rbuffer.readFixedSizeInteger() }
 }
 extension UInt16 : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws		{ try wbuffer.writeUInt16( self ) }
+	public func write(to wbuffer: inout BinaryWriteBuffer) throws		{ try wbuffer.writeFixedWidthInteger( self ) }
 }
 
 extension UInt32 : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self.init( try rbuffer.readUInt32() ) }
+	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self = try rbuffer.readFixedSizeInteger() }
 }
 extension UInt32 : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws		{ try wbuffer.writeUInt32( self ) }
+	public func write(to wbuffer: inout BinaryWriteBuffer) throws		{ try wbuffer.writeFixedWidthInteger( self ) }
 }
 
 extension UInt64 : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self.init( try rbuffer.readUInt64() ) }
+	public init(from rbuffer: inout BinaryReadBuffer) throws			{ self = try rbuffer.readFixedSizeInteger() }
 }
 extension UInt64 : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws		{ try wbuffer.writeUInt64( self ) }
+	public func write(to wbuffer: inout BinaryWriteBuffer) throws		{ try wbuffer.writeFixedWidthInteger( self ) }
 }
 
 // Float & Double ------------------------------------------------------

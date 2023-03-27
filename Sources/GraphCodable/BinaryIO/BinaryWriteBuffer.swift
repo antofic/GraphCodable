@@ -32,7 +32,8 @@ BinaryWriteBuffer data format uses always:
 public struct BinaryWriteBuffer {
 	private (set) var 	bytes 			: Bytes
 	private var 		_position		: Int
-	private var			insertMode		: Bool	
+	private (set) var 	startOfFile 	: Int
+	private var			insertMode		: Bool
 	
 	// actual version for BinaryIO library types
 	static let			binaryIOVersion	: UInt32 = 0
@@ -44,10 +45,7 @@ public struct BinaryWriteBuffer {
 //	MAKE THIS EXTENSION PUBLIC IF YOU WANT TO USE BinaryIO
 //	AS A STANDALONE LIBRARY WITH ADVANCED FUNCTIONALITIES
 extension BinaryWriteBuffer {
-	var startOfFile	: Int { MemoryLayout.size(ofValue: Self.binaryIOVersion) + MemoryLayout.size(ofValue: userVersion) }
 	var endOfFile	: Int { bytes.endIndex }
-	mutating func setPositionToStart()	{ _position = startOfFile }
-	mutating func setPositionToEnd()	{ _position = endOfFile }
 	
 	var position: Int {
 		get { _position }
@@ -61,11 +59,15 @@ extension BinaryWriteBuffer {
 		self.userVersion	= userVersion
 		self.bytes			= Bytes()
 		self._position		= 0
+		self.startOfFile	= 0
 		self.insertMode		= false
 		self.userData		= userData
 		// really can't throw
 		try! self.writeValue( Self.binaryIOVersion )
 		try! self.writeValue( userVersion )
+
+		self.startOfFile	= position
+
 		//	try! Self.binaryIOVersion.write(to: &self)
 		//	try! self.userVersion.write(to: &self)
 
@@ -140,7 +142,7 @@ extension BinaryWriteBuffer {
 				)
 			)
 		}
-		_position += source.count
+		position += source.count
 	}
 	
 	private mutating func writeValue<T>( _ value:T ) throws {
@@ -167,17 +169,14 @@ extension BinaryWriteBuffer {
 	mutating func writeBool( _ value:Bool ) throws			{ try writeValue( value ) }
 
 	//	Integers
-	mutating func writeInt8( _ value:Int8 ) throws			{ try writeValue( value ) }
-	mutating func writeInt16( _ value:Int16 ) throws		{ try writeValue( value.littleEndian ) }
-	mutating func writeInt32( _ value:Int32 ) throws		{ try writeValue( value.littleEndian ) }
-	mutating func writeInt64( _ value:Int64 ) throws		{ try writeValue( value.littleEndian ) }
+	mutating func writeFixedWidthInteger<T>( _ value:T ) throws
+	where T:FixedWidthInteger {
+		// Integers are always archived in littleEndian format
+		try writeValue( value.littleEndian )
+	}
 
-	mutating func writeUInt8(  _ value:UInt8 ) throws		{ try writeValue( value ) }
-	mutating func writeUInt16( _ value:UInt16 ) throws		{ try writeValue( value.littleEndian ) }
-	mutating func writeUInt32( _ value:UInt32 ) throws		{ try writeValue( value.littleEndian ) }
-	mutating func writeUInt64( _ value:UInt64 ) throws		{ try writeValue( value.littleEndian ) }
-
-	mutating func writeInt( _ value:Int ) throws {
+	mutating func writeFixedWidthInteger( _ value:Int ) throws {
+		// Int are always archived as Int64
 		guard let value64 = Int64( exactly: value ) else {
 			throw BinaryIOError.libDecodingError(
 				Self.self, BinaryIOError.Context(
@@ -185,26 +184,33 @@ extension BinaryWriteBuffer {
 				)
 			)
 		}
-		try writeInt64( value64 )
+		try writeFixedWidthInteger( value64 )
 	}
 
-	mutating func writeUInt( _ value:UInt ) throws {
+	mutating func writeFixedWidthInteger( _ value:UInt ) throws {
+		// UInt are always archived as UInt64
 		guard let value64 = UInt64( exactly: value ) else {
 			throw BinaryIOError.libDecodingError(
 				Self.self, BinaryIOError.Context(
-					debugDescription: "UInt \(value) can't be converted to UInt64."
+					debugDescription: "Int \(value) can't be converted to UInt64."
 				)
 			)
 		}
-		try writeUInt64( value64 )
+		try writeFixedWidthInteger( value64 )
+	}
+	
+	//	Floats
+	mutating func writeFloat( _ value:Float ) throws {
+		try writeFixedWidthInteger( value.bitPattern )
+	}
+	
+	mutating func writeDouble( _ value:Double ) throws {
+		try writeFixedWidthInteger( value.bitPattern )
 	}
 
-	//	Floats
-	mutating func writeFloat( _ value:Float ) throws		{ try writeUInt32( value.bitPattern ) }
-	mutating func writeDouble( _ value:Double ) throws		{ try writeUInt64( value.bitPattern ) }
-
 	//	Strings
-	mutating func writeString( _ value:String, insert:Bool = false ) throws {
+	mutating func writeString<T>( _ value:T, insert:Bool = false ) throws
+	where T:StringProtocol {
 		try value.withCString() { ptr in
 			var endptr	= ptr
 			while endptr.pointee != 0 { endptr += 1 }	// null terminated
@@ -216,10 +222,13 @@ extension BinaryWriteBuffer {
 	}
 	
 	//	Data
-	mutating func writeData<T>( _ value:T, insert:Bool = false ) throws where T:MutableDataProtocol, T:ContiguousBytes {
-		try writeInt64( Int64(value.count) )
-		try value.withUnsafeBytes { source in
-			try write(contentsOf: source)
+	mutating func writeData<T>( _ value:T, insert:Bool = false ) throws
+	where T:MutableDataProtocol {
+		try writeFixedWidthInteger( value.count )
+		for region in value.regions {
+			try region.withUnsafeBytes { source in
+				try write(contentsOf: source)
+			}
 		}
 	}
 }

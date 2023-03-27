@@ -37,7 +37,7 @@ BinaryReadBuffer:
 public struct BinaryReadBuffer {
 	private let base				: Bytes
 	private var bytes				: Bytes.SubSequence
-	
+	let startOfFile					: Int
 	//	readed version for library types
 	let	binaryIOVersion				: UInt32
 	//	public readed version for user defined types
@@ -49,7 +49,6 @@ public struct BinaryReadBuffer {
 //	MAKE THIS EXTENSION PUBLIC IF YOU WANT TO USE BinaryIO
 //	AS A STANDALONE LIBRARY WITH ADVANCED FUNCTIONALITIES
 extension BinaryReadBuffer {
-	var startOfFile	: Int			{ MemoryLayout.size(ofValue: binaryIOVersion) + MemoryLayout.size(ofValue: encodedUserVersion) }
 	var isEndOfFile	: Bool			{ bytes.count == 0 }
 	var fullRegion	: Range<Int>	{ startOfFile ..< base.endIndex }
 	
@@ -59,6 +58,7 @@ extension BinaryReadBuffer {
 		self.encodedUserVersion	= try Self.readValue(from: &bytes)
 		self.base				= base
 		self.bytes				= bytes
+		self.startOfFile		= bytes.startIndex
 		self.userData			= userData
 	}
 	
@@ -122,17 +122,17 @@ extension BinaryReadBuffer {
 		defer { bytes.removeFirst( inSize ) }
 
 		return bytes.withUnsafeBytes { source in
-#if swift(>=5.7)
-			source.loadUnaligned(as: T.self)
-#elseif swift(>=5.6)
+	#if swift(>=5.7)
+				source.loadUnaligned(as: T.self)
+	#elseif swift(>=5.6)
 			withUnsafeTemporaryAllocation(of: T.self, capacity: 1) {
 				let temporary = $0.baseAddress!
 				memcpy( temporary, source.baseAddress, inSize )
 				return temporary.pointee
 			}
-#else
-#error("Minimum swift version = 5.6")
-#endif
+	#else
+	#error("Minimum swift version = 5.6")
+	#endif
 		}
 	}
 
@@ -146,16 +146,65 @@ extension BinaryReadBuffer {
 		}
 	}
 	
-	// read a null terminated utf8 string
-	private static func readString( bytes:inout Bytes.SubSequence ) throws -> String {
-		var inSize = 0
+}
 
+// internal section: support for system BinaryIOTypes ----------------------------
+
+extension BinaryReadBuffer {
+	//	Bool
+	mutating func readBool() throws -> Bool 	{ return try readValue() }
+	
+	//	Integers
+	mutating func readFixedSizeInteger<T> () throws -> T where T:FixedWidthInteger {
+		// Integers are always archived in littleEndian format
+		try T( littleEndian: readValue() )
+	}
+
+	mutating func readFixedSizeInteger() throws -> Int 	{
+		// Int are always archived as Int64
+		let value64 = try readFixedSizeInteger() as Int64
+		guard let value = Int( exactly: value64 ) else {
+			throw BinaryIOError.libDecodingError(
+				Self.self, BinaryIOError.Context(
+					debugDescription: "Int64 \(value64) can't be converted to Int."
+				)
+			)
+		}
+		return value
+	}
+
+	mutating func readFixedSizeInteger() throws -> UInt {
+		// UInt are always archived as UInt64
+		let value64 = try readFixedSizeInteger() as UInt64
+		guard let value = UInt( exactly: value64 ) else {
+			throw BinaryIOError.libDecodingError(
+				Self.self, BinaryIOError.Context(
+					debugDescription: "Int64 \(value64) can't be converted to Int."
+				)
+			)
+		}
+		return value
+	}
+	//	Floats
+	
+	mutating func readFloat() throws -> Float {
+		try Float(bitPattern: readFixedSizeInteger())
+	}
+	
+	mutating func readDouble() throws -> Double	{
+		try Double(bitPattern: readFixedSizeInteger())
+	}
+
+	// read a null terminated utf8 string
+	mutating func readString<T>() throws -> T where T:StringProtocol {
+		var inSize = 0
+		
 		let string = try bytes.withUnsafeBytes {
-			try $0.withMemoryRebound( to: UInt8.self ) { buffer in
+			try $0.withMemoryRebound( to: Int8.self ) { buffer in
 				for char in buffer {
 					inSize += 1
 					if char == 0 {	// ho trovato NULL
-						return String( cString: buffer.baseAddress! )
+						return T( cString: buffer.baseAddress! )
 					}
 				}
 				
@@ -177,62 +226,11 @@ extension BinaryReadBuffer {
 		bytes.removeFirst( inSize )
 		return string
 	}
-}
-
-// internal section: support for system BinaryIOTypes ----------------------------
-
-extension BinaryReadBuffer {
-	//	Bool
-	mutating func readBool() throws -> Bool 	{ return try readValue() }
 	
-	//	Integers
-	mutating func readInt8 () throws -> Int8 	{ try Int8 ( littleEndian: readValue() ) }
-	mutating func readInt16() throws -> Int16	{ try Int16( littleEndian: readValue() ) }
-	mutating func readInt32() throws -> Int32	{ try Int32( littleEndian: readValue() ) }
-	mutating func readInt64() throws -> Int64	{ try Int64( littleEndian: readValue() ) }
-
-	mutating func readUInt8 () throws -> UInt8  { try UInt8 ( littleEndian: readValue() ) }
-	mutating func readUInt16() throws -> UInt16 { try UInt16( littleEndian: readValue() ) }
-	mutating func readUInt32() throws -> UInt32 { try UInt32( littleEndian: readValue() ) }
-	mutating func readUInt64() throws -> UInt64 { try UInt64( littleEndian: readValue() ) }
-
-
-	mutating func readInt() throws -> Int {
-		let value64 = try readInt64()
-		guard let value = Int( exactly: value64 ) else {
-			throw BinaryIOError.libDecodingError(
-				Self.self, BinaryIOError.Context(
-					debugDescription: "Int64 \(value64) can't be converted to Int."
-				)
-			)
-		}
-		return value
-	}
-	
-	mutating func readUInt() throws -> UInt	 {
-		let value64 = try readUInt64()
-		guard let value = UInt( exactly: value64 ) else {
-			throw BinaryIOError.libDecodingError(
-				Self.self, BinaryIOError.Context(
-					debugDescription: "UInt64 \(value64) can't be converted to UInt."
-				)
-			)
-		}
-		return value
-	}
-	
-	//	Floats
-	mutating func readFloat() throws -> Float	{ try Float(bitPattern: readUInt32()) }
-	mutating func readDouble() throws -> Double	{ try Double(bitPattern: readUInt64()) }
-
-	//	Strings
-	mutating func readString() throws -> String { return try Self.readString(bytes: &bytes) }
-
 	//	Data
-	mutating func readData<T>() throws -> T where T:MutableDataProtocol, T:ContiguousBytes {
-		let count = try readInt64()
-		
-		let inSize	= Int(count) * MemoryLayout<UInt8>.size
+	mutating func readData<T>() throws -> T where T:MutableDataProtocol {
+		let count	= try readFixedSizeInteger() as Int
+		let inSize	= count * MemoryLayout<UInt8>.size
 		try checkRemainingSize( size: inSize )
 		defer { bytes.removeFirst( inSize ) }
 		
