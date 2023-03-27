@@ -30,7 +30,7 @@ import GraphCodable
 // --------------------------------------------------------------------------------
 
 final class PerformanceTests: XCTestCase {
-	struct RecursiveData : Codable, GCodable, BinaryIOType {
+	struct RecursiveData : Codable, GCodable, BCodable {
 		var larges	: [RecursiveData]
 		var string	: String
 		var array	: [Int]
@@ -58,16 +58,16 @@ final class PerformanceTests: XCTestCase {
 			array	= try decoder.decode( for: Key.array )
 		}
 		
-		func write(to wbuffer: inout GraphCodable.BinaryWriteBuffer) throws {
-			try larges.write(to: &wbuffer)
-			try string.write(to: &wbuffer)
-			try array.write(to: &wbuffer)
+		init(from decoder: inout some GraphCodable.BDecoder) throws {
+			larges	= try decoder.decode()
+			string	= try decoder.decode()
+			array	= try decoder.decode()
 		}
 		
-		init(from rbuffer: inout GraphCodable.BinaryReadBuffer) throws {
-			larges	= try [RecursiveData](from: &rbuffer)
-			string	= try String( from: &rbuffer )
-			array	= try [Int]( from: &rbuffer )
+		func encode(to encoder: inout some GraphCodable.BEncoder) throws {
+			try encoder.encode( larges )
+			try encoder.encode( string )
+			try encoder.encode( array )
 		}
 	}
 
@@ -79,7 +79,7 @@ final class PerformanceTests: XCTestCase {
 		print("\n\n\n- DATA SIZES ----------------------------------")
 		print("GraphEncoder (bin=on)  : \( try GraphEncoder().encode(input) as Data )")
 		print("GraphEncoder (bin=off) : \( try GraphEncoder().encode(input) as Data )")
-		print("BinariIOReader         : \( try input.binaryIOData(version: 0) as Data )")
+		print("BinariIOReader         : \( try input.binaryIOData(userVersion: 0) as Data )")
 		print("JSONEncoder            : \( try JSONEncoder().encode(input) )")
 		print("PropertyListEncoder    : \( try PropertyListEncoder().encode(input) )")
 		print("-----------------------------------------------\n\n\n")
@@ -104,7 +104,7 @@ final class PerformanceTests: XCTestCase {
 	func testBinaryWriter() throws {
 		measure {
 			do {
-				let _		= try input.binaryIOData(version: 0) as Bytes
+				let _		= try input.binaryIOData(userVersion: 0) as Bytes
 			} catch {}
 		}
 	}
@@ -145,7 +145,7 @@ final class PerformanceTests: XCTestCase {
 	}
 
 	func testBinaryReader() throws {
-		let data	= try input.binaryIOData(version: 0) as Bytes
+		let data	= try input.binaryIOData(userVersion: 0) as Bytes
 		measure {
 			do {
 				let	_		= try type(of:input).init( binaryIOData: data)

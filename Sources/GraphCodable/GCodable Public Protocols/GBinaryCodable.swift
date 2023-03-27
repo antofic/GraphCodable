@@ -21,12 +21,12 @@
 //	SOFTWARE.
 
 
-public protocol	GBinaryEncodable : BinaryOType, GEncodable {}
-public protocol	GBinaryDecodable : BinaryIType, GDecodable {}
+public protocol	GBinaryEncodable : BEncodable, GEncodable {}
+public protocol	GBinaryDecodable : BDecodable, GDecodable {}
 
 ///	To bypass the standard coding mechanism and use the faster
-///	`BinaryIOType` one, adopt the `GBinaryCodable` protocol and write
-///	the required methods of `BinaryIOType` protocol to encode and decode
+///	`BCodable` one, adopt the `GBinaryCodable` protocol and write
+///	the required methods of `BCodable` protocol to encode and decode
 ///	the fields of the type.
 ///
 ///	You can use GBinaryEncodable when you still want to give type
@@ -74,13 +74,13 @@ public protocol GEncoderView {
 	var	userInfo : [String:Any] { get }
 }
 
-extension BinaryWriteBuffer {
+extension BinaryIOEncoder {
 	public var encoderView : GEncoderView {
 		get throws {
 			guard let encoderView = userData as? GEncoderView else {
 				throw GraphCodableError.internalInconsistency(
 					Self.self, GraphCodableError.Context(
-						debugDescription: "encoderView can be accessed only from the GraphCodable BinaryWriteBuffer"
+						debugDescription: "encoderView can be accessed only from the GraphCodable BinaryIOEncoder"
 					)
 				)
 			}
@@ -95,13 +95,13 @@ public protocol GDecoderView {
 	var replacedClass		: (AnyObject & GDecodable).Type?  { get throws }
 }
 
-extension BinaryReadBuffer {
+extension BinaryIODecoder {
 	public var decoderView : GDecoderView {
 		get throws {
 			guard let decoderView = userData as? GDecoderView else {
 				throw GraphCodableError.internalInconsistency(
 					Self.self, GraphCodableError.Context(
-						debugDescription: "decoderView can be accessed only from the GraphCodable BinaryReadBuffer"
+						debugDescription: "decoderView can be accessed only from the GraphCodable BinaryIODecoder"
 					)
 				)
 			}

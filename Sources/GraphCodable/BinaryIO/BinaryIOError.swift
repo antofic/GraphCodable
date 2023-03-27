@@ -42,18 +42,18 @@ public enum BinaryIOError : Error {
 
 	/// Indicate an error occurring while reading a system type
 	///
-	/// BinaryIO implements the `BinaryIType` protocol for
+	/// BinaryIO implements the `BDecodable` protocol for
 	/// many system types. This error is eventually raised
-	/// in their `init(from: inout BinaryReadBuffer) throws` method.
+	/// in their `init(from: inout BinaryIODecoder) throws` method.
 	///
 	/// It can happen **while reading** only
 	case libDecodingError( Any.Type, BinaryIOError.Context )
 
 	/// Indicate an error occurring while writing a system type
 	///
-	/// BinaryIO implements the `BinaryOType` protocol for
+	/// BinaryIO implements the `BEncodable` protocol for
 	/// many system types. This error is eventually raised
-	/// in their `func write( to: inout BinaryWriteBuffer ) throws`
+	/// in their `func write( to: inout BinaryIOEncoder ) throws`
 	/// method.
 	///
 	/// It can happen **while writing** only
@@ -77,14 +77,14 @@ public enum BinaryIOError : Error {
 	case outOfBounds( Any.Type, BinaryIOError.Context )
 	
 	/// Indicate an error occurring while using the
-	/// `BinaryWriteBuffer` `prependingWrite( ... )` function
+	/// `BinaryIOEncoder` `prependingWrite( ... )` function
 	///
-	/// It happens only using the `BinaryWriteBuffer` function:
+	/// It happens only using the `BinaryIOEncoder` function:
 	///	```
 	///	 func prependingWrite(
-	///	 	dummyWrite: ( _: inout BinaryWriteBuffer ) throws -> (),
-	///	 	thenWrite: ( _: inout BinaryWriteBuffer ) throws -> (),
-	///		thenOverwriteDummy: ( inout BinaryWriteBuffer, _: Int ) throws -> ()
+	///	 	dummyWrite: ( _: inout BinaryIOEncoder ) throws -> (),
+	///	 	thenWrite: ( _: inout BinaryIOEncoder ) throws -> (),
+	///		thenOverwriteDummy: ( inout BinaryIOEncoder, _: Int ) throws -> ()
 	///	 ) throws
 	///
 	///	```

@@ -23,17 +23,17 @@
 
 import UniformTypeIdentifiers
 
-extension UTTagClass : BinaryIType {}
-extension UTTagClass : BinaryOType {}
+extension UTTagClass : BDecodable {}
+extension UTTagClass : BEncodable {}
 
-extension UTType : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try identifier.write(to: &wbuffer)
+extension UTType : BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
+		try encoder.encode( identifier )
 	}
 }
-extension UTType : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws {
-		let identifier = try String( from: &rbuffer )
+extension UTType : BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
+		let identifier = try decoder.decode() as String
 		
 		guard let uttype = Self.init( identifier ) else {
 			throw BinaryIOError.libDecodingError(
@@ -45,4 +45,5 @@ extension UTType : BinaryIType {
 		self = uttype
 	}
 }
+
 

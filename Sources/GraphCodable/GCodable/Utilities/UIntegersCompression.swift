@@ -6,7 +6,7 @@
 //
 
 import Foundation
-
+/*
 ///	Read and Write packed UnsignedIntegers to reduce file size:
 ///	we use it to compact typeID's, objID's, keyID's
 ///	**Note:** Packed data is variable in size.
@@ -51,41 +51,40 @@ extension UnsignedInteger {
 		}
 	}
 }
-	
+*/
 extension UnsignedInteger {
-	init( decompressFrom rbuffer: inout BinaryReadBuffer ) throws {
-		var	byte	= try UInt8( from: &rbuffer )
+	static func decompress( from decoder: inout some BDecoder ) throws -> Self {
+		var	byte	= try decoder.decode() as UInt8
 		if MemoryLayout<Self>.size > 1 {
 			var	val		= Self( byte & 0x7F )
 			
 			for index in 1...MemoryLayout<Self>.size {
 				guard byte & 0x80 != 0 else {
-					self = val
-					return
+					return val
 				}
-				byte	= 	try UInt8( from: &rbuffer )
+				byte	= 	try decoder.decode() as UInt8
 				val		|=	Self( byte & 0x7F ) << (index*7)
 			}
-			self = val
+			return val
 		} else {
-			self.init( byte )
+			return Self( byte )
 		}
 	}
 
-	func write(compressTo wbuffer: inout BinaryWriteBuffer) throws {
+	func compress(to encoder: inout some BEncoder ) throws {
 		if MemoryLayout<Self>.size > 1 {
 			var	val		= self
 			var byte	= UInt8( val & 0x7F )
 			
 			while val & (~0x7F) != 0 {
 				byte 	|= 0x80
-				try 	byte.write( to: &wbuffer )
+				try 	encoder.encode( byte )
 				val 	>>= 7
 				byte	= UInt8( val & 0x7F )
 			}
-			try byte.write( to: &wbuffer )
+			try encoder.encode( byte )
 		} else {
-			try UInt8( self ).write( to: &wbuffer )
+			try encoder.encode( UInt8( self ) )
 		}
 	}
 

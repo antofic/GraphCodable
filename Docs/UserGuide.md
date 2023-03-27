@@ -29,7 +29,7 @@
   - [Using class name strings](#Using-class-name-strings)
 - [GraphCodable and BinaryIO](#GraphCodable-and-BinaryIO)
   - [An example](#An-example)
-  - [The `BinaryIOType` protocol](#The-`BinaryIOType`-protocol)
+  - [The `BCodable` protocol](#The-`BCodable`-protocol)
   - [The `GBinaryCodable` protocol](#The-`GBinaryCodable`-protocol)
   - [The `GPackCodable` protocol](#The-`GPackCodable`-protocol)
   - [Switch from `GCodable` to `GBinary/PackCodable` and vice versa](#Switch-from-`GCodable`-to-`GBinary/PackCodable`-and-vice-versa)
@@ -1428,7 +1428,7 @@ func encode(to encoder: GEncoder) throws {
 
 ```
 
-It is **important** to note that the **`userVersion`** is unique and global for the entire archive and is shared with the BinaryIO package (see [GraphCodable and BinaryIO](#GraphCodable-and-BinaryIO)). It follows that whenever any `GCodable` or  `BinaryIOType` type changes encoding it is necessary to increment **`userVersion`** (see [BinaryIO versioning](#BinaryIO-versioning)).
+It is **important** to note that the **`userVersion`** is unique and global for the entire archive and is shared with the BinaryIO package (see [GraphCodable and BinaryIO](#GraphCodable-and-BinaryIO)). It follows that whenever any `GCodable` or  `BCodable` type changes encoding it is necessary to increment **`userVersion`** (see [BinaryIO versioning](#BinaryIO-versioning)).
 
 **Note**: **`userVersion`** is really a feature of BinaryIO that GraphCodable takes advantage of.
 
@@ -2453,47 +2453,47 @@ The structure of the encoded data is easy to recognize. But a question arises: `
 
 This mechanism is accessible to the user: let's see how.
 
-### The `BinaryIOType` protocol
+### The `BCodable` protocol
 
-First, we can see that in the proposed example `NumericData`, unlike `Model`, seems to be the ideal candidate to be encoded directly with BinaryIO: it's a trivial structure. The protocol to be used is `BinaryIOType`, defined as `typealias BinaryIOType	= BinaryIType & BinaryOType` in the BinaryIO package:
+First, we can see that in the proposed example `NumericData`, unlike `Model`, seems to be the ideal candidate to be encoded directly with BinaryIO: it's a trivial structure. The protocol to be used is `BCodable`, defined as `typealias BCodable	= BDecodable & BEncodable` in the BinaryIO package:
 
 ```swift
-public protocol BinaryOType {
-	func write( to wbuffer: inout BinaryWriteBuffer ) throws
+public protocol BEncodable {
+	func write( to encoder: inout BinaryIOEncoder ) throws
 }
 
-public protocol BinaryIType {
-	init( from rbuffer: inout BinaryReadBuffer ) throws
+public protocol BDecodable {
+	init( from decoder: inout BinaryIODecoder ) throws
 }
 
-public typealias BinaryIOType	= BinaryIType & BinaryOType
+public typealias BCodable	= BDecodable & BEncodable
 ```
 
-You can see how with BinaryIO the type that adopt the `BinaryIOType` protocol is stored by "writing" its fields to a `BinaryWriteBuffer`and instantiated by "reading" its fields **in the same order** from a `BinaryReadBuffer`:
+You can see how with BinaryIO the type that adopt the `BCodable` protocol is stored by "writing" its fields to a `BinaryIOEncoder`and instantiated by "reading" its fields **in the same order** from a `BinaryIODecoder`:
 
 ```swift
-extension NumericData : BinaryIOType {
-	init(from rbuffer: inout BinaryReadBuffer) throws {
-		self.vector = try SIMD3<Double>( from:&rbuffer )
-		self.matrix = try simd_double3x3( from:&rbuffer )
+extension NumericData : BCodable {
+	init(from decoder: inout BinaryIODecoder) throws {
+		self.vector = try SIMD3<Double>( from:&decoder )
+		self.matrix = try simd_double3x3( from:&decoder )
 	}
 	
-	func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try vector.write(to: &wbuffer)
-		try matrix.write(to: &wbuffer)
+	func write(to encoder: inout BinaryIOEncoder) throws {
+		try vector.write(to: &encoder)
+		try matrix.write(to: &encoder)
 	}
 }
 ```
 
-BinaryIO is a fast low-level package and no keys are available. Also note that  `BinaryReadBuffer` and  `BinaryWriteBuffer` are value types.
+BinaryIO is a fast low-level package and no keys are available. Also note that  `BinaryIODecoder` and  `BinaryIOEncoder` are value types.
 
 ### The `GBinaryCodable` protocol
 
-Make `NumericData` adopt the `BinaryIOType` protocol doesn't change the output of our program though. In order for GraphCodable to realize that `NumericData` can be stored directly by BinayIO it is necessary to adopt the protocol `GBinaryCodable` defined in GraphCodable package as:
+Make `NumericData` adopt the `BCodable` protocol doesn't change the output of our program though. In order for GraphCodable to realize that `NumericData` can be stored directly by BinayIO it is necessary to adopt the protocol `GBinaryCodable` defined in GraphCodable package as:
 
 ```swift
-public protocol	GBinaryEncodable : BinaryOType, GEncodable {}
-public protocol	GBinaryDecodable : BinaryIType, GDecodable {}
+public protocol	GBinaryEncodable : BEncodable, GEncodable {}
+public protocol	GBinaryDecodable : BDecodable, GDecodable {}
 public typealias GBinaryCodable = GBinaryEncodable & GBinaryDecodable
 
 extension GBinaryEncodable {
@@ -2520,14 +2520,14 @@ So let's change the extension of `NumericData` to:
 
 ```swift
 extension NumericData : GBinaryCodable {
-	init(from rbuffer: inout BinaryReadBuffer) throws {
-		self.vector = try SIMD3<Double>( from:&rbuffer )
-		self.matrix = try simd_double3x3( from:&rbuffer )
+	init(from decoder: inout BinaryIODecoder) throws {
+		self.vector = try SIMD3<Double>( from:&decoder )
+		self.matrix = try simd_double3x3( from:&decoder )
 	}
 	
-	func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try vector.write(to: &wbuffer)
-		try matrix.write(to: &wbuffer)
+	func write(to encoder: inout BinaryIOEncoder) throws {
+		try vector.write(to: &encoder)
+		try matrix.write(to: &encoder)
 	}
 }
 ```
@@ -2578,14 +2578,14 @@ The same result would have been obtained by adopting the `GPackCodable` protocol
 
 ```swift
 extension NumericData : GPackCodable /* GBinaryCodable */ {
-	init(from rbuffer: inout BinaryReadBuffer) throws {
-		self.vector = try SIMD3<Double>( from:&rbuffer )
-		self.matrix = try simd_double3x3( from:&rbuffer )
+	init(from decoder: inout BinaryIODecoder) throws {
+		self.vector = try SIMD3<Double>( from:&decoder )
+		self.matrix = try simd_double3x3( from:&decoder )
 	}
 	
-	func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try vector.write(to: &wbuffer)
-		try matrix.write(to: &wbuffer)
+	func write(to encoder: inout BinaryIOEncoder) throws {
+		try vector.write(to: &encoder)
+		try matrix.write(to: &encoder)
 	}
 }
 ```
@@ -2628,14 +2628,14 @@ extension NumericData : GDecodable {
 }
 
 extension NumericData : GPackCodable /* or GBinaryCodable */ {
-	init(from rbuffer: inout BinaryReadBuffer) throws {
-		self.vector = try SIMD3<Double>( from:&rbuffer )
-		self.matrix = try simd_double3x3( from:&rbuffer )
+	init(from decoder: inout BinaryIODecoder) throws {
+		self.vector = try SIMD3<Double>( from:&decoder )
+		self.matrix = try simd_double3x3( from:&decoder )
 	}
 	
-	func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try vector.write(to: &wbuffer)
-		try matrix.write(to: &wbuffer)
+	func write(to encoder: inout BinaryIOEncoder) throws {
+		try vector.write(to: &encoder)
+		try matrix.write(to: &encoder)
 	}
 }
 ```
@@ -2658,9 +2658,9 @@ extension Model : GCodable {
 }
 
 extension NumericData : GBinaryDecodable {
-	init(from rbuffer: inout BinaryReadBuffer) throws {
-		self.vector = try SIMD3<Double>( from:&rbuffer )
-		self.matrix = try simd_double3x3( from:&rbuffer )
+	init(from decoder: inout BinaryIODecoder) throws {
+		self.vector = try SIMD3<Double>( from:&decoder )
+		self.matrix = try simd_double3x3( from:&decoder )
 	}
 }
 ```
@@ -2670,8 +2670,8 @@ extension NumericData : GBinaryDecodable {
 The `userInfo` dictionary set in the `GraphEncoder` is accessible to types adopting the `GBinaryEncodable` protocol with:
 
 ```swift
-	func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		let encoderView	= try wbuffer.encoderView
+	func write(to encoder: inout BinaryIOEncoder) throws {
+		let encoderView	= try encoder.encoderView
 		let userInfo	= encoderView.userInfo
 		/* ... */
 	}
@@ -2681,8 +2681,8 @@ The `userInfo` dictionary set in the `GraphEncoder` is accessible to types adopt
 The `userInfo` dictionary set in the `GraphDecoder` is accessible to types adopting the `GBinaryDecodable` protocol with:
 
 ```swift
-	init(from rbuffer: inout BinaryReadBuffer) throws {
-		let userInfo = rbuffer.userInfo
+	init(from decoder: inout BinaryIODecoder) throws {
+		let userInfo = decoder.userInfo
 		/* ... */
 	}
 
@@ -2691,8 +2691,8 @@ The `userInfo` dictionary set in the `GraphDecoder` is accessible to types adopt
 When dearchiving `GBinaryDecodable` **reference** types, you may also need access to `encodedClassVersion` and `replacedClass`:
 
 ```swift
-	init(from rbuffer: inout BinaryReadBuffer) throws {
-		let decoderView					= try rbuffer.decoderView
+	init(from decoder: inout BinaryIODecoder) throws {
+		let decoderView					= try decoder.decoderView
 		let encodedClassVersion	= try decoderView.encodedClassVersion
 		let replacedClass				= try decoderView.replacedClass
 	}
@@ -2712,7 +2712,7 @@ BinaryIO uses two `UInt32` values to globally specify a version:
 
 **Note**: `userVersion` is shared with GraphCodable. 
 
-Starting from the previous example we add a flag of tipe `Flag` in `NumericData` and define two versions of BinaryIO `userVersion` in the `MyFileVersion` enum: the initial (`.initial`) one, which does not include it, and the subsequent one (`.newNumericData`) which does include it. During decoding the `NumericData` type must be able to instantiate itself according to the encoded version `encodedUserVersion` which is the encoded `userVersion`. And maybe we also want to provide in the function `write(to: inout BinaryWriteBuffer) throws` the ability to continue using the initial version for archiving as well.
+Starting from the previous example we add a flag of tipe `Flag` in `NumericData` and define two versions of BinaryIO `userVersion` in the `MyFileVersion` enum: the initial (`.initial`) one, which does not include it, and the subsequent one (`.newNumericData`) which does include it. During decoding the `NumericData` type must be able to instantiate itself according to the encoded version `encodedUserVersion` which is the encoded `userVersion`. And maybe we also want to provide in the function `write(to: inout BinaryIOEncoder) throws` the ability to continue using the initial version for archiving as well.
 
 Here's how you can do it:
 
@@ -2737,15 +2737,15 @@ struct NumericData {
 
 extension NumericData : GPackCodable {
 	//	her we implement the ability to read all versions:
-	init(from rbuffer: inout BinaryReadBuffer) throws {
-		self.vector = try SIMD3<Double>( from:&rbuffer )
-		self.matrix = try simd_double3x3( from:&rbuffer )
+	init(from decoder: inout BinaryIODecoder) throws {
+		self.vector = try SIMD3<Double>( from:&decoder )
+		self.matrix = try simd_double3x3( from:&decoder )
 		
 		// let's take the encoded version:
-		switch rbuffer.encodedUserVersion {
+		switch decoder.encodedUserVersion {
 			case MyFileVersion.newNumericData.rawValue...:
 				//	it is at least the 'newNumericData' version
-				self.flag = try Flag( from:&rbuffer )
+				self.flag = try Flag( from:&decoder )
 			default:
 				//	the version is less than .newNumericData
 				self.flag = .even
@@ -2754,15 +2754,15 @@ extension NumericData : GPackCodable {
 	
 	//	here we implement the possibility to write also
 	//	in previous versions
-	func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try vector.write(to: &wbuffer)
-		try matrix.write(to: &wbuffer)
+	func write(to encoder: inout BinaryIOEncoder) throws {
+		try vector.write(to: &encoder)
+		try matrix.write(to: &encoder)
 		
 		//	we encode according to the requested version:
-		switch wbuffer.userVersion {
+		switch encoder.userVersion {
 			case MyFileVersion.newNumericData.rawValue...:
 				//	it is at least the .newNumericData version
-				try flag.write(to: &wbuffer)
+				try flag.write(to: &encoder)
 			default:
 				//	the version is less than .newNumericData
 				break
@@ -2920,7 +2920,7 @@ Reading and decoding:
 ========================================================================================
 ```
 
-You can see how  **`userVersion`** both in reading and in writing is indicated in the header. Also note that during encoding the **value** of the types adopting the `BinaryOType` protocol is displayed, while during encoding the size in bytes of the types adopting the `BinaryIType` protocol is displayed because the values have not been instantiated yet.
+You can see how  **`userVersion`** both in reading and in writing is indicated in the header. Also note that during encoding the **value** of the types adopting the `BEncodable` protocol is displayed, while during encoding the size in bytes of the types adopting the `BDecodable` protocol is displayed because the values have not been instantiated yet.
 
 Instead, `gcodableVersion` and `binaryIOVersion` are versions for internal use of the two packages and the user cannot use them.
 
@@ -2935,17 +2935,17 @@ To further clarify how GraphCodable and BinaryIO interact, let's see how some sy
 **BinaryIO package**:
 
 ```swift
-extension CGSize : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try width.write(to: &wbuffer)
-		try height.write(to: &wbuffer)
+extension CGSize : BEncodable {
+	public func write(to encoder: inout BinaryIOEncoder) throws {
+		try width.write(to: &encoder)
+		try height.write(to: &encoder)
 	}
 }
 
-extension CGSize : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws {
-		let width	= try CGFloat( from: &rbuffer )
-		let height	= try CGFloat( from: &rbuffer )
+extension CGSize : BDecodable {
+	public init(from decoder: inout BinaryIODecoder) throws {
+		let width	= try CGFloat( from: &decoder )
+		let height	= try CGFloat( from: &decoder )
 		self.init(width: width, height: height)
 	}
 }
@@ -2964,15 +2964,15 @@ extension CGSize 			: GPackable {}
 **BinaryIO package**:
 
 ```swift
-extension String : BinaryOType {
-	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
-		try wbuffer.writeString( self )
+extension String : BEncodable {
+	public func write( to encoder: inout BinaryIOEncoder ) throws {
+		try encoder.writeString( self )
 	}
 }
 
-extension String : BinaryIType {
-	public init( from rbuffer: inout BinaryReadBuffer ) throws {
-		self = try rbuffer.readString()
+extension String : BDecodable {
+	public init( from decoder: inout BinaryIODecoder ) throws {
+		self = try decoder.readString()
 	}
 }
 ```
@@ -2992,25 +2992,25 @@ Note the difference with `CGSize`: `CGSize` adopt the `GPackCodable` protocol be
 
 Let's see how GraphCodable implements these mechanisms for swift containers, taking into consideration the case of `Array` (the others are completely analogous).
 
-**BinaryIO package**: `Array` adopts the `BinaryIOType` protocols: if the elements are `BinaryIOType`, Array is `BinaryIOType` so BinaryIO can encode ed decode it.
+**BinaryIO package**: `Array` adopts the `BCodable` protocols: if the elements are `BCodable`, Array is `BCodable` so BinaryIO can encode ed decode it.
 
 ```swift
-extension Array : BinaryOType where Element : BinaryOType {
-	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
-		try count.write(to: &wbuffer)
+extension Array : BEncodable where Element : BEncodable {
+	public func write( to encoder: inout BinaryIOEncoder ) throws {
+		try count.write(to: &encoder)
 		for element in self {
-			try element.write(to: &wbuffer)
+			try element.write(to: &encoder)
 		}
 	}
 }
 
-extension Array : BinaryIType where Element : BinaryIType {
-	public init( from rbuffer: inout BinaryReadBuffer ) throws {
+extension Array : BDecodable where Element : BDecodable {
+	public init( from decoder: inout BinaryIODecoder ) throws {
 		self.init()
-		let count = try Int( from: &rbuffer )
+		let count = try Int( from: &decoder )
 		self.reserveCapacity( count )
 		for _ in 0..<count {
-			self.append( try Element(from: &rbuffer) )
+			self.append( try Element(from: &decoder) )
 		}
 	}
 }
@@ -3051,27 +3051,27 @@ extension Array : GBinaryDecodable where Element : GPackDecodable {}
 **BinaryIO package**:
 
 ```swift
-extension PersonNameComponents : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try namePrefix	.write(to: &wbuffer)
-		try givenName	.write(to: &wbuffer)
-		try middleName	.write(to: &wbuffer)
-		try familyName	.write(to: &wbuffer)
-		try nameSuffix	.write(to: &wbuffer)
-		try nickname	.write(to: &wbuffer)
+extension PersonNameComponents : BEncodable {
+	public func write(to encoder: inout BinaryIOEncoder) throws {
+		try namePrefix	.write(to: &encoder)
+		try givenName	.write(to: &encoder)
+		try middleName	.write(to: &encoder)
+		try familyName	.write(to: &encoder)
+		try nameSuffix	.write(to: &encoder)
+		try nickname	.write(to: &encoder)
 	}
 }
 
-extension PersonNameComponents : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws {
+extension PersonNameComponents : BDecodable {
+	public init(from decoder: inout BinaryIODecoder) throws {
 		self.init()
 		
-		namePrefix	= try String?(from: &rbuffer)
-		givenName	= try String?(from: &rbuffer)
-		middleName	= try String?(from: &rbuffer)
-		familyName	= try String?(from: &rbuffer)
-		nameSuffix	= try String?(from: &rbuffer)
-		nickname	= try String?(from: &rbuffer)
+		namePrefix	= try String?(from: &decoder)
+		givenName	= try String?(from: &decoder)
+		middleName	= try String?(from: &decoder)
+		familyName	= try String?(from: &decoder)
+		nameSuffix	= try String?(from: &decoder)
+		nickname	= try String?(from: &decoder)
 	}
 }
 ```

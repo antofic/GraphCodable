@@ -23,7 +23,7 @@
 import Foundation
 
 final class TypeConstructor {
-	private var			readBuffer			: BinaryReadBuffer
+	private var			readBuffer			: BinaryIODecoder
 	private var			binaryDecoder		: BinaryDecoder
 	private (set) var 	currentElement 		: FlattenedElement
 	private (set) var 	currentInfo 		: ClassInfo?
@@ -32,7 +32,7 @@ final class TypeConstructor {
 	
 	var fileHeader : FileHeader { binaryDecoder.fileHeader }
 	
-	init( readBuffer:BinaryReadBuffer, classNameMap:ClassNameMap? ) throws {
+	init( readBuffer:BinaryIODecoder, classNameMap:ClassNameMap? ) throws {
 		self.readBuffer		= readBuffer
 		self.binaryDecoder	= try BinaryDecoder(from: readBuffer, classNameMap:classNameMap )
 		self.currentElement	= binaryDecoder.rootElement
@@ -251,10 +251,10 @@ extension TypeConstructor {
 			wrapped	= T.self
 		}
 
-		guard let binaryIType = wrapped as? BinaryIType.Type else {
+		guard let binaryIType = wrapped as? BDecodable.Type else {
 			throw GraphCodableError.malformedArchive(
 				Self.self, GraphCodableError.Context(
-					debugDescription: "\(element) wrapped type \(wrapped) is not a BinaryIType."
+					debugDescription: "\(element) wrapped type \(wrapped) is not a BDecodable."
 				)
 			)
 		}

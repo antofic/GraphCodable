@@ -20,63 +20,65 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
+
 import simd
 
-extension SIMDStorage where Scalar:BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
+extension SIMDStorage where Scalar:BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
 		for i in 0..<Self.scalarCount {
-			try self[i].write(to: &wbuffer)
+			try encoder.encode( self[i] )
 		}
 	}
 }
-extension SIMDStorage where Scalar:BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws {
+extension SIMDStorage where Scalar:BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
 		self.init()
 		for i in 0..<Self.scalarCount {
-			self[i]	= try Scalar(from: &rbuffer)
+			self[i]	= try decoder.decode()
 		}
 	}
 }
 
-extension SIMD2:BinaryIType where Scalar:BinaryIType {}
-extension SIMD3:BinaryIType where Scalar:BinaryIType {}
-extension SIMD4:BinaryIType where Scalar:BinaryIType {}
-extension SIMD8:BinaryIType where Scalar:BinaryIType {}
-extension SIMD16:BinaryIType where Scalar:BinaryIType {}
-extension SIMD32:BinaryIType where Scalar:BinaryIType {}
-extension SIMD64:BinaryIType where Scalar:BinaryIType {}
 
-extension SIMD2:BinaryOType where Scalar:BinaryOType {}
-extension SIMD3:BinaryOType where Scalar:BinaryOType {}
-extension SIMD4:BinaryOType where Scalar:BinaryOType {}
-extension SIMD8:BinaryOType where Scalar:BinaryOType {}
-extension SIMD16:BinaryOType where Scalar:BinaryOType {}
-extension SIMD32:BinaryOType where Scalar:BinaryOType {}
-extension SIMD64:BinaryOType where Scalar:BinaryOType {}
+extension SIMD2: BEncodable where Scalar:BEncodable {}
+extension SIMD3: BEncodable where Scalar:BEncodable {}
+extension SIMD4: BEncodable where Scalar:BEncodable {}
+extension SIMD8: BEncodable where Scalar:BEncodable {}
+extension SIMD16:BEncodable where Scalar:BEncodable {}
+extension SIMD32:BEncodable where Scalar:BEncodable {}
+extension SIMD64:BEncodable where Scalar:BEncodable {}
 
-extension SIMDMask:BinaryIType {}
-extension SIMDMask:BinaryOType {}
+extension SIMD2: BDecodable where Scalar:BDecodable {}
+extension SIMD3: BDecodable where Scalar:BDecodable {}
+extension SIMD4: BDecodable where Scalar:BDecodable {}
+extension SIMD8: BDecodable where Scalar:BDecodable {}
+extension SIMD16:BDecodable where Scalar:BDecodable {}
+extension SIMD32:BDecodable where Scalar:BDecodable {}
+extension SIMD64:BDecodable where Scalar:BDecodable {}
+
+extension SIMDMask:BEncodable {}
+extension SIMDMask:BDecodable {}
 
 // Matrix support
 
-protocol SimdMatrixBinaryIO : BinaryIOType {
-	associatedtype Vector : BinaryIOType
+protocol SimdMatrixBinaryIO : BCodable {
+	associatedtype Vector : BCodable
 	init()
 	subscript(column: Int) -> Vector { get set }
 	var _binaryNumCols : Int  { get }
 }
 
 extension SimdMatrixBinaryIO {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
+	public func encode(to encoder: inout some BEncoder) throws {
 		for c in 0..<_binaryNumCols {
-			try self[c].write(to: &wbuffer)
+			try encoder.encode( self[c] )
 		}
 	}
-
-	public init(from rbuffer: inout BinaryReadBuffer) throws {
+	
+	public init(from decoder: inout some BDecoder) throws {
 		self.init()
 		for c in 0..<_binaryNumCols {
-			self[c]	= try Vector(from: &rbuffer)
+			self[c]	= try decoder.decode()
 		}
 	}
 }
@@ -100,5 +102,4 @@ extension simd_double3x4: SimdMatrixBinaryIO { var _binaryNumCols: Int { 3 } }
 extension simd_double4x2: SimdMatrixBinaryIO { var _binaryNumCols: Int { 4 } }
 extension simd_double4x3: SimdMatrixBinaryIO { var _binaryNumCols: Int { 4 } }
 extension simd_double4x4: SimdMatrixBinaryIO { var _binaryNumCols: Int { 4 } }
-
 

@@ -29,7 +29,7 @@ struct BinaryDecoder {
 	let rootElement 		: FlattenedElement
 	private var	elementMap	: ElementMap
 	
-	init( from readBuffer:BinaryReadBuffer, classNameMap:ClassNameMap? ) throws {
+	init( from readBuffer:BinaryIODecoder, classNameMap:ClassNameMap? ) throws {
 		var readBlockDecoder	= try ReadBlockDecoder( from: readBuffer )
 		let fileHeader			= readBlockDecoder.fileHeader
 		let readBlocks			= try readBlockDecoder.readBlocks()

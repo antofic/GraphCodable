@@ -67,17 +67,17 @@ extension ClassData {	// internal properties
 	}
 }
 
-extension ClassData: BinaryIOType {	// BinaryIOType protocol
-	func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try qualifiedName.write(to: &wbuffer)
-		try mangledName.write(to: &wbuffer)
-		try encodedClassVersion.write(to: &wbuffer)
+extension ClassData: BCodable {
+	func encode(to encoder: inout some BEncoder) throws {
+		try encoder.encode(qualifiedName)
+		try encoder.encode(mangledName)
+		try encoder.encode(encodedClassVersion)
 	}
 	
-	init(from rbuffer: inout BinaryReadBuffer) throws {
-		self.qualifiedName		= try String( from: &rbuffer )
-		self.mangledName		= try String( from: &rbuffer )
-		self.encodedClassVersion	= try UInt32( from: &rbuffer )
+	init(from decoder: inout some BDecoder) throws {
+		self.qualifiedName			= try decoder.decode()
+		self.mangledName			= try decoder.decode()
+		self.encodedClassVersion	= try decoder.decode()
 	}
 }
 

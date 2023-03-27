@@ -4,7 +4,7 @@ GraphCodable relies on an internal package (BinaryIO) to archive/dearchive data 
 
 That said, NativeTypes are the system types that are always encoded/decoded directly by BinaryIO.
 Additional types (BinaryTypes) can be stored directly by BinaryIO using the `GraphEncoder( .allBinaryTypes )` option.
-This option very often makes archiving/dearchiving much faster but, if used, it bypasses the identity of types Array and ContiguousArray (if their elements are BinaryIOType) if they were defined in your code and thus does not prevent their duplication.
+This option very often makes archiving/dearchiving much faster but, if used, it bypasses the identity of types Array and ContiguousArray (if their elements are BCodable) if they were defined in your code and thus does not prevent their duplication.
 If instead the `GraphEncoder( .onlyNativeTypes )` option is used, only the NativeTypes will be encoded/decoded directly in binary and the other types in the list will be stored with standard GCodable methods.
 
 To define identity and avoid duplications of Arrays and ContiguousArrays, copy/paste in your code

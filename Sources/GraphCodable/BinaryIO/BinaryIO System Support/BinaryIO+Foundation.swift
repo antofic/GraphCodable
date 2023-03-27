@@ -22,97 +22,100 @@
 
 import Foundation
 
+// -- Data support -------------------------------------------------------
 
-
-// -- Data support (BinaryIOType) -------------------------------------------------------
-
-extension Data : BinaryOType {
-	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
-		try wbuffer.writeData( self )
-	}
-}
-extension Data : BinaryIType {
-	public init( from rbuffer: inout BinaryReadBuffer ) throws {
-		self = try rbuffer.readData()
+extension Data	: BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
+		self = try decoder.decodeData()
 	}
 }
 
-// -- CGFloat (BinaryIOType) --------------------------------------------
+extension Data	: BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
+		try encoder.encodeData( self )
+	}
+}
+
+
+// -- CGFloat -----------------------------------------------------------
 //	Su alcune piattaforme CGFloat == Float (32 bit).
 //	Salviamo sempre come Double 64bit
 
-extension CGFloat : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws {
-		self.init( try Double( from: &rbuffer ) )
+extension CGFloat : BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
+		self.init( try Double( from: &decoder ) )
 	}
 }
-extension CGFloat : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try Double( self ).write(to: &wbuffer)
+extension CGFloat : BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
+		try encoder.encode( Double( self ) )
 	}
 }
 
 //	CharacterSet SUPPORT ------------------------------------------------------
 
-extension CharacterSet : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws {
-		self.init( bitmapRepresentation: try Data( from: &rbuffer) )
+extension CharacterSet : BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
+		self.init(bitmapRepresentation: try decoder.decode() )
 	}
 }
-extension CharacterSet : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try self.bitmapRepresentation.write(to: &wbuffer)
+extension CharacterSet : BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
+		try encoder.encode( bitmapRepresentation )
 	}
 }
+
+
 
 //	AffineTransform SUPPORT ------------------------------------------------------
 // m11: CGFloat, m12: CGFloat, m21: CGFloat, m22: CGFloat, tX: CGFloat, tY: CGFloat
 
-extension AffineTransform : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try m11.write(to: &wbuffer)
-		try m12.write(to: &wbuffer)
-		try m21.write(to: &wbuffer)
-		try m22.write(to: &wbuffer)
-		try tX.write(to: &wbuffer)
-		try tY.write(to: &wbuffer)
+extension AffineTransform : BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
+		let m11	= try decoder.decode() as CGFloat
+		let m12	= try decoder.decode() as CGFloat
+		let m21	= try decoder.decode() as CGFloat
+		let m22	= try decoder.decode() as CGFloat
+		let tX	= try decoder.decode() as CGFloat
+		let tY	= try decoder.decode() as CGFloat
+		self.init(m11: m11, m12: m12, m21: m21, m22: m22, tX: tX, tY: tY)
 	}
 }
-extension AffineTransform : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws {
-		let m11	= try CGFloat( from: &rbuffer )
-		let m12	= try CGFloat( from: &rbuffer )
-		let m21	= try CGFloat( from: &rbuffer )
-		let m22	= try CGFloat( from: &rbuffer )
-		let tX	= try CGFloat( from: &rbuffer )
-		let tY	= try CGFloat( from: &rbuffer )
-		self.init(m11: m11, m12: m12, m21: m21, m22: m22, tX: tX, tY: tY)
+
+extension AffineTransform : BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
+		try encoder.encode( m11 )
+		try encoder.encode( m12 )
+		try encoder.encode( m21 )
+		try encoder.encode( m22 )
+		try encoder.encode( tX )
+		try encoder.encode( tY )
 	}
 }
 
 //	Locale SUPPORT ------------------------------------------------------
 
-extension Locale : BinaryOType {
-	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
-		try self.identifier.write(to: &wbuffer)
+extension Locale : BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
+		try encoder.encode( identifier )
 	}
 }
-extension Locale : BinaryIType {
-	public init( from rbuffer: inout BinaryReadBuffer ) throws {
-		self.init( identifier: try String( from: &rbuffer) )
+extension Locale : BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
+		self.init( identifier: try decoder.decode() )
 	}
 }
 
 //	TimeZone SUPPORT ------------------------------------------------------
 
-extension TimeZone : BinaryOType {
-	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
-		try self.identifier.write(to: &wbuffer)
+extension TimeZone : BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
+		try encoder.encode( identifier )
 	}
 }
-extension TimeZone : BinaryIType {
-	public init( from rbuffer: inout BinaryReadBuffer ) throws {
-		let identifier = try String( from: &rbuffer)
+extension TimeZone : BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
+		let identifier = try decoder.decode() as String
 		guard let timeZone = TimeZone( identifier: identifier ) else {
 			throw BinaryIOError.libDecodingError(
 				Self.self, BinaryIOError.Context(
@@ -126,14 +129,14 @@ extension TimeZone : BinaryIType {
 
 // -- UUID support  -------------------------------------------------------
 
-extension UUID : BinaryOType  {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try uuidString.write(to: &wbuffer)
+extension UUID : BEncodable  {
+	public func encode(to encoder: inout some BEncoder) throws {
+		try encoder.encode( uuidString )
 	}
 }
-extension UUID : BinaryIType  {
-	public init( from rbuffer: inout BinaryReadBuffer ) throws {
-		let uuidString	= try String( from: &rbuffer)
+extension UUID : BDecodable  {
+	public init(from decoder: inout some BDecoder) throws {
+		let uuidString	= try decoder.decode() as String
 		
 		guard let uuid = UUID(uuidString: uuidString) else {
 			throw BinaryIOError.libDecodingError(
@@ -148,197 +151,201 @@ extension UUID : BinaryIType  {
 
 //	Date SUPPORT ------------------------------------------------------
 
-extension Date : BinaryOType {
-	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
-		try self.timeIntervalSince1970.write(to: &wbuffer)
+extension Date : BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
+		try encoder.encode( timeIntervalSince1970 )
 	}
 }
-extension Date : BinaryIType {
-	public init( from rbuffer: inout BinaryReadBuffer ) throws {
-		self.init( timeIntervalSince1970: try TimeInterval( from: &rbuffer) )
+extension Date : BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
+		self.init( timeIntervalSince1970: try decoder.decode() )
 	}
 }
 
 //	IndexSet SUPPORT ------------------------------------------------------
 
-extension IndexSet : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws {
+extension IndexSet : BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
 		self.init()
-		let count	= try Int( from: &rbuffer )
+		let count	= try decoder.decode() as Int
 		for _ in 0..<count {
-			self.insert(integersIn: try Range(from: &rbuffer) )
+			self.insert(integersIn: try decoder.decode() )
 		}
 	}
 }
 
-extension IndexSet : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try rangeView.count.write(to: &wbuffer)
+extension IndexSet : BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
+		try encoder.encode( rangeView.count )
 		for range in rangeView {
-			try range.write(to: &wbuffer)
+			try encoder.encode( range )
 		}
 	}
 }
 
 // -- IndexPath support  -------------------------------------------------------
 
-extension IndexPath : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws {
+extension IndexPath : BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
 		self.init()
-		let count	= try Int( from: &rbuffer )
+		let count	= try decoder.decode() as Int
 		for _ in 0..<count {
-			self.append( try Int( from: &rbuffer ) )
+			self.append( try decoder.decode() as Element )
 		}
 	}
 }
-extension IndexPath : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try count.write(to: &wbuffer)
+extension IndexPath : BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
+		try encoder.encode( count )
 		for element in self {
-			try element.write(to: &wbuffer)
+			try encoder.encode( element )
 		}
-		
 	}
 }
 
 //	CGSize SUPPORT ------------------------------------------------------
 
-extension CGSize : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try width.write(to: &wbuffer)
-		try height.write(to: &wbuffer)
+extension CGSize : BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
+		try encoder.encode( width )
+		try encoder.encode( height )
 	}
 }
-extension CGSize : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws {
-		let width	= try CGFloat( from: &rbuffer )
-		let height	= try CGFloat( from: &rbuffer )
+extension CGSize : BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
+		let width	= try decoder.decode() as CGFloat
+		let height	= try decoder.decode() as CGFloat
 		self.init(width: width, height: height)
 	}
 }
 
 //	CGPoint SUPPORT ------------------------------------------------------
 
-extension CGPoint : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try x.write(to: &wbuffer)
-		try y.write(to: &wbuffer)
+extension CGPoint : BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
+		try encoder.encode( x )
+		try encoder.encode( y )
 	}
 }
-extension CGPoint : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws {
-		let x	= try CGFloat( from: &rbuffer )
-		let y	= try CGFloat( from: &rbuffer )
+extension CGPoint : BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
+		let x	= try decoder.decode() as CGFloat
+		let y	= try decoder.decode() as CGFloat
 		self.init(x: x, y: y)
 	}
 }
 
 //	CGVector SUPPORT ------------------------------------------------------
 
-extension CGVector : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try dx.write(to: &wbuffer)
-		try dy.write(to: &wbuffer)
+extension CGVector : BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
+		try encoder.encode( dx )
+		try encoder.encode( dy )
 	}
 }
-extension CGVector : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws {
-		let dx	= try CGFloat( from: &rbuffer )
-		let dy	= try CGFloat( from: &rbuffer )
+extension CGVector : BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
+		let dx	= try decoder.decode() as CGFloat
+		let dy	= try decoder.decode() as CGFloat
 		self.init(dx: dx, dy: dy)
 	}
 }
 
 //	CGRect SUPPORT ------------------------------------------------------
 
-extension CGRect : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try origin.write(to: &wbuffer)
-		try size.write(to: &wbuffer)
+extension CGRect : BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
+		try encoder.encode( origin )
+		try encoder.encode( size )
 	}
 }
-extension CGRect : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws {
-		let origin	= try CGPoint( from: &rbuffer )
-		let size	= try CGSize( from: &rbuffer )
+extension CGRect : BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
+		let origin	= try decoder.decode() as CGPoint
+		let size	= try decoder.decode() as CGSize
 		self.init(origin: origin, size: size)
 	}
 }
 
 //	NSRange SUPPORT ------------------------------------------------------
 
-extension NSRange : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try location.write(to: &wbuffer)
-		try length.write(to: &wbuffer)
+extension NSRange : BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
+		try encoder.encode( location )
+		try encoder.encode( length )
 	}
 }
-extension NSRange : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws {
-		let location	= try Int( from: &rbuffer )
-		let length		= try Int( from: &rbuffer )
+extension NSRange : BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
+		let location	= try decoder.decode() as Int
+		let length		= try decoder.decode() as Int
 		self.init(location: location, length: length)
 	}
 }
 
 // -- Decimal support  -------------------------------------------------------
 
-extension Decimal : BinaryOType {
-	public func write( to wbuffer: inout BinaryWriteBuffer ) throws {
-		try _exponent.write(to: &wbuffer)
-		try _length.write(to: &wbuffer)
-		try (_isNegative == 0 ? false : true).write(to: &wbuffer)
-		try (_isCompact == 0 ? false : true).write(to: &wbuffer)
-		try _mantissa.0.write(to: &wbuffer)
-		try _mantissa.1.write(to: &wbuffer)
-		try _mantissa.2.write(to: &wbuffer)
-		try _mantissa.3.write(to: &wbuffer)
-		try _mantissa.4.write(to: &wbuffer)
-		try _mantissa.5.write(to: &wbuffer)
-		try _mantissa.6.write(to: &wbuffer)
-		try _mantissa.7.write(to: &wbuffer)
+extension Decimal : BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
+		try encoder.encode( _exponent )
+		try encoder.encode( _length )
+		try encoder.encode( _isNegative == 0 ? false : true )
+		try encoder.encode( _isCompact == 0 ? false : true )
+		try encoder.encode( _mantissa.0 )
+		try encoder.encode( _mantissa.1 )
+		try encoder.encode( _mantissa.2 )
+		try encoder.encode( _mantissa.3 )
+		try encoder.encode( _mantissa.4 )
+		try encoder.encode( _mantissa.5 )
+		try encoder.encode( _mantissa.6 )
+		try encoder.encode( _mantissa.7 )
 	}
 }
-extension Decimal : BinaryIType {
-	public init( from rbuffer: inout BinaryReadBuffer ) throws {
-		let exponent	= try Int32( from:&rbuffer )
-		let length		= try UInt32( from:&rbuffer )
-		let isNegative	= (try Bool( from:&rbuffer )) == false ? UInt32(0) : UInt32(1)
-		let isCompact	= (try Bool( from:&rbuffer )) == false ? UInt32(0) : UInt32(1)
-		let mantissa0	= try UInt16( from:&rbuffer )
-		let mantissa1	= try UInt16( from:&rbuffer )
-		let mantissa2	= try UInt16( from:&rbuffer )
-		let mantissa3	= try UInt16( from:&rbuffer )
-		let mantissa4	= try UInt16( from:&rbuffer )
-		let mantissa5	= try UInt16( from:&rbuffer )
-		let mantissa6	= try UInt16( from:&rbuffer )
-		let mantissa7	= try UInt16( from:&rbuffer )
 
+
+extension Decimal : BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
+		let exponent	= try decoder.decode() as Int32
+		let length		= try decoder.decode() as UInt32
+		let isNegative	= (try decoder.decode() as Bool) == false ? UInt32(0) : UInt32(1)
+		let isCompact	= (try decoder.decode() as Bool) == false ? UInt32(0) : UInt32(1)
+		let mantissa0	= try decoder.decode() as UInt16
+		let mantissa1	= try decoder.decode() as UInt16
+		let mantissa2	= try decoder.decode() as UInt16
+		let mantissa3	= try decoder.decode() as UInt16
+		let mantissa4	= try decoder.decode() as UInt16
+		let mantissa5	= try decoder.decode() as UInt16
+		let mantissa6	= try decoder.decode() as UInt16
+		let mantissa7	= try decoder.decode() as UInt16
+		
 		self.init(
 			_exponent: exponent, _length: length, _isNegative: isNegative, _isCompact: isCompact, _reserved: 0,
 			_mantissa: (mantissa0, mantissa1, mantissa2, mantissa3, mantissa4, mantissa5, mantissa6, mantissa7)
 		)
+		
 	}
 }
 
 //	Calendar SUPPORT ------------------------------------------------------
 
-extension NSCalendar.Identifier : BinaryIType {}
-extension NSCalendar.Identifier : BinaryOType {}
+extension NSCalendar.Identifier : BDecodable {}
+extension NSCalendar.Identifier : BEncodable {}
 
-extension Calendar : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
+
+extension Calendar : BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
 		let nsIdentifier = (self as NSCalendar).calendarIdentifier
-		try nsIdentifier.write(to: &wbuffer)
-		try locale.write(to: &wbuffer)
-		try timeZone.write(to: &wbuffer)
-		try firstWeekday.write(to: &wbuffer)
-		try minimumDaysInFirstWeek.write(to: &wbuffer)
+		try encoder.encode( nsIdentifier )
+		try encoder.encode( locale )
+		try encoder.encode( timeZone )
+		try encoder.encode( firstWeekday )
+		try encoder.encode( minimumDaysInFirstWeek )
 	}
 }
-extension Calendar : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws {
-		let nsIdentifier = try NSCalendar.Identifier(from: &rbuffer)
+
+extension Calendar : BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
+		let nsIdentifier = try decoder.decode() as NSCalendar.Identifier
 		guard var calendar = NSCalendar(calendarIdentifier: nsIdentifier) as Calendar? else {
 			throw BinaryIOError.libDecodingError(
 				Self.self, BinaryIOError.Context(
@@ -346,55 +353,57 @@ extension Calendar : BinaryIType {
 				)
 			)
 		}
-		calendar.locale					= try Locale(from: &rbuffer)
-		calendar.timeZone				= try TimeZone(from: &rbuffer)
-		calendar.firstWeekday			= try Int(from: &rbuffer)
-		calendar.minimumDaysInFirstWeek	= try Int(from: &rbuffer)
+		calendar.locale					= try decoder.decode()
+		calendar.timeZone				= try decoder.decode()
+		calendar.firstWeekday			= try decoder.decode()
+		calendar.minimumDaysInFirstWeek	= try decoder.decode()
 		
 		self = calendar
 	}
 }
 
+
 //	DateComponents SUPPORT ------------------------------------------------------
 
-extension DateComponents : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try calendar   			.write(to: &wbuffer)
-		try timeZone   			.write(to: &wbuffer)
-		try era        			.write(to: &wbuffer)
-		try year       			.write(to: &wbuffer)
-		try month      			.write(to: &wbuffer)
-		try day        			.write(to: &wbuffer)
-		try hour       			.write(to: &wbuffer)
-		try minute     			.write(to: &wbuffer)
-		try second     			.write(to: &wbuffer)
-		try nanosecond 			.write(to: &wbuffer)
-		try weekday          	.write(to: &wbuffer)
-		try weekdayOrdinal   	.write(to: &wbuffer)
-		try quarter          	.write(to: &wbuffer)
-		try weekOfMonth      	.write(to: &wbuffer)
-		try weekOfYear       	.write(to: &wbuffer)
-		try yearForWeekOfYear	.write(to: &wbuffer)
+extension DateComponents : BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
+		try encoder.encode( calendar   		 )
+		try encoder.encode( timeZone   		 )
+		try encoder.encode( era        		 )
+		try encoder.encode( year       		 )
+		try encoder.encode( month      		 )
+		try encoder.encode( day        		 )
+		try encoder.encode( hour       		 )
+		try encoder.encode( minute     		 )
+		try encoder.encode( second     		 )
+		try encoder.encode( nanosecond 		 )
+		try encoder.encode( weekday           )
+		try encoder.encode( weekdayOrdinal    )
+		try encoder.encode( quarter           )
+		try encoder.encode( weekOfMonth       )
+		try encoder.encode( weekOfYear        )
+		try encoder.encode( yearForWeekOfYear )
 	}
 }
-extension DateComponents : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws {
-		let calendar   			= try Calendar?(from: &rbuffer)
-		let timeZone   			= try TimeZone?(from: &rbuffer)
-		let era        			= try Int?(from: &rbuffer)
-		let year       			= try Int?(from: &rbuffer)
-		let month      			= try Int?(from: &rbuffer)
-		let day        			= try Int?(from: &rbuffer)
-		let hour       			= try Int?(from: &rbuffer)
-		let minute     			= try Int?(from: &rbuffer)
-		let second     			= try Int?(from: &rbuffer)
-		let nanosecond 			= try Int?(from: &rbuffer)
-		let weekday          	= try Int?(from: &rbuffer)
-		let weekdayOrdinal   	= try Int?(from: &rbuffer)
-		let quarter          	= try Int?(from: &rbuffer)
-		let weekOfMonth      	= try Int?(from: &rbuffer)
-		let weekOfYear       	= try Int?(from: &rbuffer)
-		let yearForWeekOfYear	= try Int?(from: &rbuffer)
+
+extension DateComponents : BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
+		let calendar   			= try decoder.decode() as Calendar?
+		let timeZone   			= try decoder.decode() as TimeZone?
+		let era        			= try decoder.decode() as Int?
+		let year       			= try decoder.decode() as Int?
+		let month      			= try decoder.decode() as Int?
+		let day        			= try decoder.decode() as Int?
+		let hour       			= try decoder.decode() as Int?
+		let minute     			= try decoder.decode() as Int?
+		let second     			= try decoder.decode() as Int?
+		let nanosecond 			= try decoder.decode() as Int?
+		let weekday          	= try decoder.decode() as Int?
+		let weekdayOrdinal   	= try decoder.decode() as Int?
+		let quarter          	= try decoder.decode() as Int?
+		let weekOfMonth      	= try decoder.decode() as Int?
+		let weekOfYear       	= try decoder.decode() as Int?
+		let yearForWeekOfYear	= try decoder.decode() as Int?
 		
 		self.init(
 			calendar: calendar,
@@ -414,65 +423,67 @@ extension DateComponents : BinaryIType {
 			weekOfYear: weekOfYear,
 			yearForWeekOfYear: yearForWeekOfYear
 		)
-		
 	}
 }
+
+
 
 
 //	DateInterval SUPPORT ------------------------------------------------------
 
-extension DateInterval : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try start.write(to: &wbuffer)
-		try duration.write(to: &wbuffer)
+extension DateInterval : BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
+		try encoder.encode( start )
+		try encoder.encode( duration )
 	}
 }
-extension DateInterval : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws {
-		let start 		= try Date(from: &rbuffer)
-		let duration 	= try TimeInterval(from: &rbuffer)
+extension DateInterval : BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
+		let start 		= try decoder.decode() as Date
+		let duration 	= try decoder.decode() as TimeInterval
 		self.init(start: start, duration: duration)
 	}
 }
 
+
 //	PersonNameComponents SUPPORT ------------------------------------------------------
 
-extension PersonNameComponents : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try namePrefix	.write(to: &wbuffer)
-		try givenName	.write(to: &wbuffer)
-		try middleName	.write(to: &wbuffer)
-		try familyName	.write(to: &wbuffer)
-		try nameSuffix	.write(to: &wbuffer)
-		try nickname	.write(to: &wbuffer)
+extension PersonNameComponents : BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
+		try encoder.encode( namePrefix )
+		try encoder.encode( givenName )
+		try encoder.encode( middleName )
+		try encoder.encode( familyName )
+		try encoder.encode( nameSuffix )
+		try encoder.encode( nickname )
 	}
 }
-extension PersonNameComponents : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws {
+extension PersonNameComponents : BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
 		self.init()
 		
-		namePrefix	= try String?(from: &rbuffer)
-		givenName	= try String?(from: &rbuffer)
-		middleName	= try String?(from: &rbuffer)
-		familyName	= try String?(from: &rbuffer)
-		nameSuffix	= try String?(from: &rbuffer)
-		nickname	= try String?(from: &rbuffer)
+		namePrefix	= try decoder.decode()
+		givenName	= try decoder.decode()
+		middleName	= try decoder.decode()
+		familyName	= try decoder.decode()
+		nameSuffix	= try decoder.decode()
+		nickname	= try decoder.decode()
 	}
 }
 
 //	URL SUPPORT ------------------------------------------------------
 
-extension URL : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try relativeString	.write(to: &wbuffer)
-		try baseURL			.write(to: &wbuffer)
+extension URL : BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
+		try encoder.encode( relativeString )
+		try encoder.encode( baseURL )
 	}
 }
-extension URL : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws {
-		let relative	= try String(from: &rbuffer)
-		let base		= try URL?(from: &rbuffer)
-
+extension URL : BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
+		let relative	= try decoder.decode() as String
+		let base		= try decoder.decode() as URL?
+		
 		guard let url = URL(string: relative, relativeTo: base) else {
 			throw BinaryIOError.libDecodingError(
 				Self.self, BinaryIOError.Context(
@@ -486,91 +497,91 @@ extension URL : BinaryIType {
 
 //	URLComponents SUPPORT ------------------------------------------------------
 
-extension URLComponents : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try scheme		.write(to: &wbuffer)
-		try user		.write(to: &wbuffer)
-		try password	.write(to: &wbuffer)
-		try host		.write(to: &wbuffer)
-		try port		.write(to: &wbuffer)
-		try path		.write(to: &wbuffer)
-		try query		.write(to: &wbuffer)
-		try fragment	.write(to: &wbuffer)
+extension URLComponents : BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
+		try encoder.encode( scheme	 )
+		try encoder.encode( user	 )
+		try encoder.encode( password )
+		try encoder.encode( host	 )
+		try encoder.encode( port	 )
+		try encoder.encode( path	 )
+		try encoder.encode( query	 )
+		try encoder.encode( fragment )
 	}
 }
-extension URLComponents : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws {
+extension URLComponents : BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
 		self.init()
 		
-		scheme		= try String?(from: &rbuffer)
-		user		= try String?(from: &rbuffer)
-		password	= try String?(from: &rbuffer)
-		host		= try String?(from: &rbuffer)
-		port		= try Int?(from: &rbuffer)
-		path		= try String(from: &rbuffer)
-		query		= try String?(from: &rbuffer)
-		fragment	= try String?(from: &rbuffer)
+		scheme		= try decoder.decode()
+		user		= try decoder.decode()
+		password	= try decoder.decode()
+		host		= try decoder.decode()
+		port		= try decoder.decode()
+		path		= try decoder.decode()
+		query		= try decoder.decode()
+		fragment	= try decoder.decode()
 	}
 }
 
 //	Measurement SUPPORT ------------------------------------------------------
 
-extension Measurement : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try value		.write(to: &wbuffer)
-		try unit.symbol	.write(to: &wbuffer)
+extension Measurement : BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
+		try encoder.encode( value )
+		try encoder.encode( unit.symbol )
 	}
 }
-extension Measurement : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws {
-		let value	= try Double(from: &rbuffer)
-		let symbol	= try String(from: &rbuffer)
+extension Measurement : BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
+		let value	= try decoder.decode() as Double
+		let symbol	= try decoder.decode() as String
 		self.init( value: value, unit: UnitType(symbol: symbol) )
 	}
 }
 
 
-extension OperationQueue.SchedulerTimeType : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try date.write(to: &wbuffer)
+extension OperationQueue.SchedulerTimeType : BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
+		try encoder.encode( date )
 	}
 }
-extension OperationQueue.SchedulerTimeType : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws {
-		self.init( try Date(from: &rbuffer) )
-	}
-}
-
-extension OperationQueue.SchedulerTimeType.Stride : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try timeInterval.write(to: &wbuffer)
-	}
-}
-extension OperationQueue.SchedulerTimeType.Stride : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws {
-		self.init( try TimeInterval(from: &rbuffer) )
+extension OperationQueue.SchedulerTimeType : BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
+		self.init( try decoder.decode() )
 	}
 }
 
-extension RunLoop.SchedulerTimeType : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try date.write(to: &wbuffer)
+extension OperationQueue.SchedulerTimeType.Stride : BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
+		try encoder.encode( timeInterval )
 	}
 }
-extension RunLoop.SchedulerTimeType : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws {
-		self.init( try Date(from: &rbuffer) )
+extension OperationQueue.SchedulerTimeType.Stride : BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
+		self.init( try decoder.decode() )
 	}
 }
 
-extension RunLoop.SchedulerTimeType.Stride : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try timeInterval.write(to: &wbuffer)
+extension RunLoop.SchedulerTimeType : BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
+		try encoder.encode( date )
 	}
 }
-extension RunLoop.SchedulerTimeType.Stride : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws {
-		self.init( try TimeInterval(from: &rbuffer) )
+extension RunLoop.SchedulerTimeType : BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
+		self.init( try decoder.decode() )
+	}
+}
+
+extension RunLoop.SchedulerTimeType.Stride : BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
+		try encoder.encode( timeInterval )
+	}
+}
+extension RunLoop.SchedulerTimeType.Stride : BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
+		self.init( try decoder.decode() )
 	}
 }
 

@@ -22,96 +22,91 @@
 
 import Dispatch
 
+extension DispatchTime : BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
+		self.init( uptimeNanoseconds: try decoder.decode() )
+	}
+}
+extension DispatchTime : BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
+		try encoder.encode( uptimeNanoseconds )
+	}
+}
 
-extension DispatchTime : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws {
-		self.init( uptimeNanoseconds: try UInt64( from: &rbuffer) )
-	}
-}
-extension DispatchTime : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try uptimeNanoseconds.write(to: &wbuffer)
-	}
-}
 
 extension DispatchTimeInterval {
-	private enum IntervalType : UInt8, BinaryIOType {
+	private enum IntervalType : UInt8, BCodable {
 		case seconds,milliseconds,microseconds,nanoseconds,never
 	}
 }
 
-extension DispatchTimeInterval : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws {
-		let intervalType	= try IntervalType.init(from: &rbuffer)
+extension DispatchTimeInterval : BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
+		let intervalType	= try decoder.decode() as IntervalType
 		switch intervalType {
 			case .seconds:
-				let value = try Int( from: &rbuffer )
-				self = .seconds(value)
+				self = .seconds( try decoder.decode() )
 			case .milliseconds:
-				let value = try Int( from: &rbuffer )
-				self = .milliseconds(value)
+				self = .milliseconds( try decoder.decode() )
 			case .microseconds:
-				let value = try Int( from: &rbuffer )
-				self = .microseconds(value)
+				self = .microseconds( try decoder.decode() )
 			case .nanoseconds:
-				let value = try Int( from: &rbuffer )
-				self = .nanoseconds(value)
+				self = .nanoseconds( try decoder.decode() )
 			case .never:
 				self = .never
 		}
 	}
 }
 
-extension DispatchTimeInterval : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
+extension DispatchTimeInterval : BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
 		switch self {
-		case .seconds( let value ):
-			try IntervalType.seconds.write(to: &wbuffer)
-			try value.write(to: &wbuffer)
-		case .milliseconds( let value ):
-			try IntervalType.milliseconds.write(to: &wbuffer)
-			try value.write(to: &wbuffer)
-		case .microseconds( let value ):
-			try IntervalType.microseconds.write(to: &wbuffer)
-			try value.write(to: &wbuffer)
-		case .nanoseconds( let value ):
-			try IntervalType.nanoseconds.write(to: &wbuffer)
-			try value.write(to: &wbuffer)
-		case .never:
-			try IntervalType.never.write(to: &wbuffer)
-		default:
-			throw BinaryIOError.libEncodingError(
-				Self.self, BinaryIOError.Context(
-					debugDescription: "\(Self.self) in a new unknown case -\(self)-."
+			case .seconds( let value ):
+				try encoder.encode( IntervalType.seconds )
+				try encoder.encode( value )
+			case .milliseconds( let value ):
+				try encoder.encode( IntervalType.milliseconds )
+				try encoder.encode( value )
+			case .microseconds( let value ):
+				try encoder.encode( IntervalType.microseconds )
+				try encoder.encode( value )
+			case .nanoseconds( let value ):
+				try encoder.encode( IntervalType.nanoseconds )
+				try encoder.encode( value )
+			case .never:
+				try encoder.encode( IntervalType.never )
+			default:
+				throw BinaryIOError.libEncodingError(
+					Self.self, BinaryIOError.Context(
+						debugDescription: "\(Self.self) in a new unknown case -\(self)-."
+					)
 				)
-			)
 		}
 	}
+}
+
+extension DispatchQueue.SchedulerTimeType : BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
+		self.init( try decoder.decode() )
+	}
+}
+extension DispatchQueue.SchedulerTimeType : BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
+		try encoder.encode( dispatchTime )
+	}
 	
 }
 
-extension DispatchQueue.SchedulerTimeType : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws {
-		self.init( try DispatchTime(from: &rbuffer) )
-	}
-}
-extension DispatchQueue.SchedulerTimeType : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try dispatchTime.write(to: &wbuffer)
-	}
-	
-}
-
-extension DispatchQueue.SchedulerTimeType.Stride : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws {
-		self.init( try DispatchTimeInterval( from:&rbuffer) )
+extension DispatchQueue.SchedulerTimeType.Stride : BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
+		self.init( try decoder.decode() )
 	}
 }
 
-extension DispatchQueue.SchedulerTimeType.Stride : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try timeInterval.write(to: &wbuffer)
+extension DispatchQueue.SchedulerTimeType.Stride : BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
+		try encoder.encode( timeInterval )
 	}
-	
 }
+
 

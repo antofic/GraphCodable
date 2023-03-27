@@ -58,7 +58,7 @@ final class StringEncoder : FileBlockEncoder {
 		dumpString.append( string )
 	}
 	
-	func append(_ fileBlock: FileBlock, binaryValue: BinaryOType?) {
+	func append(_ fileBlock: FileBlock, binaryValue: BEncodable?) {
 		beforeBodyAppend()
 		
 		if options.contains( .showBody ) {
@@ -89,7 +89,7 @@ final class StringEncoder : FileBlockEncoder {
 	func appendPtr( keyID:KeyID?, objID:ObjID, conditional:Bool ) throws {
 		append( .Ptr(keyID: keyID,objID:objID, conditional:conditional ), binaryValue:nil )
 	}
-	func appendVal( keyID:KeyID?, typeID:TypeID?, objID:ObjID?, binaryValue:BinaryOType? ) throws {
+	func appendVal( keyID:KeyID?, typeID:TypeID?, objID:ObjID?, binaryValue:BEncodable? ) throws {
 		let size = binaryValue != nil ? BinSize() : nil
 		append( .Val(keyID: keyID, objID:objID, typeID:typeID, binSize: size), binaryValue:binaryValue  )
 	}

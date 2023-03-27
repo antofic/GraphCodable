@@ -27,9 +27,9 @@ final class GDecoderImpl {
 	var classNameMap		= ClassNameMap()
 	private var constructor : TypeConstructor!
 	
-	private func readBuffer<Q>( from data: Q ) throws -> BinaryReadBuffer
+	private func readBuffer<Q>( from data: Q ) throws -> BinaryIODecoder
 	where Q:DataProtocol {
-		try BinaryReadBuffer(data: data, userData:self )
+		try BinaryIODecoder(data: data, userData:self )
 	}
 	
 	func allClassData<Q>( from data: Q ) throws -> [ClassData]

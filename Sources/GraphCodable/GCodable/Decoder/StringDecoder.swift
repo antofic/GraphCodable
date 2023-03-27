@@ -31,7 +31,7 @@ final class StringDecoder: FileBlockEncoderDelegate {
 	let keyStringMap	: KeyStringMap
 	let dumpOptions		: GraphDumpOptions
 	
-	init( from readBuffer:BinaryReadBuffer, classNameMap:ClassNameMap?, options:GraphDumpOptions ) throws {
+	init( from readBuffer:BinaryIODecoder, classNameMap:ClassNameMap?, options:GraphDumpOptions ) throws {
 		var readBlockDecoder	= try ReadBlockDecoder( from: readBuffer )
 		
 		self.dataSize		= readBuffer.dataSize

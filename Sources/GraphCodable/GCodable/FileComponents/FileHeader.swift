@@ -22,8 +22,9 @@
 
 
 ///	FileHeader: the 24 bytes fixed size header of every gcodable file
-struct FileHeader : CustomStringConvertible, BinaryIOType {
-	struct Flags : OptionSet {
+struct FileHeader : CustomStringConvertible, BCodable {
+	
+	struct Flags : OptionSet, BCodable {
 		let rawValue: UInt16
 		static let	packBinSize		= Self( rawValue: 1 << 0 )
 	}
@@ -32,7 +33,7 @@ struct FileHeader : CustomStringConvertible, BinaryIOType {
 		static var CURRENT_FILE_VERSION	: UInt32 { NEWFILEBLOCK_VERSION }
 	}
 
-	private enum HeaderID : UInt32 {
+	private enum HeaderID : UInt32, BCodable {
 		case gcod	= 0x67636F64	// ascii = 'gcod'
 	}
 
@@ -75,9 +76,9 @@ struct FileHeader : CustomStringConvertible, BinaryIOType {
 		self.unused0			= unused0
 		self.unused1			= unused1
 	}
-
-	init(from rbuffer: inout BinaryReadBuffer) throws {
-		let headerID	= try HeaderID	( from: &rbuffer )
+	
+	init(from decoder: inout some BDecoder) throws {
+		let headerID	= try decoder.decode() as HeaderID
 		guard headerID == .gcod else {
 			throw GraphCodableError.malformedArchive(
 				Self.self, GraphCodableError.Context(
@@ -85,7 +86,7 @@ struct FileHeader : CustomStringConvertible, BinaryIOType {
 				)
 			)
 		}
-		let gcodableVersion		= try UInt32	( from: &rbuffer )
+		let gcodableVersion		= try decoder.decode() as UInt32
 		if gcodableVersion < Versions.NEWFILEBLOCK_VERSION {
 			throw GraphCodableError.malformedArchive(
 				Self.self, GraphCodableError.Context(
@@ -93,20 +94,19 @@ struct FileHeader : CustomStringConvertible, BinaryIOType {
 				)
 			)
 		}
-		
-		self.userVersion		= rbuffer.encodedUserVersion
-		self.binaryIOVersion	= rbuffer.binaryIOVersion
+		self.userVersion		= decoder.encodedUserVersion
+		self.binaryIOVersion	= decoder.encodedBinaryIOVersion
 		self.gcodableVersion	= gcodableVersion
-		self.flags				= try Flags		( from: &rbuffer )
-		self.unused0			= try UInt16	( from: &rbuffer )
-		self.unused1			= try UInt64	( from: &rbuffer )
+		self.flags				= try decoder.decode()
+		self.unused0			= try decoder.decode()
+		self.unused1			= try decoder.decode()
 	}
-
-	func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try HeaderID.gcod.write(to: &wbuffer)
-		try gcodableVersion.write(to: &wbuffer)
-		try flags.write(to: &wbuffer)
-		try unused0.write(to: &wbuffer)
-		try unused1.write(to: &wbuffer)
+	
+	func encode(to encoder: inout some BEncoder) throws {
+		try encoder.encode( HeaderID.gcod )
+		try encoder.encode( gcodableVersion )
+		try encoder.encode( flags )
+		try encoder.encode( unused0 )
+		try encoder.encode( unused1 )
 	}
 }

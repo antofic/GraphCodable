@@ -29,7 +29,7 @@ import Foundation
 //	Note: this will make written BinSize data variable in size
 
 
-protocol UIntID: Hashable, BinaryIOType,CustomStringConvertible {
+protocol UIntID: Hashable, BCodable, CustomStringConvertible {
 	associatedtype uID : UnsignedInteger
 	
 	init( _ id:uID )
@@ -41,14 +41,14 @@ extension UIntID {
 		self.init( 1 )
 	}
 
-	init( from rbuffer:inout BinaryReadBuffer ) throws {
-		self.init( try uID(decompressFrom: &rbuffer) )
+	func encode(to encoder: inout some BEncoder) throws {
+		try id.compress(to: &encoder)
 	}
-
-	func write( to wbuffer:inout BinaryWriteBuffer ) throws {
-		try id.write(compressTo: &wbuffer)
+	
+	init(from decoder: inout some BDecoder) throws {
+		self.init( try uID.decompress(from: &decoder) )
 	}
-
+	
 	var next : Self {
 		return Self( id + 1 )
 	}
@@ -61,6 +61,7 @@ extension UIntID {
 //	We use three distinct structures so as not to run
 //	the risk of confusing them.
 struct ObjID : UIntID {
+	
 	let id: UInt32
 	init(_ id: UInt32) { self.id = id }
 }
@@ -78,23 +79,45 @@ struct TypeID : UIntID {
 
 //	We also make BinSize (the size of the GBinaryCodable)
 //	compressible as desired. The benefits are minor.
-struct BinSize: Equatable {
+struct BinSize: Equatable, BCodable {
 	private let _usize: UInt
+	
+	private init( _ usize: UInt ) {
+		_usize = usize
+	}
 	
 	init() { _usize = UInt(bitPattern: -1) }
 	
 	init(_ size: Int)	{ self._usize = UInt(size) }
 	var size: Int		{ Int(_usize) }
 	
-	init(from rbuffer: inout BinaryReadBuffer, decompress:Bool ) throws {
-		if decompress	{ _usize = try UInt( decompressFrom: &rbuffer ) }
-		else			{ _usize = try UInt( from: &rbuffer ) }
+	func encode(to encoder: inout some BEncoder) throws {
+		try encoder.encode( _usize )
+	}
+	
+	init(from decoder: inout some BDecoder) throws {
+		try _usize	= decoder.decode()
+	}
+
+	static func decompress( from decoder: inout some BDecoder ) throws -> Self {
+		return self.init( try UInt.decompress(from: &decoder) )
+	}
+	
+	func compress(to encoder: inout some BEncoder ) throws {
+		try _usize.compress(to: &encoder)
+	}
+
+	/*
+	init(from decoder: inout some BDecoder, decompress:Bool ) throws {
+		if decompress	{ _usize = try UInt.decompress( from: &decoder ) }
+		else			{ _usize = try UInt( from: &decoder ) }
 	}
 	
 	//	compress will make writed BinSize data variable in size
-	func write(to wbuffer: inout BinaryWriteBuffer, compress:Bool ) throws {
-		if compress 	{ try _usize.write( compressTo: &wbuffer) }
-		else			{ try _usize.write( to: &wbuffer) }
+	func write(to encoder: inout some BEncoder, compress:Bool ) throws {
+		if compress 	{ try _usize.compress( to: &encoder) }
+		else			{ try encoder.encode( _usize ) }
 	}
+	*/
 }
 

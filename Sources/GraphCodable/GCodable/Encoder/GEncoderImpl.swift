@@ -79,8 +79,8 @@ final class GEncoderImpl : FileBlockEncoderDelegate {
 	var classDataMap: ClassDataMap 	{ referenceMap.classDataMap }
 	var keyStringMap: KeyStringMap 	{ keyMap.keyStringMap }
 	
-	private func writeBuffer() -> BinaryWriteBuffer {
-		BinaryWriteBuffer( userVersion: fileHeader.userVersion, userData: self )
+	private func writeBuffer() -> BinaryIOEncoder {
+		BinaryIOEncoder( userVersion: fileHeader.userVersion, userData: self )
 	}
 	
 	init( _ options: GraphEncoder.Options, userVersion:UInt32 ) {
@@ -92,8 +92,8 @@ final class GEncoderImpl : FileBlockEncoderDelegate {
 		// packBinSize or not???
 		self.fileHeader = FileHeader(
 			userVersion: userVersion,
-			binaryIOVersion: BinaryWriteBuffer.binaryIOVersion,
-			flags: .packBinSize
+			binaryIOVersion: BinaryIOEncoder.binaryIOVersion,
+			flags: []	// .packBinSize
 		)
 	}
 

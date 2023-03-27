@@ -38,5 +38,5 @@ protocol FileBlockEncoder : AnyObject {
 	func appendEnd() throws
 	func appendNil( keyID:KeyID? ) throws
 	func appendPtr( keyID:KeyID?, objID:ObjID, conditional:Bool ) throws
-	func appendVal( keyID:KeyID?, typeID:TypeID?, objID:ObjID?, binaryValue:BinaryOType? ) throws
+	func appendVal( keyID:KeyID?, typeID:TypeID?, objID:ObjID?, binaryValue:BEncodable? ) throws
 }

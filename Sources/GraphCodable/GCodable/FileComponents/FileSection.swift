@@ -37,7 +37,7 @@ import Foundation
 //		each keystring encountered during encoding
 //---------------------------------------------------------------------------------------------
 
-enum FileSection : UInt16, CaseIterable, BinaryIOType {
+enum FileSection : UInt16, CaseIterable, BCodable {
 	case body = 0x0010, classDataMap = 0x0020, keyStringMap = 0x0030
 }
 

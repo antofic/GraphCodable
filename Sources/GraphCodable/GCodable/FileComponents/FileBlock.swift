@@ -23,7 +23,7 @@
 
 /// the body of a GCodable file is a sequence of FileBlock's
 enum FileBlock {	// size = 32 bytes
-	private struct Code: OptionSet {
+	private struct Code: OptionSet, BCodable {
 		let rawValue: UInt8
 		
 		private static let	b0 = Self( rawValue: 1 << 0 )
@@ -182,37 +182,36 @@ extension FileBlock {
 
 extension FileBlock {
 	static func writeEnd(
-		to wbuffer: inout BinaryWriteBuffer, fileHeader:FileHeader
+		to encoder: inout BinaryIOEncoder, fileHeader:FileHeader
 	) throws {
-		try Code.End().write(to: &wbuffer)
+		try encoder.encode( Code.End() )
 	}
 
 	static func writeNil(
 		keyID:KeyID?,
-		to wbuffer: inout BinaryWriteBuffer, fileHeader:FileHeader
+		to encoder: inout BinaryIOEncoder, fileHeader:FileHeader
 	) throws {
-
-		try Code.Nil(keyID: keyID).write(to: &wbuffer)
-		try keyID?.write(to: &wbuffer )
+		try encoder.encode( Code.Nil(keyID: keyID) )
+		if let keyID 	{ try encoder.encode( keyID ) }
 	}
 
 	static func writePtr(
 		keyID:KeyID?, objID:ObjID, conditional:Bool,
-		to wbuffer: inout BinaryWriteBuffer, fileHeader:FileHeader
+		to encoder: inout BinaryIOEncoder, fileHeader:FileHeader
 	) throws {
-		try Code.Ptr(keyID: keyID, objID: objID, conditional:conditional ).write(to: &wbuffer)
-		try keyID?.write( to: &wbuffer )
-		try objID.write( to: &wbuffer )
+		try encoder.encode( Code.Ptr(keyID: keyID, objID: objID, conditional:conditional ) )
+		if let keyID 	{ try encoder.encode( keyID ) }
+		try encoder.encode( objID )
 	}
 	
 	static func writeVal(
-		keyID:KeyID?, objID:ObjID?, typeID:TypeID?, binaryValue:BinaryOType?,
-		to wbuffer: inout BinaryWriteBuffer, fileHeader:FileHeader
+		keyID:KeyID?, objID:ObjID?, typeID:TypeID?, binaryValue:BEncodable?,
+		to encoder: inout BinaryIOEncoder, fileHeader:FileHeader
 	) throws {
-		try Code.Val(keyID: keyID, objID: objID, typeID: typeID, isBinary: binaryValue != nil ).write(to: &wbuffer)
-		try keyID?.write( to: &wbuffer )
-		try objID?.write( to: &wbuffer )
-		try typeID?.write( to: &wbuffer )
+		try encoder.encode( Code.Val(keyID: keyID, objID: objID, typeID: typeID, isBinary: binaryValue != nil ) )
+		if let keyID	{ try encoder.encode( keyID ) }
+		if let objID	{ try encoder.encode( objID ) }
+		if let typeID	{ try encoder.encode( typeID ) }
 		if let binaryValue {
 			let compress = fileHeader.flags.contains( .packBinSize )
 			//	I control this choice with the 'packBinSize' internal flag so
@@ -223,18 +222,18 @@ extension FileBlock {
 				//	involves shifting a possibly large binSize.size amount of data
 				//	by a small offset (1-2-3-4-5 bytes). As much as it doesn't seem
 				//	to reduce performance I don't like it.
-				try wbuffer.insertingWrite(
-					firstWrite: { try binaryValue.write(to: &$0) },
-					thenInsert: { try BinSize( $1 ).write(to: &$0, compress: compress) }
+				try encoder.insertingWrite(
+					firstWrite: { try $0.encode( binaryValue ) },
+					thenInsert: { try BinSize( $1 ).compress( to: &$0 ) }
 				)
 			} else {	// compress == false
 				//	we write a bogus binSize = BinSize(), write the data and when
 				//	we know their size we update binSize. BinSize must have a known
 				//	size, so we don't pack BinSize and obtain slightly larger files.
-				try wbuffer.prependingWrite(
-					dummyWrite:			{ try BinSize().write(to: &$0, compress: compress) },
-					thenWrite:			{ try binaryValue.write(to: &$0) },
-					thenOverwriteDummy: { try BinSize( $1 ).write(to: &$0, compress: compress) }
+				try encoder.prependingWrite(
+					dummyWrite:			{ try $0.encode( BinSize() ) },
+					thenWrite:			{ try $0.encode( binaryValue ) },
+					thenOverwriteDummy: { try $0.encode( BinSize( $1 ) ) }
 				)
 			}
 		}
@@ -242,26 +241,29 @@ extension FileBlock {
 }
 
 extension FileBlock {
-	init(from rbuffer: inout BinaryReadBuffer, fileHeader:FileHeader ) throws {
-		let code	= try Code(from: &rbuffer)
-
+	init(from decoder: inout some BDecoder, fileHeader:FileHeader ) throws {
+		let code	= try Code(from: &decoder)
+		
 		switch try code.category {
-		case .End:
-			self	= .End
-		case .Nil:
-			let keyID	= code.hasKeyID ? try KeyID(from: &rbuffer) : nil
-			self = .Nil(keyID: keyID)
-		case .Ptr:
-			let keyID	= code.hasKeyID	? try KeyID(from: &rbuffer) : nil
-			let objID	= try ObjID(from: &rbuffer)
-			self = .Ptr( keyID: keyID, objID: objID, conditional: code.isConditional )
-		case .Val:
-			let unpack 		= fileHeader.flags.contains( .packBinSize )
-			let keyID		= code.hasKeyID	?	try KeyID(from: &rbuffer) : nil
-			let objID		= code.hasObjID	?	try ObjID(from: &rbuffer) : nil
-			let typeID		= code.hasTypeID ?	try TypeID(from: &rbuffer) : nil
-			let binSize		= code.isBinary ?	try BinSize(from: &rbuffer, decompress: unpack) : nil
-			self = .Val( keyID: keyID, objID: objID, typeID: typeID, binSize: binSize )
+			case .End:
+				self			= .End
+			case .Nil:
+				let keyID		= code.hasKeyID ? try KeyID(from: &decoder) : nil
+				self			= .Nil(keyID: keyID)
+			case .Ptr:
+				let keyID		= code.hasKeyID	? try KeyID(from: &decoder) : nil
+				let objID		= try ObjID(from: &decoder)
+				self			= .Ptr( keyID: keyID, objID: objID, conditional: code.isConditional )
+			case .Val:
+				let unpack 		= fileHeader.flags.contains( .packBinSize )
+				let keyID		= code.hasKeyID	 ?	try KeyID(from: &decoder)  : nil
+				let objID		= code.hasObjID	 ?	try ObjID(from: &decoder)  : nil
+				let typeID		= code.hasTypeID ?	try TypeID(from: &decoder) : nil
+				let binSize		= code.isBinary  ? (
+					unpack ?	try BinSize.decompress(from: &decoder) :
+								try BinSize(from: &decoder)
+				) : nil
+				self 			= .Val( keyID: keyID, objID: objID, typeID: typeID, binSize: binSize )
 		}
 	}
 }
@@ -273,7 +275,7 @@ extension FileBlock : CustomStringConvertible {
 	
 	func description(
 		options:			GraphDumpOptions,
-		binaryValue: 		BinaryOType?,
+		binaryValue: 		BEncodable?,
 		classDataMap cdm:	ClassDataMap?,
 		keyStringMap ksm: 	KeyStringMap?
 	) -> String {

@@ -23,20 +23,21 @@
 import Foundation
 
 /*
-BinaryWriteBuffer data format uses always:
-	• little-endian
-	• store Int, UInt as Int64, UInt64
-*/
+ BinaryIOEncoder data format uses always:
+ • little-endian
+ • store Int, UInt as Int64, UInt64
+ */
 
-/// Buffer to write instances of BinaryOType types to.
-public struct BinaryWriteBuffer {
+
+/// Buffer to write instances of BEncodable types to.
+public struct BinaryIOEncoder: BEncoder {
 	private (set) var 	bytes 			: Bytes
 	private var 		_position		: Int
 	private (set) var 	startOfFile 	: Int
 	private var			insertMode		: Bool
 	
 	// actual version for BinaryIO library types
-	static let			binaryIOVersion	: UInt32 = 0
+	static public let	binaryIOVersion	: UInt32 = 0
 	// public version for user defined types
 	public let			userVersion		: UInt32
 	public let			userData		: Any?
@@ -44,7 +45,7 @@ public struct BinaryWriteBuffer {
 
 //	MAKE THIS EXTENSION PUBLIC IF YOU WANT TO USE BinaryIO
 //	AS A STANDALONE LIBRARY WITH ADVANCED FUNCTIONALITIES
-extension BinaryWriteBuffer {
+extension BinaryIOEncoder {
 	var endOfFile	: Int { bytes.endIndex }
 	
 	var position: Int {
@@ -65,12 +66,7 @@ extension BinaryWriteBuffer {
 		// really can't throw
 		try! self.writeValue( Self.binaryIOVersion )
 		try! self.writeValue( userVersion )
-
 		self.startOfFile	= position
-
-		//	try! Self.binaryIOVersion.write(to: &self)
-		//	try! self.userVersion.write(to: &self)
-
 	}
 	
 	func data<Q>() -> Q where Q:MutableDataProtocol {
@@ -82,9 +78,9 @@ extension BinaryWriteBuffer {
 	}
 	
 	mutating func prependingWrite(
-		dummyWrite			dummyFunc: ( _: inout BinaryWriteBuffer ) throws -> (),
-		thenWrite 			writeFunc: ( _: inout BinaryWriteBuffer ) throws -> (),
-		thenOverwriteDummy 	overwriteFunc: ( inout BinaryWriteBuffer, _: Int ) throws -> ()
+		dummyWrite			dummyFunc: 		( _: inout BinaryIOEncoder ) throws -> (),
+		thenWrite 			writeFunc: 		( _: inout BinaryIOEncoder ) throws -> (),
+		thenOverwriteDummy 	overwriteFunc:	( inout BinaryIOEncoder, _: Int ) throws -> ()
 	) throws {
 		let dummyPos		= position
 		try dummyFunc( &self )
@@ -107,8 +103,8 @@ extension BinaryWriteBuffer {
 	}
 	
 	mutating func insertingWrite(
-		firstWrite	writeFunc: ( _: inout BinaryWriteBuffer ) throws -> (),
-		thenInsert	insertFunc: ( _: inout BinaryWriteBuffer, _: Int ) throws -> ()
+		firstWrite	writeFunc: ( _: inout BinaryIOEncoder ) throws -> (),
+		thenInsert	insertFunc: ( _: inout BinaryIOEncoder, _: Int ) throws -> ()
 	) throws {
 		let initialPos		= position
 		try writeFunc( &self )
@@ -126,7 +122,7 @@ extension BinaryWriteBuffer {
 
 
 // private section ---------------------------------------------------------
-extension BinaryWriteBuffer {
+extension BinaryIOEncoder {
 	private mutating func write<C>( contentsOf source:C ) throws
 	where C:RandomAccessCollection, C.Element == UInt8 {
 		if position == bytes.endIndex {
@@ -163,19 +159,19 @@ extension BinaryWriteBuffer {
 	}
 }
 
-// internal section: utilities ---------------------------------------------------------
-extension BinaryWriteBuffer {
+// private section ---------------------------------------------------------
+extension BinaryIOEncoder {
 	//	Bool
-	mutating func writeBool( _ value:Bool ) throws			{ try writeValue( value ) }
-
+	private mutating func writeBool( _ value:Bool ) throws			{ try writeValue( value ) }
+	
 	//	Integers
-	mutating func writeFixedWidthInteger<T>( _ value:T ) throws
+	private mutating func writeFixedWidthInteger<T>( _ value:T ) throws
 	where T:FixedWidthInteger {
 		// Integers are always archived in littleEndian format
 		try writeValue( value.littleEndian )
 	}
-
-	mutating func writeFixedWidthInteger( _ value:Int ) throws {
+	
+	private mutating func writeFixedWidthInteger( _ value:Int ) throws {
 		// Int are always archived as Int64
 		guard let value64 = Int64( exactly: value ) else {
 			throw BinaryIOError.libDecodingError(
@@ -186,8 +182,8 @@ extension BinaryWriteBuffer {
 		}
 		try writeFixedWidthInteger( value64 )
 	}
-
-	mutating func writeFixedWidthInteger( _ value:UInt ) throws {
+	
+	private mutating func writeFixedWidthInteger( _ value:UInt ) throws {
 		// UInt are always archived as UInt64
 		guard let value64 = UInt64( exactly: value ) else {
 			throw BinaryIOError.libDecodingError(
@@ -200,16 +196,16 @@ extension BinaryWriteBuffer {
 	}
 	
 	//	Floats
-	mutating func writeFloat( _ value:Float ) throws {
+	private mutating func writeFloat( _ value:Float ) throws {
 		try writeFixedWidthInteger( value.bitPattern )
 	}
 	
-	mutating func writeDouble( _ value:Double ) throws {
+	private mutating func writeDouble( _ value:Double ) throws {
 		try writeFixedWidthInteger( value.bitPattern )
 	}
-
+	
 	//	Strings
-	mutating func writeString<T>( _ value:T, insert:Bool = false ) throws
+	private mutating func writeString<T>( _ value:T, insert:Bool = false ) throws
 	where T:StringProtocol {
 		try value.withCString() { ptr in
 			var endptr	= ptr
@@ -222,7 +218,7 @@ extension BinaryWriteBuffer {
 	}
 	
 	//	Data
-	mutating func writeData<T>( _ value:T, insert:Bool = false ) throws
+	private mutating func writeData<T>( _ value:T, insert:Bool = false ) throws
 	where T:MutableDataProtocol {
 		try writeFixedWidthInteger( value.count )
 		for region in value.regions {
@@ -231,5 +227,29 @@ extension BinaryWriteBuffer {
 			}
 		}
 	}
+}
+
+extension BinaryIOEncoder {
+	public mutating func encode<Value>(_ value: Value) throws where Value : BEncodable { try value.encode(to: &self) }
+	
+	public mutating func encodeBool		(_ value: Bool) 	throws { try writeBool( value ) }
+	
+	public mutating func encodeInt		(_ value: Int)		throws { try writeFixedWidthInteger( value ) }
+	public mutating func encodeInt8		(_ value: Int8)		throws { try writeFixedWidthInteger( value ) }
+	public mutating func encodeInt16	(_ value: Int16)	throws { try writeFixedWidthInteger( value ) }
+	public mutating func encodeInt32	(_ value: Int32)	throws { try writeFixedWidthInteger( value ) }
+	public mutating func encodeInt64	(_ value: Int64)	throws { try writeFixedWidthInteger( value ) }
+	
+	public mutating func encodeUInt		(_ value: UInt)		throws { try writeFixedWidthInteger( value ) }
+	public mutating func encodeUInt8	(_ value: UInt8)	throws { try writeFixedWidthInteger( value ) }
+	public mutating func encodeUInt16	(_ value: UInt16)	throws { try writeFixedWidthInteger( value ) }
+	public mutating func encodeUInt32	(_ value: UInt32)	throws { try writeFixedWidthInteger( value ) }
+	public mutating func encodeUInt64	(_ value: UInt64)	throws { try writeFixedWidthInteger( value ) }
+	
+	public mutating func encodeFloat	(_ value: Float)	throws { try writeFloat( value ) }
+	public mutating func encodeDouble	(_ value: Double)	throws { try writeDouble( value ) }
+	
+	public mutating func encodeString	(_ value: String)	throws { try writeString( value ) }
+	public mutating func encodeData		(_ value: Data)		throws { try writeData( value ) }
 }
 

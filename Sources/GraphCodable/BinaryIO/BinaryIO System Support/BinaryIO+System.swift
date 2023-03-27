@@ -20,35 +20,38 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
+
+
 import System
 
 
-extension Errno : BinaryIType {}
-extension Errno : BinaryOType {}
+extension Errno : BEncodable {}
+extension Errno : BDecodable {}
 
-extension FileDescriptor : BinaryIType {}
-extension FileDescriptor : BinaryOType {}
+extension FileDescriptor : BEncodable {}
+extension FileDescriptor : BDecodable {}
 
-extension FileDescriptor.AccessMode : BinaryIType {}
-extension FileDescriptor.AccessMode : BinaryOType {}
+extension FileDescriptor.AccessMode : BEncodable {}
+extension FileDescriptor.AccessMode : BDecodable {}
 
-extension FileDescriptor.OpenOptions : BinaryIType {}
-extension FileDescriptor.OpenOptions : BinaryOType {}
+extension FileDescriptor.OpenOptions : BEncodable {}
+extension FileDescriptor.OpenOptions : BDecodable {}
 
-extension FileDescriptor.SeekOrigin : BinaryIType {}
-extension FileDescriptor.SeekOrigin : BinaryOType {}
+extension FileDescriptor.SeekOrigin : BEncodable {}
+extension FileDescriptor.SeekOrigin : BDecodable {}
 
-extension FilePath : BinaryOType {
-	public func write(to wbuffer: inout BinaryWriteBuffer) throws {
-		try description.write(to: &wbuffer)
+extension FilePermissions : BEncodable {}
+extension FilePermissions : BDecodable {}
+
+
+extension FilePath : BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
+		self.init( try decoder.decode() )
 	}
 }
-extension FilePath : BinaryIType {
-	public init(from rbuffer: inout BinaryReadBuffer) throws {
-		self.init( try String( from: &rbuffer ) )
+extension FilePath : BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
+		try encoder.encode( description )
 	}
 }
-
-extension FilePermissions : BinaryIType {}
-extension FilePermissions : BinaryOType {}
 
