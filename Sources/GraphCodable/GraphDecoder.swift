@@ -44,7 +44,9 @@ public struct UndecodableClass {
 
 ///	An object that decodes instances of a **GDecodable** type
 ///	from a data buffer that uses **GraphCodable** format.
-public struct GraphDecoder {
+public final class GraphDecoder {
+	private let decoder = GDecoderImpl()
+
 	public init() {}
 
 	///	get/set the userInfo dictionary
@@ -105,7 +107,6 @@ public struct GraphDecoder {
 		}
 	}
 	
-	private let decoder = GDecoderImpl()
 }
 
 

@@ -24,7 +24,7 @@ import Foundation
 
 ///	An object that encodes instances of a **GEncodable** type
 ///	into a data buffer that uses **GraphCodable** format.
-public struct GraphEncoder {
+public final class GraphEncoder {
 	private let encoder	: GEncoderImpl
 
 	/// GraphEncoder init method

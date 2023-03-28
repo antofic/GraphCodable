@@ -20,8 +20,8 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
-final class EncodeDump : FileBlockEncoder {
-	weak var			delegate	: FileBlockEncoderDelegate?
+final class EncodeDump : EncodeFileBlocks {
+	weak var			delegate	: EncodeFileBlocksDelegate?
 	private var			fileHeader	: FileHeader
 	private var			options		: GraphDumpOptions
 	private var			dataSize	: Int?

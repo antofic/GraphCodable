@@ -22,7 +22,7 @@
 
 import Foundation
 
-final class DecodeDump: FileBlockEncoderDelegate {
+final class DecodeDump: EncodeFileBlocksDelegate {
 	let	dataSize		: Int
 	let fileHeader		: FileHeader
 	let readBlocks		: ReadBlocks
@@ -34,7 +34,7 @@ final class DecodeDump: FileBlockEncoderDelegate {
 	init( from ioDecoder:BinaryIODecoder, classNameMap:ClassNameMap?, options:GraphDumpOptions ) throws {
 		var readBlockDecoder	= try DecodeReadBlocks( from: ioDecoder )
 		
-		self.dataSize		= ioDecoder.dataSize
+		self.dataSize		= ioDecoder.fileSize
 		self.fileHeader		= readBlockDecoder.fileHeader
 		self.readBlocks		= try readBlockDecoder.readBlocks()
 		self.classDataMap	= try readBlockDecoder.classDataMap()

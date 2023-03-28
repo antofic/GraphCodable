@@ -21,19 +21,19 @@
 //	SOFTWARE.
 
 
-protocol FileBlockEncoderDelegate : AnyObject {
+protocol EncodeFileBlocksDelegate : AnyObject {
 	var	classDataMap:		ClassDataMap { get }
 	var	keyStringMap:		KeyStringMap { get }
 	
 	var referenceMapDescription: String? { get }
 }
 
-extension FileBlockEncoderDelegate {
+extension EncodeFileBlocksDelegate {
 	var referenceMapDescription: String? { nil }
 }
  
-protocol FileBlockEncoder : AnyObject {
-	var delegate	: FileBlockEncoderDelegate? { get set }
+protocol EncodeFileBlocks : AnyObject {
+	var delegate	: EncodeFileBlocksDelegate? { get set }
 	
 	func appendEnd() throws
 	func appendNil( keyID:KeyID? ) throws

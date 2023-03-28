@@ -97,7 +97,7 @@ struct DecodeReadBlocks {
 		defer { ioDecoder.regionRange = saveRegion }
 
 		var fileBlocks	= [ReadBlock]()
-		while ioDecoder.isEndOfFile == false {
+		while ioDecoder.isEndOfRegion == false {
 			let readBlock	= try ReadBlock(from: &ioDecoder, fileHeader: fileHeader)
 			fileBlocks.append( readBlock )
 		}

@@ -222,17 +222,17 @@ extension FileBlock {
 				//	involves shifting a possibly large binSize.size amount of data
 				//	by a small offset (1-2-3-4-5 bytes). As much as it doesn't seem
 				//	to reduce performance I don't like it.
-				try encoder.insertingWrite(
-					firstWrite: { try $0.encode( binaryValue ) },
-					thenInsert: { try BinSize( $1 ).compress( to: &$0 ) }
+				try encoder.insert(
+					firstEncode: 		{ try $0.encode( binaryValue ) },
+					thenInsertInFront:	{ try BinSize( $1 ).compress( to: &$0 ) }
 				)
 			} else {	// compress == false
 				//	we write a bogus binSize = BinSize(), write the data and when
 				//	we know their size we update binSize. BinSize must have a known
 				//	size, so we don't pack BinSize and obtain slightly larger files.
-				try encoder.prependingWrite(
-					dummyWrite:			{ try $0.encode( BinSize() ) },
-					thenWrite:			{ try $0.encode( binaryValue ) },
+				try encoder.prepend(
+					dummyEncode:		{ try $0.encode( BinSize() ) },
+					thenEncode:			{ try $0.encode( binaryValue ) },
 					thenOverwriteDummy: { try $0.encode( BinSize( $1 ) ) }
 				)
 			}
@@ -358,6 +358,5 @@ extension FileBlock : CustomStringConvertible {
 		}
 		return string
 	}
-
 }
 

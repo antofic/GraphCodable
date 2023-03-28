@@ -29,36 +29,43 @@ import Foundation
  */
 
 
-/// Buffer to write instances of BEncodable types to.
+///	A value that encodes instances of a **BEncodable** type
+///	into a data buffer that uses **BinaryIO** format.
 public struct BinaryIOEncoder: BEncoder {
-	private (set) var 	bytes 			: Bytes
-	private var 		_position		: Int
-	private (set) var 	startOfFile 	: Int
-	private var			insertMode		: Bool
+	private var 			_data 			: Bytes
+	private var 			_position		: Int
+	private var				insertMode		: Bool
+
+	///	The first bytes of the file are reserved so the file
+	///	data section begins from `startOfFile` offset.
+	public private(set) var startOfFile 	: Int
 	
-	// actual version for BinaryIO library types
-	static public let	binaryIOVersion	: UInt32 = 0
-	// public version for user defined types
-	public let			userVersion		: UInt32
-	public let			userData		: Any?
+	/// Actual version for BinaryIO library types
+	///
+	///	Accessible for information only.
+	static public let		binaryIOVersion	: UInt32 = 0
+
+	/// Current version for user defined types for
+	///	decoding strategies.
+	///
+	///	This variable must be set in the init method.
+	public let				userVersion		: UInt32
+	
+	///	User defined data for encoding strategies.
+	///
+	///	This variable can be set in the init method.
+	///	By default it is `nil`.
+	public let				userData		: Any?
 }
 
-//	MAKE THIS EXTENSION PUBLIC IF YOU WANT TO USE BinaryIO
-//	AS A STANDALONE LIBRARY WITH ADVANCED FUNCTIONALITIES
 extension BinaryIOEncoder {
-	var endOfFile	: Int { bytes.endIndex }
-	
-	var position: Int {
-		get { _position }
-		set {
-			precondition( (startOfFile...endOfFile).contains( newValue ),"\(Self.self): outOfBounds position." )
-			_position	= newValue
-		}
-	}
-	
-	init( userVersion: UInt32, userData:Any? = nil ) {
+	/// Creates a new instance of `BinaryIODecoder`.
+	///
+	/// - Parameter userVersion: An user definde version for its data.
+	///	- Parameter userData: User defined data for decoding strategies.
+	public init( userVersion: UInt32, userData:Any? = nil ) {
 		self.userVersion	= userVersion
-		self.bytes			= Bytes()
+		self._data			= Bytes()
 		self._position		= 0
 		self.startOfFile	= 0
 		self.insertMode		= false
@@ -68,73 +75,112 @@ extension BinaryIOEncoder {
 		try! self.writeValue( userVersion )
 		self.startOfFile	= position
 	}
-	
-	func data<Q>() -> Q where Q:MutableDataProtocol {
-		if let data = bytes as? Q {
+
+	///	Get the encoded data.
+	public func data<Q>() -> Q where Q:MutableDataProtocol {
+		if let data = _data as? Q {
 			return data
 		} else {
-			return Q( bytes )
+			return Q( _data )
 		}
 	}
 	
-	mutating func prependingWrite(
-		dummyWrite			dummyFunc: 		( _: inout BinaryIOEncoder ) throws -> (),
-		thenWrite 			writeFunc: 		( _: inout BinaryIOEncoder ) throws -> (),
-		thenOverwriteDummy 	overwriteFunc:	( inout BinaryIOEncoder, _: Int ) throws -> ()
-	) throws {
-		let dummyPos		= position
-		try dummyFunc( &self )
-		let bodyPos			= position
-		try writeFunc( &self )
-		let finalPos		= position
-		
-		position			= dummyPos
-		try overwriteFunc( &self, finalPos - bodyPos )
-		let newbodyPos		= position
-		position			= finalPos
-		
-		if newbodyPos != bodyPos {
-			throw BinaryIOError.prependingFails(
-				Self.self, BinaryIOError.Context(
-					debugDescription: "\(Self.self): outOfBounds position."
-				)
-			)
+	///	The current end of file position
+	public var endOfFile	: Int { _data.endIndex }
+	
+	///	Reads and sets the the position in
+	///	the file in which data will be encoded.
+	///
+	///	`position` cannot be less than `startOfFile`.
+	///
+	///	`position` cannot be greater than the current end of the
+	///	file (i.e. `endOfFile`).
+	public var position: Int {
+		get { _position }
+		set {
+			precondition( (startOfFile...endOfFile).contains( newValue ),"\(Self.self): outOfBounds position." )
+			_position	= newValue
 		}
 	}
 	
-	mutating func insertingWrite(
-		firstWrite	writeFunc: ( _: inout BinaryIOEncoder ) throws -> (),
-		thenInsert	insertFunc: ( _: inout BinaryIOEncoder, _: Int ) throws -> ()
+	/// Use this method when you want to encode data **B** in front of data **A**, but **B** depends (or is)
+	/// on the archived size of **A**. This function shifts the byte representation of **A**.
+	///
+	/// - Parameter firstEncode: closure that receive self as paramater and encode **A**.
+	/// - Parameter thenInsertInFront: closure that receive self and the size of **A** size
+	/// in encoded bytes as paramaters and encode **B**.
+	///
+	/// - Note: The bytes representing **A** are shifted to put **B** in front of **A**.
+	public mutating func insert(
+		firstEncode			encodeFunc: ( inout BinaryIOEncoder ) throws -> (),
+		thenInsertInFront	insertFunc: ( inout BinaryIOEncoder, _ encodeSize: Int ) throws -> ()
 	) throws {
-		let initialPos		= position
-		try writeFunc( &self )
-		let finalPos		= position
-		position			= initialPos
+		let initialPos	= position
+		try encodeFunc( &self )
+		let finalPos	= position
+		position		= initialPos
 		do {
 			insertMode = true
 			defer { insertMode = false }
 			try insertFunc( &self, finalPos - initialPos )
 		}
-		let valuePos		= position
-		position	= finalPos + (valuePos - initialPos)
+		let valuePos	= position
+		position		= finalPos + (valuePos - initialPos)
+	}
+	
+	/// Use this method when you want to encode data **B** in front of data **A**, but **B** depends (or is)
+	/// on the archived size of **A**. This function **don't** shifts the byte representation of **A**.
+	///
+	/// - Parameter dummyEncode: closure that receive self as paramater and encode
+	/// dummy data of the same size of **B**
+	/// - Parameter thenEncode: closure that receive self as paramater and encode **A**.
+	/// - Parameter thenOverwriteDummy: closure that receive self and the size of **A** size
+	/// in encoded bytes as paramaters and encode **B**.
+	///
+	/// - Note: `thenOverwriteDummy` must exactly overwrite the dummy data encoded with `dummyEncode`.
+	/// The exception `BinaryIOError.prependingFails` is generated otherwise.
+	public mutating func prepend(
+		dummyEncode			dummyFunc: 		( inout BinaryIOEncoder ) throws -> (),
+		thenEncode 			encodeFunc: 	( inout BinaryIOEncoder ) throws -> (),
+		thenOverwriteDummy 	overwriteFunc:	( inout BinaryIOEncoder, _ encodeSize: Int ) throws -> ()
+	) throws {
+		let initialPos	= position
+		try dummyFunc( &self )
+		let bodyPos		= position
+		try encodeFunc( &self )
+		let finalPos	= position
+		
+		position		= initialPos
+		try overwriteFunc( &self, finalPos - bodyPos )
+		let newbodyPos	= position
+		position		= finalPos
+		
+		if newbodyPos != bodyPos {
+			position = initialPos	// like no encoding at all
+			throw BinaryIOError.prependingFails(
+				Self.self, BinaryIOError.Context(
+					debugDescription:
+						"\(Self.self): overwrite size \(newbodyPos - initialPos) is not equal to dummy size \(bodyPos - initialPos)."
+				)
+			)
+		}
 	}
 }
-
 
 // private section ---------------------------------------------------------
 extension BinaryIOEncoder {
 	private mutating func write<C>( contentsOf source:C ) throws
 	where C:RandomAccessCollection, C.Element == UInt8 {
-		if position == bytes.endIndex {
-			bytes.append( contentsOf: source )
-		} else if position >= bytes.startIndex {
-			let endIndex	= bytes.index( position, offsetBy: insertMode ? 0 : source.count )
-			let range		= position ..< Swift.min( bytes.endIndex, endIndex )
-			bytes.replaceSubrange( range, with: source )
+		if position == _data.endIndex {
+			_data.append( contentsOf: source )
+		} else if position >= _data.startIndex {
+			let endIndex	= _data.index( position, offsetBy: insertMode ? 0 : source.count )
+			let range		= position ..< Swift.min( _data.endIndex, endIndex )
+			_data.replaceSubrange( range, with: source )
 		} else {
 			throw BinaryIOError.outOfBounds(
 				Self.self, BinaryIOError.Context(
-					debugDescription: "\(Self.self): outOfBounds position."
+					debugDescription: "\(Self.self): file position out of data bounds."
 				)
 			)
 		}
@@ -157,12 +203,11 @@ extension BinaryIOEncoder {
 			}
 		}
 	}
-}
 
-// private section ---------------------------------------------------------
-extension BinaryIOEncoder {
 	//	Bool
-	private mutating func writeBool( _ value:Bool ) throws			{ try writeValue( value ) }
+	private mutating func writeBool( _ value:Bool ) throws {
+		try writeValue( value )
+	}
 	
 	//	Integers
 	private mutating func writeFixedWidthInteger<T>( _ value:T ) throws

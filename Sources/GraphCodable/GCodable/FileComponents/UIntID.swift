@@ -106,18 +106,5 @@ struct BinSize: Equatable, BCodable {
 	func compress(to encoder: inout some BEncoder ) throws {
 		try _usize.compress(to: &encoder)
 	}
-
-	/*
-	init(from decoder: inout some BDecoder, decompress:Bool ) throws {
-		if decompress	{ _usize = try UInt.decompress( from: &decoder ) }
-		else			{ _usize = try UInt( from: &decoder ) }
-	}
-	
-	//	compress will make writed BinSize data variable in size
-	func write(to encoder: inout some BEncoder, compress:Bool ) throws {
-		if compress 	{ try _usize.compress( to: &encoder) }
-		else			{ try encoder.encode( _usize ) }
-	}
-	*/
 }
 

@@ -54,7 +54,7 @@ import Foundation
 /// GEncoderImpl produces:
 /// - a data representation of the rootValue to encode
 /// - eventualy, a readable string that described this data representation
-final class GEncoderImpl : FileBlockEncoderDelegate {
+final class GEncoderImpl : EncodeFileBlocksDelegate {
 	var userInfo							= [String:Any]()
 	private let 		encodeOptions		: GraphEncoder.Options
 	private let 		fileHeader			: FileHeader
@@ -63,7 +63,7 @@ final class GEncoderImpl : FileBlockEncoderDelegate {
 	private var			referenceMap		= ReferenceMap()
 	private var			keyMap				= KeyMap()
 	
-	private var			blockEncoder		: FileBlockEncoder! {
+	private var			blockEncoder		: EncodeFileBlocks! {
 		willSet {
 			self.blockEncoder?.delegate	= nil
 		}
@@ -78,10 +78,6 @@ final class GEncoderImpl : FileBlockEncoderDelegate {
 	
 	var classDataMap: ClassDataMap 	{ referenceMap.classDataMap }
 	var keyStringMap: KeyStringMap 	{ keyMap.keyStringMap }
-	
-	private func ioEncoder() -> BinaryIOEncoder {
-		BinaryIOEncoder( userVersion: fileHeader.userVersion, userData: self )
-	}
 	
 	init( _ options: GraphEncoder.Options, userVersion:UInt32 ) {
 		#if DEBUG
@@ -99,9 +95,15 @@ final class GEncoderImpl : FileBlockEncoderDelegate {
 
 	func encodeRoot<T,Q>( _ value: T ) throws -> Q where T:GEncodable, Q:MutableDataProtocol {
 		defer { self.blockEncoder = nil }
-		let binaryIOEncoder	= ioEncoder()
-		let blockEncoder		= EncodeBinary<Q>( ioEncoder: binaryIOEncoder, fileHeader: fileHeader )
-		self.blockEncoder 		= blockEncoder
+		let ioEncoder		= BinaryIOEncoder(
+			userVersion: fileHeader.userVersion,
+			userData: self
+		)
+		let blockEncoder	= EncodeBinary<Q>(
+			ioEncoder: 	ioEncoder,
+			fileHeader: fileHeader
+		)
+		self.blockEncoder 	= blockEncoder
 		try encode( value )
 		return try blockEncoder.output()
 	}
