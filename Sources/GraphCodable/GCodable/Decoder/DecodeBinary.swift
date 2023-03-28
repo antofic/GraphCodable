@@ -23,14 +23,14 @@
 import Foundation
 
 
-struct BinaryDecoder {
+struct DecodeBinary {
 	let fileHeader			: FileHeader
 	let	classInfoMap		: ClassInfoMap
 	let rootElement 		: FlattenedElement
 	private var	elementMap	: ElementMap
 	
-	init( from readBuffer:BinaryIODecoder, classNameMap:ClassNameMap? ) throws {
-		var readBlockDecoder	= try ReadBlockDecoder( from: readBuffer )
+	init( from ioDecoder:BinaryIODecoder, classNameMap:ClassNameMap? ) throws {
+		var readBlockDecoder	= try DecodeReadBlocks( from: ioDecoder )
 		let fileHeader			= readBlockDecoder.fileHeader
 		let readBlocks			= try readBlockDecoder.readBlocks()
 		let classInfoMap		= try ClassInfo.classInfoMap(

@@ -173,12 +173,12 @@ extension FlattenedElement {
 		let level	= 0
 		var dump 	= ""
 		
-		dump.append( StringEncoder.titleString("FLATTENED BODY" ) )
-		dump.append( StringEncoder.titleString( "ROOT:", filler: "-") )
+		dump.append( EncodeDump.titleString("FLATTENED BODY" ) )
+		dump.append( EncodeDump.titleString( "ROOT:", filler: "-") )
 		dump.append( subdump(elementMap: elementMap, classDataMap: classDataMap, keyStringMap: keyStringMap, options:options, level: level ))
 		
 		if elementMap.isEmpty == false {
-			dump.append( StringEncoder.titleString( "WHERE:", filler: "-") )
+			dump.append( EncodeDump.titleString( "WHERE:", filler: "-") )
 			for (id,element) in elementMap {
 				dump.append( "# PTR\(id) is:\n")
 				dump.append( element.subdump( elementMap:elementMap, classDataMap: classDataMap, keyStringMap: keyStringMap, options:options, level: level ))

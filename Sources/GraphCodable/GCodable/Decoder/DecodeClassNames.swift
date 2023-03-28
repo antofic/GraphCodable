@@ -22,12 +22,12 @@
 
 import Foundation
 
-struct ClassNamesDecoder {
+struct DecodeClassNames {
 	let fileHeader				: FileHeader
 	let	classDataMap			: ClassDataMap
 	
-	init( from readBuffer:BinaryIODecoder ) throws {
-		var readBlockDecoder	= try ReadBlockDecoder( from: readBuffer )
+	init( from ioDecoder:BinaryIODecoder ) throws {
+		var readBlockDecoder	= try DecodeReadBlocks( from: ioDecoder )
 		fileHeader				= readBlockDecoder.fileHeader
 		classDataMap			= try readBlockDecoder.classDataMap()
 	}

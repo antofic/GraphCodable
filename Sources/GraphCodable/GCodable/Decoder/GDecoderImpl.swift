@@ -27,15 +27,15 @@ final class GDecoderImpl {
 	var classNameMap		= ClassNameMap()
 	private var constructor : TypeConstructor!
 	
-	private func readBuffer<Q>( from data: Q ) throws -> BinaryIODecoder
+	private func ioDecoder<Q>( from data: Q ) throws -> BinaryIODecoder
 	where Q:DataProtocol {
 		try BinaryIODecoder(data: data, userData:self )
 	}
 	
 	func allClassData<Q>( from data: Q ) throws -> [ClassData]
 	where Q:DataProtocol {
-		let readBuffer 		= try readBuffer(from: data)
-		let decodedNames	= try ClassNamesDecoder(from: readBuffer)
+		let ioDecoder 		= try ioDecoder(from: data)
+		let decodedNames	= try DecodeClassNames(from: ioDecoder)
 
 		return Array( decodedNames.classDataMap.values )
 	}
@@ -44,16 +44,16 @@ final class GDecoderImpl {
 	where T:GDecodable, Q:DataProtocol {
 		defer { constructor = nil }
 		
-		let readBuffer 	= try readBuffer(from: data)
-		constructor		= try TypeConstructor( readBuffer: readBuffer, classNameMap:classNameMap )
+		let ioDecoder 	= try ioDecoder(from: data)
+		constructor		= try TypeConstructor( ioDecoder: ioDecoder, classNameMap:classNameMap )
 		
 		return try constructor.decodeRoot(type, from: self)
 	}
 	
 	func dumpRoot<Q>( from data: Q, options: GraphDumpOptions ) throws -> String
 	where Q:DataProtocol {
-		let readBuffer 	= try readBuffer(from: data)
-		let decodedDump	= try StringDecoder(from: readBuffer, classNameMap:classNameMap, options: options)
+		let ioDecoder 	= try ioDecoder(from: data)
+		let decodedDump	= try DecodeDump(from: ioDecoder, classNameMap:classNameMap, options: options)
 		
 		return decodedDump.dump()
 	}

@@ -44,7 +44,7 @@ public struct UndecodableClass {
 
 ///	An object that decodes instances of a **GDecodable** type
 ///	from a data buffer that uses **GraphCodable** format.
-public final class GraphDecoder {
+public struct GraphDecoder {
 	public init() {}
 
 	///	get/set the userInfo dictionary

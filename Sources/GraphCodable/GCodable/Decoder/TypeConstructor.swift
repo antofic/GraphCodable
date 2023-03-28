@@ -22,20 +22,21 @@
 
 import Foundation
 
+
 final class TypeConstructor {
-	private var			readBuffer			: BinaryIODecoder
-	private var			binaryDecoder		: BinaryDecoder
+	private var			ioDecoder			: BinaryIODecoder
+	private var			decodeBinary		: DecodeBinary
 	private (set) var 	currentElement 		: FlattenedElement
 	private (set) var 	currentInfo 		: ClassInfo?
 	private var			objectRepository 	= [ ObjID: Any ]()
-	private var			setterRepository 	= [ () throws -> () ]()
+	private var			setterRepository 	= [ (_:TypeConstructor) throws -> () ]()
 	
-	var fileHeader : FileHeader { binaryDecoder.fileHeader }
+	var fileHeader : FileHeader { decodeBinary.fileHeader }
 	
-	init( readBuffer:BinaryIODecoder, classNameMap:ClassNameMap? ) throws {
-		self.readBuffer		= readBuffer
-		self.binaryDecoder	= try BinaryDecoder(from: readBuffer, classNameMap:classNameMap )
-		self.currentElement	= binaryDecoder.rootElement
+	init( ioDecoder:BinaryIODecoder, classNameMap:ClassNameMap? ) throws {
+		self.ioDecoder		= ioDecoder
+		self.decodeBinary	= try DecodeBinary(from: ioDecoder, classNameMap:classNameMap )
+		self.currentElement	= decodeBinary.rootElement
 	}
 
 	func decodeRoot<T>( _ type: T.Type, from decoder:GDecoder ) throws -> T where T:GDecodable {
@@ -45,7 +46,7 @@ final class TypeConstructor {
 		// call deferDecode
 		while setterRepository.isEmpty == false {
 			let setter = setterRepository.removeLast()
-			try setter()
+			try setter( self )
 		}
 		
 		return value
@@ -107,11 +108,11 @@ final class TypeConstructor {
 	}
 	
 	func deferDecode<T>( element:FlattenedElement, from decoder:GDecoder, _ setter: @escaping (T) -> () ) throws where T:GDecodable {
-		let setter : () throws -> () = {
-			let value : T = try self.decode( element:element, from:decoder )
+		let setterFunc : ( _:TypeConstructor ) throws -> () = {
+			let value : T = try $0.decode( element:element, from:decoder )
 			setter( value )
 		}
-		setterRepository.append( setter )
+		setterRepository.append( setterFunc )
 	}
 	
 	func decode<T>( element:FlattenedElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
@@ -138,7 +139,6 @@ final class TypeConstructor {
 extension TypeConstructor {
 	private func decodeAny<T>( element:FlattenedElement, from decoder:GDecoder, type:T.Type ) throws -> Any where T:GDecodable {
 		func decodeIdentifiable( type:T.Type, objID:ObjID, from decoder:GDecoder ) throws -> Any? {
-			//	tutti gli oggetti (reference types) inizialmente si trovano in binaryDecoder
 			//	quando arriva la prima richiesta di un particolare oggetto (da objID)
 			//	lo costruiamo (se esiste) e lo mettiamo nell'objectRepository in modo
 			//	che le richieste successive peschino di lì.
@@ -147,7 +147,7 @@ extension TypeConstructor {
 			
 			if let object = objectRepository[ objID ] {
 				return object
-			} else if let element = binaryDecoder.pop( objID: objID ) {
+			} else if let element = decodeBinary.pop( objID: objID ) {
 				switch element.readBlock.fileBlock {
 				case .Val( _, let objID, let typeID, let binSize):
 					if let objID {
@@ -259,9 +259,9 @@ extension TypeConstructor {
 			)
 		}
 
-		readBuffer.regionRange	= element.readBlock.valueRegion
+		ioDecoder.regionRange	= element.readBlock.valueRegion
 
-		guard let value = try binaryIType.init(from: &readBuffer) as? T else {
+		guard let value = try binaryIType.init(from: &ioDecoder) as? T else {
 			throw GraphCodableError.malformedArchive(
 				Self.self, GraphCodableError.Context(
 					debugDescription: "\(element) decoded type is not a \(T.self) type."
@@ -269,7 +269,7 @@ extension TypeConstructor {
 			)
 		}
 
-		let readSize	= readBuffer.regionStart - element.readBlock.valueRegion.startIndex
+		let readSize	= ioDecoder.regionStart - element.readBlock.valueRegion.startIndex
 		guard binSize.size == readSize else {
 			throw GraphCodableError.malformedArchive(
 				Self.self, GraphCodableError.Context(
@@ -284,7 +284,7 @@ extension TypeConstructor {
 	private func decodeRefOrBinRef<T>(
 		type:T.Type, typeID:TypeID, binSize: BinSize?, element:FlattenedElement, from decoder:GDecoder
 	) throws -> T where T:GDecodable {
-		guard let classInfo = binaryDecoder.classInfoMap[ typeID ] else {
+		guard let classInfo = decodeBinary.classInfoMap[ typeID ] else {
 			throw GraphCodableError.internalInconsistency(
 				Self.self, GraphCodableError.Context(
 					debugDescription: "Type name not found for typeID \(typeID)."
@@ -315,3 +315,4 @@ extension TypeConstructor {
 		return object
 	}
 }
+

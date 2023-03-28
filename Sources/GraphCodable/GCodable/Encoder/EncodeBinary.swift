@@ -22,15 +22,15 @@
 
 import Foundation
 
-final class BinaryEncoder<Output:MutableDataProtocol> : FileBlockEncoder {
+final class EncodeBinary<Output:MutableDataProtocol> : FileBlockEncoder {
 	weak var			delegate			: FileBlockEncoderDelegate?
 	private var			fileHeader			: FileHeader
-	private var			encoder				: BinaryIOEncoder
+	private var			ioEncoder			: BinaryIOEncoder
 	private var 		sectionMap			= SectionMap()
 	private var			sectionMapPosition	= 0
 	
-	init( binaryWriteBuffer:BinaryIOEncoder, fileHeader:FileHeader ) {
-		self.encoder	= binaryWriteBuffer
+	init( ioEncoder:BinaryIOEncoder, fileHeader:FileHeader ) {
+		self.ioEncoder	= ioEncoder
 		self.fileHeader	= fileHeader
 	}
 	
@@ -39,29 +39,29 @@ final class BinaryEncoder<Output:MutableDataProtocol> : FileBlockEncoder {
 			// entriamo la prima volta e quindi scriviamo header e section map.
 			
 			// write header:
-			try encoder.encode( fileHeader )
-			sectionMapPosition	= encoder.position
+			try ioEncoder.encode( fileHeader )
+			sectionMapPosition	= ioEncoder.position
 			
 			// write section map:
 			for section in FileSection.allCases {
 				sectionMap[ section ] = Range(uncheckedBounds: (0,0))
 			}
-			try encoder.encode(sectionMap)
-			let bounds	= (encoder.position,encoder.position)
+			try ioEncoder.encode(sectionMap)
+			let bounds	= (ioEncoder.position,ioEncoder.position)
 			sectionMap[ FileSection.body ] = Range( uncheckedBounds:bounds )
 		}
 	}
 	
 	func appendEnd() throws {
 		try writeInit()
-		try FileBlock.writeEnd(to: &encoder, fileHeader: fileHeader)
+		try FileBlock.writeEnd(to: &ioEncoder, fileHeader: fileHeader)
 	}
 	
 	func appendNil(keyID: KeyID?) throws {
 		try writeInit()
 		try FileBlock.writeNil(
 			keyID: keyID,
-			to: &encoder, fileHeader: fileHeader
+			to: &ioEncoder, fileHeader: fileHeader
 		)
 	}
 	
@@ -69,7 +69,7 @@ final class BinaryEncoder<Output:MutableDataProtocol> : FileBlockEncoder {
 		try writeInit()
 		try FileBlock.writePtr(
 			keyID: keyID, objID: objID, conditional:conditional,
-			to: &encoder, fileHeader: fileHeader
+			to: &ioEncoder, fileHeader: fileHeader
 		)
 	}
 	
@@ -77,36 +77,36 @@ final class BinaryEncoder<Output:MutableDataProtocol> : FileBlockEncoder {
 		try writeInit()
 		try FileBlock.writeVal(
 			keyID: keyID,objID: objID, typeID: typeID, binaryValue:binaryValue,
-			to: &encoder, fileHeader: fileHeader
+			to: &ioEncoder, fileHeader: fileHeader
 		)
 	}
 
 	func output() throws -> Output {
 		try writeInit()
 		
-		var bounds	= (sectionMap[.body]!.startIndex,encoder.position)
+		var bounds	= (sectionMap[.body]!.startIndex,ioEncoder.position)
 		sectionMap[.body]	= Range( uncheckedBounds:bounds )
 		
 		// referenceMap:
 		let classDataMap	= delegate!.classDataMap
-		try encoder.encode(classDataMap)
-		bounds	= ( bounds.1,encoder.position )
+		try ioEncoder.encode(classDataMap)
+		bounds	= ( bounds.1,ioEncoder.position )
 		sectionMap[ FileSection.classDataMap ] = Range( uncheckedBounds:bounds )
 		
 		// keyStringMap:
 		let keyStringMap	= delegate!.keyStringMap
-		try encoder.encode(keyStringMap)
-		bounds	= ( bounds.1,encoder.position )
+		try ioEncoder.encode(keyStringMap)
+		bounds	= ( bounds.1,ioEncoder.position )
 		sectionMap[ FileSection.keyStringMap ] = Range( uncheckedBounds:bounds )
 		
 		do {
 			//	sovrascrivo la sectionMapPosition
 			//	ora che ho tutti i valori
-			defer { encoder.position = encoder.endOfFile }
-			encoder.position	= sectionMapPosition
-			try encoder.encode(sectionMap)
+			defer { ioEncoder.position = ioEncoder.endOfFile }
+			ioEncoder.position	= sectionMapPosition
+			try ioEncoder.encode(sectionMap)
 		}
 		
-		return encoder.data()
+		return ioEncoder.data()
 	}
 }

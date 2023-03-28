@@ -33,15 +33,15 @@ import Foundation
 //					• manage Inheritance (reference types only)
 //			⤷	KeyMap				(KeyID ↔︎ keystring)
 //					• manage keystring (keyed encoding / KeyID==0 → unkeyed encoding)
-//			⤷	any DataEncoder
+//			⤷	FileBlockEncoder
 //					• a protocol for converting values into their representation
 //
 //		FileBlockEncoder protocol
-//			BinaryEncoder : FileBlockEncoder
+//			DecodeDump : FileBlockEncoder
 //			⤷	delegate = GEncoderImpl
 //				• generate a binary rapresentation of values for encoding
 //
-//			StringEncoder : FileBlockEncoder
+//			EncodeDump : FileBlockEncoder
 //			⤷	delegate = GEncoderImpl
 //				• generate readable/not decodable string rapresentation of values
 //
@@ -63,23 +63,23 @@ final class GEncoderImpl : FileBlockEncoderDelegate {
 	private var			referenceMap		= ReferenceMap()
 	private var			keyMap				= KeyMap()
 	
-	private var			dataEncoder			: FileBlockEncoder! {
+	private var			blockEncoder		: FileBlockEncoder! {
 		willSet {
-			self.dataEncoder?.delegate	= nil
+			self.blockEncoder?.delegate	= nil
 		}
 		didSet {
 			self.currentKeys			= Set<String>()
 			self.identityMap			= IdentityMap()
 			self.referenceMap			= ReferenceMap()
 			self.keyMap					= KeyMap()
-			self.dataEncoder?.delegate	= self
+			self.blockEncoder?.delegate	= self
 		}
 	}
 	
 	var classDataMap: ClassDataMap 	{ referenceMap.classDataMap }
 	var keyStringMap: KeyStringMap 	{ keyMap.keyStringMap }
 	
-	private func writeBuffer() -> BinaryIOEncoder {
+	private func ioEncoder() -> BinaryIOEncoder {
 		BinaryIOEncoder( userVersion: fileHeader.userVersion, userData: self )
 	}
 	
@@ -98,24 +98,24 @@ final class GEncoderImpl : FileBlockEncoderDelegate {
 	}
 
 	func encodeRoot<T,Q>( _ value: T ) throws -> Q where T:GEncodable, Q:MutableDataProtocol {
-		defer { self.dataEncoder = nil }
-		let binaryWriteBuffer	= writeBuffer()
-		let dataEncoder			= BinaryEncoder<Q>( binaryWriteBuffer: binaryWriteBuffer, fileHeader: fileHeader )
-		self.dataEncoder 		= dataEncoder
+		defer { self.blockEncoder = nil }
+		let binaryIOEncoder	= ioEncoder()
+		let blockEncoder		= EncodeBinary<Q>( ioEncoder: binaryIOEncoder, fileHeader: fileHeader )
+		self.blockEncoder 		= blockEncoder
 		try encode( value )
-		return try dataEncoder.output()
+		return try blockEncoder.output()
 	}
 	
 	func dumpRoot<T>( _ value: T, options: GraphDumpOptions ) throws -> String where T:GEncodable {
-		defer { self.dataEncoder = nil }
-		let dataEncoder		= StringEncoder(
+		defer { self.blockEncoder = nil }
+		let blockEncoder		= EncodeDump(
 			fileHeader:			fileHeader,
 			dumpOptions:		options,
 			dataSize: 			nil	// no data size during encode
 		)
-		self.dataEncoder	= dataEncoder
+		self.blockEncoder	= blockEncoder
 		try encode( value )
-		return dataEncoder.dump()
+		return blockEncoder.dump()
 	}
 }
 
@@ -158,7 +158,7 @@ extension GEncoderImpl {
 		
 		// if value is nil, encode nil and return
 		guard let value = value else {
-			try dataEncoder.appendNil(keyID: keyID)
+			try blockEncoder.appendNil(keyID: keyID)
 			return
 		}
 		// now value is not nil
@@ -168,12 +168,12 @@ extension GEncoderImpl {
 					print( "### Warning: can't conditionally encode the type '\( type(of:value) )' without identity. It will be encoded unconditionally." )
 				}
 			}
-			try dataEncoder.appendVal(keyID: keyID, typeID:nil, objID:nil, binaryValue: trivialValue )
+			try blockEncoder.appendVal(keyID: keyID, typeID:nil, objID:nil, binaryValue: trivialValue )
 		} else if let value = value as? GEncodable {
 			if let identity = identity( of:value ) {	// IDENTITY
 				if let objID = identityMap.strongID( for:identity ) {
 					// already encoded value: we encode a pointer
-					try dataEncoder.appendPtr(keyID: keyID, objID: objID, conditional: conditional)
+					try blockEncoder.appendPtr(keyID: keyID, objID: objID, conditional: conditional)
 				} else if conditional {
 					// conditional encoding: we encode only a pointer
 					
@@ -181,7 +181,7 @@ extension GEncoderImpl {
 					try throwIfNotConstructibleType( of:value )
 
 					let objID	= identityMap.createWeakID( for: identity )
-					try dataEncoder.appendPtr(keyID: keyID, objID: objID, conditional: conditional)
+					try blockEncoder.appendPtr(keyID: keyID, objID: objID, conditional: conditional)
 				} else {
 					// not encoded value: we encode it
 					// INHERITANCE: only classes have a typeID (value typeID == nil)
@@ -190,12 +190,12 @@ extension GEncoderImpl {
 
 					if let binaryValue = value as? GBinaryEncodable {
 						// BinaryEncodable type
-						try dataEncoder.appendVal(keyID: keyID, typeID: typeID, objID: objID, binaryValue: binaryValue)
+						try blockEncoder.appendVal(keyID: keyID, typeID: typeID, objID: objID, binaryValue: binaryValue)
 					} else {
 						// Encodable type
-						try dataEncoder.appendVal(keyID: keyID, typeID: typeID, objID: objID, binaryValue: nil)
+						try blockEncoder.appendVal(keyID: keyID, typeID: typeID, objID: objID, binaryValue: nil)
 						try encodeValue( value )
-						try dataEncoder.appendEnd()
+						try blockEncoder.appendEnd()
 					}
 				}
 			} else {	// NO IDENTITY
@@ -210,11 +210,11 @@ extension GEncoderImpl {
 				
 				if let binaryValue = value as? GBinaryEncodable {
 					// BinaryEncodable type
-					try dataEncoder.appendVal(keyID: keyID, typeID: typeID, objID: nil, binaryValue: binaryValue)
+					try blockEncoder.appendVal(keyID: keyID, typeID: typeID, objID: nil, binaryValue: binaryValue)
 				} else {
-					try dataEncoder.appendVal(keyID: keyID, typeID: typeID, objID: nil, binaryValue: nil)
+					try blockEncoder.appendVal(keyID: keyID, typeID: typeID, objID: nil, binaryValue: nil)
 					try encodeValue( value )
-					try dataEncoder.appendEnd()
+					try blockEncoder.appendEnd()
 				}
 			}
 		} else {

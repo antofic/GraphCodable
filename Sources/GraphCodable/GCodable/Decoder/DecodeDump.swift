@@ -22,7 +22,7 @@
 
 import Foundation
 
-final class StringDecoder: FileBlockEncoderDelegate {
+final class DecodeDump: FileBlockEncoderDelegate {
 	let	dataSize		: Int
 	let fileHeader		: FileHeader
 	let readBlocks		: ReadBlocks
@@ -31,10 +31,10 @@ final class StringDecoder: FileBlockEncoderDelegate {
 	let keyStringMap	: KeyStringMap
 	let dumpOptions		: GraphDumpOptions
 	
-	init( from readBuffer:BinaryIODecoder, classNameMap:ClassNameMap?, options:GraphDumpOptions ) throws {
-		var readBlockDecoder	= try ReadBlockDecoder( from: readBuffer )
+	init( from ioDecoder:BinaryIODecoder, classNameMap:ClassNameMap?, options:GraphDumpOptions ) throws {
+		var readBlockDecoder	= try DecodeReadBlocks( from: ioDecoder )
 		
-		self.dataSize		= readBuffer.dataSize
+		self.dataSize		= ioDecoder.dataSize
 		self.fileHeader		= readBlockDecoder.fileHeader
 		self.readBlocks		= try readBlockDecoder.readBlocks()
 		self.classDataMap	= try readBlockDecoder.classDataMap()
@@ -44,14 +44,14 @@ final class StringDecoder: FileBlockEncoderDelegate {
 	}
 
 	func dump() -> String {
-		let stringEncoder	= StringEncoder(
+		let encoderDump	= EncodeDump(
 			fileHeader:			fileHeader,
 			dumpOptions:		dumpOptions,
 			dataSize: 			dataSize
 		)
-		stringEncoder.delegate	= self
+		encoderDump.delegate	= self
 		readBlocks.forEach {
-			stringEncoder.append($0.fileBlock, binaryValue: nil)
+			encoderDump.append($0.fileBlock, binaryValue: nil)
 		}
 		if dumpOptions.contains( .showFlattenedBody ) {
 			do {
@@ -66,18 +66,18 @@ final class StringDecoder: FileBlockEncoderDelegate {
 					keyStringMap:	keyStringMap,
 					options: 		dumpOptions
 				)
-				stringEncoder.append( string )
+				encoderDump.append( string )
 			} catch {
-				stringEncoder.append( "Error generating FLATTENED BODY" )
-				stringEncoder.append( "\(error)" )
+				encoderDump.append( "Error generating FLATTENED BODY" )
+				encoderDump.append( "\(error)" )
 			}
 		}
 		/*
 		if dumpOptions.contains( .showConstructionMap ) {
-			stringEncoder.append( constructionMapDescription )
+			encoderDump.append( constructionMapDescription )
 		}
 		*/
-		return stringEncoder.dump()
+		return encoderDump.dump()
 	}
 	
 	var referenceMapDescription: String? {

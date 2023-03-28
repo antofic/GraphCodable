@@ -31,15 +31,15 @@ struct ReadBlock {
 	let fileBlock			: FileBlock
 	private let regionStart	: Int
 	
-	fileprivate init(from decoder: inout BinaryIODecoder, fileHeader:FileHeader ) throws {
-		self.fileBlock	= try FileBlock(from: &decoder, fileHeader: fileHeader)
+	fileprivate init(from ioDecoder: inout BinaryIODecoder, fileHeader:FileHeader ) throws {
+		self.fileBlock	= try FileBlock(from: &ioDecoder, fileHeader: fileHeader)
 		//	memorizzo la posizione della fine del fileBlock
-		self.regionStart	= decoder.regionStart
+		self.regionStart	= ioDecoder.regionStart
 		//	sposto avanti la posizione della dimensione di binaryValue
 		//	in modo che la posizione del BinaryIODecoder punti al
 		//	FileBlock successivo
 		//	(binarySize = 0 for non binary values)
-		decoder.regionStart += self.fileBlock.binarySize
+		ioDecoder.regionStart += self.fileBlock.binarySize
 	}
 
 	init( with fileBlock:FileBlock, copying readBlock:ReadBlock ) {
@@ -60,19 +60,19 @@ typealias ReadBlocks		= [ReadBlock]
 ///
 /// read the BinaryIODecoder content.
 /// FileBlocks are updated in ReadBlocks
-struct ReadBlockDecoder {
+struct DecodeReadBlocks {
 	let 		fileHeader		: FileHeader
 	private	var sectionMap		: SectionMap
-	private var decoder			: BinaryIODecoder
+	private var ioDecoder		: BinaryIODecoder
 
 	private var _classDataMap	: ClassDataMap?
 	private var _readBlocks		: ReadBlocks?
 	private var _keyStringMap	: KeyStringMap?
 
-	init( from readBuffer:BinaryIODecoder ) throws {
-		self.decoder		= readBuffer
-		self.fileHeader		= try FileHeader( from: &decoder )
-		self.sectionMap		= try type(of:sectionMap).init(from: &decoder)
+	init( from ioDecoder:BinaryIODecoder ) throws {
+		self.ioDecoder		= ioDecoder
+		self.fileHeader		= try FileHeader( from: &self.ioDecoder )
+		self.sectionMap		= try type(of:sectionMap).init(from: &self.ioDecoder)
 	}
 	
 	/// decode the class data of reference types
@@ -81,9 +81,9 @@ struct ReadBlockDecoder {
 		if let classDataMap = self._classDataMap { return classDataMap }
 		
 		let saveRegion	= try setReaderRegionRangeTo(section: .classDataMap)
-		defer { decoder.regionRange = saveRegion }
+		defer { ioDecoder.regionRange = saveRegion }
 
-		let classDataMap	= try ClassDataMap(from: &decoder)
+		let classDataMap	= try ClassDataMap(from: &ioDecoder)
 		self._classDataMap	= classDataMap
 		return classDataMap
 	}
@@ -94,11 +94,11 @@ struct ReadBlockDecoder {
 		if let fileBlocks = self._readBlocks { return fileBlocks }
 
 		let saveRegion	= try setReaderRegionRangeTo(section: .body)
-		defer { decoder.regionRange = saveRegion }
+		defer { ioDecoder.regionRange = saveRegion }
 
 		var fileBlocks	= [ReadBlock]()
-		while decoder.isEndOfFile == false {
-			let readBlock	= try ReadBlock(from: &decoder, fileHeader: fileHeader)
+		while ioDecoder.isEndOfFile == false {
+			let readBlock	= try ReadBlock(from: &ioDecoder, fileHeader: fileHeader)
 			fileBlocks.append( readBlock )
 		}
 		
@@ -111,9 +111,9 @@ struct ReadBlockDecoder {
 		if let keyStringMap = self._keyStringMap { return keyStringMap }
 
 		let saveRegion		= try setReaderRegionRangeTo(section: .keyStringMap)
-		defer { decoder.regionRange = saveRegion }
+		defer { ioDecoder.regionRange = saveRegion }
 		
-		let keyStringMap 	= try KeyStringMap(from: &decoder)
+		let keyStringMap 	= try KeyStringMap(from: &ioDecoder)
 		self._keyStringMap	= keyStringMap
 		return keyStringMap
 	}
@@ -126,8 +126,8 @@ struct ReadBlockDecoder {
 				)
 			)
 		}
-		defer { decoder.regionRange = range }
-		return decoder.regionRange
+		defer { ioDecoder.regionRange = range }
+		return ioDecoder.regionRange
 	}
 }
 

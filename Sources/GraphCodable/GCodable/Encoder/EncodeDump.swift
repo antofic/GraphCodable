@@ -20,7 +20,7 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
-final class StringEncoder : FileBlockEncoder {
+final class EncodeDump : FileBlockEncoder {
 	weak var			delegate	: FileBlockEncoderDelegate?
 	private var			fileHeader	: FileHeader
 	private var			options		: GraphDumpOptions
