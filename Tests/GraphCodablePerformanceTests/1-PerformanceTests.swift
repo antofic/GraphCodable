@@ -46,13 +46,13 @@ final class PerformanceTests: XCTestCase {
 			self.array	= [Int](repeating: Int.max - count, count:30)
 		}
 		
-		func encode(to encoder: GEncoder) throws {
+		func encode(to encoder: some GEncoder) throws {
 			try encoder.encode( larges, for: Key.larges )
 			try encoder.encode( string, for: Key.string )
 			try encoder.encode( array,  for: Key.array  )
 		}
 		
-		init(from decoder: GDecoder) throws {
+		init(from decoder: some GDecoder) throws {
 			larges	= try decoder.decode( for: Key.larges )
 			string	= try decoder.decode( for: Key.string )
 			array	= try decoder.decode( for: Key.array )

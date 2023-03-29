@@ -20,12 +20,12 @@ struct AStruct : Equatable, GCodable {
 		case array, value
 	}
 	
-	func encode(to encoder: GEncoder) throws {
+	func encode(to encoder: some GEncoder) throws {
 		try encoder.encode( array, for: Key.array )
 		try encoder.encode( value, for: Key.value )
 	}
 	
-	init(from decoder: GDecoder) throws {
+	init(from decoder: some GDecoder) throws {
 		array	= try decoder.decode(for: Key.array )
 		value	= try decoder.decode(for: Key.value )
 	}
@@ -41,13 +41,13 @@ class AClass : GCodable {
 	
 	init() {}
 	
-	func encode(to encoder: GEncoder) throws {
+	func encode(to encoder: some GEncoder) throws {
 		try encoder.encode( astruct, for: Key.astruct )
 		// note:
 		try encoder.encodeConditional( aclass,  for: Key.aclass )
 	}
 	
-	required init(from decoder: GDecoder) throws {
+	required init(from decoder: some GDecoder) throws {
 		astruct	= try decoder.decode(for: Key.astruct )
 		aclass	= try decoder.decode(for: Key.aclass )
 	}
@@ -133,7 +133,7 @@ What happens if you delete `a` from the `inRoot`array?  See here: `a` was only c
 Now, if you encode `"aclass"` not-conditionally:
 
 ```swift
-	func encode(to encoder: GEncoder) throws {
+	func encode(to encoder: some GEncoder) throws {
 		try encoder.encode( astruct, for: Key.astruct )
 		try encoder.encode( aclass,  for: Key.aclass )
 	}

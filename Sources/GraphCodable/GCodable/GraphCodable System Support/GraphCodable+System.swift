@@ -45,12 +45,12 @@ extension FilePath {
 }
 
 extension FilePath : GEncodable {
-	public func encode(to encoder: GEncoder) throws {
+	public func encode(to encoder: some GEncoder) throws {
 		try encoder.encode(description, for: Key.path)
 	}
 }
 extension FilePath : GDecodable {
-	public init(from decoder: GDecoder) throws {
+	public init(from decoder: some GDecoder) throws {
 		self.init( try decoder.decode(for: Key.path) as String )
 	}
 }

@@ -68,14 +68,14 @@ final class ClassicParentChildsPattern: XCTestCase {
 			case childs, _parent
 		}
 		
-		func encode(to encoder: GEncoder) throws {
+		func encode(to encoder: some GEncoder) throws {
 			try encoder.encode( childs, for: Key.childs )
 			
 			//	weak variables should be encoded conditionally
 			try encoder.encodeConditional( _parent, for: Key._parent )
 		}
 		
-		required init(from decoder: GDecoder) throws {
+		required init(from decoder: some GDecoder) throws {
 			self.childs	= try decoder.decode( for: Key.childs )
 			//	deferDecode for weak variable:
 			try decoder.deferDecode( for: Key._parent ) { self._parent = $0 }

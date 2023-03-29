@@ -45,13 +45,13 @@ struct Name : GCodable, CustomStringConvertible {
 	and the decoding phase
 	*/
 	
-	func encode(to encoder: GEncoder) throws {
+	func encode(to encoder: some GEncoder) throws {
 		// we use userinfo to change some names during encode
 		let newName = encoder.userInfo[name] as? String ?? name
 		try encoder.encode( newName, for: Key.name )
 	}
 	
-	init(from decoder: GDecoder) throws {
+	init(from decoder: some GDecoder) throws {
 		let name : String = try decoder.decode( for: Key.name )
 		// we use userinfo to change some names during decode
 		self.name = decoder.userInfo[name] as? String ?? name

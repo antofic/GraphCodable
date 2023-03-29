@@ -45,7 +45,7 @@ final class DirectedCyclicGraphTestsB: XCTestCase {
 				case name, connections
 			}
 			
-			required init(from decoder: GDecoder) throws {
+			required init(from decoder: some GDecoder) throws {
 				name		= try decoder.decode( for: Key.name )
 				//	decode fails if the graph is cyclic:
 				//		connections	= try decoder.decode( for: Key.connections )
@@ -53,7 +53,7 @@ final class DirectedCyclicGraphTestsB: XCTestCase {
 				try decoder.deferDecode( for: Key.connections ) { self.connections = $0 }
 			}
 			
-			func encode(to encoder: GEncoder) throws {
+			func encode(to encoder: some GEncoder) throws {
 				try encoder.encode( name,  for: Key.name  )
 				try encoder.encode( connections, for: Key.connections )
 			}
@@ -79,13 +79,13 @@ final class DirectedCyclicGraphTestsB: XCTestCase {
 			case nodes
 		}
 
-		required init(from decoder: GDecoder) throws {
+		required init(from decoder: some GDecoder) throws {
 			nodes	= try decoder.decode( for: Key.nodes )
 			//	deferDecode can be used here, but is not required
 			//	try decoder.deferDecode( for: Key.nodes ) { self.nodes = $0 }
 		}
 		
-		func encode(to encoder: GEncoder) throws {
+		func encode(to encoder: some GEncoder) throws {
 			try encoder.encode(nodes, for: Key.nodes )
 		}
 		

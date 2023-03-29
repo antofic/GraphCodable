@@ -76,7 +76,7 @@ extension Bool 		: GPackable {}
 extension Optional: GEncodable where Wrapped: GEncodable {
 	//	The encoder always unwraps optional values
 	//	and so this function is never called.
-	public func encode(to encoder: GEncoder) throws {
+	public func encode(to encoder: some GEncoder) throws {
 		throw GraphCodableError.internalInconsistency(
 			Self.self, GraphCodableError.Context(
 				debugDescription: "Unreachable code."
@@ -88,7 +88,7 @@ extension Optional: GEncodable where Wrapped: GEncodable {
 extension Optional: GDecodable where Wrapped: GDecodable {
 	//	The encoder always unwraps optional values
 	//	and so this function is never called.
-	public init(from decoder: GDecoder) throws {
+	public init(from decoder: some GDecoder) throws {
 		throw GraphCodableError.internalInconsistency(
 			Self.self, GraphCodableError.Context(
 				debugDescription: "Unreachable code."
@@ -104,12 +104,12 @@ extension Optional: GPackable where Wrapped: GPackable {}
 //	RawRepresentable SUPPORT ------------------------------------------------------
 
 extension RawRepresentable where Self.RawValue : GEncodable {
-	public func encode(to encoder: GEncoder) throws	{
+	public func encode(to encoder: some GEncoder) throws	{
 		try encoder.encode( self.rawValue )
 	}
 }
 extension RawRepresentable where Self.RawValue : GDecodable {
-	public init(from decoder: GDecoder) throws {
+	public init(from decoder: some GDecoder) throws {
 		let rawValue = try decoder.decode() as RawValue
 		guard let value = Self.init(rawValue:rawValue ) else {
 			throw GraphCodableError.libDecodingError(
@@ -133,14 +133,14 @@ extension String : GBinaryDecodable {}
 //	Array SUPPORT ------------------------------------------------------
 
 extension Array: GEncodable where Element:GEncodable {
-	public func encode(to encoder: GEncoder) throws {
+	public func encode(to encoder: some GEncoder) throws {
 		for element in self {
 			try encoder.encode( element )
 		}
 	}
 }
 extension Array: GDecodable where Element:GDecodable {
-	public init(from decoder: GDecoder) throws {
+	public init(from decoder: some GDecoder) throws {
 		self.init()
 		
 		self.reserveCapacity( decoder.unkeyedCount )
@@ -157,14 +157,14 @@ extension Array : GBinaryDecodable where Element : GPackDecodable {}
 //	ContiguousArray SUPPORT ------------------------------------------------------
 
 extension ContiguousArray: GEncodable where Element:GEncodable {
-	public func encode(to encoder: GEncoder) throws {
+	public func encode(to encoder: some GEncoder) throws {
 		for element in self {
 			try encoder.encode( element )
 		}
 	}
 }
 extension ContiguousArray: GDecodable where Element:GDecodable {
-	public init(from decoder: GDecoder) throws {
+	public init(from decoder: some GDecoder) throws {
 		self.init()
 		
 		self.reserveCapacity( decoder.unkeyedCount )
@@ -179,7 +179,7 @@ extension ContiguousArray : GBinaryDecodable where Element : GPackDecodable {}
 
 //	Set SUPPORT ------------------------------------------------------
 extension Set: GEncodable where Element:GEncodable {
-	public func encode(to encoder: GEncoder) throws {
+	public func encode(to encoder: some GEncoder) throws {
 		for element in self {
 			try encoder.encode( element )
 		}
@@ -187,7 +187,7 @@ extension Set: GEncodable where Element:GEncodable {
 }
 
 extension Set: GDecodable where Element:GDecodable {
-	public init(from decoder: GDecoder) throws {
+	public init(from decoder: some GDecoder) throws {
 		self.init()
 		
 		self.reserveCapacity( decoder.unkeyedCount )
@@ -203,7 +203,7 @@ extension Set : GBinaryDecodable where Element : GPackDecodable {}
 //	Dictionary SUPPORT ------------------------------------------------------
 
 extension Dictionary: GEncodable where Key:GEncodable, Value:GEncodable {
-	public func encode(to encoder: GEncoder) throws {
+	public func encode(to encoder: some GEncoder) throws {
 		for (key,value) in self {
 			try encoder.encode( key )
 			try encoder.encode( value )
@@ -211,7 +211,7 @@ extension Dictionary: GEncodable where Key:GEncodable, Value:GEncodable {
 	}
 }
 extension Dictionary: GDecodable where Key:GDecodable, Value:GDecodable {
-	public init(from decoder: GDecoder) throws {
+	public init(from decoder: some GDecoder) throws {
 		self.init()
 		
 		self.reserveCapacity( decoder.unkeyedCount )
@@ -230,7 +230,7 @@ extension Dictionary : GBinaryDecodable where Key : GPackDecodable, Value : GPac
 // Range ------------------------------------------------------
 
 extension Range: GDecodable where Bound: GDecodable {
-	public init(from decoder: GDecoder) throws {
+	public init(from decoder: some GDecoder) throws {
 		let lowerBound	= try decoder.decode() as Bound
 		let upperBound	= try decoder.decode() as Bound
 		self.init(uncheckedBounds: (lowerBound,upperBound) )
@@ -238,7 +238,7 @@ extension Range: GDecodable where Bound: GDecodable {
 }
 
 extension Range: GEncodable where Bound: GEncodable {
-	public func encode(to encoder: GEncoder) throws {
+	public func encode(to encoder: some GEncoder) throws {
 		try encoder.encode( lowerBound )
 		try encoder.encode( upperBound )
 	}
@@ -250,14 +250,14 @@ extension Range: GPackable where Bound: GPackable {}
 // ClosedRange ------------------------------------------------------
 
 extension ClosedRange: GDecodable where Bound: GDecodable {
-	public init(from decoder: GDecoder) throws {
+	public init(from decoder: some GDecoder) throws {
 		let lowerBound	= try decoder.decode() as Bound
 		let upperBound	= try decoder.decode() as Bound
 		self.init(uncheckedBounds: (lowerBound,upperBound) )
 	}
 }
 extension ClosedRange: GEncodable where Bound: GEncodable {
-	public func encode(to encoder: GEncoder) throws {
+	public func encode(to encoder: some GEncoder) throws {
 		try encoder.encode( lowerBound )
 		try encoder.encode( upperBound )
 	}
@@ -271,12 +271,12 @@ extension ClosedRange: GPackable where Bound: GPackable {}
 // PartialRangeFrom ------------------------------------------------------
 
 extension PartialRangeFrom: GDecodable where Bound: GDecodable {
-	public init(from decoder: GDecoder) throws {
+	public init(from decoder: some GDecoder) throws {
 		self.init( try decoder.decode() as Bound )
 	}
 }
 extension PartialRangeFrom: GEncodable where Bound: GEncodable {
-	public func encode(to encoder: GEncoder) throws {
+	public func encode(to encoder: some GEncoder) throws {
 		try encoder.encode( lowerBound )
 	}
 }
@@ -288,12 +288,12 @@ extension PartialRangeFrom: GPackable where Bound: GPackable {}
 // PartialRangeUpTo ------------------------------------------------------
 
 extension PartialRangeUpTo: GDecodable where Bound: GDecodable {
-	public init(from decoder: GDecoder) throws {
+	public init(from decoder: some GDecoder) throws {
 		self.init( try decoder.decode() as Bound )
 	}
 }
 extension PartialRangeUpTo: GEncodable where Bound: GEncodable {
-	public func encode(to encoder: GEncoder) throws {
+	public func encode(to encoder: some GEncoder) throws {
 		try encoder.encode( upperBound )
 	}
 }
@@ -306,12 +306,12 @@ extension PartialRangeUpTo: GPackable where Bound: GPackable {}
 // PartialRangeFrom ------------------------------------------------------
 
 extension PartialRangeThrough: GDecodable where Bound: GDecodable {
-	public init(from decoder: GDecoder) throws {
+	public init(from decoder: some GDecoder) throws {
 		self.init( try decoder.decode() as Bound )
 	}
 }
 extension PartialRangeThrough: GEncodable where Bound: GEncodable {
-	public func encode(to encoder: GEncoder) throws {
+	public func encode(to encoder: some GEncoder) throws {
 		try encoder.encode( upperBound )
 	}
 }
@@ -329,7 +329,7 @@ fileprivate extension CollectionDifference.Change {
 }
 
 extension CollectionDifference.Change : GDecodable where ChangeElement : GDecodable {
-	public init(from decoder: GDecoder) throws {
+	public init(from decoder: some GDecoder) throws {
 		let changeType		= try decoder.decode(for: Key.changeType) as ChangeType
 		let offset			= try decoder.decode(for: Key.offset) as Int
 		let element			= try decoder.decode(for: Key.element) as ChangeElement
@@ -343,7 +343,7 @@ extension CollectionDifference.Change : GDecodable where ChangeElement : GDecoda
 }
 
 extension CollectionDifference.Change : GEncodable where ChangeElement : GEncodable {
-	public func encode(to encoder: GEncoder) throws {
+	public func encode(to encoder: some GEncoder) throws {
 		switch self {
 		case .insert(let offset, let element, let associatedWith ):
 			try encoder.encode( ChangeType.insert, for: Key.changeType )
@@ -366,7 +366,7 @@ extension CollectionDifference.Change : GPackable where ChangeElement : GPackabl
 
 
 extension CollectionDifference : GDecodable where ChangeElement:GDecodable {
-	public init(from decoder: GDecoder) throws {
+	public init(from decoder: some GDecoder) throws {
 		var changes	= [CollectionDifference<ChangeElement>.Change]()
 		while decoder.unkeyedCount > 0 {
 			changes.append( try decoder.decode() )
@@ -384,7 +384,7 @@ extension CollectionDifference : GDecodable where ChangeElement:GDecodable {
 }
 
 extension CollectionDifference : GEncodable where ChangeElement:GEncodable {
-	public func encode(to encoder: GEncoder) throws {
+	public func encode(to encoder: some GEncoder) throws {
 		for element in self {
 			try encoder.encode( element )
 		}

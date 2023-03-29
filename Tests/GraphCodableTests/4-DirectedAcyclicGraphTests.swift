@@ -41,12 +41,12 @@ final class DirectedAcyclicGraphTests: XCTestCase {
 			case name, others
 		}
 
-		required init(from decoder: GDecoder) throws {
+		required init(from decoder: some GDecoder) throws {
 			name	= try decoder.decode( for: Key.name )
 			others	= try decoder.decode( for: Key.others )
 		}
 		
-		func encode(to encoder: GEncoder) throws {
+		func encode(to encoder: some GEncoder) throws {
 			try encoder.encode(name, 	for: Key.name )
 			try encoder.encode(others,	for: Key.others )
 		}
@@ -143,12 +143,12 @@ final class DirectedAcyclicGraphTests: XCTestCase {
 			case name, others
 		}
 		
-		func encode(to encoder: GEncoder) throws {
+		func encode(to encoder: some GEncoder) throws {
 			try encoder.encode( name, for: Key.name )
 			try encoder.encode( others, for: Key.others )
 		}
 		
-		init(from decoder: GDecoder) throws {
+		init(from decoder: some GDecoder) throws {
 			self.name	= try decoder.decode( for: Key.name )
 			self.others	= try decoder.decode( for: Key.others )
 		}

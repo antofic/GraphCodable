@@ -53,7 +53,7 @@ public enum GraphCodableError : Error {
 	///
 	/// GraphCodable implements the GEncodable protocol for
 	/// many system types. This error is eventually raised
-	/// in their `func encode(to encoder: GEncoder) throws`
+	/// in their `func encode(to encoder: some GEncoder) throws`
 	/// method.
 	///
 	/// It can happen **while encoding** only
@@ -85,7 +85,7 @@ public enum GraphCodableError : Error {
 	///	extracted value (for example using the same key twice)
 	///	as in this example:
 	///	```
-	///	init(from decoder: GDecoder) throws {
+	///	init(from decoder: some GDecoder) throws {
 	///		self.pivot = try decoder.decode(for: Key.pivot)
 	///		//                               same key here:
 	///		self.array = try decoder.decode(for: Key.pivot)
@@ -100,7 +100,7 @@ public enum GraphCodableError : Error {
 	///
 	///	Example:
 	///	```
-	///	func encode(to encoder: GEncoder) throws {
+	///	func encode(to encoder: some GEncoder) throws {
 	///		try encoder.encode(pivot, for: Key.pivot)
 	///		//                          same key here:
 	///		try encoder.encode(array, for: Key.pivot)
@@ -117,7 +117,7 @@ public enum GraphCodableError : Error {
 	///	to decodeder properties `encodedClassVersion` and
 	///	`replacedClass` throw this error:
 	///	```
-	///	init(from decoder: GDecoder) throws {
+	///	init(from decoder: some GDecoder) throws {
 	///		let classVersion	= try decoder.encodedClassVersion
 	///		let replacedClass	= try decoder.replacedClass
 	///		/* ... */

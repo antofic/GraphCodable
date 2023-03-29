@@ -37,12 +37,12 @@ final class DirectedCyclicGraphTests: XCTestCase {
 				self.boxed	= boxed
 			}
 			
-			func encode(to encoder: GEncoder) throws {
+			func encode(to encoder: some GEncoder) throws {
 				//	weak variables must be encoded conditionally!!!
 				try encoder.encodeConditional( boxed )
 			}
 			
-			required init(from decoder: GDecoder) throws {
+			required init(from decoder: some GDecoder) throws {
 				//	and then we use the deferred decoding
 				//	to avoid strong cycles
 				try decoder.deferDecode { self.boxed = $0 }
@@ -71,12 +71,12 @@ final class DirectedCyclicGraphTests: XCTestCase {
 				case name, boxes
 			}
 			
-			required init(from decoder: GDecoder) throws {
+			required init(from decoder: some GDecoder) throws {
 				name	= try decoder.decode( for: Key.name  )
 				boxes	= try decoder.decode( for: Key.boxes )
 			}
 			
-			func encode(to encoder: GEncoder) throws {
+			func encode(to encoder: some GEncoder) throws {
 				try encoder.encode(name,  for: Key.name  )
 				try encoder.encode(boxes, for: Key.boxes )
 			}
@@ -94,11 +94,11 @@ final class DirectedCyclicGraphTests: XCTestCase {
 			case nodes
 		}
 
-		init(from decoder: GDecoder) throws {
+		init(from decoder: some GDecoder) throws {
 			nodes	= try decoder.decode( for: Key.nodes )
 		}
 		
-		func encode(to encoder: GEncoder) throws {
+		func encode(to encoder: some GEncoder) throws {
 			try encoder.encode(nodes, for: Key.nodes )
 		}
 		

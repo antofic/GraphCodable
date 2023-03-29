@@ -30,8 +30,8 @@ final class ReferenceTests: XCTestCase {
 	//	testInheritance types
 	class SuperClass : GCodable {
 		init() {}
-		required init(from decoder: GDecoder) throws {}
-		func encode(to encoder: GEncoder) throws {}
+		required init(from decoder: some GDecoder) throws {}
+		func encode(to encoder: some GEncoder) throws {}
 	}
 
 	//	testInheritance classes
@@ -50,11 +50,11 @@ final class ReferenceTests: XCTestCase {
 			case next
 		}
 
-		func encode(to encoder: GEncoder) throws {
+		func encode(to encoder: some GEncoder) throws {
 			try encoder.encodeConditional( next, for: Key.next )
 		}
 		
-		required init(from decoder: GDecoder) throws {
+		required init(from decoder: some GDecoder) throws {
 			next	= try decoder.decode( for: Key.next )
 		}
 	}
@@ -62,8 +62,8 @@ final class ReferenceTests: XCTestCase {
 	//	testDontDuplicateReferences types
 	class Dummy : GCodable {
 		init() {}
-		required init(from decoder: GDecoder) throws {}
-		func encode(to encoder: GEncoder) throws {}
+		required init(from decoder: some GDecoder) throws {}
+		func encode(to encoder: some GEncoder) throws {}
 	}
 
 	

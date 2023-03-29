@@ -29,7 +29,7 @@ public protocol GEncodable {
 	/// encoder's format.
 	///
 	/// - Parameter encoder: The encoder to write data to.
-	func encode(to encoder: GEncoder) throws
+	func encode(to encoder: some GEncoder) throws
 	
 	/// The version of the encoded reference type.
 	///
@@ -76,7 +76,7 @@ public protocol GDecodable {
 	/// if the data read is corrupted or otherwise invalid.
 	///
 	/// - Parameter decoder: The decoder to read data from.
-	init(from decoder: GDecoder) throws
+	init(from decoder: some GDecoder) throws
 	
 	/// A decodeType for the encoded reference type.
 	///

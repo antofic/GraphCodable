@@ -37,12 +37,12 @@ fileprivate struct Body : Equatable, GCodable {
 		case height, weight
 	}
 
-	func encode(to encoder: GEncoder) throws {
+	func encode(to encoder: some GEncoder) throws {
 		try encoder.encode( height, for: Key.height )
 		try encoder.encode( weight, for: Key.weight )
 	}
 	
-	init(from decoder: GDecoder) throws {
+	init(from decoder: some GDecoder) throws {
 		height	= try decoder.decode( for: Key.height  )
 		weight	= try decoder.decode( for: Key.weight  )
 	}
@@ -61,12 +61,12 @@ fileprivate struct Person : Equatable, GCodable {
 		case name, body
 	}
 
-	func encode(to encoder: GEncoder) throws {
+	func encode(to encoder: some GEncoder) throws {
 		try encoder.encode( name, for: Key.name )
 		try encoder.encode( body, for: Key.body )
 	}
 	
-	init(from decoder: GDecoder) throws {
+	init(from decoder: some GDecoder) throws {
 		name	= try decoder.decode( for: Key.name )
 		body	= try decoder.decode( for: Key.body )
 	}
@@ -121,7 +121,7 @@ extension List: Equatable where Element:Equatable {}
 //	We make our list GCodable: unkeyed encoding
 //	works great in this case.
 extension List: GCodable where Element:GCodable {
-	func encode(to encoder: GEncoder) throws {
+	func encode(to encoder: some GEncoder) throws {
 		switch self {
 		case .end:
 			break;
@@ -131,7 +131,7 @@ extension List: GCodable where Element:GCodable {
 		}
 	}
 	
-	init(from decoder: GDecoder) throws {
+	init(from decoder: some GDecoder) throws {
 		if decoder.unkeyedCount == 0 {
 			self		= .end
 		} else {
@@ -173,14 +173,14 @@ final class StructEnumOptionTests: XCTestCase {
 				case name, height, nephews, uncles
 			}
 			
-			func encode(to encoder: GEncoder) throws {
+			func encode(to encoder: some GEncoder) throws {
 				try encoder.encode( name, 	for: Key.name	 )
 				try encoder.encode( height, for: Key.height	 )
 				try encoder.encode( nephews,for: Key.nephews )
 				try encoder.encode( uncles, for: Key.uncles	 )
 			}
 			
-			init(from decoder: GDecoder) throws {
+			init(from decoder: some GDecoder) throws {
 				//	they can be decoded in any order
 				uncles	= try decoder.decode( for: Key.uncles  )
 				name	= try decoder.decode( for: Key.name    )
@@ -205,14 +205,14 @@ final class StructEnumOptionTests: XCTestCase {
 			
 			init() {}
 			
-			func encode(to encoder: GEncoder) throws {
+			func encode(to encoder: some GEncoder) throws {
 				try encoder.encode( name )
 				try encoder.encode( height )
 				try encoder.encode( nephews )
 				try encoder.encode( uncles )
 			}
 			
-			init(from decoder: GDecoder) throws {
+			init(from decoder: some GDecoder) throws {
 				//	they must be decoded in the same
 				//	order in which they were encoded
 				name	= try decoder.decode()
@@ -242,14 +242,14 @@ final class StructEnumOptionTests: XCTestCase {
 				case name, height
 			}
 
-			func encode(to encoder: GEncoder) throws {
+			func encode(to encoder: some GEncoder) throws {
 				try encoder.encode( name, for: Key.name )
 				try encoder.encode( nephews )
 				try encoder.encode( height, for: Key.height )
 				try encoder.encode( uncles )
 			}
 			
-			init(from decoder: GDecoder) throws {
+			init(from decoder: some GDecoder) throws {
 				//	unkeyed variables must be decoded in the same
 				//	order in which they were encoded, regardless
 				//	of the keyed variables

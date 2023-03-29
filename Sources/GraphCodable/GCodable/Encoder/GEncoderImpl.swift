@@ -153,7 +153,7 @@ extension GEncoderImpl : GEncoder, GEncoderView {
 // MARK: GEncoderImpl private section
 extension GEncoderImpl {
 	private func encodeAnyValue(_ anyValue: Any, forKey key: String?, conditional:Bool ) throws {
-		//	anyValue cam really be a value, an Optional(value), an Optional(Optional(value)), etc…
+		//	anyValue can really be a value, an Optional(value), an Optional(Optional(value)), etc…
 		//	Optional(fullUnwrapping:_) turns anyValue into an one-level Optional(value)
 		let value	= Optional(fullUnwrapping: anyValue)
 	
@@ -239,11 +239,11 @@ extension GEncoderImpl {
 	}
 	
 	private func identity( of value:GEncodable ) -> Identity? {
-		if	encodeOptions.contains( .disableIdentity ) {
+		if encodeOptions.contains( .disableIdentity ) {
 			return nil
 		}
 		
-		if	encodeOptions.contains( .tryHashableIdentityAtFirst ) {
+		if encodeOptions.contains( .tryHashableIdentityAtFirst ) {
 			if let value = value as? (any Hashable) {
 				return Identity( value )
 			}
@@ -253,7 +253,6 @@ extension GEncoderImpl {
 			if let id = value.gcodableID {
 				return Identity( id )
 			}
-			// let's give .tryHashableIdentityAtLast a chance
 		} else if let value = value as? any (GEncodable & AnyObject) {
 			return Identity( ObjectIdentifier( value ) )
 		}

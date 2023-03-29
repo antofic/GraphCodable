@@ -148,12 +148,12 @@ struct Example : GCodable, Equatable {
 		case name, examples
 	}
 	
-	init(from decoder: GDecoder) throws {
+	init(from decoder: some GDecoder) throws {
 		self.name	= try decoder.decode( for: Key.name )
 		self.examples	= try decoder.decode( for: Key.examples )
 	}
 	
-	func encode(to encoder: GEncoder) throws {
+	func encode(to encoder: some GEncoder) throws {
 		try encoder.encode( name, for: Key.name )
 		try encoder.encode( examples, for: Key.examples )
 	}
@@ -197,12 +197,12 @@ struct Example : GCodable, Equatable {
 		case name, examples
 	}
 
-	init(from decoder: GDecoder) throws {
+	init(from decoder: some GDecoder) throws {
 		self.name	= try decoder.decode()
 		self.examples	= try decoder.decode()
 	}
 	
-	func encode(to encoder: GEncoder) throws {
+	func encode(to encoder: some GEncoder) throws {
 		try encoder.encode( name )
 		try encoder.encode( examples )
 	}
@@ -227,7 +227,7 @@ It is recommended that you use unkeyed coding not in cases like this, but rather
 
 ```swift
 extension Array: GEncodable where Element:GEncodable {
-	public func encode(to encoder: GEncoder) throws {
+	public func encode(to encoder: some GEncoder) throws {
 		for element in self {
 			try encoder.encode( element )
 		}
@@ -235,7 +235,7 @@ extension Array: GEncodable where Element:GEncodable {
 }
 
 extension Array: GDecodable where Element:GDecodable {
-	public init(from decoder: GDecoder) throws {
+	public init(from decoder: some GDecoder) throws {
 		self.init()
 		
 		self.reserveCapacity( decoder.unkeyedCount )
@@ -263,9 +263,9 @@ import GraphCodable
 class A : CustomStringConvertible, GCodable, Codable {
 	init() {
 	}
-	required init(from decoder: GDecoder) throws {
+	required init(from decoder: some GDecoder) throws {
 	}
-	func encode(to encoder: GEncoder) throws {
+	func encode(to encoder: some GEncoder) throws {
 	}
 	var description: String {
 		return "\(type(of: self))"
@@ -416,12 +416,12 @@ final class Example : GCodable, Equatable, Codable {
 		case name, examples
 	}
 	
-	init(from decoder: GDecoder) throws {
+	init(from decoder: some GDecoder) throws {
 		self.name	= try decoder.decode( for: Key.name )
 		self.examples	= try decoder.decode( for: Key.examples )
 	}
 	
-	func encode(to encoder: GEncoder) throws {
+	func encode(to encoder: some GEncoder) throws {
 		try encoder.encode( name, for: Key.name )
 		try encoder.encode( examples, for: Key.examples )
 	}
@@ -496,12 +496,12 @@ struct Example : GCodable, Equatable, Codable, Identifiable, GIdentifiable {
 		case name, examples
 	}
 	
-	init(from decoder: GDecoder) throws {
+	init(from decoder: some GDecoder) throws {
 		self.name	= try decoder.decode( for: Key.name )
 		self.examples	= try decoder.decode( for: Key.examples )
 	}
 	
-	func encode(to encoder: GEncoder) throws {
+	func encode(to encoder: some GEncoder) throws {
 		try encoder.encode( name, for: Key.name )
 		try encoder.encode( examples, for: Key.examples )
 	}
@@ -581,12 +581,12 @@ class ConditionalList : GCodable {
 		case next
 	}
 	
-	func encode(to encoder: GEncoder) throws {
+	func encode(to encoder: some GEncoder) throws {
 		// conditionaEncode!
 		try encoder.encodeConditional( next, for: Key.next )
 	}
 	
-	required init(from decoder: GDecoder) throws {
+	required init(from decoder: some GDecoder) throws {
 		next	= try decoder.decode( for: Key.next )
 	}
 }
@@ -643,11 +643,11 @@ struct VeryLargeData : GCodable, Identifiable, GIdentifiable {
 		self.veryLargeData	= veryLargeData
 	}
 
-	func encode(to encoder: GEncoder) throws {
+	func encode(to encoder: some GEncoder) throws {
 		try encoder.encode( veryLargeData )
 	}
 	
-	init(from decoder: GDecoder) throws {
+	init(from decoder: some GDecoder) throws {
 		veryLargeData	= try decoder.decode()
 	}
 }
@@ -663,11 +663,11 @@ struct A : GCodable {
 		case data
 	}
 	
-	func encode(to encoder: GEncoder) throws {
+	func encode(to encoder: some GEncoder) throws {
 		try encoder.encode( data, for: Key.data )
 	}
 	
-	init(from decoder: GDecoder) throws {
+	init(from decoder: some GDecoder) throws {
 		data	= try decoder.decode( for: Key.data )
 	}
 }
@@ -683,11 +683,11 @@ struct B : GCodable {
 		case data
 	}
 	
-	func encode(to encoder: GEncoder) throws {
+	func encode(to encoder: some GEncoder) throws {
 		try encoder.encodeConditional( data, for: Key.data )
 	}
 	
-	init(from decoder: GDecoder) throws {
+	init(from decoder: some GDecoder) throws {
 		data	= try decoder.decode( for: Key.data )
 	}
 }
@@ -705,12 +705,12 @@ struct Model : GCodable {
 		case a,b
 	}
 	
-	func encode(to encoder: GEncoder) throws {
+	func encode(to encoder: some GEncoder) throws {
 		try encoder.encode( a, for: Key.a )
 		try encoder.encode( b, for: Key.b )
 	}
 	
-	init(from decoder: GDecoder) throws {
+	init(from decoder: some GDecoder) throws {
 		a	= try decoder.decodeIfPresent( for: Key.a )
 		b	= try decoder.decode( for: Key.b )
 	}
@@ -813,12 +813,12 @@ class Node : Codable, GCodable {
 		case name, connections
 	}
 	
-	required init(from decoder: GDecoder) throws {
+	required init(from decoder: some GDecoder) throws {
 		name		= try decoder.decode( for: Key.name )
 		connections	= try decoder.decode( for: Key.connections )
 	}
 	
-	func encode(to encoder: GEncoder) throws {
+	func encode(to encoder: some GEncoder) throws {
 		try encoder.encode(name, for: Key.name )
 		try encoder.encode(connections, for: Key.connections )
 	}
@@ -908,7 +908,7 @@ Than, GraphCodable uses a slightly different way to decode weak variables used t
 Let's see how with a classic example: the **parent-childs pattern**. In this pattern the parent variable is weak to break the strong cycles (self.parent.child === self) that would otherwise form with his childs. Similarly, this pattern requires to '*deferDecode*' the weak variable (parent):
 
 ```swift
-required init(from decoder: GDecoder) throws {
+required init(from decoder: some GDecoder) throws {
 	self.childs	= try decoder.decode( for: Key.childs )
 	try decoder.deferDecode( for: Key.parent ) { self.parent = $0 }
 }
@@ -965,14 +965,14 @@ class Node : Hashable, GCodable, CustomStringConvertible {
 		"\( type(of:self) ) \(childs)"
 	}
 	
-	func encode(to encoder: GEncoder) throws {
+	func encode(to encoder: some GEncoder) throws {
 		try encoder.encode( childs, for: Key.childs )
 		
 		//	weak variables should always be encoded conditionally:
 		try encoder.encodeConditional( parent, for: Key.parent )
 	}
 	
-	required init(from decoder: GDecoder) throws {
+	required init(from decoder: some GDecoder) throws {
 		self.childs	= try decoder.decode( for: Key.childs )
 		
 		//	weak variables used to break strong memory cycles must
@@ -1025,7 +1025,7 @@ Another possible workaround with ARC is to manually break the strong cycles to a
 If `decode` is used for those connections, the decoding fails due to reference cycles. The solution, as the previous example, is to use `deferDecode` to decode the array:
 
 ```swift
-required init(from decoder: GDecoder) throws {
+required init(from decoder: some GDecoder) throws {
 	name		= try decoder.decode( for: Key.name  )
   try decoder.deferDecode( for: Key.connections ) { self.connections = $0 }
 }
@@ -1058,12 +1058,12 @@ class Model : GCodable, Equatable, CustomStringConvertible {
 			case name, connections
 		}
 		
-		required init(from decoder: GDecoder) throws {
+		required init(from decoder: some GDecoder) throws {
 			name		= try decoder.decode( for: Key.name  )
       try decoder.deferDecode( for: Key.connections ) { self.connections = $0 }
 		}
 		
-		func encode(to encoder: GEncoder) throws {
+		func encode(to encoder: some GEncoder) throws {
 			try encoder.encode( name,  for: Key.name  )
 			try encoder.encode( connections, for: Key.connections )
 		}
@@ -1089,13 +1089,13 @@ class Model : GCodable, Equatable, CustomStringConvertible {
 		case nodes
 	}
 	
-	required init(from decoder: GDecoder) throws {
+	required init(from decoder: some GDecoder) throws {
 		nodes	= try decoder.decode( for: Key.nodes )
 		//	deferDecode can be used here, but is not required
 		//	try decoder.deferDecode( for: Key.nodes ) { self.nodes = $0 }
 	}
 	
-	func encode(to encoder: GEncoder) throws {
+	func encode(to encoder: some GEncoder) throws {
 		try encoder.encode(nodes, for: Key.nodes )
 	}
 	
@@ -1227,10 +1227,10 @@ First of all, let's adopt the `GCodable` protocol:
 
 ```swift
 extension MyArray: GCodable where Element:GCodable {
-	init(from decoder: GDecoder) throws {
+	init(from decoder: some GDecoder) throws {
 		box	= RefBox( try decoder.decode() )
 	}
-	func encode(to encoder: GEncoder) throws {
+	func encode(to encoder: some GEncoder) throws {
 		try encoder.encode( box.value )
 	}
 }
@@ -1412,7 +1412,7 @@ let graphEncoder = GraphEncoder(userVersion: myCurrentGlobalVersion)
 During decoding you can access the encoded version with:
 
 ```swift
-init(from decoder: GDecoder) throws {
+init(from decoder: some GDecoder) throws {
 	let version = decoder.encodedUserVersion
   /* ... */
 }
@@ -1421,7 +1421,7 @@ init(from decoder: GDecoder) throws {
 This  version is also available during encoding (useful if the program should support the possibility of saving a document also in previous formats):
 
 ```swift
-func encode(to encoder: GEncoder) throws {
+func encode(to encoder: some GEncoder) throws {
 	let version = encoder.userVersion
   /* ... */
 }
@@ -1480,11 +1480,11 @@ class MyData :GCodable, CustomStringConvertible {
 		case number
 	}
 	
-	required init(from decoder: GDecoder) throws {
+	required init(from decoder: some GDecoder) throws {
 		self.number	= try decoder.decode(for: Key.number)
 		}
 
-	func encode(to encoder: GEncoder) throws {
+	func encode(to encoder: some GEncoder) throws {
 		try encoder.encode( number, for:Key.number )
 	}
 
@@ -1526,7 +1526,7 @@ class MyData :GCodable, CustomStringConvertible {
 		case string
 	}
 	
-	required init(from decoder: GDecoder) throws {
+	required init(from decoder: some GDecoder) throws {
 		let version = try decoder.encodedClassVersion
 		
 		switch version {
@@ -1537,7 +1537,7 @@ class MyData :GCodable, CustomStringConvertible {
 		}
 	}
 	
-	func encode(to encoder: GEncoder) throws {
+	func encode(to encoder: some GEncoder) throws {
 		try encoder.encode( string, for:Key.string )
 	}
 	
@@ -1572,7 +1572,7 @@ The `GDecodable` protocol defines the static property `decodeType` which by defa
 
 ```swift
 public protocol GDecodable {
-	init(from decoder: GDecoder) throws
+	init(from decoder: some GDecoder) throws
 	
 	static var decodeType : GDecodable.Type { get }
 }
@@ -1590,18 +1590,18 @@ class MyData: GCodable {
 		return MyNewData.decodeType
 	}
 	
-	required init(from decoder: GDecoder) throws {
+	required init(from decoder: some GDecoder) throws {
 		preconditionFailure("Unreachable \(#function)")
 	}
 	
-	func encode(to encoder: GEncoder) throws {
+	func encode(to encoder: some GEncoder) throws {
 		preconditionFailure("Unreachable \(#function)")
 	}
   // no other code
 }
 ```
 
-To make this easier, GraphCodable provides the `GObsolete` protocol, which has no function in the package, but implements the two required but now unreachable methods `init(from decoder: GDecoder)` and `encode(to encoder: GEncoder)` of `GCodable` and allows you to mark the classes that have been replaced in a clear way. The code then becomes:
+To make this easier, GraphCodable provides the `GObsolete` protocol, which has no function in the package, but implements the two required but now unreachable methods `init(from decoder: some GDecoder)` and `encode(to encoder: some GEncoder)` of `GCodable` and allows you to mark the classes that have been replaced in a clear way. The code then becomes:
 
 ```swift
 class MyData : GObsolete {
@@ -1638,7 +1638,7 @@ class MyNewData :GCodable, CustomStringConvertible {
 		case string
 	}
 	
-	required init(from decoder: GDecoder) throws {
+	required init(from decoder: some GDecoder) throws {
 		if try decoder.replacedClass != nil {
 			// I'm decoding MyData and replacing with MyNewData
 			self.string	=  String( try decoder.decode( for: OldKey.number ) as Int )
@@ -1648,7 +1648,7 @@ class MyNewData :GCodable, CustomStringConvertible {
 		}
 	}
 	
-	func encode(to encoder: GEncoder) throws {
+	func encode(to encoder: some GEncoder) throws {
 		try encoder.encode( string, for:Key.string )
 	}
 	
@@ -1677,7 +1677,7 @@ The illustrated mechanism **breaks down** when the class whose name is changed c
 class Generic<T:GDecodable> : GDecodable {
 	let data : T
 	
-	required init(from decoder: GDecoder) throws {
+	required init(from decoder: some GDecoder) throws {
 		self.data = try decoder.decode()
 	}
 }
@@ -1716,7 +1716,7 @@ where T:GDecodable, Q:GDecodable {
 		self.rhs	= rhs
 	}
 	
-	init(from decoder: GDecoder) throws {
+	init(from decoder: some GDecoder) throws {
 		lhs	= try decoder.decode()
 		rhs	= try decoder.decode()
 	}
@@ -1724,7 +1724,7 @@ where T:GDecodable, Q:GDecodable {
 
 extension Pair: GEncodable
 where T:GEncodable, Q:GEncodable {
-	func encode(to encoder: GEncoder) throws {
+	func encode(to encoder: some GEncoder) throws {
 		try encoder.encode( lhs )
 		try encoder.encode( rhs )
 	}
@@ -1891,7 +1891,7 @@ where T:GDecodable, Q:GDecodable {
 		self.rhs	= rhs
 	}
 	
-	init(from decoder: GDecoder) throws {
+	init(from decoder: some GDecoder) throws {
 		lhs	= try decoder.decode()
 		rhs	= try decoder.decode()
 	}
@@ -1899,7 +1899,7 @@ where T:GDecodable, Q:GDecodable {
 
 extension Couple: GEncodable
 where T:GEncodable, Q:GEncodable {
-	func encode(to encoder: GEncoder) throws {
+	func encode(to encoder: some GEncoder) throws {
 		try encoder.encode( lhs )
 		try encoder.encode( rhs )
 	}
@@ -2236,7 +2236,7 @@ class MyNewData: GCodable, CustomStringConvertible {
 		case string
 	}
 	
-	required init(from decoder: GDecoder) throws {
+	required init(from decoder: some GDecoder) throws {
 		let version = try decoder.encodedClassVersion
 		
 		switch version {
@@ -2247,7 +2247,7 @@ class MyNewData: GCodable, CustomStringConvertible {
 		}
 	}
 	
-	func encode(to encoder: GEncoder) throws {
+	func encode(to encoder: some GEncoder) throws {
 		try encoder.encode( string, for:Key.string )
 	}
 	
@@ -2292,7 +2292,7 @@ struct MyNewData: GCodable, CustomStringConvertible {
 		case string
 	}
 	
-	init(from decoder: GDecoder) throws {
+	init(from decoder: some GDecoder) throws {
 		let version = try decoder.encodedClassVersion
 		
 		switch version {
@@ -2303,7 +2303,7 @@ struct MyNewData: GCodable, CustomStringConvertible {
 		}
 	}
 	
-	func encode(to encoder: GEncoder) throws {
+	func encode(to encoder: some GEncoder) throws {
 		try encoder.encode( string, for:Key.string )
 	}
 	
@@ -2349,12 +2349,12 @@ struct NumericData {
 }
 
 extension NumericData : GCodable {
-	init(from decoder: GDecoder) throws {
+	init(from decoder: some GDecoder) throws {
 		self.vector = try decoder.decode()
 		self.matrix = try decoder.decode()
 	}
 	
-	func encode(to encoder: GEncoder) throws {
+	func encode(to encoder: some GEncoder) throws {
 		try encoder.encode(vector)
 		try encoder.encode(matrix)
 	}
@@ -2379,12 +2379,12 @@ struct Model {
 extension Model : GCodable {
 	private enum Key : String { case pivot,array }
 
-	init(from decoder: GDecoder) throws {
+	init(from decoder: some GDecoder) throws {
 		self.pivot	= try decoder.decode(for: Key.pivot)
 		self.array	= try decoder.decode(for: Key.array)
 	}
 	
-	func encode(to encoder: GEncoder) throws {
+	func encode(to encoder: some GEncoder) throws {
 		try encoder.encode(pivot, for: Key.pivot)
 		try encoder.encode(array, for: Key.array)
 	}
@@ -2497,7 +2497,7 @@ public protocol	GBinaryDecodable : BDecodable, GDecodable {}
 public typealias GBinaryCodable = GBinaryEncodable & GBinaryDecodable
 
 extension GBinaryEncodable {
-	public func encode(to encoder: GEncoder) throws	{
+	public func encode(to encoder: some GEncoder) throws	{
 		throw GraphCodableError.internalInconsistency(
 			Self.self, GraphCodableError.Context(
 				debugDescription: "Unreachable code."
@@ -2506,7 +2506,7 @@ extension GBinaryEncodable {
 	}
 }
 extension GBinaryDecodable {
-	public init(from decoder: GDecoder) throws {
+	public init(from decoder: some GDecoder) throws {
 		throw GraphCodableError.internalInconsistency(
 			Self.self, GraphCodableError.Context(
 				debugDescription: "Unreachable code."
@@ -2621,7 +2621,7 @@ If some archives where `NumericData` adopts `GCodable` exist and you want to kee
 
 ```swift
 extension NumericData : GDecodable {
-	init(from decoder: GDecoder) throws {
+	init(from decoder: some GDecoder) throws {
 		self.vector = try decoder.decode()
 		self.matrix = try decoder.decode()
 	}
@@ -2646,12 +2646,12 @@ Conversely, if some archives in which `NumericData` adopts `GBinaryCodable` or `
 extension Model : GCodable {
 	private enum Key : String { case pivot,array }
 
-	init(from decoder: GDecoder) throws {
+	init(from decoder: some GDecoder) throws {
 		self.pivot	= try decoder.decode(for: Key.pivot)
 		self.array	= try decoder.decode(for: Key.array)
 	}
 	
-	func encode(to encoder: GEncoder) throws {
+	func encode(to encoder: some GEncoder) throws {
 		try encoder.encode(pivot, for: Key.pivot)
 		try encoder.encode(array, for: Key.array)
 	}
@@ -2796,12 +2796,12 @@ struct Model {
 extension Model : GCodable {
 	private enum Key : String { case pivot,array }
 	
-	init(from decoder: GDecoder) throws {
+	init(from decoder: some GDecoder) throws {
 		self.pivot	= try decoder.decode(for: Key.pivot)
 		self.array	= try decoder.decode(for: Key.array)
 	}
 	
-	func encode(to encoder: GEncoder) throws {
+	func encode(to encoder: some GEncoder) throws {
 		try encoder.encode(pivot, for: Key.pivot)
 		try encoder.encode(array, for: Key.array)
 	}
@@ -3023,7 +3023,7 @@ extension Array : BDecodable where Element : BDecodable {
 
 ```swift
 extension Array: GEncodable where Element:GEncodable {
-	public func encode(to encoder: GEncoder) throws {
+	public func encode(to encoder: some GEncoder) throws {
 		for element in self {
 			try encoder.encode( element )
 		}
@@ -3031,7 +3031,7 @@ extension Array: GEncodable where Element:GEncodable {
 }
 
 extension Array: GDecodable where Element:GDecodable {
-	public init(from decoder: GDecoder) throws {
+	public init(from decoder: some GDecoder) throws {
 		self.init()
 		
 		self.reserveCapacity( decoder.unkeyedCount )
@@ -3093,7 +3093,7 @@ extension PersonNameComponents {
 }
 
 extension PersonNameComponents : GDecodable {
-	public init(from decoder: GDecoder) throws {
+	public init(from decoder: some GDecoder) throws {
 		self.init()
 		
 		namePrefix = try decoder.decodeIfPresent( for: Key.namePrefix )
@@ -3106,7 +3106,7 @@ extension PersonNameComponents : GDecodable {
 }
 
 extension PersonNameComponents : GEncodable {
-	public func encode(to encoder: GEncoder) throws {
+	public func encode(to encoder: some GEncoder) throws {
 		try encoder.encodeIfPresent( namePrefix, for: Key.namePrefix)
 		try encoder.encodeIfPresent( givenName, for: Key.givenName)
 		try encoder.encodeIfPresent( middleName, for: Key.middleName)

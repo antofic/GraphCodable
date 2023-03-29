@@ -95,7 +95,7 @@ extension Calendar : GEncodable {
 		case nsIdentifier, locale, timeZone, firstWeekday, minimumDaysInFirstWeek
 	}
 	
-	public func encode(to encoder: GEncoder) throws {
+	public func encode(to encoder: some GEncoder) throws {
 		let nsIdentifier = (self as NSCalendar).calendarIdentifier
 		
 		try encoder.encode( nsIdentifier, 			for: Key.nsIdentifier )
@@ -107,7 +107,7 @@ extension Calendar : GEncodable {
 }
 
 extension Calendar : GDecodable {
-	public init(from decoder: GDecoder) throws {
+	public init(from decoder: some GDecoder) throws {
 		let nsIdentifier	= try decoder.decode(for: Key.nsIdentifier) as NSCalendar.Identifier
 		guard var calendar = NSCalendar(calendarIdentifier: nsIdentifier) as Calendar? else {
 			throw GraphCodableError.libDecodingError(
@@ -148,7 +148,7 @@ extension DateComponents {
 }
 
 extension DateComponents : GDecodable {
-	public init(from decoder: GDecoder) throws {
+	public init(from decoder: some GDecoder) throws {
 		self.init(
 			calendar:			try decoder.decodeIfPresent( for: Key.calendar 			),
 			timeZone:			try decoder.decodeIfPresent( for: Key.timeZone 			),
@@ -170,7 +170,7 @@ extension DateComponents : GDecodable {
 	}
 }
 extension DateComponents : GEncodable {
-	public func encode(to encoder: GEncoder) throws {
+	public func encode(to encoder: some GEncoder) throws {
 		try encoder.encodeIfPresent( calendar, 			for: Key.calendar 			)
 		try encoder.encodeIfPresent( timeZone, 			for: Key.timeZone 			)
 		try encoder.encodeIfPresent( era, 				for: Key.era 				)
@@ -199,14 +199,14 @@ extension DateInterval {
 	}
 }
 extension DateInterval : GDecodable {
-	public init(from decoder: GDecoder) throws {
+	public init(from decoder: some GDecoder) throws {
 		let start 		= try decoder.decode( for: Key.start) as Date
 		let duration 	= try decoder.decode( for: Key.duration) as TimeInterval
 		self.init(start: start, duration: duration)
 	}
 }
 extension DateInterval : GEncodable {
-	public func encode(to encoder: GEncoder) throws {
+	public func encode(to encoder: some GEncoder) throws {
 		try encoder.encode( start, 		for: Key.start)
 		try encoder.encode( duration, 	for: Key.duration)
 	}
@@ -226,7 +226,7 @@ extension PersonNameComponents {
 }
 
 extension PersonNameComponents : GDecodable {
-	public init(from decoder: GDecoder) throws {
+	public init(from decoder: some GDecoder) throws {
 		self.init()
 		
 		namePrefix = try decoder.decodeIfPresent( for: Key.namePrefix )
@@ -238,7 +238,7 @@ extension PersonNameComponents : GDecodable {
 	}
 }
 extension PersonNameComponents : GEncodable {
-	public func encode(to encoder: GEncoder) throws {
+	public func encode(to encoder: some GEncoder) throws {
 		try encoder.encodeIfPresent( namePrefix, for: Key.namePrefix)
 		try encoder.encodeIfPresent( givenName, for: Key.givenName)
 		try encoder.encodeIfPresent( middleName, for: Key.middleName)
@@ -255,7 +255,7 @@ extension URL {
 }
 
 extension URL : GDecodable {
-	public init(from decoder: GDecoder) throws {
+	public init(from decoder: some GDecoder) throws {
 		let relative	= try decoder.decode( for: Key.relativeString ) as String
 		let base		= try decoder.decodeIfPresent( for: Key.baseURL ) as URL?
 		
@@ -270,7 +270,7 @@ extension URL : GDecodable {
 	}
 }
 extension URL : GEncodable {
-	public func encode(to encoder: GEncoder) throws {
+	public func encode(to encoder: some GEncoder) throws {
 		try encoder.encode( relativeString, for: Key.relativeString )
 		try encoder.encodeIfPresent( baseURL, for: Key.baseURL )
 	}
@@ -292,7 +292,7 @@ extension URLComponents {
 
 
 extension URLComponents : GEncodable {
-	public func encode(to encoder: GEncoder) throws {
+	public func encode(to encoder: some GEncoder) throws {
 		try encoder.encodeIfPresent	( scheme,	for: Key.scheme )
 		try encoder.encodeIfPresent	( user,	 	for: Key.user )
 		try encoder.encodeIfPresent	( password,	for: Key.password )
@@ -304,7 +304,7 @@ extension URLComponents : GEncodable {
 	}
 }
 extension URLComponents : GDecodable {
-	public init(from decoder: GDecoder) throws {
+	public init(from decoder: some GDecoder) throws {
 		self.init()
 		
 		scheme		= try decoder.decodeIfPresent(	for: Key.scheme )
@@ -328,13 +328,13 @@ extension Measurement {
 }
 
 extension Measurement : GEncodable {
-	public func encode(to encoder: GEncoder) throws {
+	public func encode(to encoder: some GEncoder) throws {
 		try encoder.encode ( value,	 for: Key.value )
 		try encoder.encode ( unit.symbol, for: Key.symbol )
 	}
 }
 extension Measurement : GDecodable {
-	public init(from decoder: GDecoder) throws {
+	public init(from decoder: some GDecoder) throws {
 		let value = try decoder.decode( for:Key.value ) as Double
 		let symbol = try decoder.decode( for:Key.symbol ) as String
 		self.init( value: value, unit: UnitType(symbol: symbol) )

@@ -33,7 +33,7 @@ public protocol GEncoder {
 	///
 	/// Example:
 	///
-	///     func encode(to encoder: GEncoder) throws {
+	///     func encode(to encoder: some GEncoder) throws {
 	///			...
 	///    		try encoder.encode( valueA, for: Key.valueA )
 	///			...
@@ -73,7 +73,7 @@ public protocol GEncoder {
 	///
 	/// Example:
 	///
-	///     func encode(to encoder: GEncoder) throws {
+	///     func encode(to encoder: some GEncoder) throws {
 	///			...
 	///    		try encoder.encode( valueA )
 	///			...

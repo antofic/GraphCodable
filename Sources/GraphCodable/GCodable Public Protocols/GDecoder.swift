@@ -61,7 +61,7 @@ public protocol GDecoder {
 	///
 	///	Example:
 	///
-	///		init(from decoder: GDecoder) throws {
+	///		init(from decoder: some GDecoder) throws {
 	///     	...
 	///	    	valueA	= try decoder.decode( for: Key.valueA )
 	///			...
@@ -97,7 +97,7 @@ public protocol GDecoder {
 	/// and decode the graph.
 	/// Example:
 	///
-	///    	init(from decoder: GDecoder) throws {
+	///    	init(from decoder: some GDecoder) throws {
 	///     	...
 	///	    	try decoder.deferDecode( for: Key.valueA ) { self.valueA = $0 }
 	///			...
@@ -118,7 +118,7 @@ public protocol GDecoder {
 	///
 	///	Example:
 	///
-	///		init(from decoder: GDecoder) throws {
+	///		init(from decoder: some GDecoder) throws {
 	///     	...
 	///	    	valueA	= try decoder.decode()
 	///			...
@@ -136,7 +136,7 @@ public protocol GDecoder {
 	/// "break" the cycle and decode the graph.
 	/// Example:
 	///
-	///    	init(from decoder: GDecoder) throws {
+	///    	init(from decoder: some GDecoder) throws {
 	///     	...
 	///	    	try decoder.deferDecode() { self.valueA = $0 }
 	///			...
