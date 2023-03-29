@@ -88,18 +88,20 @@ final class GEncoderImpl : EncodeFileBlocksDelegate {
 		self.userVersion	= userVersion
 	}
 
+	private func ioEncoderAndHeader() -> (BinaryIOEncoder, FileHeader) {
+		let ioEncoder		= BinaryIOEncoder( userVersion: userVersion, userData: self )
+		let fileHeader		= FileHeader( binaryIOEncoder: ioEncoder, flags: .packBinSize )
+		return (ioEncoder,fileHeader)
+	}
+	
 	func encodeRoot<T,Q>( _ value: T ) throws -> Q where T:GEncodable, Q:MutableDataProtocol {
 		defer { self.blockEncoder = nil }
-		let ioEncoder		= BinaryIOEncoder(
-			userVersion: 		userVersion,
-			userData: 			self
-		)
-		let fileHeader	= FileHeader(
-			binaryIOEncoder:	ioEncoder
-		)
+		
+		let (ioEncoder,fileHeader)	= ioEncoderAndHeader()
+		
 		let blockEncoder	= EncodeBinary<Q>(
-			ioEncoder: 			ioEncoder,
-			fileHeader: 		fileHeader
+			ioEncoder: 		ioEncoder,
+			fileHeader: 	fileHeader
 		)
 		self.blockEncoder 	= blockEncoder
 		try encode( value )
@@ -108,17 +110,12 @@ final class GEncoderImpl : EncodeFileBlocksDelegate {
 	
 	func dumpRoot<T>( _ value: T, options: GraphDumpOptions ) throws -> String where T:GEncodable {
 		defer { self.blockEncoder = nil }
-		let ioEncoder		= BinaryIOEncoder(
-			userVersion:		userVersion,
-			userData:			self
-		)
-		let fileHeader		= FileHeader(
-			binaryIOEncoder:	ioEncoder
-		)
+		
+		let (_,fileHeader)	= ioEncoderAndHeader()
 		let blockEncoder	= EncodeDump(
-			fileHeader:			fileHeader,
-			dumpOptions:		options,
-			fileSize: 			nil	// no data size during encode
+			fileHeader:		fileHeader,
+			dumpOptions:	options,
+			fileSize: 		nil	// no data size during encode
 		)
 		self.blockEncoder	= blockEncoder
 		try encode( value )
