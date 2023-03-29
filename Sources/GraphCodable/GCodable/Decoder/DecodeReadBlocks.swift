@@ -23,35 +23,35 @@
 import Foundation
 
 /// this struct encapsulate a FileBlock and the immediate file
-/// position (regionStart) after the end of the FileBlock in
+/// position (position) after the end of the FileBlock in
 /// the BinaryIODecoder.
 ///
 /// Needed for binaryValues
 struct ReadBlock {
 	let fileBlock			: FileBlock
-	private let regionStart	: Int
+	private let position	: Int
 	
 	fileprivate init(from ioDecoder: inout BinaryIODecoder, fileHeader:FileHeader ) throws {
 		self.fileBlock	= try FileBlock(from: &ioDecoder, fileHeader: fileHeader)
 		//	memorizzo la posizione della fine del fileBlock
-		self.regionStart	= ioDecoder.regionStart
+		self.position	= ioDecoder.position
 		//	sposto avanti la posizione della dimensione di binaryValue
 		//	in modo che la posizione del BinaryIODecoder punti al
 		//	FileBlock successivo
 		//	(binarySize = 0 for non binary values)
-		ioDecoder.regionStart += self.fileBlock.binarySize
+		ioDecoder.position += self.fileBlock.binarySize
 	}
 
 	init( with fileBlock:FileBlock, copying readBlock:ReadBlock ) {
 		self.fileBlock		= fileBlock
-		self.regionStart	= readBlock.regionStart
+		self.position	= readBlock.position
 	}
 	
 	///	Only binaryValues have a value region size > 0
 	///
 	///	whe size > 0 this is the region of the BinaryIODecoder that contains
 	///	the "binaryEncoded" value.
-	var valueRegion : Range<Int> { regionStart ..< (regionStart + fileBlock.binarySize) }
+	var valueRegion : Range<Int> { position ..< (position + fileBlock.binarySize) }
 }
 
 typealias ReadBlocks		= [ReadBlock]

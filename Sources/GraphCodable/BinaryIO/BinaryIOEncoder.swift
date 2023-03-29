@@ -88,13 +88,15 @@ extension BinaryIOEncoder {
 	///	The current end of file position
 	public var endOfFile	: Int { _data.endIndex }
 	
-	///	Reads and sets the the position in
-	///	the file in which data will be encoded.
+	///	Reads and sets the the position in the file in which data will be encoded.
 	///
 	///	`position` cannot be less than `startOfFile`.
 	///
 	///	`position` cannot be greater than the current end of the
 	///	file (i.e. `endOfFile`).
+	///
+	/// - Note: This method is only necessary in case of **non-sequential** encoding/decoding
+	/// of the archive.
 	public var position: Int {
 		get { _position }
 		set {
@@ -111,6 +113,9 @@ extension BinaryIOEncoder {
 	/// in encoded bytes as paramaters and encode **B**.
 	///
 	/// - Note: The bytes representing **A** are shifted to put **B** in front of **A**.
+	///
+	/// - Note: This method is only necessary in case of **non-sequential** encoding/decoding
+	/// of the archive.
 	public mutating func insert(
 		firstEncode			encodeFunc: ( inout BinaryIOEncoder ) throws -> (),
 		thenInsertInFront	insertFunc: ( inout BinaryIOEncoder, _ encodeSize: Int ) throws -> ()
@@ -137,8 +142,20 @@ extension BinaryIOEncoder {
 	/// - Parameter thenOverwriteDummy: closure that receive self and the size of **A** size
 	/// in encoded bytes as paramaters and encode **B**.
 	///
+	/// Example:
+	/// ```
+	/// try encoder.prepend(
+	///	   dummyEncode: { try $0.encode( 0 ) },
+	///	   thenEncode: { try $0.encode( myValueOfUnknownSize ) },
+	///	   thenOverwriteDummy: { try $0.encode( $1 ) ) }
+	///	)
+	/// ```
+	///
 	/// - Note: `thenOverwriteDummy` must exactly overwrite the dummy data encoded with `dummyEncode`.
 	/// The exception `BinaryIOError.prependingFails` is generated otherwise.
+	///
+	/// - Note: This method is only necessary in case of **non-sequential** encoding/decoding
+	/// of the archive.
 	public mutating func prepend(
 		dummyEncode			dummyFunc: 		( inout BinaryIOEncoder ) throws -> (),
 		thenEncode 			encodeFunc: 	( inout BinaryIOEncoder ) throws -> (),
@@ -275,7 +292,7 @@ extension BinaryIOEncoder {
 }
 
 extension BinaryIOEncoder {
-	public mutating func encode<Value>(_ value: Value) throws where Value : BEncodable { try value.encode(to: &self) }
+	public mutating func encode<Value>	(_ value: Value) 	throws where Value : BEncodable { try value.encode(to: &self) }
 	
 	public mutating func encodeBool		(_ value: Bool) 	throws { try writeBool( value ) }
 	

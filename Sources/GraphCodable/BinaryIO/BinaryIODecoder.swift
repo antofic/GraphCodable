@@ -103,27 +103,25 @@ extension BinaryIODecoder {
 	///	Reads and sets the start of region, i.e. the position in
 	///	the file from which data will be decoded.
 	///
-	///	`regionStart` cannot be less than `startOfFile`.
+	///	`position` and `regionRange.startIndex` are the same thing.
 	///
-	///	`regionStart` cannot be greater than the end of the
+	///	`position` cannot be less than `startOfFile`.
+	///
+	///	`position` cannot be greater than the end of the
 	///	current region (i.e. `regionRange.endIndex`).
 	///
 	/// To change the end of the current region, use `regionRange`.
-	public var regionStart: Int {
+	public var position: Int {
 		get { dataRegion.startIndex }
-		set {
-			precondition(
-				(startOfFile...dataRegion.endIndex).contains( newValue ),
-				"\(Self.self): regionStart \(newValue) beyond current region end \(dataRegion.endIndex)"
-			)
-			dataRegion	= data[ newValue..<dataRegion.endIndex ]
-		}
+		set { regionRange = newValue ..< regionRange.endIndex }
 	}
 	
 	///	Reads and sets the current region range.
 	///
 	///	`regionRange` is the area of the file where the data decoding
 	///	starts and ends.
+	///
+	///	`regionRange.startIndex` and `position` are the same thing.
 	///
 	///	`regionRange.startIndex` cannot be less than `startOfFile`.
 	///
@@ -330,14 +328,14 @@ extension BinaryIODecoder {
 	
 	public mutating func peek<Value>( _ accept:( Value ) -> Bool ) -> Value?
 	where Value : BDecodable {
-		let position	= regionStart
+		let initialPos	= position
 		do {
 			let value = try decode() as Value
 			if accept( value ) { return value }
 		}
 		catch {}
 		
-		regionStart	= position
+		position	= initialPos
 		return nil
 	}
 }

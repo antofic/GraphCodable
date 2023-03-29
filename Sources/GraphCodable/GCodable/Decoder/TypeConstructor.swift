@@ -269,7 +269,7 @@ extension TypeConstructor {
 			)
 		}
 
-		let readSize	= ioDecoder.regionStart - element.readBlock.valueRegion.startIndex
+		let readSize	= ioDecoder.position - element.readBlock.valueRegion.startIndex
 		guard binSize.size == readSize else {
 			throw GraphCodableError.malformedArchive(
 				Self.self, GraphCodableError.Context(
