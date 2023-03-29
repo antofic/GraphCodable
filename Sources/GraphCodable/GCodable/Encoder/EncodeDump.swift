@@ -29,10 +29,10 @@ final class EncodeDump : EncodeFileBlocks {
 	private var 		beforeBody	= false
 	private var 		tabs		: String?
 
-	init( fileHeader: FileHeader, dumpOptions:GraphDumpOptions, dataSize:Int? ) {
+	init( fileHeader: FileHeader, dumpOptions:GraphDumpOptions, fileSize:Int? ) {
 		self.fileHeader	= fileHeader
 		self.options	= dumpOptions
-		self.dataSize	= dataSize
+		self.dataSize	= fileSize
 	}
 
 	static func titleString( _ string: String, filler:Character = "=", lenght: Int = 88 ) -> String {

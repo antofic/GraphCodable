@@ -44,8 +44,15 @@ public protocol BEncoder {
 	/// - parameter value: The value to encode.
 	mutating func encode<Value> (_ value: Value ) throws where Value : BEncodable
 	
-	///	For package use only. Use `userVersion` instead.
-	static var binaryIOVersion: UInt32 { get }
+	///	For package use only.
+	///
+	///	- Note: This value may change due to package needs. **Don't depend on it.**
+	var binaryIOFlags: BinaryIOFlags { get }
+
+	///	For package use only.
+	///
+	///	- Note: This value may change due to package needs. **Don't depend on it.**
+	var binaryIOVersion: UInt16 { get }
 	
 	///	For package use only. Use `encode( _ :Value)` instead.
 	mutating func encodeBool	(_ value: Bool) 	throws

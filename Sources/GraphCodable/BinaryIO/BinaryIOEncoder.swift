@@ -28,7 +28,6 @@ import Foundation
  • store Int, UInt as Int64, UInt64
  */
 
-
 ///	A value that encodes instances of a **BEncodable** type
 ///	into a data buffer that uses **BinaryIO** format.
 public struct BinaryIOEncoder: BEncoder {
@@ -43,7 +42,12 @@ public struct BinaryIOEncoder: BEncoder {
 	/// Actual version for BinaryIO library types
 	///
 	///	Accessible for information only.
-	static public let		binaryIOVersion	: UInt32 = 0
+	public let				binaryIOFlags	: BinaryIOFlags
+	
+	/// Actual version for BinaryIO library types
+	///
+	///	Accessible for information only.
+	public let				binaryIOVersion	: UInt16
 
 	/// Current version for user defined types for
 	///	decoding strategies.
@@ -64,14 +68,17 @@ extension BinaryIOEncoder {
 	/// - Parameter userVersion: An user definde version for its data.
 	///	- Parameter userData: User defined data for decoding strategies.
 	public init( userVersion: UInt32, userData:Any? = nil ) {
-		self.userVersion	= userVersion
-		self._data			= Bytes()
-		self._position		= 0
-		self.startOfFile	= 0
-		self.insertMode		= false
-		self.userData		= userData
+		self.userVersion		= userVersion
+		self._data				= Bytes()
+		self._position			= 0
+		self.startOfFile		= 0
+		self.binaryIOFlags		= []
+		self.binaryIOVersion	= 0
+		self.insertMode			= false
+		self.userData			= userData
 		// really can't throw
-		try! self.writeValue( Self.binaryIOVersion )
+		try! self.writeValue( self.binaryIOFlags )
+		try! self.writeValue( self.binaryIOVersion )
 		try! self.writeValue( userVersion )
 		self.startOfFile	= position
 	}

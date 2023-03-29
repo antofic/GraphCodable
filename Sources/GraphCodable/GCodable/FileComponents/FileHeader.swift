@@ -38,7 +38,8 @@ struct FileHeader : CustomStringConvertible, BCodable {
 	}
 
 	let userVersion		: UInt32
-	let binaryIOVersion	: UInt32
+	let binaryIOFlags	: BinaryIOFlags
+	let binaryIOVersion	: UInt16
 	let gcodableVersion	: UInt32
 	let flags			: Flags
 	let unused0 		: UInt16
@@ -50,13 +51,15 @@ struct FileHeader : CustomStringConvertible, BCodable {
 		}
 		
 		var string = ""
-		string.append(		  "- fileType            = \( alignR(HeaderID.gcod) ) {\(MemoryLayout<HeaderID.RawValue>.size) bytes}")
-		string.append(		"\n- userVersion         = \( alignR(userVersion) ) {\(MemoryLayout.size(ofValue: userVersion)) bytes}")
-		string.append(		"\n- gcodableVersion     = \( alignR(gcodableVersion) ) {\(MemoryLayout.size(ofValue: gcodableVersion)) bytes}")
+		string.append(		  "- binaryIOFlags       = \( alignR(binaryIOFlags.rawValue) ) {\(MemoryLayout.size(ofValue: binaryIOFlags)) bytes}")
 		string.append(		"\n- binaryIOVersion     = \( alignR(binaryIOVersion) ) {\(MemoryLayout.size(ofValue: binaryIOVersion)) bytes}")
-		string.append(		"\n- flags               = \( alignR(flags.rawValue) ) {\(MemoryLayout.size(ofValue: flags)) bytes}")
+		string.append(		"\n- userVersion         = \( alignR(userVersion) ) {\(MemoryLayout.size(ofValue: userVersion)) bytes}")
+		string.append(		"\n- fileType            = \( alignR(HeaderID.gcod) ) {\(MemoryLayout<HeaderID.RawValue>.size) bytes}")
+		string.append(		"\n- gcodableVersion     = \( alignR(gcodableVersion) ) {\(MemoryLayout.size(ofValue: gcodableVersion)) bytes}")
+		string.append(		"\n- gcodableFlags       = \( alignR(flags.rawValue) ) {\(MemoryLayout.size(ofValue: flags)) bytes}")
 		if let dataSize {
-			string.append(	"\n- data size           = \( alignR(dataSize) ) bytes")
+			string.append(	"\n- fileSize            = \( alignR(dataSize) ) bytes")
+			
 		}
 		return string
 	}
@@ -64,13 +67,14 @@ struct FileHeader : CustomStringConvertible, BCodable {
 	var description: String {
 		description(dataSize: nil)
 	}
-	
+
 	init(
-		userVersion:UInt32, binaryIOVersion:UInt32, gcodableVersion: UInt32 = Versions.CURRENT_FILE_VERSION,
+		binaryIOEncoder:BinaryIOEncoder, gcodableVersion: UInt32 = Versions.CURRENT_FILE_VERSION,
 		flags: Flags = [], unused0: UInt16 = 0, unused1: UInt64 = 0
 	) {
-		self.userVersion		= userVersion
-		self.binaryIOVersion	= binaryIOVersion
+		self.userVersion		= binaryIOEncoder.userVersion
+		self.binaryIOFlags		= binaryIOEncoder.binaryIOFlags
+		self.binaryIOVersion	= binaryIOEncoder.binaryIOVersion
 		self.gcodableVersion	= gcodableVersion
 		self.flags				= flags
 		self.unused0			= unused0
@@ -95,6 +99,7 @@ struct FileHeader : CustomStringConvertible, BCodable {
 			)
 		}
 		self.userVersion		= decoder.encodedUserVersion
+		self.binaryIOFlags		= decoder.encodedBinaryIOFlags
 		self.binaryIOVersion	= decoder.encodedBinaryIOVersion
 		self.gcodableVersion	= gcodableVersion
 		self.flags				= try decoder.decode()

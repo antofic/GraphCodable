@@ -62,8 +62,15 @@ public protocol BDecoder {
 	/// - returns: The accepted value, `nil` otherwise.
 	mutating func peek<Value>( _ accept:( Value ) -> Bool ) -> Value? where Value : BDecodable
 	
+	///	For package use only.
+	///
+	///	- Note: This value may change due to package needs. **Don't depend on it.**
+	var encodedBinaryIOFlags: BinaryIOFlags { get }
+
 	///	For package use only. Use `encodedUserVersion` instead.
-	var encodedBinaryIOVersion: UInt32	{ get }
+	///
+	///	- Note: This value may change due to package needs. **Don't depend on it.**
+	var encodedBinaryIOVersion: UInt16	{ get }
 	
 	///	For package use only. Use `decode()` instead.
 	mutating func decodeBool()		throws -> Bool

@@ -57,7 +57,7 @@ import Foundation
 final class GEncoderImpl : EncodeFileBlocksDelegate {
 	var userInfo							= [String:Any]()
 	private let 		encodeOptions		: GraphEncoder.Options
-	private let 		fileHeader			: FileHeader
+	let 				userVersion			: UInt32
 	private var 		currentKeys			= Set<String>()
 	private var			identityMap			= IdentityMap()
 	private var			referenceMap		= ReferenceMap()
@@ -85,23 +85,21 @@ final class GEncoderImpl : EncodeFileBlocksDelegate {
 		#else
 		self.encodeOptions	= options
 		#endif
-		// packBinSize or not???
-		self.fileHeader = FileHeader(
-			userVersion: userVersion,
-			binaryIOVersion: BinaryIOEncoder.binaryIOVersion,
-			flags: []	// .packBinSize
-		)
+		self.userVersion	= userVersion
 	}
 
 	func encodeRoot<T,Q>( _ value: T ) throws -> Q where T:GEncodable, Q:MutableDataProtocol {
 		defer { self.blockEncoder = nil }
 		let ioEncoder		= BinaryIOEncoder(
-			userVersion: fileHeader.userVersion,
-			userData: self
+			userVersion: 		userVersion,
+			userData: 			self
+		)
+		let fileHeader	= FileHeader(
+			binaryIOEncoder:	ioEncoder
 		)
 		let blockEncoder	= EncodeBinary<Q>(
-			ioEncoder: 	ioEncoder,
-			fileHeader: fileHeader
+			ioEncoder: 			ioEncoder,
+			fileHeader: 		fileHeader
 		)
 		self.blockEncoder 	= blockEncoder
 		try encode( value )
@@ -110,10 +108,17 @@ final class GEncoderImpl : EncodeFileBlocksDelegate {
 	
 	func dumpRoot<T>( _ value: T, options: GraphDumpOptions ) throws -> String where T:GEncodable {
 		defer { self.blockEncoder = nil }
-		let blockEncoder		= EncodeDump(
+		let ioEncoder		= BinaryIOEncoder(
+			userVersion:		userVersion,
+			userData:			self
+		)
+		let fileHeader		= FileHeader(
+			binaryIOEncoder:	ioEncoder
+		)
+		let blockEncoder	= EncodeDump(
 			fileHeader:			fileHeader,
 			dumpOptions:		options,
-			dataSize: 			nil	// no data size during encode
+			fileSize: 			nil	// no data size during encode
 		)
 		self.blockEncoder	= blockEncoder
 		try encode( value )
@@ -123,10 +128,7 @@ final class GEncoderImpl : EncodeFileBlocksDelegate {
 
 // MARK: GEncoderImpl conformance to GEncoder protocol
 extension GEncoderImpl : GEncoder, GEncoderView {
-	var	userVersion	: UInt32 {
-		return fileHeader.userVersion
-	}
-	
+
 	func encode<Value>(_ value: Value) throws where Value:GEncodable {
 		try encodeAnyValue( value, forKey: nil, conditional:false )
 	}

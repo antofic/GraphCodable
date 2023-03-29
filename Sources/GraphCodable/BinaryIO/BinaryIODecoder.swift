@@ -48,10 +48,15 @@ public struct BinaryIODecoder: BDecoder {
 	///	data section begins from `startOfFile` offset.
 	public let	startOfFile				: Int
 	
+	///	Encoded flags.
+	///
+	///	Accessible for information only.
+	public let	encodedBinaryIOFlags	: BinaryIOFlags
+
 	///	Encoded version for library types.
 	///
 	///	Accessible for information only.
-	public let	encodedBinaryIOVersion	: UInt32
+	public let	encodedBinaryIOVersion	: UInt16
 	
 	///	Encoded version for user defined types for
 	///	decoding strategies.
@@ -111,6 +116,9 @@ extension BinaryIODecoder {
 	///	current region (i.e. `regionRange.endIndex`).
 	///
 	/// To change the end of the current region, use `regionRange`.
+	///
+	/// - Note: This method is only necessary in case of **non-sequential** encoding/decoding
+	/// of the archive.
 	public var position: Int {
 		get { dataRegion.startIndex }
 		set { regionRange = newValue ..< regionRange.endIndex }
@@ -136,8 +144,11 @@ extension BinaryIODecoder {
 	///	/* ... */
 	///
 	///	```
-	/// To restore reading of the entire file starting at `startOfFile`,
+	/// To restore reading of the entire file starting from `startOfFile`,
 	/// use `myDecoder.regionRange = myDecoder.fullFileRegion`.
+	///
+	/// - Note: This method is only necessary in case of **non-sequential** encoding/decoding
+	/// of the archive.
 	public var regionRange: Range<Int> {
 		get { dataRegion.indices }
 		set {
@@ -155,6 +166,7 @@ extension BinaryIODecoder {
 extension BinaryIODecoder {
 	private init( _ data: Bytes, userData:Any? = nil ) throws {
 		var dataRegion				= data[...]
+		self.encodedBinaryIOFlags	= try Self.readValue(from: &dataRegion)
 		self.encodedBinaryIOVersion	= try Self.readValue(from: &dataRegion)
 		self.encodedUserVersion		= try Self.readValue(from: &dataRegion)
 		self.data					= data
