@@ -29,7 +29,6 @@ import Foundation
  (throws an error if it is not possible)
  */
 
-
 ///	A value that decodes instances of a **BDecodable** type
 ///	from a data buffer that uses **BinaryIO** format.
 public struct BinaryIODecoder: BDecoder {
@@ -49,14 +48,10 @@ public struct BinaryIODecoder: BDecoder {
 	public let	startOfFile				: Int
 	
 	///	Encoded flags.
-	///
-	///	Accessible for information only.
-	public let	encodedBinaryIOFlags	: BinaryIOFlags
+	let	encodedBinaryIOFlags			: BinaryIOFlags
 
 	///	Encoded version for library types.
-	///
-	///	Accessible for information only.
-	public let	encodedBinaryIOVersion	: UInt16
+	let	encodedBinaryIOVersion			: UInt16
 	
 	///	Encoded version for user defined types for
 	///	decoding strategies.
@@ -226,19 +221,22 @@ extension BinaryIODecoder {
 	private func checkRemainingSize( size:Int ) throws {
 		try Self.checkRemainingSize( dataRegion, size: size )
 	}
-	
+}
+
+// internal section ----------------------------
+extension BinaryIODecoder {
 	//	Bool
-	private mutating func readBool() throws -> Bool 	{ return try readValue() }
+	mutating func decodeBool() throws -> Bool 	{ return try readValue() }
 	
 	//	Integers
-	private mutating func readFixedSizeInteger<T> () throws -> T where T:FixedWidthInteger {
+	mutating func decodeFixedSizeInteger<T> () throws -> T where T:FixedWidthInteger {
 		// Integers are always archived in littleEndian format
 		try T( littleEndian: readValue() )
 	}
 	
-	private mutating func readFixedSizeInteger() throws -> Int 	{
+	mutating func decodeFixedSizeInteger() throws -> Int 	{
 		// Int are always archived as Int64
-		let value64 = try readFixedSizeInteger() as Int64
+		let value64 = try decodeFixedSizeInteger() as Int64
 		guard let value = Int( exactly: value64 ) else {
 			throw BinaryIOError.libDecodingError(
 				Self.self, BinaryIOError.Context(
@@ -249,9 +247,9 @@ extension BinaryIODecoder {
 		return value
 	}
 	
-	private mutating func readFixedSizeInteger() throws -> UInt {
+	mutating func decodeFixedSizeInteger() throws -> UInt {
 		// UInt are always archived as UInt64
-		let value64 = try readFixedSizeInteger() as UInt64
+		let value64 = try decodeFixedSizeInteger() as UInt64
 		guard let value = UInt( exactly: value64 ) else {
 			throw BinaryIOError.libDecodingError(
 				Self.self, BinaryIOError.Context(
@@ -263,16 +261,16 @@ extension BinaryIODecoder {
 	}
 
 	//	Floats
-	private mutating func readFloat() throws -> Float {
-		try Float(bitPattern: readFixedSizeInteger())
+	mutating func decodeFloat() throws -> Float {
+		try Float(bitPattern: decodeFixedSizeInteger())
 	}
 	
-	private mutating func readDouble() throws -> Double	{
-		try Double(bitPattern: readFixedSizeInteger())
+	mutating func decodeDouble() throws -> Double	{
+		try Double(bitPattern: decodeFixedSizeInteger())
 	}
 	
 	// read a null terminated utf8 string
-	private mutating func readString<T>() throws -> T where T:StringProtocol {
+	mutating func decodeString<T>() throws -> T where T:StringProtocol {
 		var inSize = 0
 		
 		let string = try dataRegion.withUnsafeBytes {
@@ -304,8 +302,8 @@ extension BinaryIODecoder {
 	}
 	
 	//	Data
-	private mutating func readData<T>() throws -> T where T:MutableDataProtocol {
-		let count	= try readFixedSizeInteger() as Int
+	mutating func decodeData<T>() throws -> T where T:MutableDataProtocol {
+		let count	= try decodeFixedSizeInteger() as Int
 		let inSize	= count * MemoryLayout<UInt8>.size
 		try checkRemainingSize( size: inSize )
 		defer { dataRegion.removeFirst( inSize ) }
@@ -318,25 +316,6 @@ extension BinaryIODecoder {
 
 extension BinaryIODecoder {
 	public mutating func decode<Value>() throws -> Value where Value : BDecodable { try Value(from: &self) }
-	
-	public mutating func decodeBool()	throws -> Bool		{ try readBool() }
-	
-	public mutating func decodeInt()	throws -> Int		{ try readFixedSizeInteger() }
-	public mutating func decodeInt8()	throws -> Int8		{ try readFixedSizeInteger() }
-	public mutating func decodeInt16()	throws -> Int16		{ try readFixedSizeInteger() }
-	public mutating func decodeInt32()	throws -> Int32		{ try readFixedSizeInteger() }
-	public mutating func decodeInt64()	throws -> Int64		{ try readFixedSizeInteger() }
-	
-	public mutating func decodeUInt()	throws -> UInt		{ try readFixedSizeInteger() }
-	public mutating func decodeUInt8()	throws -> UInt8		{ try readFixedSizeInteger() }
-	public mutating func decodeUInt16()	throws -> UInt16	{ try readFixedSizeInteger() }
-	public mutating func decodeUInt32()	throws -> UInt32	{ try readFixedSizeInteger() }
-	public mutating func decodeUInt64()	throws -> UInt64	{ try readFixedSizeInteger() }
-	
-	public mutating func decodeFloat()	throws -> Float		{ try readFloat() }
-	public mutating func decodeDouble()	throws -> Double	{ try readDouble() }
-	public mutating func decodeString()	throws -> String	{ try readString() }
-	public mutating func decodeData()	throws -> Data		{ try readData() }
 	
 	public mutating func peek<Value>( _ accept:( Value ) -> Bool ) -> Value?
 	where Value : BDecodable {

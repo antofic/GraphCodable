@@ -22,21 +22,6 @@
 
 import Foundation
 
-// -- Data support -------------------------------------------------------
-
-extension Data	: BDecodable {
-	public init(from decoder: inout some BDecoder) throws {
-		self = try decoder.decodeData()
-	}
-}
-
-extension Data	: BEncodable {
-	public func encode(to encoder: inout some BEncoder) throws {
-		try encoder.encodeData( self )
-	}
-}
-
-
 // -- CGFloat -----------------------------------------------------------
 //	Su alcune piattaforme CGFloat == Float (32 bit).
 //	Salviamo sempre come Double 64bit
@@ -64,8 +49,6 @@ extension CharacterSet : BEncodable {
 		try encoder.encode( bitmapRepresentation )
 	}
 }
-
-
 
 //	AffineTransform SUPPORT ------------------------------------------------------
 // m11: CGFloat, m12: CGFloat, m21: CGFloat, m22: CGFloat, tX: CGFloat, tY: CGFloat

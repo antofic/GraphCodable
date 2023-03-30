@@ -43,49 +43,4 @@ public protocol BEncoder {
 	/// ```
 	/// - parameter value: The value to encode.
 	mutating func encode<Value> (_ value: Value ) throws where Value : BEncodable
-	
-	///	For package use only.
-	///
-	///	- Note: This value may change due to package needs. **Don't depend on it.**
-	var binaryIOFlags: BinaryIOFlags { get }
-
-	///	For package use only.
-	///
-	///	- Note: This value may change due to package needs. **Don't depend on it.**
-	var binaryIOVersion: UInt16 { get }
-	
-	///	For package use only. Use `encode( _ :Value)` instead.
-	mutating func encodeBool	(_ value: Bool) 	throws
-	
-	///	For package use only. Use `encode( _ :Value)` instead.
-	mutating func encodeInt		(_ value: Int)		throws
-	///	For package use only. Use `encode( _ :Value)` instead.
-	mutating func encodeInt8	(_ value: Int8)		throws
-	///	For package use only. Use `encode( _ :Value)` instead.
-	mutating func encodeInt16	(_ value: Int16)	throws
-	///	For package use only. Use `encode( _ :Value)` instead.
-	mutating func encodeInt32	(_ value: Int32)	throws
-	///	For package use only. Use `encode( _ :Value)` instead.
-	mutating func encodeInt64	(_ value: Int64)	throws
-	
-	///	For package use only. Use `encode( _ :Value)` instead.
-	mutating func encodeUInt	(_ value: UInt)		throws
-	///	For package use only. Use `encode( _ :Value)` instead.
-	mutating func encodeUInt8	(_ value: UInt8)	throws
-	///	For package use only. Use `encode( _ :Value)` instead.
-	mutating func encodeUInt16	(_ value: UInt16)	throws
-	///	For package use only. Use `encode( _ :Value)` instead.
-	mutating func encodeUInt32	(_ value: UInt32)	throws
-	///	For package use only. Use `encode( _ :Value)` instead.
-	mutating func encodeUInt64	(_ value: UInt64)	throws
-	
-	///	For package use only. Use `encode( _ :Value)` instead.
-	mutating func encodeFloat	(_ value: Float)	throws
-	///	For package use only. Use `encode( _ :Value)` instead.
-	mutating func encodeDouble	(_ value: Double)	throws
-	
-	///	For package use only. Use `encode( _ :Value)` instead.
-	mutating func encodeString	(_ value: String)	throws
-	///	For package use only. Use `encode( _ :Value)` instead.
-	mutating func encodeData	(_ value: Data)		throws
 }

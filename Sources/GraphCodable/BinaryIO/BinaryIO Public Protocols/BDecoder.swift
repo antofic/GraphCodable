@@ -60,49 +60,5 @@ public protocol BDecoder {
 	///
 	/// - parameter accept: A function to check the decoded value
 	/// - returns: The accepted value, `nil` otherwise.
-	mutating func peek<Value>( _ accept:( Value ) -> Bool ) -> Value? where Value : BDecodable
-	
-	///	For package use only.
-	///
-	///	- Note: This value may change due to package needs. **Don't depend on it.**
-	var encodedBinaryIOFlags: BinaryIOFlags { get }
-
-	///	For package use only. Use `encodedUserVersion` instead.
-	///
-	///	- Note: This value may change due to package needs. **Don't depend on it.**
-	var encodedBinaryIOVersion: UInt16	{ get }
-	
-	///	For package use only. Use `decode()` instead.
-	mutating func decodeBool()		throws -> Bool
-	
-	///	For package use only. Use `decode()` instead.
-	mutating func decodeInt()		throws -> Int
-	///	For package use only. Use `decode()` instead.
-	mutating func decodeInt8()		throws -> Int8
-	///	For package use only. Use `decode()` instead.
-	mutating func decodeInt16()		throws -> Int16
-	///	For package use only. Use `decode()` instead.
-	mutating func decodeInt32()		throws -> Int32
-	///	For package use only. Use `decode()` instead.
-	mutating func decodeInt64()		throws -> Int64
-	
-	///	For package use only. Use `decode()` instead.
-	mutating func decodeUInt()		throws -> UInt
-	///	For package use only. Use `decode()` instead.
-	mutating func decodeUInt8()		throws -> UInt8
-	///	For package use only. Use `decode()` instead.
-	mutating func decodeUInt16()	throws -> UInt16
-	///	For package use only. Use `decode()` instead.
-	mutating func decodeUInt32()	throws -> UInt32
-	///	For package use only. Use `decode()` instead.
-	mutating func decodeUInt64()	throws -> UInt64
-	
-	///	For package use only. Use `decode()` instead.
-	mutating func decodeFloat()		throws -> Float
-	///	For package use only. Use `decode()` instead.
-	mutating func decodeDouble()	throws -> Double
-	///	For package use only. Use `decode()` instead.
-	mutating func decodeString()	throws -> String
-	///	For package use only. Use `decode()` instead.
-	mutating func decodeData()		throws -> Data
+	mutating func peek<Value>( _ accept:( Value ) -> Bool ) -> Value? where Value : BDecodable	
 }

@@ -99,8 +99,8 @@ struct FileHeader : CustomStringConvertible, BCodable {
 			)
 		}
 		self.userVersion		= decoder.encodedUserVersion
-		self.binaryIOFlags		= decoder.encodedBinaryIOFlags
-		self.binaryIOVersion	= decoder.encodedBinaryIOVersion
+		self.binaryIOFlags		= BinaryIOFlags()		//	CORREGGERE! decoder.encodedBinaryIOFlags
+		self.binaryIOVersion	= 0						//	CORREGGERE! decoder.encodedBinaryIOVersion
 		self.gcodableVersion	= gcodableVersion
 		self.flags				= try decoder.decode()
 		self.unused0			= try decoder.decode()

@@ -21,69 +21,6 @@
 //	SOFTWARE.
 
 
-// Bool ------------------------------------------------------
-
-extension Bool		: BEncodable { public func encode(to encoder: inout some BEncoder) throws { try encoder.encodeBool( self ) } }
-extension Bool		: BDecodable { public init(from decoder: inout some BDecoder) throws { self = try decoder.decodeBool() } }
-
-// Integers ------------------------------------------------------
-
-extension Int: BEncodable {
-	public func encode(to encoder: inout some BEncoder) throws {
-		try withUnsafeMutablePointer(to: &encoder) {
-			try $0.withMemoryRebound(to: BinaryIOEncoder.self, capacity: 1) {
-				try $0.pointee.encodeInt( self )
-			}
-		}
-	}
-}
-
-extension Int: BDecodable {
-	public init(from decoder: inout some BDecoder) throws {
-		self = try withUnsafeMutablePointer(to: &decoder) {
-			try $0.withMemoryRebound(to: BinaryIODecoder.self, capacity: 1) {
-				try $0.pointee.decodeInt()
-			}
-		}
-	}
-}
-
-
-
-extension Int8		: BEncodable { public func encode(to encoder: inout some BEncoder) throws { try encoder.encodeInt8( self ) } }
-extension Int16		: BEncodable { public func encode(to encoder: inout some BEncoder) throws { try encoder.encodeInt16( self ) } }
-extension Int32		: BEncodable { public func encode(to encoder: inout some BEncoder) throws { try encoder.encodeInt32( self ) } }
-extension Int64		: BEncodable { public func encode(to encoder: inout some BEncoder) throws { try encoder.encodeInt64( self ) } }
-
-extension Int8		: BDecodable { public init(from decoder: inout some BDecoder) throws { self = try decoder.decodeInt8() } }
-extension Int16		: BDecodable { public init(from decoder: inout some BDecoder) throws { self = try decoder.decodeInt16() } }
-extension Int32		: BDecodable { public init(from decoder: inout some BDecoder) throws { self = try decoder.decodeInt32() } }
-extension Int64		: BDecodable { public init(from decoder: inout some BDecoder) throws { self = try decoder.decodeInt64() } }
-
-extension UInt		: BEncodable { public func encode(to encoder: inout some BEncoder) throws { try encoder.encodeUInt( self ) } }
-extension UInt8		: BEncodable { public func encode(to encoder: inout some BEncoder) throws { try encoder.encodeUInt8( self ) } }
-extension UInt16	: BEncodable { public func encode(to encoder: inout some BEncoder) throws { try encoder.encodeUInt16( self ) } }
-extension UInt32	: BEncodable { public func encode(to encoder: inout some BEncoder) throws { try encoder.encodeUInt32( self ) } }
-extension UInt64	: BEncodable { public func encode(to encoder: inout some BEncoder) throws { try encoder.encodeUInt64( self ) } }
-
-extension UInt		: BDecodable { public init(from decoder: inout some BDecoder) throws { self = try decoder.decodeUInt() } }
-extension UInt8		: BDecodable { public init(from decoder: inout some BDecoder) throws { self = try decoder.decodeUInt8() } }
-extension UInt16	: BDecodable { public init(from decoder: inout some BDecoder) throws { self = try decoder.decodeUInt16() } }
-extension UInt32	: BDecodable { public init(from decoder: inout some BDecoder) throws { self = try decoder.decodeUInt32() } }
-extension UInt64	: BDecodable { public init(from decoder: inout some BDecoder) throws { self = try decoder.decodeUInt64() } }
-
-// Float & Double ------------------------------------------------------
-
-extension Float		: BEncodable { public func encode(to encoder: inout some BEncoder) throws { try encoder.encodeFloat( self ) } }
-extension Float		: BDecodable { public init(from decoder: inout some BDecoder) throws { self = try decoder.decodeFloat() } }
-
-extension Double	: BEncodable { public func encode(to encoder: inout some BEncoder) throws { try encoder.encodeDouble( self ) } }
-extension Double	: BDecodable { public init(from decoder: inout some BDecoder) throws { self = try decoder.decodeDouble() } }
-
-// String ------------------------------------------------------
-
-extension String	: BEncodable { public func encode(to encoder: inout some BEncoder) throws { try encoder.encodeString( self ) } }
-extension String	: BDecodable { public init(from decoder: inout some BDecoder) throws { self = try decoder.decodeString() } }
 
 // Optional ------------------------------------------------------
 
@@ -154,7 +91,6 @@ extension Array : BDecodable where Element : BDecodable {
 		}
 	}
 }
-
 
 // ContiguousArray ------------------------------------------------------
 
