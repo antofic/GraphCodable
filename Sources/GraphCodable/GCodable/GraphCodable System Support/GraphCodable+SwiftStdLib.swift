@@ -72,6 +72,11 @@ extension Bool 		: GBinaryEncodable {}
 extension Bool 		: GBinaryDecodable {}
 extension Bool 		: GPackable {}
 
+// -- Never support -------------------------------------------------------
+extension Never 	: GBinaryEncodable {}
+extension Never 	: GBinaryDecodable {}
+extension Never 	: GPackable {}
+
 //	Optional SUPPORT ------------------------------------------------------
 extension Optional: GEncodable where Wrapped: GEncodable {
 	//	The encoder always unwraps optional values

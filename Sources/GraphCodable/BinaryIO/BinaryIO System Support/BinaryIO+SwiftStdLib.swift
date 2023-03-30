@@ -20,7 +20,23 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
+// Never ------------------------------------------------------
 
+extension Never : BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
+		// nothing to do
+	}
+}
+
+extension Never : BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
+		throw BinaryIOError.libDecodingError(
+			Self.self, BinaryIOError.Context(
+				debugDescription: "Never type can't be istantiated."
+			)
+		)
+	}
+}
 
 // Optional ------------------------------------------------------
 
