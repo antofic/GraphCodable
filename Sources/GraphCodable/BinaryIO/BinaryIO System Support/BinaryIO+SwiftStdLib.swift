@@ -28,13 +28,33 @@ extension Bool		: BDecodable { public init(from decoder: inout some BDecoder) th
 
 // Integers ------------------------------------------------------
 
-extension Int		: BEncodable { public func encode(to encoder: inout some BEncoder) throws { try encoder.encodeInt( self ) } }
+extension Int: BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
+		try withUnsafeMutablePointer(to: &encoder) {
+			try $0.withMemoryRebound(to: BinaryIOEncoder.self, capacity: 1) {
+				try $0.pointee.encodeInt( self )
+			}
+		}
+	}
+}
+
+extension Int: BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
+		self = try withUnsafeMutablePointer(to: &decoder) {
+			try $0.withMemoryRebound(to: BinaryIODecoder.self, capacity: 1) {
+				try $0.pointee.decodeInt()
+			}
+		}
+	}
+}
+
+
+
 extension Int8		: BEncodable { public func encode(to encoder: inout some BEncoder) throws { try encoder.encodeInt8( self ) } }
 extension Int16		: BEncodable { public func encode(to encoder: inout some BEncoder) throws { try encoder.encodeInt16( self ) } }
 extension Int32		: BEncodable { public func encode(to encoder: inout some BEncoder) throws { try encoder.encodeInt32( self ) } }
 extension Int64		: BEncodable { public func encode(to encoder: inout some BEncoder) throws { try encoder.encodeInt64( self ) } }
 
-extension Int		: BDecodable { public init(from decoder: inout some BDecoder) throws { self = try decoder.decodeInt() } }
 extension Int8		: BDecodable { public init(from decoder: inout some BDecoder) throws { self = try decoder.decodeInt8() } }
 extension Int16		: BDecodable { public init(from decoder: inout some BDecoder) throws { self = try decoder.decodeInt16() } }
 extension Int32		: BDecodable { public init(from decoder: inout some BDecoder) throws { self = try decoder.decodeInt32() } }
