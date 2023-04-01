@@ -51,7 +51,7 @@ extension Int: BEncodable {
 	public func encode(to encoder: inout some BEncoder) throws {
 		try withUnsafeMutablePointer(to: &encoder) {
 			try $0.withMemoryRebound(to: BinaryIOEncoder.self, capacity: 1) {
-				try $0.pointee.encodeFixedWidthInteger( self )
+				try $0.pointee.encodeInt( self )
 			}
 		}
 	}
@@ -61,7 +61,7 @@ extension Int: BDecodable {
 	public init(from decoder: inout some BDecoder) throws {
 		self = try withUnsafeMutablePointer(to: &decoder) {
 			try $0.withMemoryRebound(to: BinaryIODecoder.self, capacity: 1) {
-				try $0.pointee.decodeFixedSizeInteger()
+				try $0.pointee.decodeInt()
 			}
 		}
 	}
@@ -71,7 +71,7 @@ extension Int8: BEncodable {
 	public func encode(to encoder: inout some BEncoder) throws {
 		try withUnsafeMutablePointer(to: &encoder) {
 			try $0.withMemoryRebound(to: BinaryIOEncoder.self, capacity: 1) {
-				try $0.pointee.encodeFixedWidthInteger( self )
+				try $0.pointee.encodeInt8( self )
 			}
 		}
 	}
@@ -81,7 +81,7 @@ extension Int8: BDecodable {
 	public init(from decoder: inout some BDecoder) throws {
 		self = try withUnsafeMutablePointer(to: &decoder) {
 			try $0.withMemoryRebound(to: BinaryIODecoder.self, capacity: 1) {
-				try $0.pointee.decodeFixedSizeInteger()
+				try $0.pointee.decodeInt8()
 			}
 		}
 	}
@@ -90,7 +90,7 @@ extension Int16: BEncodable {
 	public func encode(to encoder: inout some BEncoder) throws {
 		try withUnsafeMutablePointer(to: &encoder) {
 			try $0.withMemoryRebound(to: BinaryIOEncoder.self, capacity: 1) {
-				try $0.pointee.encodeFixedWidthInteger( self )
+				try $0.pointee.encodeInt16( self )
 			}
 		}
 	}
@@ -100,7 +100,7 @@ extension Int16: BDecodable {
 	public init(from decoder: inout some BDecoder) throws {
 		self = try withUnsafeMutablePointer(to: &decoder) {
 			try $0.withMemoryRebound(to: BinaryIODecoder.self, capacity: 1) {
-				try $0.pointee.decodeFixedSizeInteger()
+				try $0.pointee.decodeInt16()
 			}
 		}
 	}
@@ -109,7 +109,7 @@ extension Int32: BEncodable {
 	public func encode(to encoder: inout some BEncoder) throws {
 		try withUnsafeMutablePointer(to: &encoder) {
 			try $0.withMemoryRebound(to: BinaryIOEncoder.self, capacity: 1) {
-				try $0.pointee.encodeFixedWidthInteger( self )
+				try $0.pointee.encodeInt32( self )
 			}
 		}
 	}
@@ -119,7 +119,7 @@ extension Int32: BDecodable {
 	public init(from decoder: inout some BDecoder) throws {
 		self = try withUnsafeMutablePointer(to: &decoder) {
 			try $0.withMemoryRebound(to: BinaryIODecoder.self, capacity: 1) {
-				try $0.pointee.decodeFixedSizeInteger()
+				try $0.pointee.decodeInt32()
 			}
 		}
 	}
@@ -128,7 +128,7 @@ extension Int64: BEncodable {
 	public func encode(to encoder: inout some BEncoder) throws {
 		try withUnsafeMutablePointer(to: &encoder) {
 			try $0.withMemoryRebound(to: BinaryIOEncoder.self, capacity: 1) {
-				try $0.pointee.encodeFixedWidthInteger( self )
+				try $0.pointee.encodeInt64( self )
 			}
 		}
 	}
@@ -138,7 +138,7 @@ extension Int64: BDecodable {
 	public init(from decoder: inout some BDecoder) throws {
 		self = try withUnsafeMutablePointer(to: &decoder) {
 			try $0.withMemoryRebound(to: BinaryIODecoder.self, capacity: 1) {
-				try $0.pointee.decodeFixedSizeInteger()
+				try $0.pointee.decodeInt64()
 			}
 		}
 	}
@@ -150,7 +150,7 @@ extension UInt: BEncodable {
 	public func encode(to encoder: inout some BEncoder) throws {
 		try withUnsafeMutablePointer(to: &encoder) {
 			try $0.withMemoryRebound(to: BinaryIOEncoder.self, capacity: 1) {
-				try $0.pointee.encodeFixedWidthInteger( self )
+				try $0.pointee.encodeUInt( self )
 			}
 		}
 	}
@@ -160,7 +160,7 @@ extension UInt: BDecodable {
 	public init(from decoder: inout some BDecoder) throws {
 		self = try withUnsafeMutablePointer(to: &decoder) {
 			try $0.withMemoryRebound(to: BinaryIODecoder.self, capacity: 1) {
-				try $0.pointee.decodeFixedSizeInteger()
+				try $0.pointee.decodeUInt()
 			}
 		}
 	}
@@ -170,7 +170,7 @@ extension UInt8: BEncodable {
 	public func encode(to encoder: inout some BEncoder) throws {
 		try withUnsafeMutablePointer(to: &encoder) {
 			try $0.withMemoryRebound(to: BinaryIOEncoder.self, capacity: 1) {
-				try $0.pointee.encodeFixedWidthInteger( self )
+				try $0.pointee.encodeUInt8( self )
 			}
 		}
 	}
@@ -180,7 +180,7 @@ extension UInt8: BDecodable {
 	public init(from decoder: inout some BDecoder) throws {
 		self = try withUnsafeMutablePointer(to: &decoder) {
 			try $0.withMemoryRebound(to: BinaryIODecoder.self, capacity: 1) {
-				try $0.pointee.decodeFixedSizeInteger()
+				try $0.pointee.decodeUInt8()
 			}
 		}
 	}
@@ -189,7 +189,7 @@ extension UInt16: BEncodable {
 	public func encode(to encoder: inout some BEncoder) throws {
 		try withUnsafeMutablePointer(to: &encoder) {
 			try $0.withMemoryRebound(to: BinaryIOEncoder.self, capacity: 1) {
-				try $0.pointee.encodeFixedWidthInteger( self )
+				try $0.pointee.encodeUInt16( self )
 			}
 		}
 	}
@@ -199,7 +199,7 @@ extension UInt16: BDecodable {
 	public init(from decoder: inout some BDecoder) throws {
 		self = try withUnsafeMutablePointer(to: &decoder) {
 			try $0.withMemoryRebound(to: BinaryIODecoder.self, capacity: 1) {
-				try $0.pointee.decodeFixedSizeInteger()
+				try $0.pointee.decodeUInt16()
 			}
 		}
 	}
@@ -208,7 +208,7 @@ extension UInt32: BEncodable {
 	public func encode(to encoder: inout some BEncoder) throws {
 		try withUnsafeMutablePointer(to: &encoder) {
 			try $0.withMemoryRebound(to: BinaryIOEncoder.self, capacity: 1) {
-				try $0.pointee.encodeFixedWidthInteger( self )
+				try $0.pointee.encodeUInt32( self )
 			}
 		}
 	}
@@ -218,7 +218,7 @@ extension UInt32: BDecodable {
 	public init(from decoder: inout some BDecoder) throws {
 		self = try withUnsafeMutablePointer(to: &decoder) {
 			try $0.withMemoryRebound(to: BinaryIODecoder.self, capacity: 1) {
-				try $0.pointee.decodeFixedSizeInteger()
+				try $0.pointee.decodeUInt32()
 			}
 		}
 	}
@@ -227,7 +227,7 @@ extension UInt64: BEncodable {
 	public func encode(to encoder: inout some BEncoder) throws {
 		try withUnsafeMutablePointer(to: &encoder) {
 			try $0.withMemoryRebound(to: BinaryIOEncoder.self, capacity: 1) {
-				try $0.pointee.encodeFixedWidthInteger( self )
+				try $0.pointee.encodeUInt64( self )
 			}
 		}
 	}
@@ -237,7 +237,7 @@ extension UInt64: BDecodable {
 	public init(from decoder: inout some BDecoder) throws {
 		self = try withUnsafeMutablePointer(to: &decoder) {
 			try $0.withMemoryRebound(to: BinaryIODecoder.self, capacity: 1) {
-				try $0.pointee.decodeFixedSizeInteger()
+				try $0.pointee.decodeUInt64()
 			}
 		}
 	}
@@ -255,7 +255,6 @@ extension Float: BEncodable {
 	}
 }
 
-// Double ------------------------------------------------------
 
 extension Float: BDecodable {
 	public init(from decoder: inout some BDecoder) throws {
@@ -266,6 +265,8 @@ extension Float: BDecodable {
 		}
 	}
 }
+
+// Double ------------------------------------------------------
 
 extension Double: BEncodable {
 	public func encode(to encoder: inout some BEncoder) throws {

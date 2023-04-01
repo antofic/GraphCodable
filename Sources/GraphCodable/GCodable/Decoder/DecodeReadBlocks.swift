@@ -70,9 +70,18 @@ struct DecodeReadBlocks {
 	private var _keyStringMap	: KeyStringMap?
 
 	init( from ioDecoder:BinaryIODecoder ) throws {
-		self.ioDecoder		= ioDecoder
-		self.fileHeader		= try FileHeader( from: &self.ioDecoder )
-		self.sectionMap		= try type(of:sectionMap).init(from: &self.ioDecoder)
+		var decoder	= ioDecoder
+		
+		self.fileHeader		= try FileHeader( from: &decoder )
+		do {
+			let savePack	= decoder.packIntegers
+			defer { decoder.packIntegers = savePack }
+			decoder.packIntegers = false
+			
+			self.sectionMap		= try SectionMap( from: &decoder )
+		}
+
+		self.ioDecoder		= decoder
 	}
 	
 	/// decode the class data of reference types

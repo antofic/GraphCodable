@@ -29,4 +29,6 @@ public struct BinaryIOFlags: OptionSet {
 	public init(rawValue: UInt16) {
 		self.rawValue	= rawValue
 	}
+	
+	public static let	packIntegers = Self( rawValue: 1 << 0 )
 }

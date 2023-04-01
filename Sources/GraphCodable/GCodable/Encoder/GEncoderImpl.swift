@@ -89,8 +89,9 @@ final class GEncoderImpl : EncodeFileBlocksDelegate {
 	}
 
 	private func ioEncoderAndHeader() -> (BinaryIOEncoder, FileHeader) {
-		let ioEncoder		= BinaryIOEncoder( userVersion: userVersion, userData: self )
-		let fileHeader		= FileHeader( binaryIOEncoder: ioEncoder, flags: .packBinSize )
+		let packIntegers	= !encodeOptions.contains( .disableIntegerPacking )
+		let ioEncoder		= BinaryIOEncoder( userVersion: userVersion, userData: self, packIntegers: packIntegers )
+		let fileHeader		= FileHeader( binaryIOEncoder: ioEncoder, flags: .useBinaryIOInsert )
 		return (ioEncoder,fileHeader)
 	}
 	

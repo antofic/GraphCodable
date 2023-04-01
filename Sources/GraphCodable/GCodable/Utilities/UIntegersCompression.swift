@@ -16,7 +16,7 @@ func zigzagDecode( _ val:UInt16 ) -> Int16 {
 	Int16(bitPattern:  (val >> 1) ^ (0 &- (val & 1)) )
 }
 */
-
+/*
 protocol BCompression {
 	func compress(to encoder: inout some BEncoder ) throws
 }
@@ -149,3 +149,4 @@ extension Int64: BDecompression {
 		return Self( bitPattern: (uint >> 1) ^ (0 &- (uint & 1))  )
 	}
 }
+*/

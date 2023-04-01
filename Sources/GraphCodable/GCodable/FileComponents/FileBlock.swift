@@ -213,27 +213,36 @@ extension FileBlock {
 		if let objID	{ try encoder.encode( objID ) }
 		if let typeID	{ try encoder.encode( typeID ) }
 		if let binaryValue {
-			let compress = fileHeader.flags.contains( .packBinSize )
-			//	I control this choice with the 'packBinSize' internal flag so
-			//	that I can always change it. The flag is saved in the fileHeader
-			//	so that the file can still be read.
-			if compress {	// compress == true
+			if fileHeader.flags.contains( .useBinaryIOInsert ) {
 				//	allows slightly reducing the file size by packing BinSize but
 				//	involves shifting a possibly large binSize.size amount of data
 				//	by a small offset (1-2-3-4-5 bytes). As much as it doesn't seem
 				//	to reduce performance I don't like it.
 				try encoder.insert(
 					firstEncode: 		{ try $0.encode( binaryValue ) },
-					thenInsertInFront:	{ try BinSize( $1 ).compress( to: &$0 ) }
+					thenInsertInFront:	{ try $0.encode( BinSize( $1 ) ) }
 				)
-			} else {	// compress == false
+			} else {
 				//	we write a bogus binSize = BinSize(), write the data and when
 				//	we know their size we update binSize. BinSize must have a known
-				//	size, so we don't pack BinSize and obtain slightly larger files.
+				//	size, so we can't allow BinaryIO to pack BinSize.
+				//	Result: slightly larger files.
 				try encoder.prepend(
-					dummyEncode:		{ try $0.encode( BinSize() ) },
-					thenEncode:			{ try $0.encode( binaryValue ) },
-					thenOverwriteDummy: { try $0.encode( BinSize( $1 ) ) }
+					dummyEncode: { encoder in
+						let savePack = encoder.packIntegers
+						defer { encoder.packIntegers = savePack }
+						encoder.packIntegers	= false
+						try encoder.encode( BinSize() )
+					},
+					thenEncode: { encoder in
+						try encoder.encode( binaryValue )
+					},
+					thenOverwriteDummy: { encoder, size in
+						let savePack = encoder.packIntegers
+						defer { encoder.packIntegers = savePack }
+						encoder.packIntegers	= false
+						try encoder.encode( BinSize( size ) )
+					}
 				)
 			}
 		}
@@ -241,7 +250,7 @@ extension FileBlock {
 }
 
 extension FileBlock {
-	init(from decoder: inout some BDecoder, fileHeader:FileHeader ) throws {
+	init(from decoder: inout BinaryIODecoder, fileHeader:FileHeader ) throws {
 		let code	= try Code(from: &decoder)
 		
 		switch try code.category {
@@ -255,14 +264,22 @@ extension FileBlock {
 				let objID		= try ObjID(from: &decoder)
 				self			= .Ptr( keyID: keyID, objID: objID, conditional: code.isConditional )
 			case .Val:
-				let unpack 		= fileHeader.flags.contains( .packBinSize )
 				let keyID		= code.hasKeyID	 ?	try KeyID(from: &decoder)  : nil
 				let objID		= code.hasObjID	 ?	try ObjID(from: &decoder)  : nil
 				let typeID		= code.hasTypeID ?	try TypeID(from: &decoder) : nil
-				let binSize		= code.isBinary  ? (
-					unpack ?	try BinSize.decompress(from: &decoder) :
-								try BinSize(from: &decoder)
-				) : nil
+				let binSize		: BinSize?
+				if code.isBinary {
+					if fileHeader.flags.contains( .useBinaryIOInsert ) {
+						binSize	= try BinSize(from: &decoder)
+					} else {
+						let savePack = decoder.packIntegers
+						defer { decoder.packIntegers = savePack }
+						decoder.packIntegers	= false
+						binSize	= try BinSize(from: &decoder)
+					}
+				} else {
+					binSize		= nil
+				}
 				self 			= .Val( keyID: keyID, objID: objID, typeID: typeID, binSize: binSize )
 		}
 	}

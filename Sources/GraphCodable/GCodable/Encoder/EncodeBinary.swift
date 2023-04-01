@@ -42,11 +42,18 @@ final class EncodeBinary<Output:MutableDataProtocol> : EncodeFileBlocks {
 			try ioEncoder.encode( fileHeader )
 			sectionMapPosition	= ioEncoder.position
 			
-			// write section map:
-			for section in FileSection.allCases {
-				sectionMap[ section ] = Range(uncheckedBounds: (0,0))
+			// write section map: we need to disable packIntegers
+			do {
+				let savePack	= ioEncoder.packIntegers
+				defer { ioEncoder.packIntegers = savePack }
+				ioEncoder.packIntegers = false
+				
+				for section in FileSection.allCases {
+					sectionMap[ section ] = Range(uncheckedBounds: (0,0))
+				}
+				try ioEncoder.encode(sectionMap)
 			}
-			try ioEncoder.encode(sectionMap)
+			
 			let bounds	= (ioEncoder.position,ioEncoder.position)
 			sectionMap[ FileSection.body ] = Range( uncheckedBounds:bounds )
 		}
@@ -102,8 +109,17 @@ final class EncodeBinary<Output:MutableDataProtocol> : EncodeFileBlocks {
 		do {
 			//	sovrascrivo la sectionMapPosition
 			//	ora che ho tutti i valori
-			defer { ioEncoder.position = ioEncoder.endOfFile }
-			ioEncoder.position	= sectionMapPosition
+			let savePosition	= ioEncoder.position
+			let savePack		= ioEncoder.packIntegers
+
+			defer {
+				ioEncoder.position 		= savePosition
+				ioEncoder.packIntegers	= savePack
+			}
+			
+			ioEncoder.position		= sectionMapPosition
+			ioEncoder.packIntegers	= false
+			
 			try ioEncoder.encode(sectionMap)
 		}
 		

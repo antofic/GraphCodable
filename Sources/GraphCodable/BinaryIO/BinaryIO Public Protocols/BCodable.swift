@@ -61,8 +61,9 @@ public extension BEncodable {
 	///
 	///	The root value must conform to the BEncodable protocol
 	/// - returns: The byte buffer.
-	func binaryIOData<Q>( userVersion:UInt32, userData:Any? = nil ) throws -> Q where Q:MutableDataProtocol {
-		var encoder = BinaryIOEncoder( userVersion:userVersion,userData: userData )
+	func binaryIOData<Q>( userVersion:UInt32, userData:Any? = nil,packIntegers:Bool = true ) throws -> Q
+	where Q:MutableDataProtocol {
+		var encoder = BinaryIOEncoder( userVersion:userVersion, userData: userData, packIntegers:packIntegers )
 		try encoder.encode( self )
 		return encoder.data()
 	}

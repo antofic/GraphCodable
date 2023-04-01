@@ -65,17 +65,13 @@ extension GraphEncoder {
 			self.rawValue	= rawValue
 		}
 		
-		///	Enable printing of warnings
+		///	Disable integer packing
 		///
-		/// If this flag is enabled, the encoder doesn't generate an exception
-		/// but print a warning if:
-		/// - a value with no identity is conditionally encoded.
-		/// The value is encoded unconditionally.
-		/// - a reference type uses the versioning system. To use the versioning
-		/// system, the reference type must have identity.
+		/// By default integers are compressed to produce smaller files.
+		/// This option disables compression.
 		///
-		/// - Note: This option is auto-enabled if DEBUG is active.
-		public static let	printWarnings										= Self( rawValue: 1 << 0 )
+		/// - Note: This option is disabled by default
+		public static let	disableIntegerPacking								= Self( rawValue: 1 << 0 )
 
 		///	Disable identity
 		///
@@ -106,7 +102,19 @@ extension GraphEncoder {
 		/// - Note: This option is disabled by default
 		/// - Note: The option can be expensive in certain situations
 		public static let	tryHashableIdentityAtLast							= Self( rawValue: 1 << 4 )
-		
+
+		///	Enable printing of warnings
+		///
+		/// If this flag is enabled, the encoder doesn't generate an exception
+		/// but print a warning if:
+		/// - a value with no identity is conditionally encoded.
+		/// The value is encoded unconditionally.
+		/// - a reference type uses the versioning system. To use the versioning
+		/// system, the reference type must have identity.
+		///
+		/// - Note: This option is auto-enabled if DEBUG is active.
+		public static let	printWarnings										= Self( rawValue: 1 << 5 )
+
 		public static let	mimicSwiftCodable:				Self 	= [ disableIdentity, disableInheritance ]
 		public static let	defaultOption:					Self 	= []
 	}

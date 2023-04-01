@@ -30,7 +30,7 @@ import Foundation
 
 
 protocol UIntID: Hashable, BCodable, CustomStringConvertible {
-	associatedtype uID : FixedWidthInteger & UnsignedInteger
+	associatedtype uID : FixedWidthInteger & UnsignedInteger & BCodable
 	
 	init( _ id:uID )
 	var id : uID { get }
@@ -42,11 +42,11 @@ extension UIntID {
 	}
 
 	func encode(to encoder: inout some BEncoder) throws {
-		try id.compress(to: &encoder)
+		try encoder.encode( id )
 	}
 	
 	init(from decoder: inout some BDecoder) throws {
-		self.init( try uID.decompress(from: &decoder) )
+		self.init( try decoder.decode() )
 	}
 	
 	var next : Self {
@@ -97,14 +97,6 @@ struct BinSize: Equatable, BCodable {
 	
 	init(from decoder: inout some BDecoder) throws {
 		try _usize	= decoder.decode()
-	}
-
-	static func decompress( from decoder: inout some BDecoder ) throws -> Self {
-		return self.init( try UInt.decompress(from: &decoder) )
-	}
-	
-	func compress(to encoder: inout some BEncoder ) throws {
-		try _usize.compress(to: &encoder)
 	}
 }
 

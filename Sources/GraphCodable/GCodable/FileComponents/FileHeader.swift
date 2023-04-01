@@ -22,10 +22,10 @@
 
 
 ///	FileHeader: the 24 bytes fixed size header of every gcodable file
-struct FileHeader : CustomStringConvertible, BCodable {
+struct FileHeader : CustomStringConvertible, BEncodable {
 	struct Flags : OptionSet, BCodable {
 		let rawValue: UInt16
-		static let	packBinSize		= Self( rawValue: 1 << 0 )
+		static let	useBinaryIOInsert		= Self( rawValue: 1 << 0 )
 	}
 	private enum Versions {
 		static var NEWFILEBLOCK_VERSION	: UInt32 { 4 }
@@ -80,7 +80,7 @@ struct FileHeader : CustomStringConvertible, BCodable {
 		self.unused1			= unused1
 	}
 	
-	init(from decoder: inout some BDecoder) throws {
+	init(from decoder: inout BinaryIODecoder) throws {
 		let headerID	= try decoder.decode() as HeaderID
 		guard headerID == .gcod else {
 			throw GraphCodableError.malformedArchive(
@@ -98,15 +98,15 @@ struct FileHeader : CustomStringConvertible, BCodable {
 			)
 		}
 		self.userVersion		= decoder.encodedUserVersion
-		self.binaryIOFlags		= BinaryIOFlags()		//	CORREGGERE! decoder.encodedBinaryIOFlags
-		self.binaryIOVersion	= 0						//	CORREGGERE! decoder.encodedBinaryIOVersion
+		self.binaryIOFlags		= decoder.encodedBinaryIOFlags
+		self.binaryIOVersion	= decoder.encodedBinaryIOVersion
 		self.gcodableVersion	= gcodableVersion
 		self.flags				= try decoder.decode()
 		self.unused0			= try decoder.decode()
 		self.unused1			= try decoder.decode()
 	}
 	
-	func encode(to encoder: inout some BEncoder) throws {
+	func encode( to encoder: inout some BEncoder ) throws {
 		try encoder.encode( HeaderID.gcod )
 		try encoder.encode( gcodableVersion )
 		try encoder.encode( flags )
