@@ -23,7 +23,6 @@
 
 ///	FileHeader: the 24 bytes fixed size header of every gcodable file
 struct FileHeader : CustomStringConvertible, BCodable {
-	
 	struct Flags : OptionSet, BCodable {
 		let rawValue: UInt16
 		static let	packBinSize		= Self( rawValue: 1 << 0 )

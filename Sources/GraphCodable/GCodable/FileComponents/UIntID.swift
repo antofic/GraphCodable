@@ -30,7 +30,7 @@ import Foundation
 
 
 protocol UIntID: Hashable, BCodable, CustomStringConvertible {
-	associatedtype uID : UnsignedInteger
+	associatedtype uID : FixedWidthInteger & UnsignedInteger
 	
 	init( _ id:uID )
 	var id : uID { get }
