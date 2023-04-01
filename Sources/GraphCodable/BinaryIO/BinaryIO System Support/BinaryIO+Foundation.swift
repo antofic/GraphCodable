@@ -314,7 +314,6 @@ extension Decimal : BDecodable {
 extension NSCalendar.Identifier : BDecodable {}
 extension NSCalendar.Identifier : BEncodable {}
 
-
 extension Calendar : BEncodable {
 	public func encode(to encoder: inout some BEncoder) throws {
 		let nsIdentifier = (self as NSCalendar).calendarIdentifier
@@ -408,9 +407,6 @@ extension DateComponents : BDecodable {
 		)
 	}
 }
-
-
-
 
 //	DateInterval SUPPORT ------------------------------------------------------
 

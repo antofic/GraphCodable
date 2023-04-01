@@ -40,7 +40,7 @@ struct FileHeader : CustomStringConvertible, BEncodable {
 	let binaryIOFlags	: BinaryIOFlags
 	let binaryIOVersion	: UInt16
 	let gcodableVersion	: UInt32
-	let flags			: Flags
+	let gcoadableFlags	: Flags
 	let unused0 		: UInt16
 	let unused1 		: UInt64
 		
@@ -55,7 +55,7 @@ struct FileHeader : CustomStringConvertible, BEncodable {
 		string.append(		"\n- userVersion         = \( alignR(userVersion) ) {\(MemoryLayout.size(ofValue: userVersion)) bytes}")
 		string.append(		"\n- fileType            = \( alignR(HeaderID.gcod) ) {\(MemoryLayout<HeaderID.RawValue>.size) bytes}")
 		string.append(		"\n- gcodableVersion     = \( alignR(gcodableVersion) ) {\(MemoryLayout.size(ofValue: gcodableVersion)) bytes}")
-		string.append(		"\n- gcodableFlags       = \( alignR(flags.rawValue) ) {\(MemoryLayout.size(ofValue: flags)) bytes}")
+		string.append(		"\n- gcodableFlags       = \( alignR(gcoadableFlags.rawValue) ) {\(MemoryLayout.size(ofValue: gcoadableFlags)) bytes}")
 		if let dataSize {
 			string.append(	"\n- fileSize            = \( alignR(dataSize) ) bytes")
 			
@@ -69,13 +69,13 @@ struct FileHeader : CustomStringConvertible, BEncodable {
 
 	init(
 		binaryIOEncoder:BinaryIOEncoder, gcodableVersion: UInt32 = Versions.CURRENT_FILE_VERSION,
-		flags: Flags = [], unused0: UInt16 = 0, unused1: UInt64 = 0
+		gcoadableFlags: Flags = [], unused0: UInt16 = 0, unused1: UInt64 = 0
 	) {
 		self.userVersion		= binaryIOEncoder.userVersion
 		self.binaryIOFlags		= binaryIOEncoder.binaryIOFlags
 		self.binaryIOVersion	= binaryIOEncoder.binaryIOVersion
 		self.gcodableVersion	= gcodableVersion
-		self.flags				= flags
+		self.gcoadableFlags		= 		gcoadableFlags
 		self.unused0			= unused0
 		self.unused1			= unused1
 	}
@@ -100,8 +100,10 @@ struct FileHeader : CustomStringConvertible, BEncodable {
 		self.userVersion		= decoder.encodedUserVersion
 		self.binaryIOFlags		= decoder.encodedBinaryIOFlags
 		self.binaryIOVersion	= decoder.encodedBinaryIOVersion
+		
+		
 		self.gcodableVersion	= gcodableVersion
-		self.flags				= try decoder.decode()
+		self.gcoadableFlags				= try decoder.decode()
 		self.unused0			= try decoder.decode()
 		self.unused1			= try decoder.decode()
 	}
@@ -109,7 +111,7 @@ struct FileHeader : CustomStringConvertible, BEncodable {
 	func encode( to encoder: inout some BEncoder ) throws {
 		try encoder.encode( HeaderID.gcod )
 		try encoder.encode( gcodableVersion )
-		try encoder.encode( flags )
+		try encoder.encode( gcoadableFlags )
 		try encoder.encode( unused0 )
 		try encoder.encode( unused1 )
 	}

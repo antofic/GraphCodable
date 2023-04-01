@@ -213,7 +213,7 @@ extension FileBlock {
 		if let objID	{ try encoder.encode( objID ) }
 		if let typeID	{ try encoder.encode( typeID ) }
 		if let binaryValue {
-			if fileHeader.flags.contains( .useBinaryIOInsert ) {
+			if fileHeader.gcoadableFlags.contains( .useBinaryIOInsert ) {
 				//	allows slightly reducing the file size by packing BinSize but
 				//	involves shifting a possibly large binSize.size amount of data
 				//	by a small offset (1-2-3-4-5 bytes). As much as it doesn't seem
@@ -269,7 +269,7 @@ extension FileBlock {
 				let typeID		= code.hasTypeID ?	try TypeID(from: &decoder) : nil
 				let binSize		: BinSize?
 				if code.isBinary {
-					if fileHeader.flags.contains( .useBinaryIOInsert ) {
+					if fileHeader.gcoadableFlags.contains( .useBinaryIOInsert ) {
 						binSize	= try BinSize(from: &decoder)
 					} else {
 						let savePack = decoder.packIntegers
