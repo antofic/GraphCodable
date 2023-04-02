@@ -22,6 +22,71 @@
 
 import Foundation
 
+private protocol _BEncodable : BEncodable {
+	func _encode(to encoder: inout BinaryIOEncoder) throws
+}
+
+extension _BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
+		try withUnsafeMutablePointer(to: &encoder) {
+			try $0.withMemoryRebound(to: BinaryIOEncoder.self, capacity: 1) {
+				try _encode(to: &$0.pointee )
+			}
+		}
+	}
+}
+
+private protocol _BDecodable : BDecodable {
+	init( _from decoder: inout BinaryIODecoder ) throws
+}
+
+extension _BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
+		self = try withUnsafeMutablePointer(to: &decoder) {
+			try $0.withMemoryRebound(to: BinaryIODecoder.self, capacity: 1) {
+				try Self(_from: &$0.pointee)
+			}
+		}
+	}
+}
+
+extension Bool:		_BEncodable { func _encode(to encoder: inout BinaryIOEncoder) throws { try encoder.encodeBool(self) } }
+extension Bool:		_BDecodable { public init(_from decoder: inout BinaryIODecoder) throws { self = try decoder.decodeBool() } }
+
+extension UInt:		_BEncodable { func _encode(to encoder: inout BinaryIOEncoder) throws { try encoder.encodeUInt(self) } }
+extension UInt8:	_BEncodable { func _encode(to encoder: inout BinaryIOEncoder) throws { try encoder.encodeUInt8(self) } }
+extension UInt16:	_BEncodable { func _encode(to encoder: inout BinaryIOEncoder) throws { try encoder.encodeUInt16(self) } }
+extension UInt32:	_BEncodable { func _encode(to encoder: inout BinaryIOEncoder) throws { try encoder.encodeUInt32(self) } }
+extension UInt64:	_BEncodable { func _encode(to encoder: inout BinaryIOEncoder) throws { try encoder.encodeUInt64(self) } }
+extension UInt:		_BDecodable { public init(_from decoder: inout BinaryIODecoder) throws { self = try decoder.decodeUInt() } }
+extension UInt8:	_BDecodable { public init(_from decoder: inout BinaryIODecoder) throws { self = try decoder.decodeUInt8() } }
+extension UInt16:	_BDecodable { public init(_from decoder: inout BinaryIODecoder) throws { self = try decoder.decodeUInt16() } }
+extension UInt32:	_BDecodable { public init(_from decoder: inout BinaryIODecoder) throws { self = try decoder.decodeUInt32() } }
+extension UInt64:	_BDecodable { public init(_from decoder: inout BinaryIODecoder) throws { self = try decoder.decodeUInt64() } }
+
+extension Int:		_BEncodable { func _encode(to encoder: inout BinaryIOEncoder) throws { try encoder.encodeInt(self) } }
+extension Int8:		_BEncodable { func _encode(to encoder: inout BinaryIOEncoder) throws { try encoder.encodeInt8(self) } }
+extension Int16:	_BEncodable { func _encode(to encoder: inout BinaryIOEncoder) throws { try encoder.encodeInt16(self) } }
+extension Int32:	_BEncodable { func _encode(to encoder: inout BinaryIOEncoder) throws { try encoder.encodeInt32(self) } }
+extension Int64:	_BEncodable { func _encode(to encoder: inout BinaryIOEncoder) throws { try encoder.encodeInt64(self) } }
+extension Int:		_BDecodable { public init(_from decoder: inout BinaryIODecoder) throws { self = try decoder.decodeInt() } }
+extension Int8:		_BDecodable { public init(_from decoder: inout BinaryIODecoder) throws { self = try decoder.decodeInt8() } }
+extension Int16:	_BDecodable { public init(_from decoder: inout BinaryIODecoder) throws { self = try decoder.decodeInt16() } }
+extension Int32:	_BDecodable { public init(_from decoder: inout BinaryIODecoder) throws { self = try decoder.decodeInt32() } }
+extension Int64:	_BDecodable { public init(_from decoder: inout BinaryIODecoder) throws { self = try decoder.decodeInt64() } }
+
+extension Float:	_BEncodable { func _encode(to encoder: inout BinaryIOEncoder) throws { try encoder.encodeFloat(self) } }
+extension Float:	_BDecodable { public init(_from decoder: inout BinaryIODecoder) throws { self = try decoder.decodeFloat() } }
+extension Double:	_BEncodable { func _encode(to encoder: inout BinaryIOEncoder) throws { try encoder.encodeDouble(self) } }
+extension Double:	_BDecodable { public init(_from decoder: inout BinaryIODecoder) throws { self = try decoder.decodeDouble() } }
+
+extension String:	_BEncodable { func _encode(to encoder: inout BinaryIOEncoder) throws { try encoder.encodeString(self) } }
+extension String:	_BDecodable { public init(_from decoder: inout BinaryIODecoder) throws { self = try decoder.decodeString() } }
+
+extension Data:		_BEncodable { func _encode(to encoder: inout BinaryIOEncoder) throws { try encoder.encodeData(self) } }
+extension Data:		_BDecodable { public init(_from decoder: inout BinaryIODecoder) throws { self = try decoder.decodeData() } }
+
+/*
 // Bool ------------------------------------------------------
 
 extension Bool: BEncodable {
@@ -332,3 +397,4 @@ extension Data: BDecodable {
 		}
 	}
 }
+*/

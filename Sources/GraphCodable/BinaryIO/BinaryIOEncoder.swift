@@ -31,7 +31,6 @@ import Foundation
 ///	A value that encodes instances of a **BEncodable** type
 ///	into a data buffer that uses **BinaryIO** format.
 public struct BinaryIOEncoder: BEncoder {
-	
 	private var _data 			: Bytes
 	private var _position		: Int
 	private var	insertMode		: Bool
