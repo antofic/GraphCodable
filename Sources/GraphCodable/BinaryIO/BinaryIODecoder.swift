@@ -48,10 +48,14 @@ public struct BinaryIODecoder: BDecoder {
 	public let	startOfFile				: Int
 	
 	///	Encoded flags.
-	let	encodedBinaryIOFlags			: BinaryIOFlags
+	///
+	///	Reserved for package use. **Don't depend on it.**
+	public let	_encodedBinaryIOFlags	: _BinaryIOFlags
 	
 	///	Encoded version for library types.
-	let	encodedBinaryIOVersion			: UInt16
+	///
+	///	Reserved for package use. **Don't depend on it.**
+	public let	_encodedBinaryIOVersion	: UInt16
 	
 	///	Encoded version for user defined types for
 	///	decoding strategies.
@@ -76,7 +80,7 @@ public struct BinaryIODecoder: BDecoder {
 	
 	public var packIntegers	: Bool {
 		get { _packIntegers }
-		set { _packIntegers = newValue && encodedBinaryIOFlags.contains( .packIntegers ) }
+		set { _packIntegers = newValue && _encodedBinaryIOFlags.contains( .packIntegers ) }
 	}
 }
 
@@ -169,12 +173,12 @@ extension BinaryIODecoder {
 	private init( _ data: Bytes, userData:Any? = nil ) throws {
 		var dataRegion				= data[...]
 		self._packIntegers			= false
-		self.encodedBinaryIOFlags	= try Self.readValue(from: &dataRegion)
-		if self.encodedBinaryIOFlags.contains(.packIntegers) {
-			self.encodedBinaryIOVersion	= try Self.readAndUnpack(from: &dataRegion)
+		self._encodedBinaryIOFlags	= try Self.readValue(from: &dataRegion)
+		if self._encodedBinaryIOFlags.contains(.packIntegers) {
+			self._encodedBinaryIOVersion	= try Self.readAndUnpack(from: &dataRegion)
 			self.encodedUserVersion		= try Self.readAndUnpack(from: &dataRegion)
 		} else {
-			self.encodedBinaryIOVersion	= try Self.readValue(from: &dataRegion)
+			self._encodedBinaryIOVersion	= try Self.readValue(from: &dataRegion)
 			self.encodedUserVersion		= try Self.readValue(from: &dataRegion)
 		}
 		self.data					= data
@@ -262,19 +266,38 @@ extension BinaryIODecoder {
 	}
 }
 
-// internal section ----------------------------
+// public section ----------------------------
 extension BinaryIODecoder {
+	//	Generic
+	public mutating func decode<Value>() throws -> Value
+	where Value : BDecodable {
+		try Value(from: &self)
+	}
+	
+	public mutating func peek<Value>( _ accept:( Value ) -> Bool ) -> Value?
+	where Value : BDecodable {
+		let initialPos	= position
+		do {
+			let value = try decode() as Value
+			if accept( value ) { return value }
+		}
+		catch {}
+		
+		position	= initialPos
+		return nil
+	}
+	
 	//	Bool
-	mutating func decodeBool() throws -> Bool {
+	public mutating func decode() throws -> Bool {
 		return try readValue()
 	}
 	
 	//	Unsigned Integers
-	mutating func decodeUInt8() throws -> UInt8	{
+	public mutating func decode() throws -> UInt8	{
 		try readValue()
 	}
 	
-	mutating func decodeUInt16() throws -> UInt16 {
+	public mutating func decode() throws -> UInt16 {
 		if packIntegers {
 			return try readAndUnpack()
 		}
@@ -282,7 +305,7 @@ extension BinaryIODecoder {
 			return try UInt16( littleEndian: readValue() )
 		}
 	}
-	mutating func decodeUInt32() throws -> UInt32 {
+	public mutating func decode() throws -> UInt32 {
 		if packIntegers {
 			return try readAndUnpack()
 		}
@@ -291,7 +314,7 @@ extension BinaryIODecoder {
 		}
 	}
 	
-	mutating func decodeUInt64() throws -> UInt64	{
+	public mutating func decode() throws -> UInt64	{
 		if packIntegers {
 			return try readAndUnpack()
 		}
@@ -300,9 +323,9 @@ extension BinaryIODecoder {
 		}
 	}
 
-	mutating func decodeUInt() throws -> UInt {
+	public mutating func decode() throws -> UInt {
 		// UInt are always archived as UInt64
-		let value64 = try decodeUInt64() as UInt64
+		let value64 = try decode() as UInt64
 		guard let value = UInt( exactly: value64 ) else {
 			throw BinaryIOError.libDecodingError(
 				Self.self, BinaryIOError.Context(
@@ -314,36 +337,36 @@ extension BinaryIODecoder {
 	}
 	
 	//	Signed Integers
-	mutating func decodeInt8() throws -> Int8 {
+	public mutating func decode() throws -> Int8 {
 		try readValue()
 	}
 	
-	mutating func decodeInt16() throws -> Int16 {
+	public mutating func decode() throws -> Int16 {
 		if packIntegers {
-			return ZigZag.decode( try decodeUInt16() )
+			return ZigZag.decode( try decode() )
 		} else {
 			return try Int16( littleEndian: readValue() )
 		}
 	}
-	mutating func decodeInt32() throws -> Int32 {
+	public mutating func decode() throws -> Int32 {
 		if packIntegers {
-			return ZigZag.decode( try decodeUInt32() )
+			return ZigZag.decode( try decode() )
 		} else {
 			return try Int32( littleEndian: readValue() )
 		}
 	}
 
-	mutating func decodeInt64() throws -> Int64 {
+	public mutating func decode() throws -> Int64 {
 		if packIntegers {
-			return ZigZag.decode( try decodeUInt64() )
+			return ZigZag.decode( try decode() )
 		} else {
 			return try Int64( littleEndian: readValue() )
 		}
 	}
 
-	mutating func decodeInt() throws -> Int {
+	public mutating func decode() throws -> Int {
 		// Int are always archived as Int64
-		let value64 = try decodeInt64() as Int64
+		let value64 = try decode() as Int64
 		guard let value = Int( exactly: value64 ) else {
 			throw BinaryIOError.libDecodingError(
 				Self.self, BinaryIOError.Context(
@@ -355,24 +378,24 @@ extension BinaryIODecoder {
 	}
 
 	//	Floats
-	mutating func decodeFloat() throws -> Float {
+	public mutating func decode() throws -> Float {
 		let saveCompression = packIntegers
 		defer { packIntegers = saveCompression }
 		packIntegers = false
 
-		return try Float(bitPattern: decodeUInt32())
+		return try Float(bitPattern: decode())
 	}
 	
-	mutating func decodeDouble() throws -> Double	{
+	public mutating func decode() throws -> Double	{
 		let saveCompression = packIntegers
 		defer { packIntegers = saveCompression }
 		packIntegers = false
 
-		return try Double(bitPattern: decodeUInt64())
+		return try Double(bitPattern: decode())
 	}
 	
 	// read a null terminated utf8 string
-	mutating func decodeString<T>() throws -> T where T:StringProtocol {
+	public mutating func decode() throws -> String {
 		var inSize = 0
 		
 		let string = try dataRegion.withUnsafeBytes {
@@ -380,7 +403,7 @@ extension BinaryIODecoder {
 				for char in buffer {
 					inSize += 1
 					if char == 0 {	// ho trovato NULL
-						return T( cString: buffer.baseAddress! )
+						return String( cString: buffer.baseAddress! )
 					}
 				}
 				
@@ -404,36 +427,16 @@ extension BinaryIODecoder {
 	}
 	
 	//	Data
-	mutating func decodeData<T>() throws -> T where T:MutableDataProtocol {
-		let count	= try decodeInt() as Int
+	public mutating func decode() throws -> Data {
+		let count	= try decode() as Int
 		let inSize	= count * MemoryLayout<UInt8>.size
 		try checkRemainingSize( size: inSize )
 		defer { dataRegion.removeFirst( inSize ) }
 		
 		return dataRegion.withUnsafeBytes { source in
-			return T( source.prefix( inSize ) )
+			return Data( source.prefix( inSize ) )
 		}
 	}
-}
 
-// public section ----------------------------
-extension BinaryIODecoder {
-	public mutating func decode<Value>() throws -> Value
-	where Value : BDecodable {
-		try Value(from: &self)
-	}
-	
-	public mutating func peek<Value>( _ accept:( Value ) -> Bool ) -> Value?
-	where Value : BDecodable {
-		let initialPos	= position
-		do {
-			let value = try decode() as Value
-			if accept( value ) { return value }
-		}
-		catch {}
-		
-		position	= initialPos
-		return nil
-	}
 }
 

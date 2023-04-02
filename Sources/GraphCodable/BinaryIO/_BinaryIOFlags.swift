@@ -22,8 +22,8 @@
 
 import Foundation
 
-/// Reserved for future package use. **Don't depend on it.**
-public struct BinaryIOFlags: OptionSet {
+/// Reserved for package use. **Don't depend on it.**
+public struct _BinaryIOFlags: OptionSet {
 	public let rawValue: UInt16
 	
 	public init(rawValue: UInt16) {

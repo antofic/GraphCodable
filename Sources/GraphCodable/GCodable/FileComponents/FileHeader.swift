@@ -22,7 +22,8 @@
 
 
 ///	FileHeader: the 24 bytes fixed size header of every gcodable file
-struct FileHeader : CustomStringConvertible, BEncodable {
+struct FileHeader : CustomStringConvertible, BCodable {
+	
 	struct Flags : OptionSet, BCodable {
 		let rawValue: UInt16
 		static let	useBinaryIOInsert		= Self( rawValue: 1 << 0 )
@@ -37,7 +38,7 @@ struct FileHeader : CustomStringConvertible, BEncodable {
 	}
 
 	let userVersion		: UInt32
-	let binaryIOFlags	: BinaryIOFlags
+	let binaryIOFlags	: _BinaryIOFlags
 	let binaryIOVersion	: UInt16
 	let gcodableVersion	: UInt32
 	let gcoadableFlags	: Flags
@@ -72,15 +73,15 @@ struct FileHeader : CustomStringConvertible, BEncodable {
 		gcoadableFlags: Flags = [], unused0: UInt16 = 0, unused1: UInt64 = 0
 	) {
 		self.userVersion		= binaryIOEncoder.userVersion
-		self.binaryIOFlags		= binaryIOEncoder.binaryIOFlags
-		self.binaryIOVersion	= binaryIOEncoder.binaryIOVersion
+		self.binaryIOFlags		= binaryIOEncoder._binaryIOFlags
+		self.binaryIOVersion	= binaryIOEncoder._binaryIOVersion
 		self.gcodableVersion	= gcodableVersion
-		self.gcoadableFlags		= 		gcoadableFlags
+		self.gcoadableFlags		= gcoadableFlags
 		self.unused0			= unused0
 		self.unused1			= unused1
 	}
 	
-	init(from decoder: inout BinaryIODecoder) throws {
+	init(from decoder: inout some BDecoder) throws {
 		let headerID	= try decoder.decode() as HeaderID
 		guard headerID == .gcod else {
 			throw GraphCodableError.malformedArchive(
@@ -98,12 +99,12 @@ struct FileHeader : CustomStringConvertible, BEncodable {
 			)
 		}
 		self.userVersion		= decoder.encodedUserVersion
-		self.binaryIOFlags		= decoder.encodedBinaryIOFlags
-		self.binaryIOVersion	= decoder.encodedBinaryIOVersion
+		self.binaryIOFlags		= decoder._encodedBinaryIOFlags
+		self.binaryIOVersion	= decoder._encodedBinaryIOVersion
 		
 		
 		self.gcodableVersion	= gcodableVersion
-		self.gcoadableFlags				= try decoder.decode()
+		self.gcoadableFlags		= try decoder.decode()
 		self.unused0			= try decoder.decode()
 		self.unused1			= try decoder.decode()
 	}

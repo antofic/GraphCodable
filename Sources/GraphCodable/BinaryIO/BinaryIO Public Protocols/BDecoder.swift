@@ -29,22 +29,6 @@ public protocol BDecoder {
 	/// Any contextual information set by the user for decoding.
 	var userData: Any? { get }
 	
-	/// Decodes a value of the given type.
-	///
-	///	Value must adopt the `BDecodable` protocol
-	///
-	///	Example:
-	///	```
-	///	init(from decoder: BDecoder) throws {
-	/// 	...
-	///	  	value = try decoder.decode()
-	///		...
-	///	}
-	///	```
-	///	- returns: A value of the requested type, if convertible
-	/// to the requested type.
-	mutating func decode<Value>() 	throws -> Value where Value : BDecodable
-	
 	/// Try peeking a value from the `decoder`.
 	///
 	///	`peek(_:)` try to decode a `BDecodable` value from the `decoder`.
@@ -60,5 +44,48 @@ public protocol BDecoder {
 	///
 	/// - parameter accept: A function to check the decoded value
 	/// - returns: The accepted value, `nil` otherwise.
-	mutating func peek<Value>( _ accept:( Value ) -> Bool ) -> Value? where Value : BDecodable	
+	mutating func peek<Value:BDecodable>( _ accept:( Value ) -> Bool ) -> Value?
+
+	/// Decodes a value of the given type.
+	///
+	///	Value must adopt the `BDecodable` protocol
+	///
+	///	Example:
+	///	```
+	///	init(from decoder: BDecoder) throws {
+	/// 	...
+	///	  	value = try decoder.decode()
+	///		...
+	///	}
+	///	```
+	///	- returns: A value of the requested type, if convertible
+	/// to the requested type.
+	mutating func decode<Value:BDecodable>() throws -> Value
+
+	mutating func decode() throws -> Bool
+	mutating func decode() throws -> UInt8
+	mutating func decode() throws -> UInt16
+	mutating func decode() throws -> UInt32
+	mutating func decode() throws -> UInt64
+	mutating func decode() throws -> UInt
+	mutating func decode() throws -> Int8
+	mutating func decode() throws -> Int16
+	mutating func decode() throws -> Int32
+	mutating func decode() throws -> Int64
+	mutating func decode() throws -> Int
+	mutating func decode() throws -> Float
+	mutating func decode() throws -> Double
+	mutating func decode() throws -> String
+	mutating func decode() throws -> Data
+	
+	///	Encoded BinaryIO flags.
+	///
+	///	Reserved for package use. **Don't depend on it.**
+	var	_encodedBinaryIOFlags: _BinaryIOFlags { get }
+	
+	///	Encoded version for library types.
+	///
+	///	Reserved for package use. **Don't depend on it.**
+	var	_encodedBinaryIOVersion: UInt16 { get }
+
 }

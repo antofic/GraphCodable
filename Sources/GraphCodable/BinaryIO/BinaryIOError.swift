@@ -44,7 +44,7 @@ public enum BinaryIOError : Error {
 	///
 	/// BinaryIO implements the `BDecodable` protocol for
 	/// many system types. This error is eventually raised
-	/// in their `init(from: inout BinaryIODecoder) throws` method.
+	/// in their `init(from: inout some BDecoder) throws` method.
 	///
 	/// It can happen **while reading** only
 	case libDecodingError( Any.Type, BinaryIOError.Context )
@@ -53,7 +53,7 @@ public enum BinaryIOError : Error {
 	///
 	/// BinaryIO implements the `BEncodable` protocol for
 	/// many system types. This error is eventually raised
-	/// in their `func write( to: inout BinaryIOEncoder ) throws`
+	/// in their `func write( to: inout some BEncoder ) throws`
 	/// method.
 	///
 	/// It can happen **while writing** only

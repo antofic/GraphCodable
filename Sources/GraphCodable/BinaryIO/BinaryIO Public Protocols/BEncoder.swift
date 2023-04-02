@@ -42,5 +42,32 @@ public protocol BEncoder {
 	///	}
 	/// ```
 	/// - parameter value: The value to encode.
-	mutating func encode<Value> (_ value: Value ) throws where Value : BEncodable
+	mutating func encode<Value:BEncodable> (_ value: Value ) throws
+	
+	mutating func encode( _ value:Bool ) throws
+	mutating func encode( _ value:UInt8 ) throws
+	mutating func encode( _ value:UInt16 ) throws
+	mutating func encode( _ value:UInt32 ) throws
+	mutating func encode( _ value:UInt64 ) throws
+	mutating func encode( _ value:UInt ) throws
+	mutating func encode( _ value:Int8 ) throws
+	mutating func encode( _ value:Int16 ) throws
+	mutating func encode( _ value:Int32 ) throws
+	mutating func encode( _ value:Int64 ) throws
+	mutating func encode( _ value:Int ) throws
+	mutating func encode( _ value:Float ) throws
+	mutating func encode( _ value:Double ) throws
+	mutating func encode( _ value:String ) throws
+	mutating func encode( _ value:Data ) throws
+	
+	/// Actual version for BinaryIO library types
+	///
+	///	Reserved for package use. **Don't depend on it.**
+	var	_binaryIOFlags: _BinaryIOFlags { get }
+	
+	/// Actual version for BinaryIO library types
+	///
+	///	Reserved for package use. **Don't depend on it.**
+	var _binaryIOVersion: UInt16 { get }
+
 }
