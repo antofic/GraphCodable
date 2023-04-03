@@ -228,21 +228,9 @@ extension FileBlock {
 				//	size, so we can't allow BinaryIO to pack BinSize.
 				//	Result: slightly larger files.
 				try encoder.prepend(
-					dummyEncode: { encoder in
-						let savePack = encoder.packIntegers
-						defer { encoder.packIntegers = savePack }
-						encoder.packIntegers	= false
-						try encoder.encode( BinSize() )
-					},
-					thenEncode: { encoder in
-						try encoder.encode( binaryValue )
-					},
-					thenOverwriteDummy: { encoder, size in
-						let savePack = encoder.packIntegers
-						defer { encoder.packIntegers = savePack }
-						encoder.packIntegers	= false
-						try encoder.encode( BinSize( size ) )
-					}
+					dummyEncode: 		{ try $0.encode( BinSize() ) },
+					thenEncode: 		{ try $0.encode( binaryValue ) },
+					thenOverwriteDummy:	{ try $0.encode( BinSize( $1 ) ) }
 				)
 			}
 		}
@@ -267,19 +255,9 @@ extension FileBlock {
 				let keyID		= code.hasKeyID	 ?	try KeyID(from: &decoder)  : nil
 				let objID		= code.hasObjID	 ?	try ObjID(from: &decoder)  : nil
 				let typeID		= code.hasTypeID ?	try TypeID(from: &decoder) : nil
-				let binSize		: BinSize?
-				if code.isBinary {
-					if fileHeader.gcoadableFlags.contains( .useBinaryIOInsert ) {
-						binSize	= try BinSize(from: &decoder)
-					} else {
-						let savePack = decoder.packIntegers
-						defer { decoder.packIntegers = savePack }
-						decoder.packIntegers	= false
-						binSize	= try BinSize(from: &decoder)
-					}
-				} else {
-					binSize		= nil
-				}
+				let binSize		= code.isBinary	 ?	try decoder.decodeWith(
+					packIntegers: fileHeader.gcoadableFlags.contains( .useBinaryIOInsert )
+				) { try BinSize(from: &$0) } : nil
 				self 			= .Val( keyID: keyID, objID: objID, typeID: typeID, binSize: binSize )
 		}
 	}

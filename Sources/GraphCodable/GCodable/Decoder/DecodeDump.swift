@@ -72,11 +72,6 @@ final class DecodeDump: EncodeFileBlocksDelegate {
 				encoderDump.append( "\(error)" )
 			}
 		}
-		/*
-		if dumpOptions.contains( .showConstructionMap ) {
-			encoderDump.append( constructionMapDescription )
-		}
-		*/
 		return encoderDump.dump()
 	}
 	

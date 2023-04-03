@@ -269,6 +269,20 @@ extension BinaryIODecoder {
 // public section ----------------------------
 extension BinaryIODecoder {
 	//	Generic
+	public mutating func decodeWith<Value>(
+		packIntegers pack:Bool,
+		_ decode: ( inout BinaryIODecoder ) throws -> Value
+	) throws -> Value where Value : BDecodable {
+		let savePack	= packIntegers
+		defer{ packIntegers = savePack }
+		packIntegers = pack
+		return try decode( &self )
+	}
+}
+
+// public section ----------------------------
+extension BinaryIODecoder {
+	//	Generic
 	public mutating func decode<Value>() throws -> Value
 	where Value : BDecodable {
 		try Value(from: &self)

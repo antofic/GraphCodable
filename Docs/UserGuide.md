@@ -102,7 +102,7 @@ Using Codable, after decoding we get:
 
 Again, the original data structure is lost and furthermore an object has been duplicated, with what follows in terms of memory. This happens because Codable doesn't store the *identity* of the references. Now, for references, it is essential that the data structure is preserved: after decoding the program logic is compromised if two objects are decoded instead of one object. In GraphCodable, the identity of references is automatically derived from their *ObjectIdentifier*, although you can change this behavior.
 
-The way value types behave, it makes no sense to talk about which data structure to preserve; conversely, in certain cases their duplication/multiplication can be problematic if they contain a large amount of data. For this reason, in analogy to the `Identifiable` system protocol, GraphCodable allows to define an identity for encoding and decoding also for value types (by default they don't have one), via the `GIdentifiable` protocol. Reference types can also make use of the `GIdentifiable`protocol where for some reason it is necessary to define an identity other than the one derived from *ObjectIdentifier*.
+The way **value types** behave, it makes no sense to talk about which data structure to preserve; conversely, in certain cases their duplication/multiplication can be problematic if they contain a large amount of data. For this reason, in analogy to the `Identifiable` system protocol, GraphCodable allows to define an identity for encoding and decoding also for value types (by default they don't have one), via the `GIdentifiable` protocol. Reference types can also make use of the `GIdentifiable`protocol where for some reason it is necessary to define an identity other than the one derived from *ObjectIdentifier*.
 
 Clarified that the purpose of the package is to <u>get after decoding the same "thing" that was encoded</u>, the characteristics of GraphCodable are illustrated in the next paragraphs with simple but working examples that can be directly tested with copy and paste.
 
@@ -246,7 +246,7 @@ extension Array: GDecodable where Element:GDecodable {
 }
 ```
 
-The `while decoder.unkeyedCount > 0 {…}` in the  `init( from:... )` method clearly shows that **values are removed from the decoder data basket as they are decoded**.
+The `while decoder.unkeyedCount > 0 {…}` in the  `init( from:... )` method clearly shows that **values are removed from the decoder as they are decoded**.
 
 ## Inheritance
 
@@ -1952,7 +1952,7 @@ extension Couple {
 }
 ```
 
-Compare these two properties! I hope the mechanism is clear:`buildSelf` is a generic sub-function that returns the class specialization based on the parameter types it receives. `Couple` has 2 type parameters, `Model` has one type parameter and at least until variadic generics are available, it doesn't seem possible to generalize this functionality over different classes;
+Compare these two properties. I hope the mechanism is clear:`buildSelf` is a generic sub-function that returns the class specialization based on the parameter types it receives. `Couple` has 2 type parameters, `Model` has one type parameter and at least until variadic generics are available, it doesn't seem possible to generalize this functionality over different classes;
 
 The final touch is to make the `Pair` class obsolete by telling us to replace it with `Couple`.
 
@@ -2215,7 +2215,7 @@ public enum ClassName : Hashable {
 }
 ```
 
-It's best to use the mangledName, as in the following example:
+It's best to use `mangledName`, as in the following example:
 
 ```swift
 import Foundation
@@ -2328,6 +2328,9 @@ print( outRoot )	// MyNewData(string: 3)
 ```
 
 ## GraphCodable and BinaryIO
+
+BinaryIO is a low-level encoding and decoding package that uses a private binary format. BinaryIO is included in GraphCodable but can also be used independently.
+GraphCodable takes advantage of BinaryIO features to generate its archives. This chapter explains how the two packages interact and how to take advantage of BinaryIO to speed up encoding and decoding.
 
 ### An example
 
@@ -2449,7 +2452,7 @@ Other codes:
 ========================================================================================
 ```
 
-The structure of the encoded data is easy to recognize. But a question arises: `SIMD3<Double>` and `simd_double3x3` are respectively vectors of 3 double values and matrices of 3x3 double values. How come their structure is not visible but they appear to be stored as <u>single data unit</u> of type `BIV` = *BinaryIO value type*? This is because GraphCodable uses the BinaryIO package to store "simple" types, and `SIMD3<Double>` and `simd_double3x3` are considered "simple" types, as are single integers or float values. The GraphCodable encoded structure is in fact a graph whose terminal elements are **always** "simple" types encoded by BinaryIO. Storing a matrix of 3x3 elements directly with BinaryIO is much faster than storing these 9 elements with GraphCodable.
+The structure of the encoded data is easy to recognize. But a question arises: `SIMD3<Double>` and `simd_double3x3` are respectively vectors of 3 double values and matrices of 3x3 double values. Why is their structure not visible but they appear to be encoded as <u>single data unit</u> of type `BIV` = *BinaryIO value type*? This is because GraphCodable uses the BinaryIO package to store "simple" types, and `SIMD3<Double>` and `simd_double3x3` are considered "simple" types, as are single integers or float values. The GraphCodable encoded structure is in fact a graph whose terminal elements are **always** "simple" types encoded by BinaryIO. Storing a matrix of 3x3 elements directly with BinaryIO is much faster than storing these 9 elements with GraphCodable.
 
 This mechanism is accessible to the user: let's see how.
 
@@ -2485,7 +2488,7 @@ extension NumericData : BCodable {
 }
 ```
 
-BinaryIO is a fast low-level package and no keys are available. Also note that  `BDecoder` and  `BEncoder` are protocols for value types.
+BinaryIO is a fast low-level package. No keys are available, therefore you have no choice: you must always decode your fields in the same order you encoded them. Also note that  `BDecoder` and  `BEncoder` are protocols for value types.
 
 ### The `GBinaryCodable` protocol
 

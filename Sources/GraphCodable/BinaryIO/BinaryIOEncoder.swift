@@ -124,6 +124,17 @@ extension BinaryIOEncoder {
 		}
 	}
 	
+	//	Generic
+	public mutating func encodeWith(
+		packIntegers pack:Bool,
+		_ encode: ( inout BinaryIOEncoder ) throws -> ()
+	) throws {
+		let savePack	= packIntegers
+		defer{ packIntegers = savePack }
+		packIntegers = pack
+		try encode( &self )
+	}
+	
 	/// Use this method when you want to encode data **B** in front of data **A**, but **B** depends (or is)
 	/// on the archived size of **A**. This function shifts the byte representation of **A**.
 	///
@@ -172,7 +183,13 @@ extension BinaryIOEncoder {
 	/// - Note: During `dummyEncode` and `thenOverwriteDummy` packIntegers **is always disabled**
 	/// to make integers encode size do not depend by their values.
 	/// During decoding **it is therefore necessary to disable packIntegers** to decode
-	/// data encoded by `thenOverwriteDummy`.
+	/// data encoded by `thenOverwriteDummy`. For example with the `BinaryIODecoder` function
+	/// ```
+	/// func decodeWith<Value:BDecodable>(
+	/// 	packIntegers:Bool,
+	/// 	_ decode: ( inout BinaryIODecoder ) throws -> Value
+	/// ) throws -> Value
+	/// ```
 	///
 	/// - Note: `thenOverwriteDummy` must exactly overwrite the dummy data encoded with `dummyEncode`.
 	/// The exception `BinaryIOError.prependingFails` is generated otherwise.
@@ -185,22 +202,17 @@ extension BinaryIOEncoder {
 		thenOverwriteDummy 	overwriteFunc:	( inout BinaryIOEncoder, _ encodeSize: Int ) throws -> ()
 	) throws {
 		let initialPos	= position
-		do {
-			let saveCompression = packIntegers
-			defer { packIntegers = saveCompression }
-			packIntegers = false
-			try dummyFunc( &self )
+		try encodeWith( packIntegers: false ) {
+			try dummyFunc( &$0 )
 		}
+		
 		let bodyPos		= position
 		try encodeFunc( &self )
 		let finalPos	= position
 		
 		position		= initialPos
-		do {
-			let saveCompression = packIntegers
-			defer { packIntegers = saveCompression }
-			packIntegers = false
-			try overwriteFunc( &self, finalPos - bodyPos )
+		try encodeWith( packIntegers: false ) {
+			try overwriteFunc( &$0, finalPos - bodyPos )
 		}
 		let newbodyPos	= position
 		position		= finalPos
@@ -215,6 +227,7 @@ extension BinaryIOEncoder {
 			)
 		}
 	}
+	
 }
 
 // private section ---------------------------------------------------------

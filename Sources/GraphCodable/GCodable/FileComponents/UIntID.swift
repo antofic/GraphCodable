@@ -76,27 +76,17 @@ struct TypeID : UIntID {
 	init(_ id: UInt32) { self.id = id }
 }
 
-
-//	We also make BinSize (the size of the GBinaryCodable)
-//	compressible as desired. The benefits are minor.
 struct BinSize: Equatable, BCodable {
-	private let _usize: UInt
+	let size	: Int
 	
-	private init( _ usize: UInt ) {
-		_usize = usize
-	}
-	
-	init() { _usize = UInt(bitPattern: -1) }
-	
-	init(_ size: Int)	{ self._usize = UInt(size) }
-	var size: Int		{ Int(_usize) }
-	
+	init(_ size: Int)	{ self.size = size }
+	init() { size = -1 }
+
 	func encode(to encoder: inout some BEncoder) throws {
-		try encoder.encode( _usize )
+		try encoder.encode( size )
 	}
 	
 	init(from decoder: inout some BDecoder) throws {
-		try _usize	= decoder.decode()
+		size = try decoder.decode()
 	}
 }
-
