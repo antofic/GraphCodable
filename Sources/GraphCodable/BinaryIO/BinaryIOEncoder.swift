@@ -124,7 +124,10 @@ extension BinaryIOEncoder {
 		}
 	}
 	
-	//	Generic
+	/// Sets the packing of the integers for the duration of the closure
+	///
+	/// - parameter packIntegers: The desired packing
+	/// - parameter encodeFunc: The closure
 	public mutating func encodeWith(
 		packIntegers pack:Bool,
 		_ encode: ( inout BinaryIOEncoder ) throws -> ()
