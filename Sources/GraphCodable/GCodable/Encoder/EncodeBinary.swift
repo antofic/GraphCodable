@@ -42,18 +42,18 @@ final class EncodeBinary<Output:MutableDataProtocol> : EncodeFileBlocks {
 			try ioEncoder.encode( fileHeader )
 			sectionMapPosition	= ioEncoder.position
 			
-			// write section map: we need to disable packIntegers
-			do {
-				let savePack	= ioEncoder.packIntegers
-				defer { ioEncoder.packIntegers = savePack }
-				ioEncoder.packIntegers = false
-				
+			//	write a dummy section map. Let's write a dummy sectionmap.
+			//	We will overwrite it when the positions of the sections are
+			//	known.
+			//	we need to disable packIntegers, because the sectionMap
+			//	write size must be fixed.
+			try ioEncoder.encodeWith( packIntegers: false ) { ioEncoder in
 				for section in FileSection.allCases {
 					sectionMap[ section ] = Range(uncheckedBounds: (0,0))
 				}
-				try ioEncoder.encode(sectionMap)
+				try ioEncoder.encode( sectionMap )
 			}
-			
+			 
 			let bounds	= (ioEncoder.position,ioEncoder.position)
 			sectionMap[ FileSection.body ] = Range( uncheckedBounds:bounds )
 		}
@@ -106,23 +106,14 @@ final class EncodeBinary<Output:MutableDataProtocol> : EncodeFileBlocks {
 		bounds	= ( bounds.1,ioEncoder.position )
 		sectionMap[ FileSection.keyStringMap ] = Range( uncheckedBounds:bounds )
 		
-		do {
-			//	sovrascrivo la sectionMapPosition
-			//	ora che ho tutti i valori
-			let savePosition	= ioEncoder.position
-			let savePack		= ioEncoder.packIntegers
-
-			defer {
-				ioEncoder.position 		= savePosition
-				ioEncoder.packIntegers	= savePack
-			}
-			
+		//	Now the sectionmap contains the positions of all sections:
+		//	I can overwrite it. Therefore I need to put off packIntegers.
+		try ioEncoder.encodeWith( packIntegers: false ) { ioEncoder in
 			ioEncoder.position		= sectionMapPosition
-			ioEncoder.packIntegers	= false
-			
 			try ioEncoder.encode(sectionMap)
+			ioEncoder.position		= ioEncoder.endOfFile
 		}
-		
+
 		return ioEncoder.data()
 	}
 }
