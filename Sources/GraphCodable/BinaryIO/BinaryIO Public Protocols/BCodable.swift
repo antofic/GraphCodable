@@ -75,7 +75,8 @@ public extension BDecodable {
 	///	The root value must conform to the `BDecodable` protocol
 	init<Q>( binaryIOData: Q, userData:Any? = nil ) throws where Q:DataProtocol {
 		var decoder = try BinaryIODecoder( data:binaryIOData, userData:userData )
-		try self.init( from: &decoder )
+		//	try self.init( from: &decoder )
+		self = try decoder.decode()
 	}
 	
 	/*
