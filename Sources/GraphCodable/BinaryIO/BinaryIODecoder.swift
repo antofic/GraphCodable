@@ -242,6 +242,7 @@ extension BinaryIODecoder {
 extension BinaryIODecoder {
 	/// read a pod value
 	private mutating func readValue<T>() throws  -> T {
+		/*
 		guard _isPOD(T.self) else {
 			throw BinaryIOError.notPODType(
 				Self.self, BinaryIOError.Context(
@@ -249,6 +250,7 @@ extension BinaryIODecoder {
 				)
 			)
 		}
+		*/
 		return try Self.readValue( from:&dataRegion )
 	}
 	

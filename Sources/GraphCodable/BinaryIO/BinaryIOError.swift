@@ -58,7 +58,7 @@ public enum BinaryIOError : Error {
 	///
 	/// It can happen **while writing** only
 	case libEncodingError( Any.Type, BinaryIOError.Context )
-
+/*
 	///	Indicates that you are trying to write or read a non-trivial
 	///	type in one go, which is not allowed.
 	///
@@ -67,7 +67,7 @@ public enum BinaryIOError : Error {
 	///
 	/// It can potentially happen **while writing** and **while reading**
 	case notPODType( Any.Type, BinaryIOError.Context )
-
+*/
 	///	Indicates that something went wrong in reading or writing.
 	///
 	/// This is the error usually reported if the read archive

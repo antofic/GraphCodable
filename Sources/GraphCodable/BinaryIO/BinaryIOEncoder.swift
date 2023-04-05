@@ -86,7 +86,7 @@ extension BinaryIOEncoder {
 		self.userData			= userData
 		self._packIntegers		= packIntegers
 		// really can't throw
-		try! self.writeValue( self._binaryIOFlags )		// NO pack
+		try! self.writePODValue( self._binaryIOFlags )		// NO pack
 		try! self.encode( self._binaryIOVersion )	// pack if packIntegers
 		try! self.encode( self.userVersion )		// pack if packIntegers
 		//	try! self.writeValue( self.binaryIOVersion )
@@ -260,7 +260,8 @@ extension BinaryIOEncoder {
 	}
 
 	/// write a pod value
-	private mutating func writeValue<T>( _ value:T ) throws {
+	private mutating func writePODValue<T>( _ value:T ) throws {
+		/*
 		guard _isPOD(T.self) else {
 			throw BinaryIOError.notPODType(
 				Self.self, BinaryIOError.Context(
@@ -268,7 +269,7 @@ extension BinaryIOEncoder {
 				)
 			)
 		}
-		
+		*/
 		try withUnsafePointer(to: value) { source in
 			let size = MemoryLayout<T>.size
 			try source.withMemoryRebound(to: UInt8.self, capacity: size ) {
@@ -293,11 +294,11 @@ extension BinaryIOEncoder {
 		
 		while val & (~0x7F) != 0 {
 			byte 	|= 0x80
-			try 	writeValue( byte )
+			try 	writePODValue( byte )
 			val 	&>>= 7
 			byte	= UInt8( val & 0x7F )
 		}
-		try writeValue( byte )
+		try writePODValue( byte )
 	}
 }
 
@@ -311,19 +312,19 @@ extension BinaryIOEncoder {
 	
 	//	Bool
 	public mutating func encode( _ value:Bool ) throws {
-		try writeValue( value )
+		try writePODValue( value )
 	}
 	
 	//	Unsigned Integers
 	public mutating func encode( _ value:UInt8 ) throws {
-		try writeValue( value )
+		try writePODValue( value )
 	}
 	
 	public mutating func encode( _ value:UInt16 ) throws {
 		if packIntegers {
 			try packAndWrite( value )
 		} else {
-			try writeValue( value.littleEndian )
+			try writePODValue( value.littleEndian )
 		}
 	}
 	
@@ -331,7 +332,7 @@ extension BinaryIOEncoder {
 		if packIntegers {
 			try packAndWrite( value )
 		} else {
-			try writeValue( value.littleEndian )
+			try writePODValue( value.littleEndian )
 		}
 	}
 	
@@ -339,7 +340,7 @@ extension BinaryIOEncoder {
 		if packIntegers {
 			try packAndWrite( value )
 		} else {
-			try writeValue( value.littleEndian )
+			try writePODValue( value.littleEndian )
 		}
 	}
 
@@ -357,7 +358,7 @@ extension BinaryIOEncoder {
 
 	//	Signed Integers
 	public mutating func encode( _ value:Int8 ) throws {
-		try writeValue( value )
+		try writePODValue( value )
 	}
 
 	
@@ -366,7 +367,7 @@ extension BinaryIOEncoder {
 			try encode( ZigZag.encode( value ) )
 		}
 		else {
-			try writeValue( value.littleEndian )
+			try writePODValue( value.littleEndian )
 		}
 	}
 	
@@ -375,7 +376,7 @@ extension BinaryIOEncoder {
 			try encode( ZigZag.encode( value ) )
 		}
 		else {
-			try writeValue( value.littleEndian )
+			try writePODValue( value.littleEndian )
 		}
 	}
 	
@@ -384,7 +385,7 @@ extension BinaryIOEncoder {
 			try encode( ZigZag.encode( value ) )
 		}
 		else {
-			try writeValue( value.littleEndian )
+			try writePODValue( value.littleEndian )
 		}
 	}
 	
