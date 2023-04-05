@@ -285,12 +285,12 @@ extension BinaryIODecoder {
 // public section ----------------------------
 extension BinaryIODecoder {
 	//	Generic
-	public mutating func decode<Value>() throws -> Value
+	public mutating func decode<Value>( _ type:Value.Type ) throws -> Value
 	where Value : BDecodable {
 		try Value(from: &self)
 	}
 	
-	public mutating func peek<Value>( _ accept:( Value ) -> Bool ) -> Value?
+	public mutating func peek<Value>( _ type:Value.Type, _ accept:( Value ) -> Bool ) -> Value?
 	where Value : BDecodable {
 		let initialPos	= position
 		do {
