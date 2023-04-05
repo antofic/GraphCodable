@@ -241,9 +241,14 @@ extension BinaryIOEncoder {
 		if position == _data.endIndex {
 			_data.append( contentsOf: source )
 		} else if position >= _data.startIndex {
-			let endIndex	= _data.index( position, offsetBy: insertMode ? 0 : source.count )
-			let range		= position ..< Swift.min( _data.endIndex, endIndex )
-			_data.replaceSubrange( range, with: source )
+			if insertMode {
+				_data.insert( contentsOf: source, at: position )
+			} else {
+				_data.replaceSubrange(
+					Range( uncheckedBounds: (position, position + source.count)
+					).clamped(to: _data.indices), with: source
+				)
+			}
 		} else {
 			throw BinaryIOError.outOfBounds(
 				Self.self, BinaryIOError.Context(
