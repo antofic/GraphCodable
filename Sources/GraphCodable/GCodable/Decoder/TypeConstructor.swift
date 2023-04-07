@@ -259,9 +259,9 @@ extension TypeConstructor {
 			)
 		}
 
-		guard let value = try ioDecoder.decode(
-			binaryIType.self,
-			regionRange: element.readBlock.binaryIORegionRange
+		guard let value = try ioDecoder.withinRegion(
+			range: 		element.readBlock.binaryIORegionRange,
+			decodeFunc:	{ try $0.decode( binaryIType.self ) }
 		) as? T else {
 			throw GraphCodableError.malformedArchive(
 				Self.self, GraphCodableError.Context(
@@ -269,7 +269,7 @@ extension TypeConstructor {
 				)
 			)
 		}
-		
+		 
 		return value
 	}
 	

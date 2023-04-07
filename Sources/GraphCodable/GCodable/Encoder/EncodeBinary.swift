@@ -47,7 +47,7 @@ final class EncodeBinary<Output:MutableDataProtocol> : EncodeFileBlocks {
 			//	known.
 			//	we need to disable packIntegers, because the sectionMap
 			//	write size must be fixed.
-			try ioEncoder.encodeWith( packIntegers: false ) { ioEncoder in
+			try ioEncoder.withoutPackingIntegers { ioEncoder in
 				for section in FileSection.allCases {
 					sectionMap[ section ] = Range(uncheckedBounds: (0,0))
 				}
@@ -108,7 +108,7 @@ final class EncodeBinary<Output:MutableDataProtocol> : EncodeFileBlocks {
 		
 		//	Now the sectionmap contains the positions of all sections:
 		//	I can overwrite it. Therefore I need to put off packIntegers.
-		try ioEncoder.encodeWith( packIntegers: false ) { ioEncoder in
+		try ioEncoder.withoutPackingIntegers { ioEncoder in
 			ioEncoder.position		= sectionMapPosition
 			try ioEncoder.encode(sectionMap)
 			ioEncoder.position		= ioEncoder.endOfFile

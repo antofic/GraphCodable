@@ -239,6 +239,16 @@ extension FileBlock {
 
 extension FileBlock {
 	init(from decoder: inout BinaryIODecoder, fileHeader:FileHeader ) throws {
+		func decodeBinSize( _ decoder: inout BinaryIODecoder ) throws -> BinSize {
+			if fileHeader.gcoadableFlags.contains( .useBinaryIOInsert ) {
+				return try decoder.decode()
+			} else {
+				return try decoder.withoutPackingIntegers {
+					try $0.decode()
+				}
+			}
+		}
+		
 		let code	= try decoder.decode() as Code
 		
 		switch try code.category {
@@ -255,9 +265,7 @@ extension FileBlock {
 				let keyID		= code.hasKeyID	 ?	try decoder.decode() as KeyID  : nil
 				let objID		= code.hasObjID	 ?	try decoder.decode() as ObjID  : nil
 				let typeID		= code.hasTypeID ?	try decoder.decode() as TypeID : nil
-				let binSize		= code.isBinary	 ?	try decoder.decodeWith(
-					packIntegers: fileHeader.gcoadableFlags.contains( .useBinaryIOInsert )
-				) { try $0.decode() as BinSize } : nil
+				let binSize		= code.isBinary	 ?	try decodeBinSize( &decoder ) as BinSize : nil
 				self 			= .Val( keyID: keyID, objID: objID, typeID: typeID, binSize: binSize )
 		}
 	}

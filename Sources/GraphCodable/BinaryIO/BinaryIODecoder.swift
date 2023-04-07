@@ -293,39 +293,35 @@ extension BinaryIODecoder {
 
 // public section ----------------------------
 extension BinaryIODecoder {
-	//	Generic
-	public mutating func decodeWith<Value>(
-		packIntegers pack:Bool,
-		_ decode: ( inout BinaryIODecoder ) throws -> Value
-	) throws -> Value where Value : BDecodable {
+	/// Disable integers packing for the duration of the closure
+	///
+	/// - parameter decodeFunc: The closure
+	public mutating func withoutPackingIntegers<T>(
+		decodeFunc: ( inout BinaryIODecoder ) throws -> T
+	) rethrows -> T {
 		let savePack	= packIntegers
 		defer{ packIntegers = savePack }
-		packIntegers = pack
-		return try decode( &self )
+		packIntegers = false
+		return try decodeFunc( &self )
 	}
-	
-	public mutating func decode<Value>(
-		_ type:Value.Type, regionRange region: Range<Int>
-	) throws -> Value where Value : BDecodable {
+
+	public mutating func withinRegion<T>(
+		range: Range<Int>,
+		decodeFunc: ( inout BinaryIODecoder ) throws -> T
+	) throws -> T {
 		let saveRegion	= regionRange
 		defer{ regionRange = saveRegion }
-		regionRange		= region
-		let value		= try self.decode( Value.self )
-		guard position == region.endIndex else {
+		regionRange	= range
+		let result	= try decodeFunc( &self )
+		guard position == range.endIndex else {
 			throw BinaryIOError.outOfBounds(
 				Self.self, BinaryIOError.Context(
 					debugDescription: "\(Self.self): decode do not consume exactly the requested region."
 				)
 			)
 		}
-		return value
+		return result
 	}
-
-	public mutating func decode<Value>(
-		regionRange region: Range<Int>
-	) throws -> Value where Value : BDecodable {
-		try decode( Value.self, regionRange: region )
-	}	
 }
 
 // public section ----------------------------

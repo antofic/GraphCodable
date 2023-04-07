@@ -124,38 +124,37 @@ extension BinaryIOEncoder {
 			_position	= newValue
 		}
 	}
-	
-	/// Sets the packing of the integers for the duration of the closure
+
+	/// Disable integers packing for the duration of the closure
 	///
-	/// - parameter packIntegers: The desired packing
 	/// - parameter encodeFunc: The closure
-	public mutating func encodeWith(
-		packIntegers pack:Bool,
-		_ encode: ( inout BinaryIOEncoder ) throws -> ()
-	) throws {
+	public mutating func withoutPackingIntegers<T>(
+		encodeFunc: ( inout BinaryIOEncoder ) throws -> T
+	) rethrows -> T {
 		let savePack	= packIntegers
 		defer{ packIntegers = savePack }
-		packIntegers = pack
-		try encode( &self )
+		packIntegers = false
+		return try encodeFunc( &self )
 	}
-	
+
 	/// Use this method when you want to encode data **B** in front of data **A**, but **B** depends (or is)
 	/// on the archived size of **A**. This function shifts the byte representation of **A**.
 	///
 	/// - Parameter firstEncode: closure that receive self as paramater and encode **A**.
 	/// - Parameter thenInsertInFront: closure that receive self and the size of **A** size
 	/// in encoded bytes as paramaters and encode **B**.
+	/// - Returns: the `firstEncode` return value
 	///
 	/// - Note: The bytes representing **A** are shifted to put **B** in front of **A**.
 	///
 	/// - Note: This method is only necessary in case of **non-sequential** encoding/decoding
 	/// of the archive.
-	public mutating func insert(
-		firstEncode			encodeFunc: ( inout BinaryIOEncoder ) throws -> (),
+	public mutating func insert<T>(
+		firstEncode			encodeFunc: ( inout BinaryIOEncoder ) throws -> T,
 		thenInsertInFront	insertFunc: ( inout BinaryIOEncoder, _ encodeSize: Int ) throws -> ()
-	) throws {
+	) rethrows -> T {
 		let initialPos	= position
-		try encodeFunc( &self )
+		let result 		= try encodeFunc( &self )
 		let finalPos	= position
 		position		= initialPos
 		do {
@@ -165,6 +164,7 @@ extension BinaryIOEncoder {
 		}
 		let valuePos	= position
 		position		= finalPos + (valuePos - initialPos)
+		return result
 	}
 	
 	/// Use this method when you want to encode data **B** in front of data **A**, but **B** depends (or is)
@@ -175,6 +175,7 @@ extension BinaryIOEncoder {
 	/// - Parameter thenEncode: closure that receive self as paramater and encode **A**.
 	/// - Parameter thenOverwriteDummy: closure that receive self and the size of **A** size
 	/// in encoded bytes as paramaters and encode **B**.
+	/// - Returns: the `thenEncode` return value
 	///
 	/// Example:
 	/// ```
@@ -200,22 +201,22 @@ extension BinaryIOEncoder {
 	///
 	/// - Note: This method is only necessary in case of **non-sequential** encoding/decoding
 	/// of the archive.
-	public mutating func prepend(
+	public mutating func prepend<T>(
 		dummyEncode			dummyFunc: 		( inout BinaryIOEncoder ) throws -> (),
-		thenEncode 			encodeFunc: 	( inout BinaryIOEncoder ) throws -> (),
+		thenEncode 			encodeFunc: 	( inout BinaryIOEncoder ) throws -> T,
 		thenOverwriteDummy 	overwriteFunc:	( inout BinaryIOEncoder, _ encodeSize: Int ) throws -> ()
-	) throws {
+	) throws -> T {
 		let initialPos	= position
-		try encodeWith( packIntegers: false ) {
+		try withoutPackingIntegers {
 			try dummyFunc( &$0 )
 		}
 		
 		let bodyPos		= position
-		try encodeFunc( &self )
+		let result		= try encodeFunc( &self )
 		let finalPos	= position
 		
 		position		= initialPos
-		try encodeWith( packIntegers: false ) {
+		try withoutPackingIntegers {
 			try overwriteFunc( &$0, finalPos - bodyPos )
 		}
 		let newbodyPos	= position
@@ -230,6 +231,7 @@ extension BinaryIOEncoder {
 				)
 			)
 		}
+		return result
 	}
 	
 }
@@ -312,7 +314,7 @@ extension BinaryIOEncoder {
 }
 
 
-// public section ---------------------------------------------------------
+// public protocol section ---------------------------------------------------------
 extension BinaryIOEncoder {
 	public mutating func withUnderlyingType<T>( _ apply: (inout BinaryIOEncoder) throws -> T ) rethrows -> T {
 		try apply( &self )
@@ -325,7 +327,7 @@ extension BinaryIOEncoder {
 }
 
 
-// internale section ---------------------------------------------------------
+// internal section ---------------------------------------------------------
 extension BinaryIOEncoder {
 	//	Bool
 	mutating func encodeBool( _ value:Bool ) throws {
