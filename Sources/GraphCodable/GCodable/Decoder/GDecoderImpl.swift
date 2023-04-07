@@ -23,13 +23,18 @@
 import Foundation
 
 final class GDecoderImpl {
+	let archiveIdentifier	: String?
 	var	userInfo			= [String:Any]()
 	var classNameMap		= ClassNameMap()
 	private var constructor : TypeConstructor!
 	
+	init( archiveIdentifier: String? ) {
+		self.archiveIdentifier	= archiveIdentifier
+	}	
+	
 	private func ioDecoder<Q>( from data: Q ) throws -> BinaryIODecoder
 	where Q:DataProtocol {
-		try BinaryIODecoder(data: data, userData:self )
+		try BinaryIODecoder(data: data, archiveIdentifier:archiveIdentifier, userData:self )
 	}
 	
 	func allClassData<Q>( from data: Q ) throws -> [ClassData]

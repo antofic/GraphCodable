@@ -20,6 +20,21 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
+
+/// The default string that identiefies a BinaryIO archive
+///
+/// You can choose a different archive identifier in:
+/// - the BinaryIOEncoder `init` method
+/// - the BEncodable `binaryIOData(...)` method
+///
+/// During decoding this string must match the `archiveIdentifier` in:
+/// - the BinaryIODecoder `init` method
+/// - the BDecodable `init( binaryIOData:... )` method
+///
+/// Note: User can even choose a `nil` string
+public let defaultGraphCodableArchiveIdentifier = "graphCodable"
+
+
 /// A type that can be encoded from in-memory representations
 /// into a native data format
 public protocol GEncodable {

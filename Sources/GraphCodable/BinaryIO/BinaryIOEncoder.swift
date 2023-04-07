@@ -33,10 +33,10 @@ import Foundation
 ///	A value that encodes instances of a **BEncodable** type
 ///	into a data buffer that uses **BinaryIO** format.
 public struct BinaryIOEncoder: BEncoder {
-	private var _data 			: Bytes
-	private var _position		: Int
-	private var _packIntegers	: Bool
-	private var	insertMode		: Bool
+	private var _data 				: Bytes
+	private var _position			: Int
+	private var compressionEnabled	: Bool
+	private var	insertMode			: Bool
 
 	// public	let defaultBinaryFileCode = FileCode( "bina" )
 	
@@ -47,28 +47,30 @@ public struct BinaryIOEncoder: BEncoder {
 	/// Actual version for BinaryIO library types
 	///
 	///	Reserved for package use.
-	let	binaryIOFlags			: BinaryIOFlags
+	let	binaryIOFlags				: BinaryIOFlags
 	
 	/// Actual version for BinaryIO library types
 	///
 	///	Reserved for package use.
-	let binaryIOVersion			: UInt16
-
+	let binaryIOVersion				: UInt16
+	
+	public let archiveIdentifier	: String?	
+	
 	/// Current version for user defined types for
 	///	decoding strategies.
 	///
 	///	This variable must be set in the init method.
-	public let userVersion		: UInt32
+	public let userVersion			: UInt32
 	
 	///	User defined data for encoding strategies.
 	///
 	///	This variable can be set in the init method.
 	///	By default it is `nil`.
-	public let userData			: Any?
+	public let userData				: Any?
 	
-	public var packIntegers	: Bool {
-		get { _packIntegers }
-		set { _packIntegers = newValue && binaryIOFlags.contains( .packIntegers ) }
+	public var enableCompression : Bool {
+		get { compressionEnabled }
+		set { compressionEnabled = newValue && binaryIOFlags.contains( .compressionEnabled ) }
 	}
 }
 
@@ -77,23 +79,25 @@ extension BinaryIOEncoder {
 	///
 	/// - Parameter userVersion: An user definde version for its data.
 	///	- Parameter userData: User defined data for decoding strategies.
-	///	- Parameter packIntegers: compress integer values to reduce file size.
-	public init( userVersion: UInt32, userData:Any? = nil, packIntegers:Bool = true ) {
-		self.userVersion		= userVersion
-		self._data				= Bytes()
-		self._position			= 0
-		self.startOfFile		= 0
-		self.binaryIOFlags		= packIntegers ? .packIntegers : []
-		self.binaryIOVersion	= 0
-		self.insertMode			= false
-		self.userData			= userData
-		self._packIntegers		= packIntegers
+	///	- Parameter enableCompression: compress integer values to reduce file size.
+	public init( userVersion: UInt32, archiveIdentifier: String? = defaultBinaryIOArchiveIdentifier, userData:Any? = nil, enableCompression:Bool = true ) {
+		self.userVersion			= userVersion
+		self._data					= Bytes()
+		self._position				= 0
+		self.startOfFile			= 0
+		self.binaryIOFlags			= [ enableCompression ? .compressionEnabled : [], archiveIdentifier != nil ? .hasArchiveIdentifier : [] ]
+		self.archiveIdentifier		= archiveIdentifier
+		self.binaryIOVersion		= 0
+		self.insertMode				= false
+		self.userData				= userData
+		self.compressionEnabled		= enableCompression
 		// really can't throw
-		try! self.writePODValue( self.binaryIOFlags )		// NO pack
-		try! self.encode( self.binaryIOVersion )	// pack if packIntegers
-		try! self.encode( self.userVersion )		// pack if packIntegers
+		try! self.writePODValue( self.binaryIOFlags )	// NO compression
+		if let archiveIdentifier { try! self.encode( archiveIdentifier ) }
+		try! self.encode( self.binaryIOVersion )		// compressed if enableCompression
+		try! self.encode( self.userVersion )			// compressed if enableCompression
 		self.startOfFile		= position
-		self.packIntegers		= packIntegers
+		self.enableCompression		= enableCompression
 	}
 
 	///	Get the encoded data.
@@ -128,12 +132,12 @@ extension BinaryIOEncoder {
 	/// Disable integers packing for the duration of the closure
 	///
 	/// - parameter encodeFunc: The closure
-	public mutating func withoutPackingIntegers<T>(
+	public mutating func withCompressionDisabled<T>(
 		encodeFunc: ( inout BinaryIOEncoder ) throws -> T
 	) rethrows -> T {
-		let savePack	= packIntegers
-		defer{ packIntegers = savePack }
-		packIntegers = false
+		let saveCompression	= enableCompression
+		defer{ enableCompression = saveCompression }
+		enableCompression = false
 		return try encodeFunc( &self )
 	}
 
@@ -185,15 +189,14 @@ extension BinaryIOEncoder {
 	///	   thenOverwriteDummy: { try $0.encode( $1 ) ) }
 	///	)
 	/// ```
-	/// - Note: During `dummyEncode` and `thenOverwriteDummy` packIntegers **is always disabled**
+	/// - Note: During `dummyEncode` and `thenOverwriteDummy` compression **is always disabled**
 	/// to make integers encode size do not depend by their values.
-	/// During decoding **it is therefore necessary to disable packIntegers** to decode
+	/// During decoding **it is therefore necessary to disable compression** to decode
 	/// data encoded by `thenOverwriteDummy`. For example with the `BinaryIODecoder` function
 	/// ```
-	/// func decodeWith<Value:BDecodable>(
-	/// 	packIntegers:Bool,
-	/// 	_ decode: ( inout BinaryIODecoder ) throws -> Value
-	/// ) throws -> Value
+	/// func withCompressionDisabled<T>(
+	///		decodeFunc: ( inout BinaryIODecoder ) throws -> T
+	///		) rethrows -> T
 	/// ```
 	///
 	/// - Note: `thenOverwriteDummy` must exactly overwrite the dummy data encoded with `dummyEncode`.
@@ -207,7 +210,7 @@ extension BinaryIOEncoder {
 		thenOverwriteDummy 	overwriteFunc:	( inout BinaryIOEncoder, _ encodeSize: Int ) throws -> ()
 	) throws -> T {
 		let initialPos	= position
-		try withoutPackingIntegers {
+		try withCompressionDisabled {
 			try dummyFunc( &$0 )
 		}
 		
@@ -216,7 +219,7 @@ extension BinaryIOEncoder {
 		let finalPos	= position
 		
 		position		= initialPos
-		try withoutPackingIntegers {
+		try withCompressionDisabled {
 			try overwriteFunc( &$0, finalPos - bodyPos )
 		}
 		let newbodyPos	= position
@@ -281,14 +284,6 @@ extension BinaryIOEncoder {
 		}
 	}
 
-	private mutating func writeStaticString( _ value:StaticString ) throws {
-		return try value.withUTF8Buffer { utf8 in
-			try self.write( contentsOf: utf8 )
-			try self.write( contentsOf: CollectionOfOne( UInt8(0) ) )
-		}
-	}
-
-	
 	///	Transforms an **unsigned integer** of size n into at most n+1 bytes
 	///	(worst case) but much less for small numbers, and then encodes them.
 	///
@@ -340,7 +335,7 @@ extension BinaryIOEncoder {
 	}
 	
 	mutating func encodeUInt16( _ value:UInt16 ) throws {
-		if packIntegers {
+		if enableCompression {
 			try packAndWrite( value )
 		} else {
 			try writePODValue( value.littleEndian )
@@ -348,7 +343,7 @@ extension BinaryIOEncoder {
 	}
 	
 	mutating func encodeUInt32( _ value:UInt32 ) throws {
-		if packIntegers {
+		if enableCompression {
 			try packAndWrite( value )
 		} else {
 			try writePODValue( value.littleEndian )
@@ -356,7 +351,7 @@ extension BinaryIOEncoder {
 	}
 	
 	mutating func encodeUInt64( _ value:UInt64 ) throws {
-		if packIntegers {
+		if enableCompression {
 			try packAndWrite( value )
 		} else {
 			try writePODValue( value.littleEndian )
@@ -382,7 +377,7 @@ extension BinaryIOEncoder {
 
 	
 	mutating func encodeInt16( _ value:Int16 ) throws {
-		if packIntegers {
+		if enableCompression {
 			try encode( ZigZag.encode( value ) )
 		}
 		else {
@@ -391,7 +386,7 @@ extension BinaryIOEncoder {
 	}
 	
 	mutating func encodeInt32( _ value:Int32 ) throws {
-		if packIntegers {
+		if enableCompression {
 			try encode( ZigZag.encode( value ) )
 		}
 		else {
@@ -400,7 +395,7 @@ extension BinaryIOEncoder {
 	}
 	
 	mutating func encodeInt64( _ value:Int64 ) throws {
-		if packIntegers {
+		if enableCompression {
 			try encode( ZigZag.encode( value ) )
 		}
 		else {
@@ -422,17 +417,17 @@ extension BinaryIOEncoder {
 	
 	//	Floats
 	mutating func encodeFloat( _ value:Float ) throws {
-		let saveCompression = packIntegers
-		defer { packIntegers = saveCompression }
-		packIntegers = false
+		let saveCompression = enableCompression
+		defer { enableCompression = saveCompression }
+		enableCompression = false
 		
 		try encode( value.bitPattern )
 	}
 	
 	mutating func encodeDouble( _ value:Double ) throws {
-		let saveCompression = packIntegers
-		defer { packIntegers = saveCompression }
-		packIntegers = false
+		let saveCompression = enableCompression
+		defer { enableCompression = saveCompression }
+		enableCompression = false
 		
 		try encode( value.bitPattern )
 	}

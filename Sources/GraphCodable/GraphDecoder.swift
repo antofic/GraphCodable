@@ -45,10 +45,16 @@ public struct UndecodableClass {
 ///	An object that decodes instances of a **GDecodable** type
 ///	from a data buffer that uses **GraphCodable** format.
 public final class GraphDecoder {
-	private let decoder = GDecoderImpl()
+	private let decoder : GDecoderImpl
 
-	public init() {}
+	public init( archiveIdentifier: String? = defaultGraphCodableArchiveIdentifier ) {
+		self.decoder = GDecoderImpl( archiveIdentifier:archiveIdentifier )
+	}
 
+	public var archiveIdentifier: String? {
+		decoder.archiveIdentifier
+	}
+	
 	///	get/set the userInfo dictionary
 	public var userInfo : [String:Any] {
 		get { decoder.userInfo }

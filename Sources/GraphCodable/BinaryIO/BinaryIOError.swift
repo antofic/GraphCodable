@@ -47,6 +47,16 @@ public enum BinaryIOError : Error {
 	/// in their `init(from: inout some BDecoder) throws` method.
 	///
 	/// It can happen **while reading** only
+	case archiveIdentifierDontMatch( Any.Type, BinaryIOError.Context )
+
+
+	/// Indicate an error occurring while reading a system type
+	///
+	/// BinaryIO implements the `BDecodable` protocol for
+	/// many system types. This error is eventually raised
+	/// in their `init(from: inout some BDecoder) throws` method.
+	///
+	/// It can happen **while reading** only
 	case libDecodingError( Any.Type, BinaryIOError.Context )
 
 	/// Indicate an error occurring while writing a system type

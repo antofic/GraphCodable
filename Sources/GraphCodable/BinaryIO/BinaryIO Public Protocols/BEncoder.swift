@@ -23,6 +23,9 @@
 import Foundation
 
 public protocol BEncoder {
+	/// The archiveIdentifier string set by the user.
+	var archiveIdentifier: String? { get }
+
 	/// A current version set by the user for encoding.
 	var userVersion: UInt32 { get }
 	

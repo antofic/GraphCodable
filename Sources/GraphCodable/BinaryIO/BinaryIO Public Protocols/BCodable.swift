@@ -27,6 +27,21 @@ import Foundation
 /// The container must conform to `MutableDataProtocol`, i.e `Data`, `[UInt8]`, `ContiguousArray<UInt8>`
 public typealias Bytes	= [UInt8]
 
+
+/// The default string that identiefies a BinaryIO archive
+///
+/// You can choose a different archive identifier in:
+/// - the BinaryIOEncoder `init` method
+/// - the BEncodable `binaryIOData(...)` method
+///
+/// During decoding this string must match the `archiveIdentifier` in:
+/// - the BinaryIODecoder `init` method
+/// - the BDecodable `init( binaryIOData:... )` method
+///
+/// Note: User can even choose a `nil` string
+public let defaultBinaryIOArchiveIdentifier = "binaryIO"
+
+
 /// A type that can write itself into a `BEncoder` istance
 public protocol BEncodable {
 	/// Writes this value into the given istance of `BEncoder`.
@@ -61,9 +76,14 @@ public extension BEncodable {
 	///
 	///	The root value must conform to the BEncodable protocol
 	/// - returns: The byte buffer.
-	func binaryIOData<Q>( userVersion:UInt32, userData:Any? = nil,packIntegers:Bool = true ) throws -> Q
+	func binaryIOData<Q>(
+		userVersion:UInt32,
+		archiveIdentifier: String? = defaultBinaryIOArchiveIdentifier,
+		userData:Any? = nil,
+		enableCompression:Bool = true
+	) throws -> Q
 	where Q:MutableDataProtocol {
-		var encoder = BinaryIOEncoder( userVersion:userVersion, userData: userData, packIntegers:packIntegers )
+		var encoder = BinaryIOEncoder( userVersion:userVersion, archiveIdentifier: archiveIdentifier, userData: userData, enableCompression:enableCompression )
 		try encoder.encode( self )
 		return encoder.data()
 	}
@@ -73,8 +93,8 @@ public extension BDecodable {
 	///	Decode the root value from the byte buffer
 	///
 	///	The root value must conform to the `BDecodable` protocol
-	init<Q>( binaryIOData: Q, userData:Any? = nil ) throws where Q:DataProtocol {
-		var decoder = try BinaryIODecoder( data:binaryIOData, userData:userData )
+	init<Q>( binaryIOData: Q, archiveIdentifier: String? = defaultBinaryIOArchiveIdentifier, userData:Any? = nil ) throws where Q:DataProtocol {
+		var decoder = try BinaryIODecoder( data:binaryIOData, archiveIdentifier:archiveIdentifier, userData:userData )
 		self = try decoder.decode()
 	}
 	

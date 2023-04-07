@@ -29,5 +29,6 @@ struct BinaryIOFlags: OptionSet {
 		self.rawValue	= rawValue
 	}
 	
-	static let	packIntegers = Self( rawValue: 1 << 0 )
+	static let	compressionEnabled		= Self( rawValue: 1 << 0 )
+	static let	hasArchiveIdentifier	= Self( rawValue: 1 << 1 )
 }

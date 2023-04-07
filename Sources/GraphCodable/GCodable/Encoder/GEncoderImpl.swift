@@ -58,6 +58,7 @@ final class GEncoderImpl : EncodeFileBlocksDelegate {
 	var userInfo							= [String:Any]()
 	private let 		encodeOptions		: GraphEncoder.Options
 	let 				userVersion			: UInt32
+	let 				archiveIdentifier	: String?
 	private var 		currentKeys			= Set<String>()
 	private var			identityMap			= IdentityMap()
 	private var			referenceMap		= ReferenceMap()
@@ -79,20 +80,22 @@ final class GEncoderImpl : EncodeFileBlocksDelegate {
 	var classDataMap: ClassDataMap 	{ referenceMap.classDataMap }
 	var keyStringMap: KeyStringMap 	{ keyMap.keyStringMap }
 	
-	init( _ options: GraphEncoder.Options, userVersion:UInt32 ) {
+	init( _ options: GraphEncoder.Options, userVersion:UInt32, archiveIdentifier: String? ) {
 		#if DEBUG
-		self.encodeOptions	= [options, .printWarnings]
+		self.encodeOptions		= [options, .printWarnings]
 		#else
-		self.encodeOptions	= options
+		self.encodeOptions		= options
 		#endif
-		self.userVersion	= userVersion
+		self.userVersion		= userVersion
+		self.archiveIdentifier	= archiveIdentifier
 	}
 
 	private func ioEncoderAndHeader() -> (BinaryIOEncoder, FileHeader) {
 		let ioEncoder		= BinaryIOEncoder(
 			userVersion: userVersion,
+			archiveIdentifier: archiveIdentifier,
 			userData: self,
-			packIntegers: !encodeOptions.contains( .disableIntegerPacking )
+			enableCompression: !encodeOptions.contains( .disableCompression )
 		)
 		let fileHeader		= FileHeader(
 			binaryIOEncoder: ioEncoder,

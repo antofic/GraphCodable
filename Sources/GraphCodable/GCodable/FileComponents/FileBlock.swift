@@ -243,7 +243,7 @@ extension FileBlock {
 			if fileHeader.gcoadableFlags.contains( .useBinaryIOInsert ) {
 				return try decoder.decode()
 			} else {
-				return try decoder.withoutPackingIntegers {
+				return try decoder.withCompressionDisabled {
 					try $0.decode()
 				}
 			}

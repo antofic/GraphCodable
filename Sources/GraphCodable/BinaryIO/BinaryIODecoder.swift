@@ -43,7 +43,7 @@ public struct BinaryIODecoder: BDecoder {
 	///	It can be changed with X and Y.
 	private var dataRegion				: Bytes.SubSequence
 
-	private var _packIntegers			: Bool
+	private var compressionEnabled			: Bool
 
 	///	Encoded flags.
 	///
@@ -54,13 +54,9 @@ public struct BinaryIODecoder: BDecoder {
 	///
 	///	Reserved for package use.
 	let	encodedBinaryIOVersion			: UInt16
-
-
-	///	The first bytes of the file are reserved so the file
-	///	data section begins from `startOfFile` offset.
-	public let	startOfFile				: Int
 	
-	
+	public let archiveIdentifier		: String?
+
 	///	Encoded version for user defined types for
 	///	decoding strategies.
 	///
@@ -73,6 +69,10 @@ public struct BinaryIODecoder: BDecoder {
 	///	By default it is `nil`.
 	public let	userData				: Any?
 	
+	///	The first bytes of the file are reserved so the file
+	///	data section begins from `startOfFile` offset.
+	public let	startOfFile				: Int
+	
 	///	The total file dimension in bytes, including
 	///	the reserved initial bytes.
 	///
@@ -81,9 +81,9 @@ public struct BinaryIODecoder: BDecoder {
 	public var	fileSize				: Int 	{ data.count }
 	
 	
-	public var packIntegers	: Bool {
-		get { _packIntegers }
-		set { _packIntegers = newValue && encodedBinaryIOFlags.contains( .packIntegers ) }
+	public var enableCompression		: Bool {
+		get { compressionEnabled }
+		set { compressionEnabled = newValue && encodedBinaryIOFlags.contains( .compressionEnabled ) }
 	}
 }
 
@@ -92,11 +92,11 @@ extension BinaryIODecoder {
 	///
 	/// - Parameter data: The data to read from.
 	///	- Parameter userData: User defined data for decoding strategies.
-	public init<Q>( data: Q, userData:Any? = nil ) throws where Q:DataProtocol {
+	public init<Q>( data: Q, archiveIdentifier: String? = defaultBinaryIOArchiveIdentifier, userData:Any? = nil ) throws where Q:DataProtocol {
 		if let data = data as? Bytes {
-			try self.init( data, userData:userData )
+			try self.init( data, archiveIdentifier:archiveIdentifier, userData:userData )
 		} else {
-			try self.init( Bytes(data), userData:userData )
+			try self.init( Bytes(data), archiveIdentifier:archiveIdentifier, userData:userData )
 		}
 	}
 
@@ -173,25 +173,40 @@ extension BinaryIODecoder {
 
 // private init ---------------------------------------------------------
 extension BinaryIODecoder {
-	private init( _ data: Bytes, userData:Any? = nil ) throws {
-		var dataRegion				= data[...]
-		self._packIntegers			= false
-		
-		
-		
-		self.encodedBinaryIOFlags	= try Self.readValue(from: &dataRegion)
-		if self.encodedBinaryIOFlags.contains(.packIntegers) {
+	private init( _ data: Bytes, archiveIdentifier: String?, userData:Any?) throws {
+		var dataRegion					= data[...]
+		self.compressionEnabled			= false
+		//	self.archiveIdentifier			= archiveIdentifier
+		self.encodedBinaryIOFlags		= try Self.readValue(from: &dataRegion)
+		if self.encodedBinaryIOFlags.contains( .hasArchiveIdentifier ) {
+			let encodedArchiveIdentifier	= try Self.readString( from: &dataRegion )
+			guard archiveIdentifier == encodedArchiveIdentifier else {
+				throw BinaryIOError.archiveIdentifierDontMatch(
+					Self.self, BinaryIOError.Context(
+						debugDescription: "Encoded archiveIdentifier -\(encodedArchiveIdentifier)- doesn't match the requested identifier -\(String(describing: archiveIdentifier))-."
+					)
+				)
+			}
+		} else if let archiveIdentifier {
+			throw BinaryIOError.archiveIdentifierDontMatch(
+				Self.self, BinaryIOError.Context(
+					debugDescription: "Encoded archive without identifier doesn't match the requested identifier -\(String(describing: archiveIdentifier))-."
+				)
+			)
+		}
+		self.archiveIdentifier			= archiveIdentifier
+		if self.encodedBinaryIOFlags.contains( .compressionEnabled ) {
 			self.encodedBinaryIOVersion	= try Self.readAndUnpack(from: &dataRegion)
 			self.encodedUserVersion		= try Self.readAndUnpack(from: &dataRegion)
 		} else {
 			self.encodedBinaryIOVersion	= try Self.readValue(from: &dataRegion)
 			self.encodedUserVersion		= try Self.readValue(from: &dataRegion)
 		}
-		self.data					= data
-		self.dataRegion				= dataRegion
-		self.startOfFile			= dataRegion.startIndex
-		self.userData				= userData
-		self.packIntegers			= true
+		self.data						= data
+		self.dataRegion					= dataRegion
+		self.startOfFile				= dataRegion.startIndex
+		self.userData					= userData
+		self.enableCompression			= true
 	}
 }
 
@@ -216,18 +231,6 @@ extension BinaryIODecoder {
 #else
 #error("Minimum swift version = 5.6")
 #endif
-		}
-	}
-
-	private static func readStaticString(
-		_ value:StaticString,from dataRegion:inout Bytes.SubSequence
-	) throws -> Bool {
-		return try value.withUTF8Buffer { utf8 in
-			for char in utf8 {
-				guard try readValue(from: &dataRegion) == char else { return false }
-			}
-			guard try readValue(from: &dataRegion) == UInt8(0) else { return false }
-			return true
 		}
 	}
 	 
@@ -255,6 +258,38 @@ extension BinaryIODecoder {
 		}
 		return val
 	}
+	
+	// read a null terminated utf8 string
+	private static func readString( from dataRegion:inout Bytes.SubSequence ) throws -> String {
+		var inSize = 0
+		
+		let string = try dataRegion.withUnsafeBytes {
+			try $0.withMemoryRebound( to: Int8.self ) { buffer in
+				for char in buffer {
+					inSize += 1
+					if char == 0 {	// ho trovato NULL
+						return String( cString: buffer.baseAddress! )
+					}
+				}
+				
+				throw BinaryIOError.outOfBounds(
+					Self.self, BinaryIOError.Context(
+						debugDescription: "No more bytes available for a null terminated string."
+					)
+				)
+			}
+		}
+		// ci deve essere almeno un carattere: null
+		guard inSize > 0 else {
+			throw BinaryIOError.outOfBounds(
+				Self.self, BinaryIOError.Context(
+					debugDescription: "No more bytes available for a null terminated string."
+				)
+			)
+		}
+		dataRegion.removeFirst( inSize )
+		return string
+	}
 }
 
 // private section ----------------------------
@@ -277,10 +312,6 @@ extension BinaryIODecoder {
 		try Self.checkRemainingSize( dataRegion, size: size )
 	}
 
-	private mutating func readStaticString( _ value:StaticString ) throws -> Bool {
-		try Self.readStaticString( value, from: &dataRegion )
-	}
-	
 	///	Decodes and reconstructs the integer encoded by
 	///	BinaryIOEncoder `readAndUnpack` function.
 	private mutating func readAndUnpack<T>() throws -> T
@@ -296,12 +327,12 @@ extension BinaryIODecoder {
 	/// Disable integers packing for the duration of the closure
 	///
 	/// - parameter decodeFunc: The closure
-	public mutating func withoutPackingIntegers<T>(
+	public mutating func withCompressionDisabled<T>(
 		decodeFunc: ( inout BinaryIODecoder ) throws -> T
 	) rethrows -> T {
-		let savePack	= packIntegers
-		defer{ packIntegers = savePack }
-		packIntegers = false
+		let saveCompression	= enableCompression
+		defer{ enableCompression = saveCompression }
+		enableCompression = false
 		return try decodeFunc( &self )
 	}
 
@@ -363,7 +394,7 @@ extension BinaryIODecoder {
 	}
 	
 	mutating func decodeUInt16() throws -> UInt16 {
-		if packIntegers {
+		if enableCompression {
 			return try readAndUnpack()
 		}
 		else {
@@ -371,7 +402,7 @@ extension BinaryIODecoder {
 		}
 	}
 	mutating func decodeUInt32() throws -> UInt32 {
-		if packIntegers {
+		if enableCompression {
 			return try readAndUnpack()
 		}
 		else {
@@ -380,7 +411,7 @@ extension BinaryIODecoder {
 	}
 	
 	mutating func decodeUInt64() throws -> UInt64	{
-		if packIntegers {
+		if enableCompression {
 			return try readAndUnpack()
 		}
 		else {
@@ -407,14 +438,14 @@ extension BinaryIODecoder {
 	}
 	
 	mutating func decodeInt16() throws -> Int16 {
-		if packIntegers {
+		if enableCompression {
 			return ZigZag.decode( try decode() )
 		} else {
 			return try Int16( littleEndian: readPODValue() )
 		}
 	}
 	mutating func decodeInt32() throws -> Int32 {
-		if packIntegers {
+		if enableCompression {
 			return ZigZag.decode( try decode() )
 		} else {
 			return try Int32( littleEndian: readPODValue() )
@@ -422,7 +453,7 @@ extension BinaryIODecoder {
 	}
 
 	mutating func decodeInt64() throws -> Int64 {
-		if packIntegers {
+		if enableCompression {
 			return ZigZag.decode( try decode() )
 		} else {
 			return try Int64( littleEndian: readPODValue() )
@@ -444,51 +475,24 @@ extension BinaryIODecoder {
 
 	//	Floats
 	mutating func decodeFloat() throws -> Float {
-		let saveCompression = packIntegers
-		defer { packIntegers = saveCompression }
-		packIntegers = false
+		let saveCompression = enableCompression
+		defer { enableCompression = saveCompression }
+		enableCompression = false
 
 		return try Float(bitPattern: decode())
 	}
 	
 	mutating func decodeDouble() throws -> Double	{
-		let saveCompression = packIntegers
-		defer { packIntegers = saveCompression }
-		packIntegers = false
+		let saveCompression = enableCompression
+		defer { enableCompression = saveCompression }
+		enableCompression = false
 
 		return try Double(bitPattern: decode())
 	}
 	
 	// read a null terminated utf8 string
 	mutating func decodeString() throws -> String {
-		var inSize = 0
-		
-		let string = try dataRegion.withUnsafeBytes {
-			try $0.withMemoryRebound( to: Int8.self ) { buffer in
-				for char in buffer {
-					inSize += 1
-					if char == 0 {	// ho trovato NULL
-						return String( cString: buffer.baseAddress! )
-					}
-				}
-				
-				throw BinaryIOError.outOfBounds(
-					Self.self, BinaryIOError.Context(
-						debugDescription: "No more bytes available for a null terminated string."
-					)
-				)
-			}
-		}
-		// ci deve essere almeno un carattere: null
-		guard inSize > 0 else {
-			throw BinaryIOError.outOfBounds(
-				Self.self, BinaryIOError.Context(
-					debugDescription: "No more bytes available for a null terminated string."
-				)
-			)
-		}
-		dataRegion.removeFirst( inSize )
-		return string
+		try Self.readString( from: &dataRegion )
 	}
 	
 	//	Data

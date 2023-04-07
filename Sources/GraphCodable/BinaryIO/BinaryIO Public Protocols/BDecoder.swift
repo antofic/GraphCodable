@@ -23,6 +23,9 @@
 import Foundation
 
 public protocol BDecoder {
+	/// The archiveIdentifier string set by the user.
+	var archiveIdentifier: String? { get }
+
 	/// The encoded version of the archive set by the user.
 	var encodedUserVersion: UInt32 { get }
 	

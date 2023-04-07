@@ -28,8 +28,19 @@ public final class GraphEncoder {
 	private let encoder	: GEncoderImpl
 
 	/// GraphEncoder init method
-	public init( _ options: Options = .defaultOption, userVersion: UInt32 = 0 ) {
-		encoder	= GEncoderImpl( options, userVersion:userVersion )
+	public init(
+		_ options: Options = .defaultOption,
+		userVersion: UInt32 = 0,
+		archiveIdentifier: String? = defaultGraphCodableArchiveIdentifier
+	) {
+		encoder	= GEncoderImpl(
+			options, userVersion:userVersion, archiveIdentifier: archiveIdentifier
+		)
+	}
+
+	///	Get the archiveIdentifier
+	public var archiveIdentifier: String? {
+		encoder.archiveIdentifier
 	}
 
 	///	Get/Set the userInfo dictionary
@@ -70,8 +81,8 @@ extension GraphEncoder {
 		/// By default integers are compressed to produce smaller files.
 		/// This option disables compression.
 		///
-		/// - Note: This option is disabled by default
-		public static let	disableIntegerPacking								= Self( rawValue: 1 << 0 )
+		/// - Note: Compression is enabled by default
+		public static let	disableCompression									= Self( rawValue: 1 << 0 )
 		
 		///	Disable moving encoded data
 		///

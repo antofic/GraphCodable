@@ -79,9 +79,9 @@ struct DecodeReadBlocks {
 		
 		self.fileHeader		= try FileHeader( from: &decoder )
 		do {
-			let savePack	= decoder.packIntegers
-			defer { decoder.packIntegers = savePack }
-			decoder.packIntegers = false
+			let saveCompression	= decoder.enableCompression
+			defer { decoder.enableCompression = saveCompression }
+			decoder.enableCompression = false
 			
 			self.sectionMap		= try SectionMap( from: &decoder )
 		}
