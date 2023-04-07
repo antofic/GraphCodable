@@ -20,15 +20,18 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
-import Foundation
-
-/// Reserved for package use. **Don't depend on it.**
-public struct _BinaryIOFlags: OptionSet {
-	public let rawValue: UInt16
-	
-	public init(rawValue: UInt16) {
-		self.rawValue	= rawValue
+extension StaticString {
+	func withUTF8Buffer<R>(_ body: (UnsafeBufferPointer<UInt8>) throws -> R) throws -> R {
+		let result : Result<R,Error> = withUTF8Buffer { utf8 in
+			do {
+				return Result.success( try body( utf8 ) )
+			} catch( let error ) {
+				return Result.failure( error )
+			}
+		}
+		switch result {
+			case .success( let retValue ): return retValue
+			case .failure( let error ): throw error
+		}
 	}
-	
-	public static let	packIntegers = Self( rawValue: 1 << 0 )
 }

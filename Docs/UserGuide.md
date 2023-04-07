@@ -1591,11 +1591,11 @@ class MyData: GCodable {
 	}
 	
 	required init(from decoder: some GDecoder) throws {
-		preconditionFailure("Unreachable \(#function)")
+		fatalError("Unreachable \(#function)")
 	}
 	
 	func encode(to encoder: some GEncoder) throws {
-		preconditionFailure("Unreachable \(#function)")
+		fatalError("Unreachable \(#function)")
 	}
   // no other code
 }

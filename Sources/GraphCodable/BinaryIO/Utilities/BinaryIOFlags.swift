@@ -22,27 +22,12 @@
 
 import Foundation
 
-public protocol BEncoder {
-	/// A current version set by the user for encoding.
-	var userVersion: UInt32 { get }
+struct BinaryIOFlags: OptionSet {
+	let rawValue: UInt16
 	
-	/// Any contextual information set by the user for encoding.
-	var userData: Any? { get }
+	init(rawValue: UInt16) {
+		self.rawValue	= rawValue
+	}
 	
-	/// Encodes the given value.
-	///
-	///	Value must adopt the `BEncodable` protocol
-	///
-	/// Example:
-	/// ```
-	/// func encode(to encoder: BEncoder) throws {
-	///		...
-	/// 	try encoder.encode( value )
-	///		...
-	///	}
-	/// ```
-	/// - parameter value: The value to encode.
-	mutating func encode<Value:BEncodable> (_ value: Value ) throws
-	
-	mutating func withUnderlyingType<T>( _: (inout BinaryIOEncoder) throws -> T ) rethrows -> T
+	static let	packIntegers = Self( rawValue: 1 << 0 )
 }

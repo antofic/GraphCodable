@@ -64,31 +64,7 @@ public protocol BDecoder {
 	/// to the requested type.
 	mutating func decode<Value:BDecodable>( _ type:Value.Type ) throws -> Value
 
-	mutating func decode() throws -> Bool
-	mutating func decode() throws -> UInt8
-	mutating func decode() throws -> UInt16
-	mutating func decode() throws -> UInt32
-	mutating func decode() throws -> UInt64
-	mutating func decode() throws -> UInt
-	mutating func decode() throws -> Int8
-	mutating func decode() throws -> Int16
-	mutating func decode() throws -> Int32
-	mutating func decode() throws -> Int64
-	mutating func decode() throws -> Int
-	mutating func decode() throws -> Float
-	mutating func decode() throws -> Double
-	mutating func decode() throws -> String
-	mutating func decode() throws -> Data
-	
-	///	Encoded BinaryIO flags.
-	///
-	///	Reserved for package use. **Don't depend on it.**
-	var	_encodedBinaryIOFlags: _BinaryIOFlags { get }
-	
-	///	Encoded version for library types.
-	///
-	///	Reserved for package use. **Don't depend on it.**
-	var	_encodedBinaryIOVersion: UInt16 { get }
+	mutating func withUnderlyingType<T>( _: (inout BinaryIODecoder) throws -> T ) rethrows -> T
 }
 
 public extension BDecoder {

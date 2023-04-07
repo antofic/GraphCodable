@@ -74,7 +74,7 @@ public protocol GEncoderView {
 	var	userInfo : [String:Any] { get }
 }
 
-extension BinaryIOEncoder {
+extension BEncoder {
 	public var encoderView : GEncoderView {
 		get throws {
 			guard let encoderView = userData as? GEncoderView else {
@@ -95,7 +95,7 @@ public protocol GDecoderView {
 	var replacedClass		: (AnyObject & GDecodable).Type?  { get throws }
 }
 
-extension BinaryIODecoder {
+extension BDecoder {
 	public var decoderView : GDecoderView {
 		get throws {
 			guard let decoderView = userData as? GDecoderView else {

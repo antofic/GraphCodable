@@ -43,18 +43,23 @@ struct ReadBlock {
 	}
 
 	init( with fileBlock:FileBlock, copying readBlock:ReadBlock ) {
-		self.fileBlock		= fileBlock
+		self.fileBlock	= fileBlock
 		self.position	= readBlock.position
 	}
 	
-	///	Only binaryValues have a value region size > 0
+	///	The regionRange of a BinaryIO type
 	///
-	///	whe size > 0 this is the region of the BinaryIODecoder that contains
-	///	the "binaryEncoded" value.
-	var valueRegion : Range<Int> { position ..< (position + fileBlock.binarySize) }
+	///	- `fileBlock.binarySize` return the size (>=0) of a BinaryIO value fileBlock
+	///	- `fileBlock.binarySize` return always 0 for not BinaryIO fileBlocks
+	///
+	/// then:
+	///
+	///	- `valueRegion` contains the file region of a BinaryIO type
+	/// - `valueRegion` contains the starting position of not BinaryIO types
+	var binaryIORegionRange : Range<Int> { position ..< (position + fileBlock.binarySize) }
 }
 
-typealias ReadBlocks		= [ReadBlock]
+typealias ReadBlocks = [ReadBlock]
 
 /// Decoding Pass 1
 ///
@@ -100,19 +105,19 @@ struct DecodeReadBlocks {
 	/// decode fileblocks from the BinaryIODecoder
 	/// and trasform them in ReadBlock's
 	mutating func readBlocks() throws -> ReadBlocks {
-		if let fileBlocks = self._readBlocks { return fileBlocks }
+		if let readBlocks = self._readBlocks { return readBlocks }
 
 		let saveRegion	= try setReaderRegionRangeTo(section: .body)
 		defer { ioDecoder.regionRange = saveRegion }
 
-		var fileBlocks	= [ReadBlock]()
+		var readBlocks	= [ReadBlock]()
 		while ioDecoder.isEndOfRegion == false {
 			let readBlock	= try ReadBlock(from: &ioDecoder, fileHeader: fileHeader)
-			fileBlocks.append( readBlock )
+			readBlocks.append( readBlock )
 		}
 		
-		self._readBlocks	= fileBlocks
-		return fileBlocks
+		self._readBlocks	= readBlocks
+		return readBlocks
 	}
 
 	/// decode the keyString map from the BinaryIODecoder

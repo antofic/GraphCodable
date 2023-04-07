@@ -38,13 +38,37 @@ struct FileHeader : CustomStringConvertible, BCodable {
 	}
 
 	let userVersion		: UInt32
-	let binaryIOFlags	: _BinaryIOFlags
+	let binaryIOFlags	: BinaryIOFlags
 	let binaryIOVersion	: UInt16
 	let gcodableVersion	: UInt32
 	let gcoadableFlags	: Flags
 	let unused0 		: UInt16
 	let unused1 		: UInt64
+	
+	func description( dataSize:Int? ) -> String {
+		func alignR( _ value:Any,length: Int = 12 ) -> String  {
+			"\(value)".align( .right, length: length )
+		}
+		func bitString<V>( _ value:V ) -> String {
+			let bits = MemoryLayout.size(ofValue: value)*8
+			return "{\( alignR( bits, length:2 ) ) bit value}"
+		}
 		
+		var string = ""
+		string.append(		  "- binaryIOFlags       = \( alignR(binaryIOFlags.rawValue) ) \( bitString(binaryIOFlags) )")
+		string.append(		"\n- binaryIOVersion     = \( alignR(binaryIOVersion) ) \( bitString(binaryIOVersion) )")
+		string.append(		"\n- userVersion         = \( alignR(userVersion) ) \( bitString(userVersion) )")
+		string.append(		"\n- fileType            = \( alignR(HeaderID.gcod) ) \( bitString(HeaderID.gcod.rawValue) )")
+		string.append(		"\n- gcodableVersion     = \( alignR(gcodableVersion) ) \( bitString(gcodableVersion) )")
+		string.append(		"\n- gcodableFlags       = \( alignR(gcoadableFlags.rawValue) ) \( bitString(gcoadableFlags) )")
+		if let dataSize {
+			string.append(	"\n- fileSize            = \( alignR(dataSize) ) bytes")
+			
+		}
+		return string
+	}
+	
+	/*
 	func description( dataSize:Int? ) -> String {
 		func alignR( _ value:Any ) -> String  {
 			"\(value)".align( .right, length: 12 )
@@ -63,6 +87,7 @@ struct FileHeader : CustomStringConvertible, BCodable {
 		}
 		return string
 	}
+	*/
 	
 	var description: String {
 		description(dataSize: nil)
@@ -73,8 +98,8 @@ struct FileHeader : CustomStringConvertible, BCodable {
 		gcoadableFlags: Flags = [], unused0: UInt16 = 0, unused1: UInt64 = 0
 	) {
 		self.userVersion		= binaryIOEncoder.userVersion
-		self.binaryIOFlags		= binaryIOEncoder._binaryIOFlags
-		self.binaryIOVersion	= binaryIOEncoder._binaryIOVersion
+		self.binaryIOFlags		= binaryIOEncoder.binaryIOFlags
+		self.binaryIOVersion	= binaryIOEncoder.binaryIOVersion
 		self.gcodableVersion	= gcodableVersion
 		self.gcoadableFlags		= gcoadableFlags
 		self.unused0			= unused0
@@ -99,10 +124,8 @@ struct FileHeader : CustomStringConvertible, BCodable {
 			)
 		}
 		self.userVersion		= decoder.encodedUserVersion
-		self.binaryIOFlags		= decoder._encodedBinaryIOFlags
-		self.binaryIOVersion	= decoder._encodedBinaryIOVersion
-		
-		
+		self.binaryIOFlags		= decoder.withUnderlyingType { $0.encodedBinaryIOFlags }
+		self.binaryIOVersion	= decoder.withUnderlyingType { $0.encodedBinaryIOVersion }
 		self.gcodableVersion	= gcodableVersion
 		self.gcoadableFlags		= try decoder.decode()
 		self.unused0			= try decoder.decode()

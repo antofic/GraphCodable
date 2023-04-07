@@ -119,7 +119,7 @@ final class TypeConstructor {
 		switch element.readBlock.fileBlock {
 		case .Val( _, let objID, let typeID, let binSize):
 			if objID == nil {
-				return try decode(type: T.self, typeID: typeID, binSize: binSize, element: element, from: decoder)
+				return try decode(type: T.self, typeID: typeID, isBinary: binSize != nil, element: element, from: decoder)
 			}
 		default:
 			break
@@ -151,7 +151,7 @@ extension TypeConstructor {
 				switch element.readBlock.fileBlock {
 				case .Val( _, let objID, let typeID, let binSize):
 					if let objID {
-						let object	= try decode(type: T.self, typeID: typeID, binSize: binSize, element: element, from: decoder)
+						let object	= try decode(type: T.self, typeID: typeID, isBinary: binSize != nil, element: element, from: decoder)
 						objectRepository[ objID ]	= object
 						return object
 					}
@@ -197,11 +197,11 @@ extension TypeConstructor {
 
 // MARK: TypeConstructor private level 2
 extension TypeConstructor {
-	private func decode<T>( type:T.Type, typeID:TypeID?, binSize: BinSize?, element:FlattenedElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
+	private func decode<T>( type:T.Type, typeID:TypeID?, isBinary:Bool , element:FlattenedElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
 		if let typeID {
-			return try decodeRefOrBinRef( type:T.self, typeID:typeID , binSize:binSize, element:element, from: decoder )
-		} else if let binSize {
-			return try decodeBinValue( type:T.self, binSize:binSize, element:element, from: decoder )
+			return try decodeRefOrBinRef( type:T.self, typeID:typeID , isBinary:isBinary, element:element, from: decoder )
+		} else if isBinary {
+			return try decodeBinValue( type:T.self, element:element, from: decoder )
 		} else {
 			return try decodeValue( type:T.self, element:element, from: decoder )
 		}
@@ -237,7 +237,7 @@ extension TypeConstructor {
 		}
 	}
 
-	private func decodeBinValue<T>( type:T.Type, binSize:BinSize, element:FlattenedElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
+	private func decodeBinValue<T>( type:T.Type, element:FlattenedElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
 		let saved	= currentElement
 		defer { currentElement = saved }
 		currentElement	= element
@@ -259,30 +259,22 @@ extension TypeConstructor {
 			)
 		}
 
-		ioDecoder.regionRange	= element.readBlock.valueRegion
-
-		guard let value = try binaryIType.init(from: &ioDecoder) as? T else {
+		guard let value = try ioDecoder.decode(
+			binaryIType.self,
+			regionRange: element.readBlock.binaryIORegionRange
+		) as? T else {
 			throw GraphCodableError.malformedArchive(
 				Self.self, GraphCodableError.Context(
 					debugDescription: "\(element) decoded type is not a \(T.self) type."
 				)
 			)
 		}
-
-		let readSize	= ioDecoder.position - element.readBlock.valueRegion.startIndex
-		guard binSize.size == readSize else {
-			throw GraphCodableError.malformedArchive(
-				Self.self, GraphCodableError.Context(
-					debugDescription: "\(binSize.size) bytes required, \(readSize) bytes read."
-				)
-			)
-		}
-
+		
 		return value
 	}
 	
 	private func decodeRefOrBinRef<T>(
-		type:T.Type, typeID:TypeID, binSize: BinSize?, element:FlattenedElement, from decoder:GDecoder
+		type:T.Type, typeID:TypeID, isBinary: Bool, element:FlattenedElement, from decoder:GDecoder
 	) throws -> T where T:GDecodable {
 		guard let classInfo = decodeBinary.classInfoMap[ typeID ] else {
 			throw GraphCodableError.internalInconsistency(
@@ -298,8 +290,8 @@ extension TypeConstructor {
 		
 		let type	= classInfo.decodedType.self
 		let object	: GDecodable
-		if let binSize {
-			object = try decodeBinValue( type:type, binSize: binSize, element:element, from: decoder )
+		if isBinary {
+			object = try decodeBinValue( type:type, element:element, from: decoder )
 		} else {
 			object = try decodeValue( type:type, element:element, from: decoder )
 		}

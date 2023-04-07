@@ -22,32 +22,37 @@
 
 import Foundation
 
+
+
 /*
  BinaryIOEncoder data format uses always:
  • little-endian
  • store Int, UInt as Int64, UInt64
- */
+*/
 
 ///	A value that encodes instances of a **BEncodable** type
 ///	into a data buffer that uses **BinaryIO** format.
 public struct BinaryIOEncoder: BEncoder {
 	private var _data 			: Bytes
 	private var _position		: Int
+	private var _packIntegers	: Bool
 	private var	insertMode		: Bool
 
+	// public	let defaultBinaryFileCode = FileCode( "bina" )
+	
 	///	The first bytes of the file are reserved so the file
 	///	data section begins from `startOfFile` offset.
 	public private(set) var startOfFile 	: Int
 	
 	/// Actual version for BinaryIO library types
 	///
-	///	Reserved for package use. **Don't depend on it.**
-	public let	_binaryIOFlags	: _BinaryIOFlags
+	///	Reserved for package use.
+	let	binaryIOFlags			: BinaryIOFlags
 	
 	/// Actual version for BinaryIO library types
 	///
-	///	Reserved for package use. **Don't depend on it.**
-	public let _binaryIOVersion	: UInt16
+	///	Reserved for package use.
+	let binaryIOVersion			: UInt16
 
 	/// Current version for user defined types for
 	///	decoding strategies.
@@ -61,11 +66,9 @@ public struct BinaryIOEncoder: BEncoder {
 	///	By default it is `nil`.
 	public let userData			: Any?
 	
-	private var _packIntegers	: Bool
-	
 	public var packIntegers	: Bool {
 		get { _packIntegers }
-		set { _packIntegers = newValue && _binaryIOFlags.contains( .packIntegers ) }
+		set { _packIntegers = newValue && binaryIOFlags.contains( .packIntegers ) }
 	}
 }
 
@@ -80,17 +83,15 @@ extension BinaryIOEncoder {
 		self._data				= Bytes()
 		self._position			= 0
 		self.startOfFile		= 0
-		self._binaryIOFlags		= packIntegers ? .packIntegers : []
-		self._binaryIOVersion	= 0
+		self.binaryIOFlags		= packIntegers ? .packIntegers : []
+		self.binaryIOVersion	= 0
 		self.insertMode			= false
 		self.userData			= userData
 		self._packIntegers		= packIntegers
 		// really can't throw
-		try! self.writePODValue( self._binaryIOFlags )		// NO pack
-		try! self.encode( self._binaryIOVersion )	// pack if packIntegers
+		try! self.writePODValue( self.binaryIOFlags )		// NO pack
+		try! self.encode( self.binaryIOVersion )	// pack if packIntegers
 		try! self.encode( self.userVersion )		// pack if packIntegers
-		//	try! self.writeValue( self.binaryIOVersion )
-		//	try! self.writeValue( userVersion )
 		self.startOfFile		= position
 		self.packIntegers		= packIntegers
 	}
@@ -278,6 +279,14 @@ extension BinaryIOEncoder {
 		}
 	}
 
+	private mutating func writeStaticString( _ value:StaticString ) throws {
+		return try value.withUTF8Buffer { utf8 in
+			try self.write( contentsOf: utf8 )
+			try self.write( contentsOf: CollectionOfOne( UInt8(0) ) )
+		}
+	}
+
+	
 	///	Transforms an **unsigned integer** of size n into at most n+1 bytes
 	///	(worst case) but much less for small numbers, and then encodes them.
 	///
@@ -305,22 +314,30 @@ extension BinaryIOEncoder {
 
 // public section ---------------------------------------------------------
 extension BinaryIOEncoder {
+	public mutating func withUnderlyingType<T>( _ apply: (inout BinaryIOEncoder) throws -> T ) rethrows -> T {
+		try apply( &self )
+	}
+	
 	public mutating func encode<Value>(_ value: Value)
 	throws where Value : BEncodable {
 		try value.encode(to: &self)
 	}
-	
+}
+
+
+// internale section ---------------------------------------------------------
+extension BinaryIOEncoder {
 	//	Bool
-	public mutating func encode( _ value:Bool ) throws {
+	mutating func encodeBool( _ value:Bool ) throws {
 		try writePODValue( value )
 	}
 	
 	//	Unsigned Integers
-	public mutating func encode( _ value:UInt8 ) throws {
+	mutating func encodeUInt8( _ value:UInt8 ) throws {
 		try writePODValue( value )
 	}
 	
-	public mutating func encode( _ value:UInt16 ) throws {
+	mutating func encodeUInt16( _ value:UInt16 ) throws {
 		if packIntegers {
 			try packAndWrite( value )
 		} else {
@@ -328,7 +345,7 @@ extension BinaryIOEncoder {
 		}
 	}
 	
-	public mutating func encode( _ value:UInt32 ) throws {
+	mutating func encodeUInt32( _ value:UInt32 ) throws {
 		if packIntegers {
 			try packAndWrite( value )
 		} else {
@@ -336,7 +353,7 @@ extension BinaryIOEncoder {
 		}
 	}
 	
-	public mutating func encode( _ value:UInt64 ) throws {
+	mutating func encodeUInt64( _ value:UInt64 ) throws {
 		if packIntegers {
 			try packAndWrite( value )
 		} else {
@@ -344,7 +361,7 @@ extension BinaryIOEncoder {
 		}
 	}
 
-	public mutating func encode( _ value:UInt ) throws {
+	mutating func encodeUInt( _ value:UInt ) throws {
 		// UInt are always archived as UInt64
 		guard let value64 = UInt64( exactly: value ) else {
 			throw BinaryIOError.libDecodingError(
@@ -357,12 +374,12 @@ extension BinaryIOEncoder {
 	}
 
 	//	Signed Integers
-	public mutating func encode( _ value:Int8 ) throws {
+	mutating func encodeInt8( _ value:Int8 ) throws {
 		try writePODValue( value )
 	}
 
 	
-	public mutating func encode( _ value:Int16 ) throws {
+	mutating func encodeInt16( _ value:Int16 ) throws {
 		if packIntegers {
 			try encode( ZigZag.encode( value ) )
 		}
@@ -371,7 +388,7 @@ extension BinaryIOEncoder {
 		}
 	}
 	
-	public mutating func encode( _ value:Int32 ) throws {
+	mutating func encodeInt32( _ value:Int32 ) throws {
 		if packIntegers {
 			try encode( ZigZag.encode( value ) )
 		}
@@ -380,7 +397,7 @@ extension BinaryIOEncoder {
 		}
 	}
 	
-	public mutating func encode( _ value:Int64 ) throws {
+	mutating func encodeInt64( _ value:Int64 ) throws {
 		if packIntegers {
 			try encode( ZigZag.encode( value ) )
 		}
@@ -389,7 +406,7 @@ extension BinaryIOEncoder {
 		}
 	}
 	
-	public mutating func encode( _ value:Int ) throws {
+	mutating func encodeInt( _ value:Int ) throws {
 		// Int are always archived as Int64
 		guard let value64 = Int64( exactly: value ) else {
 			throw BinaryIOError.libDecodingError(
@@ -402,7 +419,7 @@ extension BinaryIOEncoder {
 	}
 	
 	//	Floats
-	public mutating func encode( _ value:Float ) throws {
+	mutating func encodeFloat( _ value:Float ) throws {
 		let saveCompression = packIntegers
 		defer { packIntegers = saveCompression }
 		packIntegers = false
@@ -410,7 +427,7 @@ extension BinaryIOEncoder {
 		try encode( value.bitPattern )
 	}
 	
-	public mutating func encode( _ value:Double ) throws {
+	mutating func encodeDouble( _ value:Double ) throws {
 		let saveCompression = packIntegers
 		defer { packIntegers = saveCompression }
 		packIntegers = false
@@ -419,7 +436,7 @@ extension BinaryIOEncoder {
 	}
 	
 	//	Strings
-	public mutating func encode( _ value:String ) throws {
+	mutating func encodeString( _ value:String ) throws {
 		try value.withCString() { ptr in
 			var endptr	= ptr
 			while endptr.pointee != 0 { endptr += 1 }	// null terminated
@@ -431,7 +448,7 @@ extension BinaryIOEncoder {
 	}
 	
 	//	Data
-	public mutating func encode( _ value:Data ) throws {
+	mutating func encodeData( _ value:Data ) throws {
 		try encode( value.count )
 		for region in value.regions {
 			try region.withUnsafeBytes { source in

@@ -173,7 +173,7 @@ extension FileBlock {
 	enum Level { case exit, same, enter }
 	var level : Level {
 		switch self {
-		case .Val( _, _ , _ , let size ):	return	size != nil ? .same : .enter
+		case .Val( _, _ , _ , let binSize ):	return	binSize != nil ? .same : .enter
 		case .End:	return .exit
 		default:	return .same
 		}
@@ -239,25 +239,25 @@ extension FileBlock {
 
 extension FileBlock {
 	init(from decoder: inout BinaryIODecoder, fileHeader:FileHeader ) throws {
-		let code	= try Code(from: &decoder)
+		let code	= try decoder.decode() as Code
 		
 		switch try code.category {
 			case .End:
 				self			= .End
 			case .Nil:
-				let keyID		= code.hasKeyID ? try KeyID(from: &decoder) : nil
+				let keyID		= code.hasKeyID ? try decoder.decode() as KeyID : nil
 				self			= .Nil(keyID: keyID)
 			case .Ptr:
-				let keyID		= code.hasKeyID	? try KeyID(from: &decoder) : nil
-				let objID		= try ObjID(from: &decoder)
+				let keyID		= code.hasKeyID	? try decoder.decode() as KeyID : nil
+				let objID		= try decoder.decode() as ObjID
 				self			= .Ptr( keyID: keyID, objID: objID, conditional: code.isConditional )
 			case .Val:
-				let keyID		= code.hasKeyID	 ?	try KeyID(from: &decoder)  : nil
-				let objID		= code.hasObjID	 ?	try ObjID(from: &decoder)  : nil
-				let typeID		= code.hasTypeID ?	try TypeID(from: &decoder) : nil
+				let keyID		= code.hasKeyID	 ?	try decoder.decode() as KeyID  : nil
+				let objID		= code.hasObjID	 ?	try decoder.decode() as ObjID  : nil
+				let typeID		= code.hasTypeID ?	try decoder.decode() as TypeID : nil
 				let binSize		= code.isBinary	 ?	try decoder.decodeWith(
 					packIntegers: fileHeader.gcoadableFlags.contains( .useBinaryIOInsert )
-				) { try BinSize(from: &$0) } : nil
+				) { try $0.decode() as BinSize } : nil
 				self 			= .Val( keyID: keyID, objID: objID, typeID: typeID, binSize: binSize )
 		}
 	}
