@@ -23,7 +23,7 @@
 typealias ClassInfoMap	= [TypeID:ClassInfo]
 
 struct ClassInfo : CustomStringConvertible {
-	let	decodedType:	GDecodable.Type
+	let	decodedType:	any GDecodable.Type
 	let	classData:		ClassData
 	
 	init( classData:ClassData, classNameMap:ClassNameMap? ) throws {

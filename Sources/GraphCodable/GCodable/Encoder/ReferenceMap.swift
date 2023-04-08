@@ -24,17 +24,20 @@ struct ReferenceMap {
 	private	var			currentId 		= TypeID()
 	private (set) var	classDataMap	= ClassDataMap()
 	private var			identifierMap	= [ObjectIdentifier: TypeID]()
-	
-	mutating func createTypeIDIfNeeded( type:(AnyObject & GEncodable).Type ) throws -> TypeID {
-		let objIdentifier	= ObjectIdentifier( type )
+
+	mutating func createTypeIDIfNeeded<T>( for object:T ) throws -> TypeID
+	where T:AnyObject, T:GEncodable
+	{
+		let objIdentifier	= ObjectIdentifier( T.self )
 		
 		if let typeID = identifierMap[ objIdentifier ] {
 			return typeID
 		} else {
 			defer { currentId = currentId.next }
-			classDataMap[ currentId ]	= try ClassData( type: type )
+			classDataMap[ currentId ]	= try ClassData( type: T.self )
 			identifierMap[ objIdentifier ] = currentId
 			return currentId
 		}
 	}
+
 }

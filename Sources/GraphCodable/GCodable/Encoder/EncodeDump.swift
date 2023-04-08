@@ -21,7 +21,7 @@
 //	SOFTWARE.
 
 final class EncodeDump : EncodeFileBlocks {
-	weak var			delegate	: EncodeFileBlocksDelegate?
+	weak var			delegate	: (any EncodeFileBlocksDelegate)?
 	private var			fileHeader	: FileHeader
 	private var			options		: GraphDumpOptions
 	private var			dataSize	: Int?
@@ -58,13 +58,13 @@ final class EncodeDump : EncodeFileBlocks {
 		dumpString.append( string )
 	}
 	
-	func append(_ fileBlock: FileBlock, binaryValue: BEncodable?) {
+	func append(_ fileBlock: FileBlock, binaryValue: (any BEncodable)?) {
 		beforeBodyAppend()
 		
 		if options.contains( .showBody ) {
 			if case .exit = fileBlock.level { tabs?.removeLast() }
 			
-			let binValue = options.contains( .showValueDescriptionInBody ) ? binaryValue : nil 
+			let binValue = options.contains( .showValueDescriptionInBody ) ? binaryValue : nil
 			
 			if let tbs = tabs { dumpString.append( tbs ) }
 			dumpString.append( fileBlock.description(
@@ -89,10 +89,15 @@ final class EncodeDump : EncodeFileBlocks {
 	func appendPtr( keyID:KeyID?, objID:ObjID, conditional:Bool ) throws {
 		append( .Ptr(keyID: keyID,objID:objID, conditional:conditional ), binaryValue:nil )
 	}
-	func appendVal( keyID:KeyID?, typeID:TypeID?, objID:ObjID?, binaryValue:BEncodable? ) throws {
-		let size = binaryValue != nil ? BinSize() : nil
-		append( .Val(keyID: keyID, objID:objID, typeID:typeID, binSize: size), binaryValue:binaryValue  )
+	
+	func appendVal( keyID:KeyID?, typeID:TypeID?, objID:ObjID? ) throws {
+		append( .Val(keyID: keyID, objID:objID, typeID:typeID, binSize: nil), binaryValue:nil )
 	}
+
+	func appendBin<T:BEncodable>( keyID:KeyID?, typeID:TypeID?, objID:ObjID?, binaryValue: T ) throws {
+		append( .Val(keyID: keyID, objID:objID, typeID:typeID, binSize: BinSize() ), binaryValue:binaryValue  )
+	}
+
 	// FileBlockEncoder protocol end
 
 	func dump() -> String {

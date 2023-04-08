@@ -81,7 +81,7 @@ extension GDecoderImpl : GDecoder, GDecoderView {
 		get throws { try constructor.encodedClassVersion }
 	}
 
-	var replacedClass : (AnyObject & GDecodable).Type?   {
+	var replacedClass : (any (AnyObject & GDecodable).Type)?   {
 		get throws { try constructor.replacedClass }
 	}
 	

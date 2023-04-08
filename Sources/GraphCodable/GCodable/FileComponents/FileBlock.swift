@@ -205,34 +205,42 @@ extension FileBlock {
 	}
 	
 	static func writeVal(
-		keyID:KeyID?, objID:ObjID?, typeID:TypeID?, binaryValue:BEncodable?,
+		keyID:KeyID?, objID:ObjID?, typeID:TypeID?,
 		to encoder: inout BinaryIOEncoder, fileHeader:FileHeader
 	) throws {
-		try encoder.encode( Code.Val(keyID: keyID, objID: objID, typeID: typeID, isBinary: binaryValue != nil ) )
+		try encoder.encode( Code.Val(keyID: keyID, objID: objID, typeID: typeID, isBinary: false ) )
 		if let keyID	{ try encoder.encode( keyID ) }
 		if let objID	{ try encoder.encode( objID ) }
 		if let typeID	{ try encoder.encode( typeID ) }
-		if let binaryValue {
-			if fileHeader.gcoadableFlags.contains( .useBinaryIOInsert ) {
-				//	allows slightly reducing the file size by packing BinSize but
-				//	involves shifting a possibly large binSize.size amount of data
-				//	by a small offset (1-2-3-4-5 bytes). As much as it doesn't seem
-				//	to reduce performance I don't like it.
-				try encoder.insert(
-					firstEncode: 		{ try $0.encode( binaryValue ) },
-					thenInsertInFront:	{ try $0.encode( BinSize( $1 ) ) }
-				)
-			} else {
-				//	we write a bogus binSize = BinSize(), write the data and when
-				//	we know their size we update binSize. BinSize must have a known
-				//	size, so we can't allow BinaryIO to pack BinSize.
-				//	Result: slightly larger files.
-				try encoder.prepend(
-					dummyEncode: 		{ try $0.encode( BinSize() ) },
-					thenEncode: 		{ try $0.encode( binaryValue ) },
-					thenOverwriteDummy:	{ try $0.encode( BinSize( $1 ) ) }
-				)
-			}
+	}
+	
+	static func writeBin<T:BEncodable>(
+		keyID:KeyID?, objID:ObjID?, typeID:TypeID?, binaryValue: T,
+		to encoder: inout BinaryIOEncoder, fileHeader:FileHeader
+	) throws {
+		try encoder.encode( Code.Val(keyID: keyID, objID: objID, typeID: typeID, isBinary: true ) )
+		if let keyID	{ try encoder.encode( keyID ) }
+		if let objID	{ try encoder.encode( objID ) }
+		if let typeID	{ try encoder.encode( typeID ) }
+		if fileHeader.gcoadableFlags.contains( .useBinaryIOInsert ) {
+			//	allows slightly reducing the file size by packing BinSize but
+			//	involves shifting a possibly large binSize.size amount of data
+			//	by a small offset (1-2-3-4-5 bytes). As much as it doesn't seem
+			//	to reduce performance I don't like it.
+			try encoder.insert(
+				firstEncode: 		{ try $0.encode( binaryValue ) },
+				thenInsertInFront:	{ try $0.encode( BinSize( $1 ) ) }
+			)
+		} else {
+			//	we write a bogus binSize = BinSize(), write the data and when
+			//	we know their size we update binSize. BinSize must have a known
+			//	size, so we can't allow BinaryIO to pack BinSize.
+			//	Result: slightly larger files.
+			try encoder.prepend(
+				dummyEncode: 		{ try $0.encode( BinSize() ) },
+				thenEncode: 		{ try $0.encode( binaryValue ) },
+				thenOverwriteDummy:	{ try $0.encode( BinSize( $1 ) ) }
+			)
 		}
 	}
 }
@@ -278,7 +286,7 @@ extension FileBlock : CustomStringConvertible {
 	
 	func description(
 		options:			GraphDumpOptions,
-		binaryValue: 		BEncodable?,
+		binaryValue: 		(any BEncodable)?,
 		classDataMap cdm:	ClassDataMap?,
 		keyStringMap ksm: 	KeyStringMap?
 	) -> String {

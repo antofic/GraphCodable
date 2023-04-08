@@ -23,7 +23,7 @@
 import Foundation
 
 final class EncodeBinary<Output:MutableDataProtocol> : EncodeFileBlocks {
-	weak var			delegate			: EncodeFileBlocksDelegate?
+	weak var			delegate			: (any EncodeFileBlocksDelegate)?
 	private var			fileHeader			: FileHeader
 	private var			ioEncoder			: BinaryIOEncoder
 	private var 		sectionMap			= SectionMap()
@@ -81,10 +81,18 @@ final class EncodeBinary<Output:MutableDataProtocol> : EncodeFileBlocks {
 		)
 	}
 	
-	func appendVal(keyID: KeyID?, typeID: TypeID?, objID: ObjID?, binaryValue: BEncodable?) throws {
+	func appendBin<T:BEncodable>(keyID: KeyID?, typeID: TypeID?, objID: ObjID?, binaryValue: T) throws {
+		try writeInit()
+		try FileBlock.writeBin(
+			keyID: keyID,objID: objID, typeID: typeID, binaryValue:binaryValue,
+			to: &ioEncoder, fileHeader: fileHeader
+		)
+	}
+	
+	func appendVal(keyID: KeyID?, typeID: TypeID?, objID: ObjID?) throws {
 		try writeInit()
 		try FileBlock.writeVal(
-			keyID: keyID,objID: objID, typeID: typeID, binaryValue:binaryValue,
+			keyID: keyID,objID: objID, typeID: typeID,
 			to: &ioEncoder, fileHeader: fileHeader
 		)
 	}

@@ -100,12 +100,12 @@ public protocol GDecodable {
 	///	**See the UserGuide**.
 	///
 	/// - returns: The class that replaces `Self` (`Self.self` by default).
-	static var decodeType : GDecodable.Type { get }
+	static var decodeType : any GDecodable.Type { get }
 }
 
 extension GDecodable {
 	/// Default decodeType = `Self.self`
-	public static var decodeType : GDecodable.Type { Self.self }
+	public static var decodeType : any GDecodable.Type { Self.self }
 }
 
 /// A type that can be encoded from in-memory representations

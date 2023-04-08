@@ -75,9 +75,9 @@ public protocol GEncoderView {
 }
 
 extension BEncoder {
-	public var encoderView : GEncoderView {
+	public var encoderView : any GEncoderView {
 		get throws {
-			guard let encoderView = userData as? GEncoderView else {
+			guard let encoderView = userData as? any GEncoderView else {
 				throw GraphCodableError.internalInconsistency(
 					Self.self, GraphCodableError.Context(
 						debugDescription: "encoderView can be accessed only from the GraphCodable BinaryIOEncoder"
@@ -92,13 +92,13 @@ extension BEncoder {
 public protocol GDecoderView {
 	var	userInfo			: [String:Any] { get }
 	var encodedClassVersion	: UInt32  { get throws }
-	var replacedClass		: (AnyObject & GDecodable).Type?  { get throws }
+	var replacedClass		: (any (AnyObject & GDecodable).Type)?  { get throws }
 }
 
 extension BDecoder {
-	public var decoderView : GDecoderView {
+	public var decoderView : any GDecoderView {
 		get throws {
-			guard let decoderView = userData as? GDecoderView else {
+			guard let decoderView = userData as? any GDecoderView else {
 				throw GraphCodableError.internalInconsistency(
 					Self.self, GraphCodableError.Context(
 						debugDescription: "decoderView can be accessed only from the GraphCodable BinaryIODecoder"

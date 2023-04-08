@@ -47,7 +47,7 @@ public protocol GDecoder {
 	///
 	/// Only reference types can be replaced.
 	/// - returns: the replaced type if exists, nil otherwise
-	var replacedClass : (AnyObject & GDecodable).Type?  { get throws }
+	var replacedClass : (any (AnyObject & GDecodable).Type)?  { get throws }
 	
 	/// Returns a Boolean value indicating whether the decoder contains a value
 	/// associated with the given key.

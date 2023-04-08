@@ -33,10 +33,11 @@ extension EncodeFileBlocksDelegate {
 }
  
 protocol EncodeFileBlocks : AnyObject {
-	var delegate	: EncodeFileBlocksDelegate? { get set }
+	var delegate	: (any EncodeFileBlocksDelegate)? { get set }
 	
 	func appendEnd() throws
 	func appendNil( keyID:KeyID? ) throws
 	func appendPtr( keyID:KeyID?, objID:ObjID, conditional:Bool ) throws
-	func appendVal( keyID:KeyID?, typeID:TypeID?, objID:ObjID?, binaryValue:BEncodable? ) throws
+	func appendVal(keyID: KeyID?, typeID: TypeID?, objID: ObjID?) throws
+	func appendBin<T:BEncodable>(keyID: KeyID?, typeID: TypeID?, objID: ObjID?, binaryValue: T) throws
 }

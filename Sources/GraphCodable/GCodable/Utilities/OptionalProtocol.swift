@@ -36,7 +36,7 @@ extension Optional : OptionalProtocol {
 
 	static var fullUnwrappedType: Any.Type {
 		var	currentType = wrappedType
-		while let actual = currentType as? OptionalProtocol.Type {
+		while let actual = currentType as? any OptionalProtocol.Type {
 			currentType = actual.wrappedType
 		}
 		return currentType
@@ -52,7 +52,7 @@ extension Optional where Wrapped == Any {
 	// nested optionals unwrapping
 	init( fullUnwrapping value:Any ) {
 		var	currentValue = value
-		while let optionalValue = currentValue as? OptionalProtocol {
+		while let optionalValue = currentValue as? any OptionalProtocol {
 			if optionalValue.isNil {
 				self = .none
 				return

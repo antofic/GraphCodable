@@ -29,7 +29,7 @@ struct ClassData {
 }
 
 extension ClassData { 	// init
-	init( type:(AnyObject & GEncodable).Type ) throws {
+	init<T>( type:T.Type ) throws where T:AnyObject, T:GEncodable {
 		self.qualifiedName	= Self.typeName(of: type)
 		guard
 			let mangledName = Self.mangledName(of: type),
@@ -51,15 +51,15 @@ extension ClassData {	// internal properties
 		decodedType != nil
 	}
 	
-	private var encodedClass: (AnyObject & GDecodable).Type? {
-		Self.classType( from: mangledName ) as? (AnyObject & GDecodable).Type
+	private var encodedClass: (any (AnyObject & GDecodable).Type)? {
+		Self.classType( from: mangledName ) as? any (AnyObject & GDecodable).Type
 	}
 
-	var decodedType: GDecodable.Type? {
+	var decodedType: (any GDecodable.Type)? {
 		encodedClass?.decodeType ?? nil
 	}
 	
-	var replacedClass: (AnyObject & GDecodable).Type? {
+	var replacedClass: (any (AnyObject & GDecodable).Type)? {
 		if let type = encodedClass, type != type.decodeType {
 			return type
 		}

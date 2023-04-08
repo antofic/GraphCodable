@@ -100,7 +100,7 @@ final class DecodeDump: EncodeFileBlocksDelegate {
 		{
 			string.append( "Encoded class types will be decoded as:" )
 			do {
-				let couples	: [(TypeID,GDecodable.Type)] = classInfoMap.map {
+				let couples	: [(TypeID,any GDecodable.Type)] = classInfoMap.map {
 					($0.key, $0.value.decodedType)
 				}
 				if dumpOptions.contains( .hideTypeIDsInConstructionMap ) {
@@ -114,7 +114,7 @@ final class DecodeDump: EncodeFileBlocksDelegate {
 				}
 			}
 			do {
-				let couples	: [(TypeID,(AnyObject & GDecodable).Type)] = classInfoMap.compactMap {
+				let couples	: [(TypeID,any (AnyObject & GDecodable).Type)] = classInfoMap.compactMap {
 					if let replacedClass = $0.value.classData.replacedClass {
 						return ($0.key,replacedClass)
 					} else {

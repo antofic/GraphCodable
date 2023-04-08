@@ -41,7 +41,7 @@ public enum ClassName : Hashable {
 	case qualifiedName( _:String )
 }
 
-public typealias ClassNameMap 		= [ClassName : GDecodable.Type ]
+public typealias ClassNameMap 		= [ClassName : any GDecodable.Type ]
 
 /// Cointains info of encodeded classes that cannot be decoded.
 public struct UndecodableClass {
@@ -96,7 +96,7 @@ public final class GraphDecoder {
 	/// - Parameter type: the type to create.
 	/// - Parameter className: a struct that specifies the name of the encoded
 	/// class to match the type to create
-	public func setType( _ type:GDecodable.Type, for className:ClassName ) {
+	public func setType( _ type:any GDecodable.Type, for className:ClassName ) {
 		decoder.classNameMap[ className ] = type
 	}
 	
@@ -154,7 +154,7 @@ public final class GraphDecoder {
 	///
 	/// - Parameter data: the archived data to decode.
 	/// - Returns: the requested array of `GDecodable` types.
-	public func decodableTypes<Q>( from data: Q ) throws -> [GDecodable.Type]
+	public func decodableTypes<Q>( from data: Q ) throws -> [any GDecodable.Type]
 	where Q:DataProtocol {
 		return try decoder.allClassData( from: data ).compactMap { $0.decodedType }
 	}
@@ -163,7 +163,7 @@ public final class GraphDecoder {
 	///
 	/// - Parameter data: the archived data to decode.
 	/// - Returns: the requested array of `GDecodable` types.
-	public func replacedClasses<Q>( from data: Q ) throws -> [GDecodable.Type]
+	public func replacedClasses<Q>( from data: Q ) throws -> [any GDecodable.Type]
 	where Q:DataProtocol {
 		return try decoder.allClassData( from: data ).compactMap { $0.replacedClass }
 	}

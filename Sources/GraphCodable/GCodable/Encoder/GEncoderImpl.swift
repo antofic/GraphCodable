@@ -64,7 +64,7 @@ final class GEncoderImpl : EncodeFileBlocksDelegate {
 	private var			referenceMap		= ReferenceMap()
 	private var			keyMap				= KeyMap()
 	
-	private var			blockEncoder		: EncodeFileBlocks! {
+	private var			blockEncoder		: (any EncodeFileBlocks)! {
 		willSet {
 			self.blockEncoder?.delegate	= nil
 		}
@@ -137,28 +137,107 @@ final class GEncoderImpl : EncodeFileBlocksDelegate {
 extension GEncoderImpl : GEncoder, GEncoderView {
 
 	func encode<Value>(_ value: Value) throws where Value:GEncodable {
-		try encodeAnyValue( value, forKey: nil, conditional:false )
+		try encodeValue( value, forKey: nil, conditional:false )
 	}
 	
 	func encodeConditional<Value>(_ value: Value?) throws where Value:GEncodable {
-		try encodeAnyValue( value as Any, forKey: nil, conditional:true )
+		try encodeValue( value, forKey: nil, conditional:true )
 	}
 	
 	func encode<Key, Value>(_ value: Value, for key: Key) throws
 	where Key : RawRepresentable, Value : GEncodable, Key.RawValue == String
 	{
-		try encodeAnyValue( value, forKey: key.rawValue, conditional:false )
+		try encodeValue( value, forKey: key.rawValue, conditional:false )
 	}
 	
 	func encodeConditional<Key, Value>(_ value: Value?, for key: Key) throws
 	where Key : RawRepresentable, Value : GEncodable, Key.RawValue == String
 	{
-		try encodeAnyValue( value as Any, forKey: key.rawValue, conditional:true )
+		try encodeValue( value, forKey: key.rawValue, conditional:true )
 	}
 }
 
 // MARK: GEncoderImpl private section
 extension GEncoderImpl {
+	private func encodeValue<T:GEncodable>(_ possiblyManyLevelOptionalValue: T, forKey key: String?, conditional:Bool ) throws {
+		//	anyValue can really be a value, an Optional(value), an Optional(Optional(value)), etc…
+		//	Optional(fullUnwrapping:_) turns anyValue into an one-level Optional(value)
+		let optionalValue	= Optional(fullUnwrapping: possiblyManyLevelOptionalValue) as! (any GEncodable)?
+	
+		// if keyID != nil <=> key != nil (keyed values)
+		let keyID	= try createKeyID( for: key )
+		
+		// if value is nil, encode nil and return
+		guard let value = optionalValue else {
+			try blockEncoder.appendNil(keyID: keyID)
+			return
+		}
+
+		try encodeValue( value, keyID: keyID, conditional:conditional )
+	}
+	
+	private func encodeValue<T:GEncodable>(_ value: T, keyID: KeyID?, conditional:Bool ) throws {
+		// now value is not nil
+		if let trivialValue = value as? any GPackEncodable {
+			if encodeOptions.contains( .printWarnings ) {
+				if conditional {
+					print( "### Warning: can't conditionally encode the type '\( type(of:value) )' without identity. It will be encoded unconditionally." )
+				}
+			}
+			try blockEncoder.appendBin(keyID: keyID, typeID:nil, objID:nil, binaryValue: trivialValue )
+		} else {
+			if let identity = identity( of:value ) {	// IDENTITY
+				if let objID = identityMap.strongID( for:identity ) {
+					// already encoded value: we encode a pointer
+					try blockEncoder.appendPtr(keyID: keyID, objID: objID, conditional: conditional)
+				} else if conditional {
+					// conditional encoding: we encode only a pointer
+					
+					// Anyway we check if the reference class can be constructed from its name
+					try throwIfNotConstructible( typeOf:value )
+
+					let objID	= identityMap.createWeakID( for: identity )
+					try blockEncoder.appendPtr(keyID: keyID, objID: objID, conditional: conditional)
+				} else {
+					// not encoded value: we encode it
+					// INHERITANCE: only classes have a typeID (value typeID == nil)
+					let typeID	= try createTypeIDIfNeeded( for: value )
+					let objID	= identityMap.createStrongID( for: identity )
+
+					if let binaryValue = value as? any GBinaryEncodable {
+						// BinaryEncodable type
+						try blockEncoder.appendBin(keyID: keyID, typeID: typeID, objID: objID, binaryValue: binaryValue)
+					} else {
+						// Encodable type
+						try blockEncoder.appendVal(keyID: keyID, typeID: typeID, objID: objID)
+						try encodeValue( value )
+						try blockEncoder.appendEnd()
+					}
+				}
+			} else {	// NO IDENTITY
+				// INHERITANCE: only classes have a typeID != 0
+				let typeID	= try createTypeIDIfNeeded( for: value )
+
+				if encodeOptions.contains( .printWarnings ) {
+					if conditional {
+						print( "### Warning: can't conditionally encode the type '\( type(of:value) )' without identity. It will be encoded unconditionally." )
+					}
+				}
+				
+				if let binaryValue = value as? any GBinaryEncodable {
+					// BinaryEncodable type
+					try blockEncoder.appendBin(keyID: keyID, typeID: typeID, objID: nil, binaryValue: binaryValue)
+				} else {
+					try blockEncoder.appendVal(keyID: keyID, typeID: typeID, objID: nil )
+					try encodeValue( value )
+					try blockEncoder.appendEnd()
+				}
+			}
+		}
+	}
+
+	
+	/*
 	private func encodeAnyValue(_ anyValue: Any, forKey key: String?, conditional:Bool ) throws {
 		//	anyValue can really be a value, an Optional(value), an Optional(Optional(value)), etc…
 		//	Optional(fullUnwrapping:_) turns anyValue into an one-level Optional(value)
@@ -173,14 +252,14 @@ extension GEncoderImpl {
 			return
 		}
 		// now value is not nil
-		if let trivialValue = value as? GPackEncodable {
+		if let trivialValue = value as? any GPackEncodable {
 			if encodeOptions.contains( .printWarnings ) {
 				if conditional {
 					print( "### Warning: can't conditionally encode the type '\( type(of:value) )' without identity. It will be encoded unconditionally." )
 				}
 			}
-			try blockEncoder.appendVal(keyID: keyID, typeID:nil, objID:nil, binaryValue: trivialValue )
-		} else if let value = value as? GEncodable {
+			try blockEncoder.appendBin(keyID: keyID, typeID:nil, objID:nil, binaryValue: trivialValue )
+		} else if let value = value as? any GEncodable {
 			if let identity = identity( of:value ) {	// IDENTITY
 				if let objID = identityMap.strongID( for:identity ) {
 					// already encoded value: we encode a pointer
@@ -199,12 +278,12 @@ extension GEncoderImpl {
 					let typeID	= try createTypeIDIfNeeded( for: value )
 					let objID	= identityMap.createStrongID( for: identity )
 
-					if let binaryValue = value as? GBinaryEncodable {
+					if let binaryValue = value as? any GBinaryEncodable {
 						// BinaryEncodable type
-						try blockEncoder.appendVal(keyID: keyID, typeID: typeID, objID: objID, binaryValue: binaryValue)
+						try blockEncoder.appendBin(keyID: keyID, typeID: typeID, objID: objID, binaryValue: binaryValue)
 					} else {
 						// Encodable type
-						try blockEncoder.appendVal(keyID: keyID, typeID: typeID, objID: objID, binaryValue: nil)
+						try blockEncoder.appendVal(keyID: keyID, typeID: typeID, objID: objID)
 						try encodeValue( value )
 						try blockEncoder.appendEnd()
 					}
@@ -219,11 +298,11 @@ extension GEncoderImpl {
 					}
 				}
 				
-				if let binaryValue = value as? GBinaryEncodable {
+				if let binaryValue = value as? any GBinaryEncodable {
 					// BinaryEncodable type
-					try blockEncoder.appendVal(keyID: keyID, typeID: typeID, objID: nil, binaryValue: binaryValue)
+					try blockEncoder.appendBin(keyID: keyID, typeID: typeID, objID: nil, binaryValue: binaryValue)
 				} else {
-					try blockEncoder.appendVal(keyID: keyID, typeID: typeID, objID: nil, binaryValue: nil)
+					try blockEncoder.appendVal(keyID: keyID, typeID: typeID, objID: nil )
 					try encodeValue( value )
 					try blockEncoder.appendEnd()
 				}
@@ -236,8 +315,9 @@ extension GEncoderImpl {
 			)
 		}
 	}
-	
-	private func encodeValue( _ value:GEncodable ) throws {
+	*/
+	 
+	private func encodeValue<T:GEncodable>( _ value:T ) throws {
 		let savedKeys	= currentKeys
 		defer { currentKeys = savedKeys }
 		currentKeys.removeAll()
@@ -245,7 +325,7 @@ extension GEncoderImpl {
 		try value.encode(to: self)
 	}
 	
-	private func identity( of value:GEncodable ) -> Identity? {
+	private func identity<T:GEncodable>( of value:T ) -> Identity? {
 		if encodeOptions.contains( .disableIdentity ) {
 			return nil
 		}
@@ -289,18 +369,18 @@ extension GEncoderImpl {
 		}
 	}
 	
-	private func createTypeIDIfNeeded( for value:any GEncodable ) throws -> TypeID? {
+	private func createTypeIDIfNeeded<T:GEncodable>( for value:T ) throws -> TypeID? {
 		guard
 			!encodeOptions.contains( .disableInheritance ),
 			value.inheritanceEnabled,
 			let object = value as? any (AnyObject & GEncodable) else {
 			return nil
 		}
-		
-		return try referenceMap.createTypeIDIfNeeded( type: type(of:object) )
+		return try referenceMap.createTypeIDIfNeeded( for: object )
 	}
+
 	
-	private func throwIfNotConstructibleType( of value:any GEncodable ) throws {
+	private func throwIfNotConstructible<T:GEncodable>( typeOf value:T ) throws {
 		if	!encodeOptions.contains( .disableInheritance ),
 			value.inheritanceEnabled,
 			let object = value as? any (AnyObject & GEncodable) {

@@ -28,7 +28,7 @@ final class TypeConstructor {
 	private var			decodeBinary		: DecodeBinary
 	private (set) var 	currentElement 		: FlattenedElement
 	private (set) var 	currentInfo 		: ClassInfo?
-	private var			objectRepository 	= [ ObjID: Any ]()
+	private var			objectRepository 	= [ ObjID: any GDecodable ]()
 	private var			setterRepository 	= [ (_:TypeConstructor) throws -> () ]()
 	
 	var fileHeader : FileHeader { decodeBinary.fileHeader }
@@ -39,7 +39,8 @@ final class TypeConstructor {
 		self.currentElement	= decodeBinary.rootElement
 	}
 
-	func decodeRoot<T>( _ type: T.Type, from decoder:GDecoder ) throws -> T where T:GDecodable {
+	func decodeRoot<T,D>( _ type: T.Type, from decoder:D ) throws -> T
+	where T:GDecodable, D:GDecoder {
 		let rootBlock	= currentElement
 		let value : T	= try decode( element:rootBlock, from: decoder )
 		
@@ -94,7 +95,7 @@ final class TypeConstructor {
 		}
 	}
 	
-	var replacedClass : (AnyObject & GDecodable).Type? {
+	var replacedClass : (any (AnyObject & GDecodable).Type)? {
 		get throws {
 			guard let classInfo = currentInfo else {
 				throw GraphCodableError.referenceTypeRequired(
@@ -107,7 +108,8 @@ final class TypeConstructor {
 		}
 	}
 	
-	func deferDecode<T>( element:FlattenedElement, from decoder:GDecoder, _ setter: @escaping (T) -> () ) throws where T:GDecodable {
+	func deferDecode<T,D>( element:FlattenedElement, from decoder:D, _ setter: @escaping (T) -> () ) throws
+	where T:GDecodable, D:GDecoder {
 		let setterFunc : ( _:TypeConstructor ) throws -> () = {
 			let value : T = try $0.decode( element:element, from:decoder )
 			setter( value )
@@ -115,7 +117,8 @@ final class TypeConstructor {
 		setterRepository.append( setterFunc )
 	}
 	
-	func decode<T>( element:FlattenedElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
+	func decode<T,D>( element:FlattenedElement, from decoder:D ) throws -> T
+	where T:GDecodable, D:GDecoder {
 		switch element.readBlock.fileBlock {
 		case .Val( _, let objID, let typeID, let binSize):
 			if objID == nil {
@@ -137,8 +140,9 @@ final class TypeConstructor {
 
 // MARK: TypeConstructor private level 1
 extension TypeConstructor {
-	private func decodeAny<T>( element:FlattenedElement, from decoder:GDecoder, type:T.Type ) throws -> Any where T:GDecodable {
-		func decodeIdentifiable( type:T.Type, objID:ObjID, from decoder:GDecoder ) throws -> Any? {
+	private func decodeAny<T,D>( element:FlattenedElement, from decoder:D, type:T.Type ) throws -> Any
+	where T:GDecodable, D:GDecoder {
+		func decodeIdentifiable<D:GDecoder>( type:T.Type, objID:ObjID, from decoder:D ) throws -> (any GDecodable)? {
 			//	quando arriva la prima richiesta di un particolare oggetto (da objID)
 			//	lo costruiamo (se esiste) e lo mettiamo nell'objectRepository in modo
 			//	che le richieste successive peschino di lì.
@@ -197,7 +201,8 @@ extension TypeConstructor {
 
 // MARK: TypeConstructor private level 2
 extension TypeConstructor {
-	private func decode<T>( type:T.Type, typeID:TypeID?, isBinary:Bool , element:FlattenedElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
+	private func decode<T,D>( type:T.Type, typeID:TypeID?, isBinary:Bool , element:FlattenedElement, from decoder:D ) throws -> T
+	where T:GDecodable, D:GDecoder {
 		if let typeID {
 			return try decodeRefOrBinRef( type:T.self, typeID:typeID , isBinary:isBinary, element:element, from: decoder )
 		} else if isBinary {
@@ -210,19 +215,20 @@ extension TypeConstructor {
 
 // MARK: TypeConstructor private level 3
 extension TypeConstructor {
-	private func decodeValue<T>( type:T.Type, element:FlattenedElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
+	private func decodeValue<T,D>( type:T.Type, element:FlattenedElement, from decoder:D ) throws -> T
+	where T:GDecodable, D:GDecoder {
 		let saved	= currentElement
 		defer { currentElement = saved }
 		currentElement	= element
 		
-		if let optType = T.self as? OptionalProtocol.Type {
+		if let optType = T.self as? any OptionalProtocol.Type {
 			// get the inner non optional type
 			let wrapped	= optType.fullUnwrappedType
 			
 			// check if conforms to GDecodable.Type,
 			// costruct the value and check if is T
 			guard
-				let decodedType = wrapped as? GDecodable.Type,
+				let decodedType = wrapped as? any GDecodable.Type,
 				let value = try decodedType.init(from: decoder) as? T
 			else {
 				throw GraphCodableError.malformedArchive(
@@ -237,21 +243,22 @@ extension TypeConstructor {
 		}
 	}
 
-	private func decodeBinValue<T>( type:T.Type, element:FlattenedElement, from decoder:GDecoder ) throws -> T where T:GDecodable {
+	private func decodeBinValue<T,D>( type:T.Type, element:FlattenedElement, from decoder:D ) throws -> T
+	where T:GDecodable, D:GDecoder {
 		let saved	= currentElement
 		defer { currentElement = saved }
 		currentElement	= element
 		
 		let wrapped : Any.Type
 		
-		if let optType = T.self as? OptionalProtocol.Type {
+		if let optType = T.self as? any OptionalProtocol.Type {
 			// get the inner non optional type
 			wrapped	= optType.fullUnwrappedType
 		} else {
 			wrapped	= T.self
 		}
 
-		guard let binaryIType = wrapped as? BDecodable.Type else {
+		guard let binaryIType = wrapped as? any BDecodable.Type else {
 			throw GraphCodableError.malformedArchive(
 				Self.self, GraphCodableError.Context(
 					debugDescription: "\(element) wrapped type \(wrapped) is not a BDecodable."
@@ -273,9 +280,8 @@ extension TypeConstructor {
 		return value
 	}
 	
-	private func decodeRefOrBinRef<T>(
-		type:T.Type, typeID:TypeID, isBinary: Bool, element:FlattenedElement, from decoder:GDecoder
-	) throws -> T where T:GDecodable {
+	private func decodeRefOrBinRef<T,D>( type:T.Type, typeID:TypeID, isBinary: Bool, element:FlattenedElement, from decoder:D ) throws -> T
+	where T:GDecodable, D:GDecoder {
 		guard let classInfo = decodeBinary.classInfoMap[ typeID ] else {
 			throw GraphCodableError.internalInconsistency(
 				Self.self, GraphCodableError.Context(
@@ -289,7 +295,7 @@ extension TypeConstructor {
 		currentInfo	= classInfo
 		
 		let type	= classInfo.decodedType.self
-		let object	: GDecodable
+		let object	: any GDecodable
 		if isBinary {
 			object = try decodeBinValue( type:type, element:element, from: decoder )
 		} else {
