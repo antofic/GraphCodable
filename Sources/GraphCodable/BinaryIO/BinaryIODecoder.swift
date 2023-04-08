@@ -43,7 +43,6 @@ public struct BinaryIODecoder: BDecoder {
 	///	It can be changed with X and Y.
 	private var dataRegion				: Bytes.SubSequence
 
-	private var compressionEnabled			: Bool
 
 	///	Encoded flags.
 	///
@@ -55,7 +54,7 @@ public struct BinaryIODecoder: BDecoder {
 	///	Reserved for package use.
 	let	encodedBinaryIOVersion			: UInt16
 	
-	public let archiveIdentifier		: String?
+	public let encodedArchiveIdentifier		: String?
 
 	///	Encoded version for user defined types for
 	///	decoding strategies.
@@ -81,9 +80,10 @@ public struct BinaryIODecoder: BDecoder {
 	public var	fileSize				: Int 	{ data.count }
 	
 	
+	private var _enableCompression		: Bool
 	public var enableCompression		: Bool {
-		get { compressionEnabled }
-		set { compressionEnabled = newValue && encodedBinaryIOFlags.contains( .compressionEnabled ) }
+		get { _enableCompression }
+		set { _enableCompression = newValue && encodedBinaryIOFlags.contains( .compressionEnabled ) }
 	}
 }
 
@@ -161,11 +161,10 @@ extension BinaryIODecoder {
 	public var regionRange: Range<Int> {
 		get { dataRegion.indices }
 		set {
-			precondition(
-				newValue.startIndex >= startOfFile &&
-				newValue.endIndex <= data.endIndex,
-				"\(Self.self): region \(newValue) not cointaned in \(data.indices)"
-			)
+			guard newValue.startIndex >= startOfFile && newValue.endIndex <= data.endIndex else {
+				// no precondition in the decoder
+				fatalError( "\(Self.self): region \(newValue) not cointaned in \(data.indices)" )
+			}
 			dataRegion	= data[ newValue ]
 		}
 	}
@@ -175,26 +174,20 @@ extension BinaryIODecoder {
 extension BinaryIODecoder {
 	private init( _ data: Bytes, archiveIdentifier: String?, userData:Any?) throws {
 		var dataRegion					= data[...]
-		self.compressionEnabled			= false
-		//	self.archiveIdentifier			= archiveIdentifier
+		self._enableCompression			= false
 		self.encodedBinaryIOFlags		= try Self.readValue(from: &dataRegion)
 		if self.encodedBinaryIOFlags.contains( .hasArchiveIdentifier ) {
-			let encodedArchiveIdentifier	= try Self.readString( from: &dataRegion )
-			guard archiveIdentifier == encodedArchiveIdentifier else {
-				throw BinaryIOError.archiveIdentifierDontMatch(
-					Self.self, BinaryIOError.Context(
-						debugDescription: "Encoded archiveIdentifier -\(encodedArchiveIdentifier)- doesn't match the requested identifier -\(String(describing: archiveIdentifier))-."
-					)
-				)
-			}
-		} else if let archiveIdentifier {
+			self.encodedArchiveIdentifier = try Self.readString( from: &dataRegion )
+		} else {
+			self.encodedArchiveIdentifier = nil
+		}
+		if let archiveIdentifier, archiveIdentifier != self.encodedArchiveIdentifier {
 			throw BinaryIOError.archiveIdentifierDontMatch(
 				Self.self, BinaryIOError.Context(
-					debugDescription: "Encoded archive without identifier doesn't match the requested identifier -\(String(describing: archiveIdentifier))-."
+					debugDescription: "Encoded archiveIdentifier -\(encodedArchiveIdentifier ?? "nil" )- doesn't match the requested identifier -\(archiveIdentifier)-."
 				)
 			)
 		}
-		self.archiveIdentifier			= archiveIdentifier
 		if self.encodedBinaryIOFlags.contains( .compressionEnabled ) {
 			self.encodedBinaryIOVersion	= try Self.readAndUnpack(from: &dataRegion)
 			self.encodedUserVersion		= try Self.readAndUnpack(from: &dataRegion)

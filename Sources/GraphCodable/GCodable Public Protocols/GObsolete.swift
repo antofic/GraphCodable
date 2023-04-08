@@ -20,11 +20,10 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
-/// A protocol that marks a class obsolete.
+/// A protocol for marking obsolete classes.
 ///
-///  You shold define the GDecodable property
-///  `decodeType` and return the
-///  replacement class
+///  Use the `GDecodable` property `decodeType` to return the
+///  replacement type
 ///
 /// **See the UserGuide**.
 public protocol GObsolete : GCodable {

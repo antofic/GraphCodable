@@ -35,7 +35,6 @@ import Foundation
 public struct BinaryIOEncoder: BEncoder {
 	private var _data 				: Bytes
 	private var _position			: Int
-	private var compressionEnabled	: Bool
 	private var	insertMode			: Bool
 
 	// public	let defaultBinaryFileCode = FileCode( "bina" )
@@ -68,9 +67,10 @@ public struct BinaryIOEncoder: BEncoder {
 	///	By default it is `nil`.
 	public let userData				: Any?
 	
+	private var _enableCompression	: Bool
 	public var enableCompression : Bool {
-		get { compressionEnabled }
-		set { compressionEnabled = newValue && binaryIOFlags.contains( .compressionEnabled ) }
+		get { _enableCompression }
+		set { _enableCompression = newValue && binaryIOFlags.contains( .compressionEnabled ) }
 	}
 }
 
@@ -90,7 +90,7 @@ extension BinaryIOEncoder {
 		self.binaryIOVersion		= 0
 		self.insertMode				= false
 		self.userData				= userData
-		self.compressionEnabled		= enableCompression
+		self._enableCompression		= enableCompression
 		// really can't throw
 		try! self.writePODValue( self.binaryIOFlags )	// NO compression
 		if let archiveIdentifier { try! self.encode( archiveIdentifier ) }
@@ -141,6 +141,16 @@ extension BinaryIOEncoder {
 		return try encodeFunc( &self )
 	}
 
+	public mutating func within<T>(
+		position encodePosition: Int,
+		encodeFunc: ( inout BinaryIOEncoder ) throws -> T
+	) rethrows -> T {
+		let savePosition	= position
+		defer{ position 	= savePosition }
+		position	= encodePosition
+		return try encodeFunc( &self )
+	}
+	
 	/// Use this method when you want to encode data **B** in front of data **A**, but **B** depends (or is)
 	/// on the archived size of **A**. This function shifts the byte representation of **A**.
 	///

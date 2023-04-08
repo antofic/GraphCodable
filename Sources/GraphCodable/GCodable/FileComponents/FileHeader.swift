@@ -31,18 +31,13 @@ struct FileHeader : CustomStringConvertible, BCodable {
 		static var NEWFILEBLOCK_VERSION	: UInt32 { 4 }
 		static var CURRENT_FILE_VERSION	: UInt32 { NEWFILEBLOCK_VERSION }
 	}
-/*
-	private enum HeaderID : UInt32, BCodable {
-		case gcod	= 0x67636F64	// ascii = 'gcod'
-	}
-*/
-	let archiveIdentifier	: String?
-	let binaryIOFlags		: BinaryIOFlags
-	let binaryIOVersion		: UInt16
-	let userVersion			: UInt32
-	let gcodableVersion		: UInt32
-	let gcoadableFlags		: Flags
-	let unused0 			: UInt64
+
+	let archiveIdentifier	: String?			// encoded/decoded by BinaryIO
+	let binaryIOFlags		: BinaryIOFlags		// encoded/decoded by BinaryIO
+	let binaryIOVersion		: UInt16			// encoded/decoded by BinaryIO
+	let userVersion			: UInt32			// encoded/decoded by BinaryIO
+	let gcodableVersion		: UInt32			// encoded/decoded by FileHeader
+	let gcoadableFlags		: Flags				// encoded/decoded by FileHeader
 	
 	func description( dataSize:Int? ) -> String {
 		func alignR( _ value:Any,length: Int = 12 ) -> String  {
@@ -88,7 +83,6 @@ struct FileHeader : CustomStringConvertible, BCodable {
 		self.binaryIOVersion	= binaryIOEncoder.binaryIOVersion
 		self.gcodableVersion	= gcodableVersion
 		self.gcoadableFlags		= gcoadableFlags
-		self.unused0			= unused0
 	}
 	
 	init(from decoder: inout some BDecoder) throws {
@@ -100,18 +94,16 @@ struct FileHeader : CustomStringConvertible, BCodable {
 				)
 			)
 		}
-		self.archiveIdentifier	= decoder.archiveIdentifier
+		self.archiveIdentifier	= decoder.encodedArchiveIdentifier
 		self.userVersion		= decoder.encodedUserVersion
 		self.binaryIOFlags		= decoder.withUnderlyingType { $0.encodedBinaryIOFlags }
 		self.binaryIOVersion	= decoder.withUnderlyingType { $0.encodedBinaryIOVersion }
 		self.gcodableVersion	= gcodableVersion
 		self.gcoadableFlags		= try decoder.decode()
-		self.unused0			= try decoder.decode()
 	}
 	
 	func encode( to encoder: inout some BEncoder ) throws {
 		try encoder.encode( gcodableVersion )
 		try encoder.encode( gcoadableFlags )
-		try encoder.encode( unused0 )
 	}
 }

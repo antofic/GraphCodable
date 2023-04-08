@@ -78,14 +78,7 @@ struct DecodeReadBlocks {
 		var decoder	= ioDecoder
 		
 		self.fileHeader		= try FileHeader( from: &decoder )
-		do {
-			let saveCompression	= decoder.enableCompression
-			defer { decoder.enableCompression = saveCompression }
-			decoder.enableCompression = false
-			
-			self.sectionMap		= try SectionMap( from: &decoder )
-		}
-
+		self.sectionMap		= try decoder.withCompressionDisabled { try SectionMap( from: &$0 ) }
 		self.ioDecoder		= decoder
 	}
 	
@@ -93,11 +86,10 @@ struct DecodeReadBlocks {
 	/// from the BinaryIODecoder
 	mutating func classDataMap() throws -> ClassDataMap {
 		if let classDataMap = self._classDataMap { return classDataMap }
-		
-		let saveRegion	= try setReaderRegionRangeTo(section: .classDataMap)
-		defer { ioDecoder.regionRange = saveRegion }
 
-		let classDataMap	= try ClassDataMap(from: &ioDecoder)
+		let classDataMap	= try ioDecoder.withinRegion( range: regionRange( of:.classDataMap ) ) {
+			try ClassDataMap(from: &$0)
+		}
 		self._classDataMap	= classDataMap
 		return classDataMap
 	}
@@ -107,15 +99,16 @@ struct DecodeReadBlocks {
 	mutating func readBlocks() throws -> ReadBlocks {
 		if let readBlocks = self._readBlocks { return readBlocks }
 
-		let saveRegion	= try setReaderRegionRangeTo(section: .body)
-		defer { ioDecoder.regionRange = saveRegion }
-
-		var readBlocks	= [ReadBlock]()
-		while ioDecoder.isEndOfRegion == false {
-			let readBlock	= try ReadBlock(from: &ioDecoder, fileHeader: fileHeader)
-			readBlocks.append( readBlock )
+		let fileHeader	= self.fileHeader
+		let readBlocks	= try ioDecoder.withinRegion( range: regionRange( of:.body ) ) {
+			var readBlocks	= [ReadBlock]()
+			while $0.isEndOfRegion == false {
+				let readBlock	= try ReadBlock( from: &$0,fileHeader: fileHeader )
+				readBlocks.append( readBlock )
+			}
+			return readBlocks
 		}
-		
+
 		self._readBlocks	= readBlocks
 		return readBlocks
 	}
@@ -124,24 +117,22 @@ struct DecodeReadBlocks {
 	mutating func keyStringMap() throws -> KeyStringMap {
 		if let keyStringMap = self._keyStringMap { return keyStringMap }
 
-		let saveRegion		= try setReaderRegionRangeTo(section: .keyStringMap)
-		defer { ioDecoder.regionRange = saveRegion }
-		
-		let keyStringMap 	= try KeyStringMap(from: &ioDecoder)
+		let keyStringMap 	= try ioDecoder.withinRegion( range: regionRange( of:.keyStringMap ) ) {
+			try KeyStringMap(from: &$0)
+		}
 		self._keyStringMap	= keyStringMap
 		return keyStringMap
 	}
 	
-	private mutating func setReaderRegionRangeTo( section:FileSection ) throws -> Range<Int> {
+	private func regionRange( of section:FileSection ) throws -> Range<Int> {
 		guard let range = sectionMap[ section ] else {
 			throw GraphCodableError.malformedArchive(
 				Self.self, GraphCodableError.Context(
-					debugDescription: "File section \(section) not found."
+					debugDescription: "File section -\(section)- not found."
 				)
 			)
 		}
-		defer { ioDecoder.regionRange = range }
-		return ioDecoder.regionRange
+		return range
 	}
 }
 

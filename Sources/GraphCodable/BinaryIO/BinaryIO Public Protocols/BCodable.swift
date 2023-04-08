@@ -27,7 +27,6 @@ import Foundation
 /// The container must conform to `MutableDataProtocol`, i.e `Data`, `[UInt8]`, `ContiguousArray<UInt8>`
 public typealias Bytes	= [UInt8]
 
-
 /// The default string that identiefies a BinaryIO archive
 ///
 /// You can choose a different archive identifier in:

@@ -40,9 +40,10 @@ final class EncodeBinary<Output:MutableDataProtocol> : EncodeFileBlocks {
 			
 			// write header:
 			try ioEncoder.encode( fileHeader )
+			//	save the section map position
 			sectionMapPosition	= ioEncoder.position
 			
-			//	write a dummy section map. Let's write a dummy sectionmap.
+			//	Let's write a dummy sectionmap.
 			//	We will overwrite it when the positions of the sections are
 			//	known.
 			//	we need to disable compression, because the sectionMap
@@ -108,10 +109,10 @@ final class EncodeBinary<Output:MutableDataProtocol> : EncodeFileBlocks {
 		
 		//	Now the sectionmap contains the positions of all sections:
 		//	I can overwrite it. Therefore I need to put off compression.
-		try ioEncoder.withCompressionDisabled { ioEncoder in
-			ioEncoder.position		= sectionMapPosition
-			try ioEncoder.encode(sectionMap)
-			ioEncoder.position		= ioEncoder.endOfFile
+		try ioEncoder.withCompressionDisabled {
+			$0.position		= sectionMapPosition
+			try $0.encode(sectionMap)
+			$0.position		= $0.endOfFile
 		}
 
 		return ioEncoder.data()

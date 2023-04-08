@@ -23,14 +23,14 @@
 import Foundation
 
 final class GDecoderImpl {
-	let archiveIdentifier	: String?
-	var	userInfo			= [String:Any]()
-	var classNameMap		= ClassNameMap()
-	private var constructor : TypeConstructor!
+	private var archiveIdentifier	: String?
+	var	userInfo					= [String:Any]()
+	var classNameMap				= ClassNameMap()
+	private var constructor 		: TypeConstructor!
 	
 	init( archiveIdentifier: String? ) {
 		self.archiveIdentifier	= archiveIdentifier
-	}	
+	}
 	
 	private func ioDecoder<Q>( from data: Q ) throws -> BinaryIODecoder
 	where Q:DataProtocol {
@@ -62,6 +62,13 @@ final class GDecoderImpl {
 		
 		return decodedDump.dump()
 	}
+	
+	func encodedArchiveIdentifier<Q>( from data: Q ) throws -> String?
+	where Q:DataProtocol {
+		let ioDecoder 	= try ioDecoder(from: data)
+		return ioDecoder.encodedArchiveIdentifier
+	}
+	
 }
 
 // MARK: GDecoderImpl conformance to GDecoder protocol
