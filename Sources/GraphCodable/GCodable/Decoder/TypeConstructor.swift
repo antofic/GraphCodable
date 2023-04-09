@@ -120,12 +120,17 @@ final class TypeConstructor {
 	func decode<T,D>( element:FlattenedElement, from decoder:D ) throws -> T
 	where T:GDecodable, D:GDecoder {
 		switch element.readBlock.fileBlock {
-		case .Val( _, let objID, let typeID, let binSize):
-			if objID == nil {
-				return try decode(type: T.self, typeID: typeID, isBinary: binSize != nil, element: element, from: decoder)
-			}
-		default:
-			break
+			case .Val( _, let objID, let typeID ):
+				if objID == nil {
+					return try decode(type: T.self, typeID: typeID, isBinary: false, element: element, from: decoder)
+				}
+			case .Bin( _, let objID, let typeID, _ ):
+				if objID == nil {
+					return try decode(type: T.self, typeID: typeID, isBinary: true, element: element, from: decoder)
+				}
+				
+			default:
+				break
 		}
 		guard let value = try decodeAny( element:element, from:decoder, type:T.self ) as? T else {
 			throw GraphCodableError.malformedArchive(
@@ -153,14 +158,20 @@ extension TypeConstructor {
 				return object
 			} else if let element = decodeBinary.pop( objID: objID ) {
 				switch element.readBlock.fileBlock {
-				case .Val( _, let objID, let typeID, let binSize):
-					if let objID {
-						let object	= try decode(type: T.self, typeID: typeID, isBinary: binSize != nil, element: element, from: decoder)
-						objectRepository[ objID ]	= object
-						return object
-					}
-				default:
-					break
+					case .Val( _, let objID, let typeID ):
+						if let objID {
+							let object	= try decode(type: T.self, typeID: typeID, isBinary: false, element: element, from: decoder)
+							objectRepository[ objID ]	= object
+							return object
+						}
+					case .Bin( _, let objID, let typeID, _ ):
+						if let objID {
+							let object	= try decode(type: T.self, typeID: typeID, isBinary: true, element: element, from: decoder)
+							objectRepository[ objID ]	= object
+							return object
+						}
+					default:
+						break
 				}
 				throw GraphCodableError.internalInconsistency(
 					Self.self, GraphCodableError.Context(
@@ -173,28 +184,28 @@ extension TypeConstructor {
 		}
 		
 		switch element.readBlock.fileBlock {
-		case .Nil( _ ):
-			return Optional<Any>.none as Any
-		case .Ptr( _, let objID, let conditional ):
-			if conditional {
-				return try decodeIdentifiable( type:T.self, objID:objID, from:decoder ) as Any
-			} else {
-				guard let object = try decodeIdentifiable( type:T.self, objID:objID, from:decoder ) else {
-					throw GraphCodableError.possibleCyclicGraphDetected(
-						Self.self, GraphCodableError.Context(
-							debugDescription:
-								"Value pointed from \(element.readBlock.fileBlock) not found. Try deferDecode to break the cycle."
+			case .Nil( _ ):
+				return Optional<Any>.none as Any
+			case .Ptr( _, let objID, let conditional ):
+				if conditional {
+					return try decodeIdentifiable( type:T.self, objID:objID, from:decoder ) as Any
+				} else {
+					guard let object = try decodeIdentifiable( type:T.self, objID:objID, from:decoder ) else {
+						throw GraphCodableError.possibleCyclicGraphDetected(
+							Self.self, GraphCodableError.Context(
+								debugDescription:
+									"Value pointed from \(element.readBlock.fileBlock) not found. Try deferDecode to break the cycle."
+							)
 						)
-					)
+					}
+					return object
 				}
-				return object
-			}
-		default:	// .Struct & .Object are inappropriate here!
-			throw GraphCodableError.internalInconsistency(
-				Self.self, GraphCodableError.Context(
-					debugDescription: "Inappropriate fileblock \(element.readBlock.fileBlock) here."
+			default:	// .Struct & .Object are inappropriate here!
+				throw GraphCodableError.internalInconsistency(
+					Self.self, GraphCodableError.Context(
+						debugDescription: "Inappropriate fileblock \(element.readBlock.fileBlock) here."
+					)
 				)
-			)
 		}
 	}
 }

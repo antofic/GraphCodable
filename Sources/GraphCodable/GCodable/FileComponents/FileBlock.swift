@@ -40,11 +40,12 @@ enum FileBlock {	// size = 32 bytes
 		private static let	catNil:			Self = [ b0 ]
 		private static let	catPtr:			Self = [ b1 ]
 		private static let	catVal:			Self = [ b1, b0 ]
-		
-		private static let	hasKeyID:		Self = [ b3 ]		// catNil, catVal, catPtr
-		private static let	hasObjID:		Self = [ b4 ]		// catVal, catPtr
+		private static let	catBin:			Self = [ b2 ]
+
+		private static let	hasKeyID:		Self = [ b3 ]		// catNil, catVal, catBin, catPtr
+		private static let	hasObjID:		Self = [ b4 ]		// catVal, catBin, catPtr
 		private static let	hasTypeID:		Self = [ b5 ]		// catVal
-		private static let	isBinary:		Self = [ b6 ]		// catVal
+//		private static let	isBinary:		Self = [ b6 ]		// catVal
 		
 		private static let	conditional:	Self = hasTypeID	// conditional (!= hasObjID,hasKeyID ) may overlap hasTypeID
 
@@ -53,7 +54,7 @@ enum FileBlock {	// size = 32 bytes
 		//	b2, b7	= future use
 		
 		enum Category {
-			case End, Nil, Ptr, Val
+			case End, Nil, Ptr, Val, Bin
 		}
 		
 		var category : Category {
@@ -64,6 +65,7 @@ enum FileBlock {	// size = 32 bytes
 				case Self.catNil:	return .Nil
 				case Self.catPtr:	return .Ptr
 				case Self.catVal:	return .Val
+				case Self.catBin:	return .Bin
 				default:
 					throw GraphCodableError.malformedArchive(
 						Self.self, GraphCodableError.Context(
@@ -77,9 +79,9 @@ enum FileBlock {	// size = 32 bytes
 		var hasKeyID		: Bool { self.contains( Self.hasKeyID ) }
 		var hasObjID		: Bool { self.contains( Self.hasObjID ) }
 		var hasTypeID		: Bool { self.contains( Self.hasTypeID ) }
-		var isBinary		: Bool { self.contains( Self.isBinary ) }
 		var isConditional	: Bool { self.contains( Self.conditional ) }
-	
+//		var isBinary		: Bool { self.contains( Self.isBinary ) }
+
 		//	-----------------------------------------------------------------------
 		//	keyID == nil	fileBlock is an unkeyed field of its parent value
 		//	keyID != nil	fileBlock is a keyed field of its parent value
@@ -109,12 +111,19 @@ enum FileBlock {	// size = 32 bytes
 			return code
 		}
 		
-		static func  Val( keyID:KeyID?, objID:ObjID?, typeID:TypeID?, isBinary bin:Bool ) -> Self {
+		static func  Val( keyID:KeyID?, objID:ObjID?, typeID:TypeID? ) -> Self {
 			var code	= catVal
 			if keyID	!= nil	{ code.formUnion( hasKeyID ) }
 			if typeID	!= nil	{ code.formUnion( hasTypeID ) }
 			if objID	!= nil	{ code.formUnion( hasObjID ) }
-			if bin				{ code.formUnion( isBinary ) }
+			return code
+		}
+
+		static func  Bin( keyID:KeyID?, objID:ObjID?, typeID:TypeID? ) -> Self {
+			var code	= catBin
+			if keyID	!= nil	{ code.formUnion( hasKeyID ) }
+			if typeID	!= nil	{ code.formUnion( hasTypeID ) }
+			if objID	!= nil	{ code.formUnion( hasObjID ) }
 			return code
 		}
 	}
@@ -124,8 +133,10 @@ enum FileBlock {	// size = 32 bytes
 	case Nil( keyID:KeyID? )
 	// PTS<ObjID>, PTC<ObjID>
 	case Ptr( keyID:KeyID?, objID:ObjID, conditional:Bool )
-	//	VAL<objID?>, BIV<objID?>, REF<objID?>, BIR<objID?>
-	case Val( keyID:KeyID?, objID:ObjID?, typeID:TypeID?, binSize:BinSize? )
+	//	VAL<objID?>, REF<objID?>
+	case Val( keyID:KeyID?, objID:ObjID?, typeID:TypeID? )
+	//	BIV<objID?>, BIR<objID?>
+	case Bin( keyID:KeyID?, objID:ObjID?, typeID:TypeID?, binSize:BinSize )
 }
 
 
@@ -134,36 +145,15 @@ extension FileBlock {
 		switch self {
 		case .Nil( let keyID ):				return	keyID
 		case .Ptr( let keyID, _, _ ):		return	keyID
-		case .Val( let keyID, _, _, _ ):	return	keyID
-		default:							return	nil
-		}
-	}
-/*
-	var objID : ObjID? {
-		switch self {
-		case .Ptr( _, let objID, _ ):		return	objID
-		case .Val( _, let objID, _ ):		return	objID
+		case .Val( let keyID, _, _ ):		return	keyID
+		case .Bin( let keyID, _, _, _ ):	return	keyID
 		default:							return	nil
 		}
 	}
 
-	var typeID : TypeID? {
-		switch self {
-		case .Val( _, _ ,let typeID ):		return	typeID
-		default:							return	nil
-		}
-	}
-
-	var conditional : Bool {
-		switch self {
-		case .Ptr( _, _, let conditional ):	return	conditional
-		default:							return	false
-		}
-	}
-*/
 	var binarySize : Int {
 		switch self {
-		case .Val( _, _ , _ , let binSize ):	return	binSize?.size ?? 0
+		case .Bin( _, _ , _ , let binSize ):	return	binSize.size
 			default:	return 0
 		}
 	}
@@ -173,7 +163,7 @@ extension FileBlock {
 	enum Level { case exit, same, enter }
 	var level : Level {
 		switch self {
-		case .Val( _, _ , _ , let binSize ):	return	binSize != nil ? .same : .enter
+		case .Val( _, _ , _ ):	return .enter
 		case .End:	return .exit
 		default:	return .same
 		}
@@ -208,7 +198,7 @@ extension FileBlock {
 		keyID:KeyID?, objID:ObjID?, typeID:TypeID?,
 		to encoder: inout BinaryIOEncoder, fileHeader:FileHeader
 	) throws {
-		try encoder.encode( Code.Val(keyID: keyID, objID: objID, typeID: typeID, isBinary: false ) )
+		try encoder.encode( Code.Val(keyID: keyID, objID: objID, typeID: typeID ) )
 		if let keyID	{ try encoder.encode( keyID ) }
 		if let objID	{ try encoder.encode( objID ) }
 		if let typeID	{ try encoder.encode( typeID ) }
@@ -218,7 +208,7 @@ extension FileBlock {
 		keyID:KeyID?, objID:ObjID?, typeID:TypeID?, binaryValue: T,
 		to encoder: inout BinaryIOEncoder, fileHeader:FileHeader
 	) throws {
-		try encoder.encode( Code.Val(keyID: keyID, objID: objID, typeID: typeID, isBinary: true ) )
+		try encoder.encode( Code.Bin(keyID: keyID, objID: objID, typeID: typeID ) )
 		if let keyID	{ try encoder.encode( keyID ) }
 		if let objID	{ try encoder.encode( objID ) }
 		if let typeID	{ try encoder.encode( typeID ) }
@@ -273,8 +263,13 @@ extension FileBlock {
 				let keyID		= code.hasKeyID	 ?	try decoder.decode() as KeyID  : nil
 				let objID		= code.hasObjID	 ?	try decoder.decode() as ObjID  : nil
 				let typeID		= code.hasTypeID ?	try decoder.decode() as TypeID : nil
-				let binSize		= code.isBinary	 ?	try decodeBinSize( &decoder ) as BinSize : nil
-				self 			= .Val( keyID: keyID, objID: objID, typeID: typeID, binSize: binSize )
+				self 			= .Val( keyID: keyID, objID: objID, typeID: typeID )
+			case .Bin:
+				let keyID		= code.hasKeyID	 ?	try decoder.decode() as KeyID  : nil
+				let objID		= code.hasObjID	 ?	try decoder.decode() as ObjID  : nil
+				let typeID		= code.hasTypeID ?	try decoder.decode() as TypeID : nil
+				let binSize		= try decodeBinSize( &decoder )
+				self 			= .Bin( keyID: keyID, objID: objID, typeID: typeID, binSize: binSize )
 		}
 	}
 }
@@ -301,14 +296,14 @@ extension FileBlock : CustomStringConvertible {
 				return "TYPE\(typeID)"
 			}
 		}
-
+		
 		func small( _ value: Any, _ options:GraphDumpOptions, maxLength:Int = 64 ) -> String {
 			let phase1 = String(describing: value)
 			if options.contains( .dontTruncateValueDescriptionInBody ) {
 				return phase1
 			} else {
 				let phase2	= phase1.count > maxLength ?
-					phase1.prefix(maxLength).appending("…") : phase1
+				phase1.prefix(maxLength).appending("…") : phase1
 				
 				return value is String ? "\"\(phase2)\"" : phase2
 			}
@@ -331,41 +326,39 @@ extension FileBlock : CustomStringConvertible {
 		
 		var string	= ""
 		switch self {
-		case .End:
-			string.append( "." )
-		case .Nil( let keyID ):
-			string.append( keyName( keyID, keyStringMap ) )
-			string.append( "NIL" )
-		case .Ptr( let keyID, let objID, let conditional ):
-			string.append( keyName( keyID, keyStringMap ) )
-			string.append( conditional ? "PTC" : "PTS" )
-			string.append( objID.description )
-		case .Val( let keyID, let objID, let typeID, let binSize ):
-			//	VAL			= []
-			//	BIV			= [bytes]
-			//	REF			= [typeID]
-			//	BIR			= [typeID,bytes]
-			//	VAL<objID>	= [objID]
-			//	BIV<objID>	= [objID,bytes]
-			//	REF<objID>	= [objID,typeID]
-			//	BIR<objID>	= [objID,typeID,bytes]
-
-			string.append( keyName( keyID, keyStringMap ) )
-			switch (typeID != nil, binSize != nil ) {
-			case (false, false)	: string.append( "VAL" )	//	Codable value
-			case (false, true)	: string.append( "BIV" )	//	BinaryCodable value
-			case (true,  false)	: string.append( "REF" )	//	Codable reference
-			case (true,  true)	: string.append( "BIR" )	//	BinaryCodable reference
-			}
-			if let objID	{ string.append( objID.description ) }
-			if let typeID	{ string.append( " \( typeName( typeID,options,classDataMap ) )") }
-			if let binSize {
+			case .End:
+				string.append( "." )
+			case .Nil( let keyID ):
+				string.append( keyName( keyID, keyStringMap ) )
+				string.append( "NIL" )
+			case .Ptr( let keyID, let objID, let conditional ):
+				string.append( keyName( keyID, keyStringMap ) )
+				string.append( conditional ? "PTC" : "PTS" )
+				string.append( objID.description )
+			case .Val( let keyID, let objID, let typeID ):
+				//	VAL			= []
+				//	REF			= [typeID]
+				//	VAL<objID>	= [objID]
+				//	REF<objID>	= [objID,typeID]
+				
+				string.append( keyName( keyID, keyStringMap ) )
+				string.append( typeID != nil ? "REF" : "VAL" )
+				if let objID	{ string.append( objID.description ) }
+				if let typeID	{ string.append( " \( typeName( typeID,options,classDataMap ) )") }
+			case .Bin( let keyID, let objID, let typeID, let binSize ):
+				//	BIV			= [bytes]
+				//	BIR			= [typeID,bytes]
+				//	BIV<objID>	= [objID,bytes]
+				//	BIR<objID>	= [objID,typeID,bytes]
+				string.append( keyName( keyID, keyStringMap ) )
+				string.append( typeID != nil ? "BIR" : "BIV" )
+				if let objID	{ string.append( objID.description ) }
+				if let typeID	{ string.append( " \( typeName( typeID,options,classDataMap ) )") }
 				if let binaryValue {
 					string.append( " \( small( binaryValue, options ) )")
 				} else if binSize != BinSize() {
 					string.append( " { \(binSize.size) bytes }")
 				}
-			}
 		}
 		return string
 	}

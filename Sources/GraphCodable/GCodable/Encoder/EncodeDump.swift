@@ -91,11 +91,11 @@ final class EncodeDump : EncodeFileBlocks {
 	}
 	
 	func appendVal( keyID:KeyID?, typeID:TypeID?, objID:ObjID? ) throws {
-		append( .Val(keyID: keyID, objID:objID, typeID:typeID, binSize: nil), binaryValue:nil )
+		append( .Val(keyID: keyID, objID:objID, typeID:typeID ), binaryValue:nil )
 	}
 
 	func appendBin<T:BEncodable>( keyID:KeyID?, typeID:TypeID?, objID:ObjID?, binaryValue: T ) throws {
-		append( .Val(keyID: keyID, objID:objID, typeID:typeID, binSize: BinSize() ), binaryValue:binaryValue  )
+		append( .Bin(keyID: keyID, objID:objID, typeID:typeID, binSize: BinSize() ), binaryValue:binaryValue  )
 	}
 
 	// FileBlockEncoder protocol end

@@ -91,38 +91,54 @@ extension FlattenedElement {
 	) throws where T:IteratorProtocol, T.Element == ReadBlock {
 		
 		switch element.readBlock.fileBlock {
-		case .Val( let keyID, let objID, _, let binSize ):
-			if let objID {
-				//	l'oggetto non può già trovarsi nella map
-				guard map.index(forKey: objID) == nil else {
-					throw GraphCodableError.internalInconsistency(
-						Self.self, GraphCodableError.Context(
-							debugDescription: "Object \(element.readBlock) already exists."
+			case .Val( let keyID, let objID, _ ):
+				if let objID {
+					//	l'oggetto non può già trovarsi nella map
+					guard map.index(forKey: objID) == nil else {
+						throw GraphCodableError.internalInconsistency(
+							Self.self, GraphCodableError.Context(
+								debugDescription: "Object \(element.readBlock) already exists."
+							)
 						)
-					)
-				}
-				// creo un nuovo elemento con il readBlock
-				let root = FlattenedElement( readBlock: element.readBlock )
-				// in quello vecchio metto un puntatore al vecchio elemento
-				element.readBlock	= ReadBlock( with: .Ptr( keyID: keyID, objID: objID, conditional: false ), copying: element.readBlock )
-				// metto il nuovo elelemnto nella mappa
-				map[ objID ]	= root
-								
-				if binSize == nil {	// ATT! NO subFlatten for BinValue's
+					}
+					// creo un nuovo elemento con il readBlock
+					let root = FlattenedElement( readBlock: element.readBlock )
+					// in quello vecchio metto un puntatore al vecchio elemento
+					element.readBlock	= ReadBlock( with: .Ptr( keyID: keyID, objID: objID, conditional: false ), copying: element.readBlock )
+					// metto il nuovo elelemnto nella mappa
+					map[ objID ]	= root
+					
 					try subFlatten(
 						elementMap: &map, parentElement:root, lineIterator:&lineIterator,
 						keyStringMap:keyStringMap, reverse:reverse
 					)
+				} else {
+					try subFlatten(
+						elementMap: &map, parentElement:element, lineIterator:&lineIterator,
+						keyStringMap:keyStringMap, reverse:reverse
+					)
 				}
-			} else if binSize == nil {	// ATT! NO subFlatten for BinValue's
-				try subFlatten(
-					elementMap: &map, parentElement:element, lineIterator:&lineIterator,
-					keyStringMap:keyStringMap, reverse:reverse
-				)
-			}
-		default:
-			//	nothing to do
-			break
+			case .Bin( let keyID, let objID, _, _ ):
+				if let objID {
+					//	l'oggetto non può già trovarsi nella map
+					guard map.index(forKey: objID) == nil else {
+						throw GraphCodableError.internalInconsistency(
+							Self.self, GraphCodableError.Context(
+								debugDescription: "Object \(element.readBlock) already exists."
+							)
+						)
+					}
+					// creo un nuovo elemento con il readBlock
+					let root = FlattenedElement( readBlock: element.readBlock )
+					// in quello vecchio metto un puntatore al vecchio elemento
+					element.readBlock	= ReadBlock( with: .Ptr( keyID: keyID, objID: objID, conditional: false ), copying: element.readBlock )
+					// metto il nuovo elelemnto nella mappa
+					map[ objID ]	= root
+				}
+				// ATT! NO subFlatten for BinValue's
+			default:
+				//	nothing to do
+				break
 		}
 	}
 	
