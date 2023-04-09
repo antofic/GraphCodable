@@ -22,42 +22,34 @@
 
 import Foundation
 
-final class EncodeBinary<Output:MutableDataProtocol> : EncodeFileBlocks {
-	weak var			delegate			: (any EncodeFileBlocksDelegate)?
-	private var			fileHeader			: FileHeader
-	private var			ioEncoder			: BinaryIOEncoder
-	private var 		sectionMap			= SectionMap()
-	private var			sectionMapPosition	= 0
+final class EncodeBinaryNew<Output:MutableDataProtocol> : EncoderProtocol {
+	private var	fileHeader			: FileHeader
+	private var	ioEncoder			: BinaryIOEncoder
+	private var sectionMap			= SectionMap()
+	private var	sectionMapPosition	= 0
+
+	var			encodeOptions		: GraphEncoder.Options
+	var			currentKeys			= Set<String>()
+	var			identityMap			= IdentityMap()
+	var			referenceMap		= ReferenceMap()
+	var			keyMap				= KeyMap()
 	
-	init( ioEncoder:BinaryIOEncoder, fileHeader:FileHeader ) {
-		self.ioEncoder	= ioEncoder
-		self.fileHeader	= fileHeader
-	}
-	
-	private func writeInit() throws {
-		if sectionMap.isEmpty {
-			// entriamo la prima volta e quindi scriviamo header e section map.
-			
-			// write header:
-			try ioEncoder.encode( fileHeader )
-			//	save the section map position
-			sectionMapPosition	= ioEncoder.position
-			
-			//	Let's write a dummy sectionmap.
-			//	We will overwrite it when the positions of the sections are
-			//	known.
-			//	we need to disable compression, because the sectionMap
-			//	write size must be fixed.
-			try ioEncoder.withCompressionDisabled { ioEncoder in
-				for section in FileSection.allCases {
-					sectionMap[ section ] = Range(uncheckedBounds: (0,0))
-				}
-				try ioEncoder.encode( sectionMap )
-			}
-			 
-			let bounds	= (ioEncoder.position,ioEncoder.position)
-			sectionMap[ FileSection.body ] = Range( uncheckedBounds:bounds )
-		}
+	var 		userInfo			: [String : Any]
+	var 		userVersion			: UInt32
+
+	init(
+		ioEncoder:		BinaryIOEncoder,
+		fileHeader:		FileHeader,
+		encodeOptions:	GraphEncoder.Options,
+		userInfo:		[String : Any],
+		userVersion:	UInt32
+	) {
+		self.ioEncoder		= ioEncoder
+		self.fileHeader		= fileHeader
+
+		self.encodeOptions	= encodeOptions
+		self.userInfo		= userInfo
+		self.userVersion	= userVersion
 	}
 	
 	func appendEnd() throws {
@@ -88,8 +80,8 @@ final class EncodeBinary<Output:MutableDataProtocol> : EncodeFileBlocks {
 			to: &ioEncoder, fileHeader: fileHeader
 		)
 	}
-
-	func appendBin<T:BEncodable>(keyID: KeyID?, typeID: TypeID?, objID: ObjID?, binaryValue: T) throws {
+	
+	func appendBin<T>(keyID: KeyID?, typeID: TypeID?, objID: ObjID?, binaryValue: T) throws where T : BEncodable {
 		try writeInit()
 		try FileBlock.writeBin(
 			keyID: keyID,objID: objID, typeID: typeID, binaryValue:binaryValue,
@@ -97,6 +89,32 @@ final class EncodeBinary<Output:MutableDataProtocol> : EncodeFileBlocks {
 		)
 	}
 	
+	private func writeInit() throws {
+		if sectionMap.isEmpty {
+			// entriamo la prima volta e quindi scriviamo header e section map.
+			
+			// write header:
+			try ioEncoder.encode( fileHeader )
+			//	save the section map position
+			sectionMapPosition	= ioEncoder.position
+			
+			//	Let's write a dummy sectionmap.
+			//	We will overwrite it when the positions of the sections are
+			//	known.
+			//	we need to disable compression, because the sectionMap
+			//	write size must be fixed.
+			try ioEncoder.withCompressionDisabled { ioEncoder in
+				for section in FileSection.allCases {
+					sectionMap[ section ] = Range(uncheckedBounds: (0,0))
+				}
+				try ioEncoder.encode( sectionMap )
+			}
+			 
+			let bounds	= (ioEncoder.position,ioEncoder.position)
+			sectionMap[ FileSection.body ] = Range( uncheckedBounds:bounds )
+		}
+	}
+
 	func output() throws -> Output {
 		try writeInit()
 		
@@ -104,13 +122,13 @@ final class EncodeBinary<Output:MutableDataProtocol> : EncodeFileBlocks {
 		sectionMap[.body]	= Range( uncheckedBounds:bounds )
 		
 		// referenceMap:
-		let classDataMap	= delegate!.classDataMap
+		let classDataMap	= referenceMap.classDataMap
 		try ioEncoder.encode(classDataMap)
 		bounds	= ( bounds.1,ioEncoder.position )
 		sectionMap[ FileSection.classDataMap ] = Range( uncheckedBounds:bounds )
 		
 		// keyStringMap:
-		let keyStringMap	= delegate!.keyStringMap
+		let keyStringMap	= keyMap.keyStringMap
 		try ioEncoder.encode(keyStringMap)
 		bounds	= ( bounds.1,ioEncoder.position )
 		sectionMap[ FileSection.keyStringMap ] = Range( uncheckedBounds:bounds )
@@ -125,4 +143,7 @@ final class EncodeBinary<Output:MutableDataProtocol> : EncodeFileBlocks {
 
 		return ioEncoder.data()
 	}
+
+	
 }
+

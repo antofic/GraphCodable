@@ -20,6 +20,8 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
+
+
 protocol OptionalProtocol {
 	static var wrappedType: Any.Type { get }
 	// nested optional types unwrapping
@@ -63,6 +65,7 @@ extension Optional where Wrapped == Any {
 		self = .some( currentValue )
 	}
 }
+
 
 
 
