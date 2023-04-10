@@ -79,57 +79,42 @@ extension Never 	: GPackable {}
 
 //	Optional SUPPORT ------------------------------------------------------
 
-/*
-extension Optional: GEncodable where Wrapped: GEncodable {
-	//	The encoder always unwraps optional values
-	//	and so this function is never called.
-	public func encode(to encoder: some GEncoder) throws {
-		throw GraphCodableError.internalInconsistency(
-			Self.self, GraphCodableError.Context(
-				debugDescription: "Unreachable code."
-			)
-		)
-	}
-}
-
-extension Optional: GDecodable where Wrapped: GDecodable {
-	//	The encoder always unwraps optional values
-	//	and so this function is never called.
-	public init(from decoder: some GDecoder) throws {
-		throw GraphCodableError.internalInconsistency(
-			Self.self, GraphCodableError.Context(
-				debugDescription: "Unreachable code."
-			)
-		)
-	}
-}
-*/
 
 extension Optional: GEncodable where Wrapped: GEncodable {
-	public func encode(to encoder: some GEncoder) throws {
+	public var _optional : (any GEncodable)? {
 		switch self {
-			case .none: break
-			case .some( let value ): try encoder.encode( value )
+			case .none: return nil
+			case .some( let value ): return value._optional
 		}
+	}
+
+	
+	//	The encoder always unwraps optional values
+	//	and so this function is never called.
+	public func encode(to encoder: some GEncoder) throws {
+		throw GraphCodableError.internalInconsistency(
+			Self.self, GraphCodableError.Context(
+				debugDescription: "Unreachable code."
+			)
+		)
 	}
 }
 
 extension Optional: GDecodable where Wrapped: GDecodable {
+	public static var _wrappedType	: any GDecodable.Type {
+		Wrapped.self._wrappedType
+	}
+	
+	//	The encoder always unwraps optional values
+	//	and so this function is never called.
 	public init(from decoder: some GDecoder) throws {
-		switch decoder.unkeyedCount {
-			case 0: self = .none
-			case 1: self = .some( try decoder.decode() )
-			default:
-				throw GraphCodableError.internalInconsistency(
-					Self.self, GraphCodableError.Context(
-						debugDescription: "Invalid Optional."
-					)
-				)
-		}
+		throw GraphCodableError.internalInconsistency(
+			Self.self, GraphCodableError.Context(
+				debugDescription: "Unreachable code."
+			)
+		)
 	}
 }
-
-
 
 extension Optional: GBinaryEncodable where Wrapped: GBinaryEncodable {}
 extension Optional: GBinaryDecodable where Wrapped: GBinaryDecodable {}

@@ -226,7 +226,53 @@ extension TypeConstructor {
 
 // MARK: TypeConstructor private level 3
 extension TypeConstructor {
-	
+	private func decodeValue<T,D>( type:T.Type, element:FlattenedElement, from decoder:D ) throws -> T
+	where T:GDecodable, D:GDecoder {
+		let saved	= currentElement
+		defer { currentElement = saved }
+		currentElement	= element
+		
+		guard let value =  try T._wrappedType.init(from: decoder) as? T else {
+			throw GraphCodableError.malformedArchive(
+				Self.self, GraphCodableError.Context(
+					debugDescription: "Block \(element) wrapped type \(T._wrappedType) not GDecodable."
+				)
+			)
+		}
+		
+		return value
+	}
+
+	private func decodeBinValue<T,D>( type:T.Type, element:FlattenedElement, from decoder:D ) throws -> T
+	where T:GDecodable, D:GDecoder {
+		let saved	= currentElement
+		defer { currentElement = saved }
+		currentElement	= element
+		
+		let wrapped = T._wrappedType
+
+		guard let binaryIType = wrapped as? any BDecodable.Type else {
+			throw GraphCodableError.malformedArchive(
+				Self.self, GraphCodableError.Context(
+					debugDescription: "\(element) wrapped type \(wrapped) is not a BDecodable."
+				)
+			)
+		}
+
+		guard let value = try ioDecoder.withinRegion(
+			range: 		element.readBlock.binaryIORegionRange,
+			decodeFunc:	{ try $0.decode( binaryIType.self ) }
+		) as? T else {
+			throw GraphCodableError.malformedArchive(
+				Self.self, GraphCodableError.Context(
+					debugDescription: "\(element) decoded type is not a \(T.self) type."
+				)
+			)
+		}
+		 
+		return value
+	}
+
 	
 /*
 	private func decodeValue<T,D>( type:T.Type, element:FlattenedElement, from decoder:D ) throws -> T
@@ -294,7 +340,7 @@ extension TypeConstructor {
 		return value
 	}
 */
-
+/*
 	private func decodeValue<T,D>( type:T.Type, element:FlattenedElement, from decoder:D ) throws -> T
 	where T:GDecodable, D:GDecoder {
 		let saved	= currentElement
@@ -342,7 +388,7 @@ extension TypeConstructor {
 		 
 		return value
 	}
-
+*/
 	
 	
 	private func decodeRefOrBinRef<T,D>( type:T.Type, typeID:TypeID, isBinary: Bool, element:FlattenedElement, from decoder:D ) throws -> T

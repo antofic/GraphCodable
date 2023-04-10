@@ -64,6 +64,8 @@ public protocol GEncodable {
 	/// This flag has non effect for value types: they cannot have
 	/// inheritance and their type name is never archived
 	var inheritanceEnabled : Bool { get }
+	
+	var _optional : (any GEncodable)? { get }
 }
 
 extension GEncodable {
@@ -71,6 +73,8 @@ extension GEncodable {
 	public static var classVersion : UInt32 { 0 }
 	/// No inheritance for all types
 	public var inheritanceEnabled : Bool { false }
+	
+	public var _optional : (any GEncodable)? { self }
 }
 
 extension GEncodable where Self:AnyObject {
@@ -85,6 +89,7 @@ extension GEncodable where Self:AnyObject {
 /// A type that can be decoded from a native data format
 /// into in-memory representations
 public protocol GDecodable {
+	
 	/// Creates a new instance by decoding from the given decoder.
 	///
 	/// This initializer throws an error if reading from the decoder fails, or
@@ -101,11 +106,14 @@ public protocol GDecodable {
 	///
 	/// - returns: The class that replaces `Self` (`Self.self` by default).
 	static var decodeType : any GDecodable.Type { get }
+	
+	static var _wrappedType	: any GDecodable.Type { get }
 }
 
 extension GDecodable {
 	/// Default decodeType = `Self.self`
 	public static var decodeType : any GDecodable.Type { Self.self }
+	public static var _wrappedType : any GDecodable.Type { Self.self }
 }
 
 /// A type that can be encoded from in-memory representations
