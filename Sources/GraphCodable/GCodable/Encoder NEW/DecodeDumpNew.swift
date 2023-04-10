@@ -20,59 +20,36 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
+/*
 import Foundation
 
-final class DecodeDump: EncodeFileBlocksDelegate {
-	let	fileSize		: Int
-	let fileHeader		: FileHeader
+final class DecodeDumpNew: DumpProtocol {
+	var	fileHeader		: FileHeader
+	var	options			: GraphDumpOptions
+	var	dataSize		: Int?
+	var	dumpString		= String()
+	var beforeBody		= false
+	var tabs			: String?
+
+	var classDataMap	: ClassDataMap
+	var keyStringMap	: KeyStringMap
+
 	let readBlocks		: ReadBlocks
-	let classDataMap	: ClassDataMap
 	let classNameMap	: ClassNameMap?
-	let keyStringMap	: KeyStringMap
-	let dumpOptions		: GraphDumpOptions
+
 	
-	init( from ioDecoder:BinaryIODecoder, classNameMap:ClassNameMap?, options:GraphDumpOptions ) throws {
+	init(
+		from ioDecoder:BinaryIODecoder, classNameMap:ClassNameMap?, options:GraphDumpOptions
+	) throws {
 		var readBlockDecoder	= try DecodeReadBlocks( from: ioDecoder )
-		
-		self.fileSize		= ioDecoder.fileSize
+	
+		self.dataSize		= ioDecoder.fileSize
 		self.fileHeader		= readBlockDecoder.fileHeader
 		self.readBlocks		= try readBlockDecoder.readBlocks()
 		self.classDataMap	= try readBlockDecoder.classDataMap()
 		self.classNameMap	= classNameMap
 		self.keyStringMap	= try readBlockDecoder.keyStringMap()
-		self.dumpOptions	= options
-	}
-
-	func dump() -> String {
-		let encoderDump	= EncodeDump(
-			fileHeader:			fileHeader,
-			dumpOptions:		dumpOptions,
-			fileSize: 			fileSize
-		)
-		encoderDump.delegate	= self
-		readBlocks.forEach {
-			encoderDump.append($0.fileBlock, binaryValue: nil)
-		}
-		if dumpOptions.contains( .showFlattenedBody ) {
-			do {
-				let (rootElement,elementMap)	= try FlattenedElement.rootElement(
-					readBlocks:	readBlocks,
-					keyStringMap:	keyStringMap,
-					reverse:		true
-				)
-				let string = rootElement.dump(
-					elementMap:		elementMap,
-					classDataMap:	classDataMap,
-					keyStringMap:	keyStringMap,
-					options: 		dumpOptions
-				)
-				encoderDump.append( string )
-			} catch {
-				encoderDump.append( "Error generating FLATTENED BODY" )
-				encoderDump.append( "\(error)" )
-			}
-		}
-		return encoderDump.dump()
+		self.options		= options
 	}
 	
 	var referenceMapDescription: String? {
@@ -89,21 +66,21 @@ final class DecodeDump: EncodeFileBlocksDelegate {
 		}
 
 		var string		= ""
-		let qualified	= dumpOptions.contains( .qualifiedNamesInConstructionMap )
+		let qualified	= options.contains( .qualifiedNamesInConstructionMap )
 		
 		let classInfoMap	= ClassInfo.classInfoMapNoThrow(
 			classDataMap: classDataMap, classNameMap: classNameMap
 		)
 		
 		if classInfoMap.isEmpty == false,
-		   dumpOptions.contains( .onlyUndecodableClassesInConstructionMap ) == false
+		   options.contains( .onlyUndecodableClassesInConstructionMap ) == false
 		{
 			string.append( "Encoded class types will be decoded as:" )
 			do {
 				let couples	: [(TypeID,any GDecodable.Type)] = classInfoMap.map {
 					($0.key, $0.value.decodedType)
 				}
-				if dumpOptions.contains( .hideTypeIDsInConstructionMap ) {
+				if options.contains( .hideTypeIDsInConstructionMap ) {
 					string = couples.sorted { name( $0.1 ) < name( $1.1 ) }.reduce(into: string) {
 						$0.append( "\n- \( typeString($1.1) )" )
 					}
@@ -123,7 +100,7 @@ final class DecodeDump: EncodeFileBlocksDelegate {
 				}
 				if couples.isEmpty == false {
 					string.append( "\nwhere:" )
-					if dumpOptions.contains( .hideTypeIDsInConstructionMap ) {
+					if options.contains( .hideTypeIDsInConstructionMap ) {
 						string = couples.sorted { name( $0.1 ) < name( $1.1 ) }.reduce(into: string) {
 							$0.append( "\n- the encoded \( typeString($1.1) )")
 							$0.append( "\n  was replaced by \( typeString($1.1.decodeType) )" )
@@ -146,17 +123,17 @@ final class DecodeDump: EncodeFileBlocksDelegate {
 		if undecodableClassDataMap.isEmpty == false {
 			//	let undecodables	= undecodableClassDataMap.values
 			string.append( "Undecodable encoded classes:" )
-			if dumpOptions.contains( .hideTypeIDsInConstructionMap ) {
+			if options.contains( .hideTypeIDsInConstructionMap ) {
 				string = undecodableClassDataMap.sorted { $0.1.qualifiedName < $1.1.qualifiedName }.reduce(into: string) {
 					$0.append( "\n- class  \( $1.1.qualifiedName )")
-					if dumpOptions.contains( .showMangledNames ) {
+					if options.contains( .showMangledNames ) {
 						$0.append( "\n\t  mangledName = \( $1.1.mangledName )" )
 					}
 				}
 			} else {
 				string = undecodableClassDataMap.sorted { $0.0.id < $1.0.id }.reduce(into: string) {
 					$0.append( "\n\t- class  \( $1.1.qualifiedName )")
-					if dumpOptions.contains( .showMangledNames ) {
+					if options.contains( .showMangledNames ) {
 						$0.append( "\n\t  mangledName = \( $1.1.mangledName )" )
 					}
 				}
@@ -167,4 +144,4 @@ final class DecodeDump: EncodeFileBlocksDelegate {
 		return string
 	}
 }
-
+*/

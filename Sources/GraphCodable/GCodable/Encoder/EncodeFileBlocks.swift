@@ -31,7 +31,7 @@ protocol EncodeFileBlocksDelegate : AnyObject {
 extension EncodeFileBlocksDelegate {
 	var referenceMapDescription: String? { nil }
 }
- 
+
 protocol EncodeFileBlocks : AnyObject {
 	var delegate	: (any EncodeFileBlocksDelegate)? { get set }
 	

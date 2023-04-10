@@ -7,7 +7,7 @@
 
 import Foundation
 
-final class GEncoderImplNew {
+struct GEncoderImplNew {
 	var userInfo							= [String:Any]()
 	private let 		encodeOptions		: GraphEncoder.Options
 	let 				userVersion			: UInt32
