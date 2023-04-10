@@ -32,21 +32,19 @@ final class GDecoderImpl {
 		self.archiveIdentifier	= archiveIdentifier
 	}
 	
-	private func ioDecoder<Q>( from data: Q ) throws -> BinaryIODecoder
-	where Q:DataProtocol {
+	private func ioDecoder( from data: some DataProtocol ) throws -> BinaryIODecoder {
 		try BinaryIODecoder(data: data, archiveIdentifier:archiveIdentifier, userData:self )
 	}
 	
-	func allClassData<Q>( from data: Q ) throws -> [ClassData]
-	where Q:DataProtocol {
+	func allClassData( from data: some DataProtocol ) throws -> [ClassData] {
 		let ioDecoder 		= try ioDecoder(from: data)
 		let decodedNames	= try DecodeClassNames(from: ioDecoder)
 
 		return Array( decodedNames.classDataMap.values )
 	}
 	
-	func decodeRoot<T,Q>( _ type: T.Type, from data: Q ) throws -> T
-	where T:GDecodable, Q:DataProtocol {
+	func decodeRoot<T>( _ type: T.Type, from data: some DataProtocol ) throws -> T
+	where T:GDecodable {
 		defer { constructor = nil }
 		
 		let ioDecoder 	= try ioDecoder(from: data)
@@ -55,16 +53,14 @@ final class GDecoderImpl {
 		return try constructor.decodeRoot(type, from: self)
 	}
 	
-	func dumpRoot<Q>( from data: Q, options: GraphDumpOptions ) throws -> String
-	where Q:DataProtocol {
+	func dumpRoot( from data: some DataProtocol, options: GraphDumpOptions ) throws -> String {
 		let ioDecoder 	= try ioDecoder(from: data)
 		let decodedDump	= try DecodeDump(from: ioDecoder, classNameMap:classNameMap, options: options)
 		
 		return decodedDump.dump()
 	}
 	
-	func encodedArchiveIdentifier<Q>( from data: Q ) throws -> String?
-	where Q:DataProtocol {
+	func encodedArchiveIdentifier( from data: some DataProtocol ) throws -> String? {
 		let ioDecoder 	= try ioDecoder(from: data)
 		return ioDecoder.encodedArchiveIdentifier
 	}

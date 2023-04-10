@@ -72,7 +72,7 @@ public final class GraphEncoder {
 	/// - Returns: the encoded data in a native binary format.
 	///	- Note: The root value must conform to the `GEncodable` protocol.
 	///	- Note: You must specify buffer type (typically `Data` or `Bytes = [UInt8]`).
-	public func encode<T,Q>( _ value: T ) throws -> Q where T:GEncodable, Q:MutableDataProtocol {
+	public func encode<Q>( _ value: some GEncodable ) throws -> Q where Q:MutableDataProtocol {
 		try encoder.encodeRoot( value )
 	}
 	
@@ -89,7 +89,7 @@ public final class GraphEncoder {
 	/// by the `encode(...)` function.
 	///	- Note: The root value must conform to the `GEncodable` protocol.
 	///	- Note: The generated string cannot be used for decoding.
-	public func dump<T>( _ value: T, options: GraphDumpOptions = .readable ) throws -> String where T:GEncodable {
+	public func dump( _ value: some GEncodable, options: GraphDumpOptions = .readable ) throws -> String {
 		try encoder.dumpRoot( value, options:options )
 	}
 }

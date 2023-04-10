@@ -197,9 +197,6 @@ public extension GDecoder {
 	///
 	/// - Note: Just as encoding a variable appends it to the encoder,
 	/// decoding it removes it from the decoder.
-	/// - Warning: Use **only** with values encoded with `encodeIfPresent(...)`
-	/// methods. Don't use with values encoded with `encode(...)` or
-	/// `encodeConditional(...)` methods.
 	/// - parameter type: The decoded value type.
 	/// - parameter key: The key that the decoded value is associated with.
 	/// - returns: A decoded value of the requested type, or `nil` if the
@@ -207,7 +204,7 @@ public extension GDecoder {
 	///   the value is a null value.
 	func decodeIfPresent<Key, Value>(_ type:Value.Type, for key: Key) throws -> Value? where
 		Key : RawRepresentable, Value : GDecodable, Key.RawValue == String {
-		contains(key) ? try decode( type, for: key) : nil
+			contains(key) ? try decode( Optional<Value>.self, for: key) : nil
 	}
 	
 	/// Decodes a value/reference of the given type for the given key, if present.
@@ -218,9 +215,6 @@ public extension GDecoder {
 	///
 	/// - Note: Just as encoding a variable appends it to the encoder,
 	/// decoding it removes it from the decoder.
-	/// - Warning: Use **only** with values encoded with `encodeIfPresent(...)`
-	/// methods. Don't use with values encoded with `encode(...)` or
-	/// `encodeConditional(...)` methods.
 	/// - parameter key: The key that the decoded value is associated with.
 	/// - returns: A decoded value of the requested type, or `nil` if the
 	///   `Decoder` does not have an entry associated with the given key, or if
@@ -244,15 +238,12 @@ public extension GDecoder {
 	///		}
 	/// - Note: Just as encoding a variable appends it to the encoder,
 	/// decoding it removes it from the decoder.
-	/// - Warning: Use **only** with values encoded with `encodeIfPresent(...)`
-	/// methods. Don't use with values encoded with `encode(...)` or
-	/// `encodeConditional(...)` methods.
 	/// - parameter type: The decoded value type.
 	/// - parameter key: The key that the decoded reference is associated with.
 	/// - parameter setter: A closure to which the required value is provided.
-	func deferDecodeIfPresent<Key, Value>( _ type:Value.Type, for key: Key, _ setter: @escaping (Value) -> ()) throws where
+	func deferDecodeIfPresent<Key, Value>( _ type:Value.Type, for key: Key, _ setter: @escaping (Value?) -> ()) throws where
 	Key : RawRepresentable, Value : GDecodable, Key.RawValue == String {
-		if contains(key) { try deferDecode( type, for: key, setter ) }
+		if contains(key) { try deferDecode( Optional<Value>.self, for: key, setter ) }
 	}
 
 	/// Decodes a value/reference of the given type for the given key when it
@@ -269,12 +260,9 @@ public extension GDecoder {
 	///		}
 	/// - Note: Just as encoding a variable appends it to the encoder,
 	/// decoding it removes it from the decoder.
-	/// - Warning: Use **only** with values encoded with `encodeIfPresent(...)`
-	/// methods. Don't use with values encoded with `encode(...)` or
-	/// `encodeConditional(...)` methods.
 	/// - parameter key: The key that the decoded reference is associated with.
 	/// - parameter setter: A closure to which the required value is provided.
-	func deferDecodeIfPresent<Key, Value>( for key: Key, _ setter: @escaping (Value) -> ()) throws where
+	func deferDecodeIfPresent<Key, Value>( for key: Key, _ setter: @escaping (Value?) -> ()) throws where
 	Key : RawRepresentable, Value : GDecodable, Key.RawValue == String {
 		try deferDecodeIfPresent( Value.self, for: key, setter )
 	}

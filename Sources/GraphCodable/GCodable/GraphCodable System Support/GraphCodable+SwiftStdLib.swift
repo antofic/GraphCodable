@@ -81,14 +81,12 @@ extension Never 	: GPackable {}
 
 
 extension Optional: GEncodable where Wrapped: GEncodable {
-	public var _optional : (any GEncodable)? {
+	public var _optionalWrappedValue : (any GEncodable)? {
 		switch self {
 			case .none: return nil
-			case .some( let value ): return value._optional
+			case .some( let value ): return value._optionalWrappedValue
 		}
 	}
-
-	
 	//	The encoder always unwraps optional values
 	//	and so this function is never called.
 	public func encode(to encoder: some GEncoder) throws {
@@ -101,8 +99,8 @@ extension Optional: GEncodable where Wrapped: GEncodable {
 }
 
 extension Optional: GDecodable where Wrapped: GDecodable {
-	public static var _wrappedType	: any GDecodable.Type {
-		Wrapped.self._wrappedType
+	public static var _fullWrappedType : any GDecodable.Type {
+		Wrapped.self._fullWrappedType
 	}
 	
 	//	The encoder always unwraps optional values
@@ -119,8 +117,6 @@ extension Optional: GDecodable where Wrapped: GDecodable {
 extension Optional: GBinaryEncodable where Wrapped: GBinaryEncodable {}
 extension Optional: GBinaryDecodable where Wrapped: GBinaryDecodable {}
 extension Optional: GPackable where Wrapped: GPackable {}
-
-
 
 //	RawRepresentable SUPPORT ------------------------------------------------------
 

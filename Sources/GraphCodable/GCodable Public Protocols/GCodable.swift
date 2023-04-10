@@ -65,7 +65,8 @@ public protocol GEncodable {
 	/// inheritance and their type name is never archived
 	var inheritanceEnabled : Bool { get }
 	
-	var _optional : (any GEncodable)? { get }
+	/// Reserved for package use.
+	var _optionalWrappedValue : (any GEncodable)? { get }
 }
 
 extension GEncodable {
@@ -74,7 +75,8 @@ extension GEncodable {
 	/// No inheritance for all types
 	public var inheritanceEnabled : Bool { false }
 	
-	public var _optional : (any GEncodable)? { self }
+	/// Reserved for package use.
+	public var _optionalWrappedValue : (any GEncodable)? { self }
 }
 
 extension GEncodable where Self:AnyObject {
@@ -107,13 +109,16 @@ public protocol GDecodable {
 	/// - returns: The class that replaces `Self` (`Self.self` by default).
 	static var decodeType : any GDecodable.Type { get }
 	
-	static var _wrappedType	: any GDecodable.Type { get }
+	/// Reserved for package use.
+	static var _fullWrappedType	: any GDecodable.Type { get }
 }
 
 extension GDecodable {
 	/// Default decodeType = `Self.self`
 	public static var decodeType : any GDecodable.Type { Self.self }
-	public static var _wrappedType : any GDecodable.Type { Self.self }
+
+	/// Reserved for package use.
+	public static var _fullWrappedType : any GDecodable.Type { Self.self }
 }
 
 /// A type that can be encoded from in-memory representations

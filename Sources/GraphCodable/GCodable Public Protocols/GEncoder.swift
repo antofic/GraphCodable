@@ -64,8 +64,6 @@ public protocol GEncoder {
 	/// unconditionally elsewhere in the payload (previously, or in the future).
 	/// Throws an exception if the value don't have an identity.
 	///
-	/// Warning: To decode values conditionally encoded use `decode(...)`
-	/// methods. Don't use `decodeIfPresent(...)` methods
 	/// - parameter value: The optional value to encode.
 	/// - parameter key: The key to associate the object with.
 	func encodeConditional<Key,Value>(_ value: Value? , for key:Key ) throws where
@@ -89,8 +87,6 @@ public protocol GEncoder {
 	/// unconditionally elsewhere in the payload (previously, or in the future).
 	/// Throws an exception if the value don't have an identity.
 	///
-	/// Warning: To decode values conditionally encoded use `decode(...)`
-	/// methods. Don't use `decodeIfPresent(...)` methods
 	/// - parameter value: The optional value to encode.
 	func encodeConditional<Value>(_ value: Value? ) throws where
 		Value : GEncodable

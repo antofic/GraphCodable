@@ -105,7 +105,7 @@ final class GEncoderImpl : EncodeFileBlocksDelegate {
 		return (ioEncoder,fileHeader)
 	}
 	
-	func encodeRoot<T,Q>( _ value: T ) throws -> Q where T:GEncodable, Q:MutableDataProtocol {
+	func encodeRoot<Q>( _ value: some GEncodable ) throws -> Q where Q:MutableDataProtocol {
 		defer { self.blockEncoder = nil }
 		
 		let (ioEncoder,fileHeader)	= ioEncoderAndHeader()
@@ -119,7 +119,7 @@ final class GEncoderImpl : EncodeFileBlocksDelegate {
 		return try blockEncoder.output()
 	}
 	
-	func dumpRoot<T>( _ value: T, options: GraphDumpOptions ) throws -> String where T:GEncodable {
+	func dumpRoot( _ value: some GEncodable, options: GraphDumpOptions ) throws -> String {
 		defer { self.blockEncoder = nil }
 		
 		let (_,fileHeader)	= ioEncoderAndHeader()
@@ -159,20 +159,14 @@ extension GEncoderImpl : GEncoder, GEncoderView {
 
 // MARK: GEncoderImpl private section
 extension GEncoderImpl {
-
-	private func level1_encodeValue(_ possiblyManyLevelOptionalValue: some GEncodable, keyID: KeyID?, conditional:Bool ) throws {
-		//	possiblyManyLevelOptionalValue can really be a value, an Optional(value), an Optional(Optional(value)), etc…
-		//	Optional(fullUnwrapping:_) turns anyValue into an one-level Optional(value)
-		//	let optionalValue	= Optional(fullUnwrapping: possiblyManyLevelOptionalValue) as! (any GEncodable)?
-	
-		if let value = possiblyManyLevelOptionalValue._optional {
+	private func level1_encodeValue(_ value: some GEncodable, keyID: KeyID?, conditional:Bool ) throws {
+		if let value = value._optionalWrappedValue {
 			try level2_encodeValue( value, keyID: keyID, conditional:conditional )
 		} else {
 			// if value is nil, encode nil and return
 			try blockEncoder.appendNil(keyID: keyID)
 		}
 	}
-	
 	
 	private func level2_encodeValue(_ value: some GEncodable, keyID: KeyID?, conditional:Bool ) throws {
 		// now value is not nil
