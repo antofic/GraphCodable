@@ -39,5 +39,4 @@ struct ReferenceMap {
 			return currentId
 		}
 	}
-
 }
