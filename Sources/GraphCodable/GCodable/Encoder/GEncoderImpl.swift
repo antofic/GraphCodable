@@ -168,8 +168,9 @@ extension GEncoderImpl : GEncoder, GEncoderView {
 
 // MARK: GEncoderImpl private section
 extension GEncoderImpl {
-	private func level1_encodeValue<T:GEncodable>(_ possiblyManyLevelOptionalValue: T, keyID: KeyID?, conditional:Bool ) throws {
-		//	anyValue can really be a value, an Optional(value), an Optional(Optional(value)), etc…
+
+	private func level1_encodeValue(_ possiblyManyLevelOptionalValue: some GEncodable, keyID: KeyID?, conditional:Bool ) throws {
+		//	possiblyManyLevelOptionalValue can really be a value, an Optional(value), an Optional(Optional(value)), etc…
 		//	Optional(fullUnwrapping:_) turns anyValue into an one-level Optional(value)
 		let optionalValue	= Optional(fullUnwrapping: possiblyManyLevelOptionalValue) as! (any GEncodable)?
 	
@@ -180,8 +181,8 @@ extension GEncoderImpl {
 			try blockEncoder.appendNil(keyID: keyID)
 		}
 	}
-	
-	private func level2_encodeValue<T:GEncodable>(_ value: T, keyID: KeyID?, conditional:Bool ) throws {
+
+	private func level2_encodeValue(_ value: some GEncodable, keyID: KeyID?, conditional:Bool ) throws {
 		// now value is not nil
 		if let trivialValue = value as? any GPackEncodable {
 			if encodeOptions.contains( .printWarnings ) {
@@ -241,7 +242,7 @@ extension GEncoderImpl {
 		}
 	}
 
-	private func level3_encodeValue<T:GEncodable>( _ value:T ) throws {
+	private func level3_encodeValue( _ value:some GEncodable ) throws {
 		let savedKeys	= currentKeys
 		defer { currentKeys = savedKeys }
 		currentKeys.removeAll()
@@ -249,7 +250,7 @@ extension GEncoderImpl {
 		try value.encode(to: self)
 	}
 	
-	private func identity<T:GEncodable>( of value:T ) -> Identity? {
+	private func identity( of value:some GEncodable ) -> Identity? {
 		if encodeOptions.contains( .disableIdentity ) {
 			return nil
 		}
@@ -289,7 +290,7 @@ extension GEncoderImpl {
 		return keyMap.createKeyIDIfNeeded(key: key)
 	}
 
-	private func createTypeIDIfNeeded<T:GEncodable>( for value:T ) throws -> TypeID? {
+	private func createTypeIDIfNeeded( for value:some GEncodable ) throws -> TypeID? {
 		guard
 			!encodeOptions.contains( .disableInheritance ),
 			value.inheritanceEnabled,
@@ -300,7 +301,7 @@ extension GEncoderImpl {
 	}
 
 	
-	private func throwIfNotConstructible<T:GEncodable>( typeOf value:T ) throws {
+	private func throwIfNotConstructible( typeOf value:some GEncodable ) throws {
 		if	!encodeOptions.contains( .disableInheritance ),
 			value.inheritanceEnabled,
 			let object = value as? any (AnyObject & GEncodable) {

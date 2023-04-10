@@ -72,6 +72,7 @@ extension EncoderProtocol {
 
 // MARK: GEncoderProtocol private methods
 extension EncoderProtocol {
+
 	private func level1_encodeValue<T:GEncodable>(_ possiblyManyLevelOptionalValue: T, keyID: KeyID?, conditional:Bool ) throws {
 		//	anyValue can really be a value, an Optional(value), an Optional(Optional(value)), etc…
 		//	Optional(fullUnwrapping:_) turns anyValue into an one-level Optional(value)
@@ -84,7 +85,7 @@ extension EncoderProtocol {
 			try appendNil(keyID: keyID)
 		}
 	}
-	
+
 	private func level2_encodeValue<T:GEncodable>(_ value: T, keyID: KeyID?, conditional:Bool ) throws {
 		// now value is not nil
 		if let trivialValue = value as? any GPackEncodable {

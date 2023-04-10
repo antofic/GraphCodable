@@ -226,6 +226,9 @@ extension TypeConstructor {
 
 // MARK: TypeConstructor private level 3
 extension TypeConstructor {
+	
+	
+	
 	private func decodeValue<T,D>( type:T.Type, element:FlattenedElement, from decoder:D ) throws -> T
 	where T:GDecodable, D:GDecoder {
 		let saved	= currentElement
@@ -290,6 +293,57 @@ extension TypeConstructor {
 		 
 		return value
 	}
+	
+/*
+	private func decodeValue<T,D>( type:T.Type, element:FlattenedElement, from decoder:D ) throws -> T
+	where T:GDecodable, D:GDecoder {
+		let saved	= currentElement
+		defer { currentElement = saved }
+		currentElement	= element
+		
+		return try T.init(from: decoder)
+	}
+
+	private func decodeBinValue<T,D>( type:T.Type, element:FlattenedElement, from decoder:D ) throws -> T
+	where T:GDecodable, D:GDecoder {
+		let saved	= currentElement
+		defer { currentElement = saved }
+		currentElement	= element
+		
+		/*
+		let wrapped : Any.Type
+		
+		if let optType = T.self as? any OptionalProtocol.Type {
+			// get the inner non optional type
+			wrapped	= optType.fullUnwrappedType
+		} else {
+			wrapped	= T.self
+		}
+		 */
+		 
+		guard let binaryIType = T.self as? any BDecodable.Type else {
+			throw GraphCodableError.malformedArchive(
+				Self.self, GraphCodableError.Context(
+					debugDescription: "\(element) wrapped type \(T.self) is not a BDecodable."
+				)
+			)
+		}
+	
+		guard let value = try ioDecoder.withinRegion(
+			range: 		element.readBlock.binaryIORegionRange,
+			decodeFunc:	{ try $0.decode( binaryIType.self ) }
+		) as? T else {
+			throw GraphCodableError.malformedArchive(
+				Self.self, GraphCodableError.Context(
+					debugDescription: "\(element) decoded type is not a \(T.self) type."
+				)
+			)
+		}
+		 
+		return value
+	}
+*/
+	
 	
 	private func decodeRefOrBinRef<T,D>( type:T.Type, typeID:TypeID, isBinary: Bool, element:FlattenedElement, from decoder:D ) throws -> T
 	where T:GDecodable, D:GDecoder {

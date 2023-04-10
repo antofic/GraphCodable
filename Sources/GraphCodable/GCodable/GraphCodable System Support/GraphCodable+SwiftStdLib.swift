@@ -78,6 +78,8 @@ extension Never 	: GBinaryDecodable {}
 extension Never 	: GPackable {}
 
 //	Optional SUPPORT ------------------------------------------------------
+
+
 extension Optional: GEncodable where Wrapped: GEncodable {
 	//	The encoder always unwraps optional values
 	//	and so this function is never called.
@@ -102,9 +104,38 @@ extension Optional: GDecodable where Wrapped: GDecodable {
 	}
 }
 
+/*
+extension Optional: GEncodable where Wrapped: GEncodable {
+	public func encode(to encoder: some GEncoder) throws {
+		switch self {
+			case .none: break
+			case .some( let value ): try encoder.encode( value )
+		}
+	}
+}
+
+extension Optional: GDecodable where Wrapped: GDecodable {
+	public init(from decoder: some GDecoder) throws {
+		switch decoder.unkeyedCount {
+			case 0: self = .none
+			case 1: self = .some( try decoder.decode() )
+			default:
+				throw GraphCodableError.internalInconsistency(
+					Self.self, GraphCodableError.Context(
+						debugDescription: "Invalid Optional."
+					)
+				)
+		}
+	}
+}
+*/
+
+
 extension Optional: GBinaryEncodable where Wrapped: GBinaryEncodable {}
 extension Optional: GBinaryDecodable where Wrapped: GBinaryDecodable {}
 extension Optional: GPackable where Wrapped: GPackable {}
+
+
 
 //	RawRepresentable SUPPORT ------------------------------------------------------
 
