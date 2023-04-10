@@ -28,15 +28,14 @@ import Foundation
 //	to compress them.
 //	Note: this will make written BinSize data variable in size
 
-
-protocol UIntID: Hashable, BCodable, CustomStringConvertible {
+protocol UnsignedID: Hashable, BCodable, CustomStringConvertible {
 	associatedtype uID : FixedWidthInteger & UnsignedInteger & BCodable
 	
 	init( _ id:uID )
 	var id : uID { get }
 }
 
-extension UIntID {
+extension UnsignedID {
 	init() {
 		self.init( 1 )
 	}
@@ -58,35 +57,20 @@ extension UIntID {
 	}
 }
 
-//	We use three distinct structures so as not to run
-//	the risk of confusing them.
-struct IdnID : UIntID {
-	
+///	An unique id for value/reference identity
+struct IdnID : UnsignedID {
 	let id: UInt32
 	init(_ id: UInt32) { self.id = id }
 }
 
-struct KeyID : UIntID {
+///	An unique id for a field key
+struct KeyID : UnsignedID {
 	let id: UInt32
 	init(_ id: UInt32) { self.id = id }
 }
 
-struct RefID : UIntID {
+///	An unique id for reference inheritance
+struct RefID : UnsignedID {
 	let id: UInt32
 	init(_ id: UInt32) { self.id = id }
-}
-
-struct BinSize: Equatable, BCodable {
-	let size	: Int
-	
-	init(_ size: Int)	{ self.size = size }
-	init() { size = -1 }
-
-	func encode(to encoder: inout some BEncoder) throws {
-		try encoder.encode( size )
-	}
-	
-	init(from decoder: inout some BDecoder) throws {
-		size = try decoder.decode()
-	}
 }

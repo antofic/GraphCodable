@@ -80,7 +80,6 @@ enum FileBlock {	// size = 32 bytes
 		var hasIdnID		: Bool { self.contains( Self.hasIdnID ) }
 		var hasRefID		: Bool { self.contains( Self.hasRefID ) }
 		var isConditional	: Bool { self.contains( Self.conditional ) }
-//		var isBinary		: Bool { self.contains( Self.isBinary ) }
 
 		//	-----------------------------------------------------------------------
 		//	keyID == nil	fileBlock is an unkeyed field of its parent value
@@ -136,7 +135,7 @@ enum FileBlock {	// size = 32 bytes
 	//	VAL<idnID?>, REF<idnID?>
 	case Val( keyID:KeyID?, idnID:IdnID?, refID:RefID? )
 	//	BIV<idnID?>, BIR<idnID?>
-	case Bin( keyID:KeyID?, idnID:IdnID?, refID:RefID?, binSize:BinSize )
+	case Bin( keyID:KeyID?, idnID:IdnID?, refID:RefID?, binSize:Int )
 }
 
 
@@ -153,7 +152,7 @@ extension FileBlock {
 
 	var binarySize : Int {
 		switch self {
-		case .Bin( _, _ , _ , let binSize ):	return	binSize.size
+		case .Bin( _, _ , _ , let binSize ):	return	binSize
 			default:	return 0
 		}
 	}
@@ -219,7 +218,7 @@ extension FileBlock {
 			//	to reduce performance I don't like it.
 			try encoder.insert(
 				firstEncode: 		{ try $0.encode( binaryValue ) },
-				thenInsertInFront:	{ try $0.encode( BinSize( $1 ) ) }
+				thenInsertInFront:	{ try $0.encode( $1 ) }
 			)
 		} else {
 			//	we write a bogus binSize = BinSize(), write the data and when
@@ -227,9 +226,9 @@ extension FileBlock {
 			//	size, so we can't allow BinaryIO to pack BinSize.
 			//	Result: slightly larger files.
 			try encoder.prepend(
-				dummyEncode: 		{ try $0.encode( BinSize() ) },
+				dummyEncode: 		{ try $0.encode( 0 ) },
 				thenEncode: 		{ try $0.encode( binaryValue ) },
-				thenOverwriteDummy:	{ try $0.encode( BinSize( $1 ) ) }
+				thenOverwriteDummy:	{ try $0.encode( $1 ) }
 			)
 		}
 	}
@@ -237,7 +236,7 @@ extension FileBlock {
 
 extension FileBlock {
 	init(from decoder: inout BinaryIODecoder, fileHeader:FileHeader ) throws {
-		func decodeBinSize( _ decoder: inout BinaryIODecoder ) throws -> BinSize {
+		func decodeBinSize( _ decoder: inout BinaryIODecoder ) throws -> Int {
 			if fileHeader.gcoadableFlags.contains( .useBinaryIOInsert ) {
 				return try decoder.decode()
 			} else {
@@ -356,8 +355,8 @@ extension FileBlock : CustomStringConvertible {
 				if let refID	{ string.append( " \( typeName( refID,options,classDataMap ) )") }
 				if let binaryValue {
 					string.append( " \( small( binaryValue, options ) )")
-				} else if binSize != BinSize() {
-					string.append( " { \(binSize.size) bytes }")
+				} else if binSize >= 0 {
+					string.append( " { \(binSize) bytes }")
 				}
 		}
 		return string

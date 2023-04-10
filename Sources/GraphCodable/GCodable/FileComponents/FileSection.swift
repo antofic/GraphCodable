@@ -22,7 +22,9 @@ import Foundation
 //	B) sectionMap: a dictionary contains the range of the related section (C, D, E) in the file
 //	C) fileBlocks: an array of FileBlock's
 //		A Fileblock stores in binary:
-//			• a value/reference (.Val)
+//			• a GEncodable value/reference (.Val)
+//		or:
+//			• a GBinary/PackEncodable value/reference (.Bin)
 //		or:
 //			• a pointer (.Ptr), strong or conditional, to a value/reference with identity
 //		or:

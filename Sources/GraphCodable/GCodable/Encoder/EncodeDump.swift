@@ -95,7 +95,7 @@ final class EncodeDump : EncodeFileBlocks {
 	}
 
 	func appendBin<T:BEncodable>( keyID:KeyID?, refID:RefID?, idnID:IdnID?, binaryValue: T ) throws {
-		append( .Bin(keyID: keyID, idnID:idnID, refID:refID, binSize: BinSize() ), binaryValue:binaryValue  )
+		append( .Bin(keyID: keyID, idnID:idnID, refID:refID, binSize: 0 ), binaryValue:binaryValue  )
 	}
 
 	// FileBlockEncoder protocol end
