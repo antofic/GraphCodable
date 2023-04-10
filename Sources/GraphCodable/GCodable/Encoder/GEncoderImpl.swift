@@ -27,9 +27,9 @@ import Foundation
 //	Encoder Structure:
 //		GraphEncoder	(public interface)
 //		⤷	GEncoderImpl : GEncoder, FileBlockEncoderDelegate
-//			⤷	AnyIdentifierMap	(ObjID → Identifier)
+//			⤷	AnyIdentifierMap	(IdnID → Identifier)
 //					• manage Identity
-//			⤷	ReferenceMap		(ObjectIdentifier → TypeID → ClassData )
+//			⤷	ReferenceMap		(ObjectIdentifier → RefID → ClassData )
 //					• manage Inheritance (reference types only)
 //			⤷	KeyMap				(KeyID ↔︎ keystring)
 //					• manage keystring (keyed encoding / KeyID==0 → unkeyed encoding)
@@ -176,38 +176,38 @@ extension GEncoderImpl {
 					print( "### Warning: can't conditionally encode the type '\( type(of:value) )' without identity. It will be encoded unconditionally." )
 				}
 			}
-			try blockEncoder.appendBin(keyID: keyID, typeID:nil, objID:nil, binaryValue: trivialValue )
+			try blockEncoder.appendBin(keyID: keyID, refID:nil, idnID:nil, binaryValue: trivialValue )
 		} else {
 			if let identity = identity( of:value ) {	// IDENTITY
-				if let objID = identityMap.strongID( for:identity ) {
+				if let idnID = identityMap.strongID( for:identity ) {
 					// already encoded value: we encode a pointer
-					try blockEncoder.appendPtr(keyID: keyID, objID: objID, conditional: conditional)
+					try blockEncoder.appendPtr(keyID: keyID, idnID: idnID, conditional: conditional)
 				} else if conditional {
 					// Anyway we check if the reference class can be constructed from its name
 					try throwIfNotConstructible( typeOf:value )
 
 					// conditional encoding: we encode only a pointer
-					let objID	= identityMap.createWeakID( for: identity )
-					try blockEncoder.appendPtr(keyID: keyID, objID: objID, conditional: conditional)
+					let idnID	= identityMap.createWeakID( for: identity )
+					try blockEncoder.appendPtr(keyID: keyID, idnID: idnID, conditional: conditional)
 				} else {
 					// not encoded value: we encode it
-					// INHERITANCE: only classes have a typeID (value typeID == nil)
-					let typeID	= try createTypeIDIfNeeded( for: value )
-					let objID	= identityMap.createStrongID( for: identity )
+					// INHERITANCE: only classes have a refID (value refID == nil)
+					let refID	= try createRefIDIfNeeded( for: value )
+					let idnID	= identityMap.createStrongID( for: identity )
 
 					if let binaryValue = value as? any GBinaryEncodable {
 						// BinaryEncodable type
-						try blockEncoder.appendBin(keyID: keyID, typeID: typeID, objID: objID, binaryValue: binaryValue)
+						try blockEncoder.appendBin(keyID: keyID, refID: refID, idnID: idnID, binaryValue: binaryValue)
 					} else {
 						// Encodable type
-						try blockEncoder.appendVal(keyID: keyID, typeID: typeID, objID: objID)
+						try blockEncoder.appendVal(keyID: keyID, refID: refID, idnID: idnID)
 						try level3_encodeValue( value )
 						try blockEncoder.appendEnd()
 					}
 				}
 			} else {	// NO IDENTITY
-				// INHERITANCE: only classes have a typeID != 0
-				let typeID	= try createTypeIDIfNeeded( for: value )
+				// INHERITANCE: only classes have a refID != 0
+				let refID	= try createRefIDIfNeeded( for: value )
 
 				if encodeOptions.contains( .printWarnings ) {
 					if conditional {
@@ -217,9 +217,9 @@ extension GEncoderImpl {
 				
 				if let binaryValue = value as? any GBinaryEncodable {
 					// BinaryEncodable type
-					try blockEncoder.appendBin(keyID: keyID, typeID: typeID, objID: nil, binaryValue: binaryValue)
+					try blockEncoder.appendBin(keyID: keyID, refID: refID, idnID: nil, binaryValue: binaryValue)
 				} else {
-					try blockEncoder.appendVal(keyID: keyID, typeID: typeID, objID: nil )
+					try blockEncoder.appendVal(keyID: keyID, refID: refID, idnID: nil )
 					try level3_encodeValue( value )
 					try blockEncoder.appendEnd()
 				}
@@ -275,14 +275,14 @@ extension GEncoderImpl {
 		return keyMap.createKeyIDIfNeeded(key: key)
 	}
 
-	private func createTypeIDIfNeeded( for value:some GEncodable ) throws -> TypeID? {
+	private func createRefIDIfNeeded( for value:some GEncodable ) throws -> RefID? {
 		guard
 			!encodeOptions.contains( .disableInheritance ),
 			value.inheritanceEnabled,
 			let object = value as? any (AnyObject & GEncodable) else {
 			return nil
 		}
-		return try referenceMap.createTypeIDIfNeeded( for: object )
+		return try referenceMap.createRefIDIfNeeded( for: object )
 	}
 
 	

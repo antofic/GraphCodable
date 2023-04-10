@@ -100,10 +100,10 @@ final class DecodeDump: EncodeFileBlocksDelegate {
 		{
 			string.append( "Encoded class types will be decoded as:" )
 			do {
-				let couples	: [(TypeID,any GDecodable.Type)] = classInfoMap.map {
+				let couples	: [(RefID,any GDecodable.Type)] = classInfoMap.map {
 					($0.key, $0.value.decodedType)
 				}
-				if dumpOptions.contains( .hideTypeIDsInConstructionMap ) {
+				if dumpOptions.contains( .hideRefIDsInConstructionMap ) {
 					string = couples.sorted { name( $0.1 ) < name( $1.1 ) }.reduce(into: string) {
 						$0.append( "\n- \( typeString($1.1) )" )
 					}
@@ -114,7 +114,7 @@ final class DecodeDump: EncodeFileBlocksDelegate {
 				}
 			}
 			do {
-				let couples	: [(TypeID,any (AnyObject & GDecodable).Type)] = classInfoMap.compactMap {
+				let couples	: [(RefID,any (AnyObject & GDecodable).Type)] = classInfoMap.compactMap {
 					if let replacedClass = $0.value.classData.replacedClass {
 						return ($0.key,replacedClass)
 					} else {
@@ -123,7 +123,7 @@ final class DecodeDump: EncodeFileBlocksDelegate {
 				}
 				if couples.isEmpty == false {
 					string.append( "\nwhere:" )
-					if dumpOptions.contains( .hideTypeIDsInConstructionMap ) {
+					if dumpOptions.contains( .hideRefIDsInConstructionMap ) {
 						string = couples.sorted { name( $0.1 ) < name( $1.1 ) }.reduce(into: string) {
 							$0.append( "\n- the encoded \( typeString($1.1) )")
 							$0.append( "\n  was replaced by \( typeString($1.1.decodeType) )" )
@@ -146,7 +146,7 @@ final class DecodeDump: EncodeFileBlocksDelegate {
 		if undecodableClassDataMap.isEmpty == false {
 			//	let undecodables	= undecodableClassDataMap.values
 			string.append( "Undecodable encoded classes:" )
-			if dumpOptions.contains( .hideTypeIDsInConstructionMap ) {
+			if dumpOptions.contains( .hideRefIDsInConstructionMap ) {
 				string = undecodableClassDataMap.sorted { $0.1.qualifiedName < $1.1.qualifiedName }.reduce(into: string) {
 					$0.append( "\n- class  \( $1.1.qualifiedName )")
 					if dumpOptions.contains( .showMangledNames ) {

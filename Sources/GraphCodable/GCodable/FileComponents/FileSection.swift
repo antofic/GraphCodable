@@ -29,7 +29,7 @@ import Foundation
 //			• a token (.Nil) when Optional.none is encountered
 //		or:
 //			• a token (.end) when all fields of a type are encoded
-//	D) classDataMap: a dictionary [typeID: ClassData]
+//	D) classDataMap: a dictionary [refID: ClassData]
 //		ClassData contains the information needed to construct reference types
 //		from the type name to support inheritance
 //	E) keyStringMap: a dictionary [keyID: keystring]
@@ -43,6 +43,6 @@ enum FileSection : UInt16, CaseIterable, BCodable {
 
 typealias SectionMap		= [FileSection : Range<Int>]
 typealias FileBlocks		= [FileBlock]
-typealias ClassDataMap		= [TypeID : ClassData]
+typealias ClassDataMap		= [RefID : ClassData]
 typealias KeyStringMap		= [KeyID : String]
 

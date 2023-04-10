@@ -22,11 +22,11 @@
 
 import Foundation
 
-typealias ElementMap = [ObjID : FlattenedElement]
+typealias ElementMap = [IdnID : FlattenedElement]
 
 /// Decoding Pass 2
 ///
-///	Reorder ReadBlock's in a `rootElement` and a `ElementMap = [objID : FlattenedElement]`
+///	Reorder ReadBlock's in a `rootElement` and a `ElementMap = [idnID : FlattenedElement]`
 ///	dictionary to allow decoding of every acyclic graphs without requiring deferDecode
 final class FlattenedElement {
 	private weak var	parentElement 	: FlattenedElement?
@@ -91,10 +91,10 @@ extension FlattenedElement {
 	) throws where T:IteratorProtocol, T.Element == ReadBlock {
 		
 		switch element.readBlock.fileBlock {
-			case .Val( let keyID, let objID, _ ):
-				if let objID {
+			case .Val( let keyID, let idnID, _ ):
+				if let idnID {
 					//	l'oggetto non può già trovarsi nella map
-					guard map.index(forKey: objID) == nil else {
+					guard map.index(forKey: idnID) == nil else {
 						throw GraphCodableError.internalInconsistency(
 							Self.self, GraphCodableError.Context(
 								debugDescription: "Object \(element.readBlock) already exists."
@@ -104,9 +104,9 @@ extension FlattenedElement {
 					// creo un nuovo elemento con il readBlock
 					let root = FlattenedElement( readBlock: element.readBlock )
 					// in quello vecchio metto un puntatore al vecchio elemento
-					element.readBlock	= ReadBlock( with: .Ptr( keyID: keyID, objID: objID, conditional: false ), copying: element.readBlock )
+					element.readBlock	= ReadBlock( with: .Ptr( keyID: keyID, idnID: idnID, conditional: false ), copying: element.readBlock )
 					// metto il nuovo elelemnto nella mappa
-					map[ objID ]	= root
+					map[ idnID ]	= root
 					
 					try subFlatten(
 						elementMap: &map, parentElement:root, lineIterator:&lineIterator,
@@ -118,10 +118,10 @@ extension FlattenedElement {
 						keyStringMap:keyStringMap, reverse:reverse
 					)
 				}
-			case .Bin( let keyID, let objID, _, _ ):
-				if let objID {
+			case .Bin( let keyID, let idnID, _, _ ):
+				if let idnID {
 					//	l'oggetto non può già trovarsi nella map
-					guard map.index(forKey: objID) == nil else {
+					guard map.index(forKey: idnID) == nil else {
 						throw GraphCodableError.internalInconsistency(
 							Self.self, GraphCodableError.Context(
 								debugDescription: "Object \(element.readBlock) already exists."
@@ -131,9 +131,9 @@ extension FlattenedElement {
 					// creo un nuovo elemento con il readBlock
 					let root = FlattenedElement( readBlock: element.readBlock )
 					// in quello vecchio metto un puntatore al vecchio elemento
-					element.readBlock	= ReadBlock( with: .Ptr( keyID: keyID, objID: objID, conditional: false ), copying: element.readBlock )
+					element.readBlock	= ReadBlock( with: .Ptr( keyID: keyID, idnID: idnID, conditional: false ), copying: element.readBlock )
 					// metto il nuovo elelemnto nella mappa
-					map[ objID ]	= root
+					map[ idnID ]	= root
 				}
 				// ATT! NO subFlatten for BinValue's
 			default:

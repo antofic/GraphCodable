@@ -28,7 +28,7 @@ final class TypeConstructor {
 	private var			decodeBinary		: DecodeBinary
 	private (set) var 	currentElement 		: FlattenedElement
 	private (set) var 	currentInfo 		: ClassInfo?
-	private var			objectRepository 	= [ ObjID: any GDecodable ]()
+	private var			objectRepository 	= [ IdnID: any GDecodable ]()
 	private var			setterRepository 	= [ (_:TypeConstructor) throws -> () ]()
 	
 	var fileHeader : FileHeader { decodeBinary.fileHeader }
@@ -120,13 +120,13 @@ final class TypeConstructor {
 	func decode<T,D>( element:FlattenedElement, from decoder:D ) throws -> T
 	where T:GDecodable, D:GDecoder {
 		switch element.readBlock.fileBlock {
-			case .Val( _, let objID, let typeID ):
-				if objID == nil {
-					return try decode(type: T.self, typeID: typeID, isBinary: false, element: element, from: decoder)
+			case .Val( _, let idnID, let refID ):
+				if idnID == nil {
+					return try decode(type: T.self, refID: refID, isBinary: false, element: element, from: decoder)
 				}
-			case .Bin( _, let objID, let typeID, _ ):
-				if objID == nil {
-					return try decode(type: T.self, typeID: typeID, isBinary: true, element: element, from: decoder)
+			case .Bin( _, let idnID, let refID, _ ):
+				if idnID == nil {
+					return try decode(type: T.self, refID: refID, isBinary: true, element: element, from: decoder)
 				}
 				
 			default:
@@ -147,27 +147,27 @@ final class TypeConstructor {
 extension TypeConstructor {
 	private func decodeAny<T,D>( element:FlattenedElement, from decoder:D, type:T.Type ) throws -> Any
 	where T:GDecodable, D:GDecoder {
-		func decodeIdentifiable<D:GDecoder>( type:T.Type, objID:ObjID, from decoder:D ) throws -> (any GDecodable)? {
-			//	quando arriva la prima richiesta di un particolare oggetto (da objID)
+		func decodeIdentifiable<D:GDecoder>( type:T.Type, idnID:IdnID, from decoder:D ) throws -> (any GDecodable)? {
+			//	quando arriva la prima richiesta di un particolare oggetto (da idnID)
 			//	lo costruiamo (se esiste) e lo mettiamo nell'objectRepository in modo
 			//	che le richieste successive peschino di lì.
 			//	se l'oggetto non esiste (possibile, se memorizzato condizionalmente)
 			//	ritorniamo nil.
 			
-			if let object = objectRepository[ objID ] {
+			if let object = objectRepository[ idnID ] {
 				return object
-			} else if let element = decodeBinary.pop( objID: objID ) {
+			} else if let element = decodeBinary.pop( idnID: idnID ) {
 				switch element.readBlock.fileBlock {
-					case .Val( _, let objID, let typeID ):
-						if let objID {
-							let object	= try decode(type: T.self, typeID: typeID, isBinary: false, element: element, from: decoder)
-							objectRepository[ objID ]	= object
+					case .Val( _, let idnID, let refID ):
+						if let idnID {
+							let object	= try decode(type: T.self, refID: refID, isBinary: false, element: element, from: decoder)
+							objectRepository[ idnID ]	= object
 							return object
 						}
-					case .Bin( _, let objID, let typeID, _ ):
-						if let objID {
-							let object	= try decode(type: T.self, typeID: typeID, isBinary: true, element: element, from: decoder)
-							objectRepository[ objID ]	= object
+					case .Bin( _, let idnID, let refID, _ ):
+						if let idnID {
+							let object	= try decode(type: T.self, refID: refID, isBinary: true, element: element, from: decoder)
+							objectRepository[ idnID ]	= object
 							return object
 						}
 					default:
@@ -186,11 +186,11 @@ extension TypeConstructor {
 		switch element.readBlock.fileBlock {
 			case .Nil( _ ):
 				return Optional<Any>.none as Any
-			case .Ptr( _, let objID, let conditional ):
+			case .Ptr( _, let idnID, let conditional ):
 				if conditional {
-					return try decodeIdentifiable( type:T.self, objID:objID, from:decoder ) as Any
+					return try decodeIdentifiable( type:T.self, idnID:idnID, from:decoder ) as Any
 				} else {
-					guard let object = try decodeIdentifiable( type:T.self, objID:objID, from:decoder ) else {
+					guard let object = try decodeIdentifiable( type:T.self, idnID:idnID, from:decoder ) else {
 						throw GraphCodableError.possibleCyclicGraphDetected(
 							Self.self, GraphCodableError.Context(
 								debugDescription:
@@ -212,10 +212,10 @@ extension TypeConstructor {
 
 // MARK: TypeConstructor private level 2
 extension TypeConstructor {
-	private func decode<T,D>( type:T.Type, typeID:TypeID?, isBinary:Bool , element:FlattenedElement, from decoder:D ) throws -> T
+	private func decode<T,D>( type:T.Type, refID:RefID?, isBinary:Bool , element:FlattenedElement, from decoder:D ) throws -> T
 	where T:GDecodable, D:GDecoder {
-		if let typeID {
-			return try decodeRefOrBinRef( type:T.self, typeID:typeID , isBinary:isBinary, element:element, from: decoder )
+		if let refID {
+			return try decodeRefOrBinRef( type:T.self, refID:refID , isBinary:isBinary, element:element, from: decoder )
 		} else if isBinary {
 			return try decodeBinValue( type:T.self, element:element, from: decoder )
 		} else {
@@ -277,12 +277,12 @@ extension TypeConstructor {
 		return value
 	}
 
-	private func decodeRefOrBinRef<T,D>( type:T.Type, typeID:TypeID, isBinary: Bool, element:FlattenedElement, from decoder:D ) throws -> T
+	private func decodeRefOrBinRef<T,D>( type:T.Type, refID:RefID, isBinary: Bool, element:FlattenedElement, from decoder:D ) throws -> T
 	where T:GDecodable, D:GDecoder {
-		guard let classInfo = decodeBinary.classInfoMap[ typeID ] else {
+		guard let classInfo = decodeBinary.classInfoMap[ refID ] else {
 			throw GraphCodableError.internalInconsistency(
 				Self.self, GraphCodableError.Context(
-					debugDescription: "Type name not found for typeID \(typeID)."
+					debugDescription: "Type name not found for refID \(refID)."
 				)
 			)
 		}

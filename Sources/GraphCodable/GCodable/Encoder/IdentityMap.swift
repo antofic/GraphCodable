@@ -68,18 +68,18 @@ struct IdentityMap {
 	}
 	
 	private struct WeakToStrongTable<IDE:Hashable> {
-		private var	strongObjDict	= [IDE:ObjID]()
-		private var	weakObjDict		= [IDE:ObjID]()
+		private var	strongObjDict	= [IDE:IdnID]()
+		private var	weakObjDict		= [IDE:IdnID]()
 
-		func strongID( _ identifier: IDE ) -> ObjID? {
+		func strongID( _ identifier: IDE ) -> IdnID? {
 			strongObjDict[ identifier ]
 		}
 
-		mutating func createWeakID( _ identifier: IDE, actualId: inout ObjID ) -> ObjID {
-			if let objID = strongObjDict[ identifier ] {
-				return objID
-			} else if let objID = weakObjDict[ identifier ] {
-				return objID
+		mutating func createWeakID( _ identifier: IDE, actualId: inout IdnID ) -> IdnID {
+			if let idnID = strongObjDict[ identifier ] {
+				return idnID
+			} else if let idnID = weakObjDict[ identifier ] {
+				return idnID
 			} else {
 				defer { actualId = actualId.next }
 				weakObjDict[ identifier ] = actualId
@@ -87,14 +87,14 @@ struct IdentityMap {
 			}
 		}
 		
-		mutating func createStrongID( _ identifier: IDE, actualId: inout ObjID ) -> ObjID {
-			if let objID = strongObjDict[ identifier ] {
-				return objID
-			} else if let objID = weakObjDict.removeValue(forKey: identifier) {
+		mutating func createStrongID( _ identifier: IDE, actualId: inout IdnID ) -> IdnID {
+			if let idnID = strongObjDict[ identifier ] {
+				return idnID
+			} else if let idnID = weakObjDict.removeValue(forKey: identifier) {
 				// se è nel weak dict, lo prendo da lì
 				// e lo metto nello strong dict
-				strongObjDict[identifier] = objID
-				return objID
+				strongObjDict[identifier] = idnID
+				return idnID
 			} else {
 				defer { actualId = actualId.next }
 				strongObjDict[identifier] = actualId
@@ -103,25 +103,25 @@ struct IdentityMap {
 		}
 	}
 
-	private	var actualId	= ObjID()
+	private	var actualId	= IdnID()
 	private var	objTable	= WeakToStrongTable<ObjectIdentifier>()
 	private var	boxTable	= WeakToStrongTable<HashableBox>()
 	
-	func strongID( for identity: Identity ) -> ObjID? {
+	func strongID( for identity: Identity ) -> IdnID? {
 		switch identity.id {
 			case .objIdentifier( let id):	return objTable.strongID( id )
 			case .anyHashable(let id): 		return boxTable.strongID( HashableBox(id) )
 		}
 	}
 	
-	mutating func createWeakID( for identity: Identity ) -> ObjID {
+	mutating func createWeakID( for identity: Identity ) -> IdnID {
 		switch identity.id {
 			case .objIdentifier( let id):	return objTable.createWeakID( id, actualId:&actualId )
 			case .anyHashable(let id): 		return boxTable.createWeakID( HashableBox(id), actualId:&actualId )
 		}
 	}
 	
-	mutating func createStrongID( for identity: Identity ) -> ObjID {
+	mutating func createStrongID( for identity: Identity ) -> IdnID {
 		switch identity.id {
 			case .objIdentifier( let id):	return objTable.createStrongID( id, actualId:&actualId )
 			case .anyHashable(let id): 		return boxTable.createStrongID( HashableBox(id), actualId:&actualId )

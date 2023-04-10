@@ -47,8 +47,8 @@ struct DecodeBinary {
 		)
 	}
 	
-	mutating func pop( objID:ObjID ) -> FlattenedElement? {
-		elementMap.removeValue( forKey: objID )
+	mutating func pop( idnID:IdnID ) -> FlattenedElement? {
+		elementMap.removeValue( forKey: idnID )
 	}
 	
 }

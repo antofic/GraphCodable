@@ -2405,24 +2405,24 @@ The `.showHelp` option in tha penultimate line prints a little help in addition.
 ```
 = HELP =================================================================================
 Codes:
-	VAL<objID?>   = GCodable value tipe
-	REF<objID?>   = GCodable reference type
-	BIV<objID?>   = BinaryIO value type
-	BIR<objID?>   = BinaryIO reference type
-	NIL<objID?>   = nil (Optional.none) VAL,REF,BIV,BIR
-	PTS<objID>    = Strong pointer to VAL,REF,BIV,BIR
-	PTC<objID>    = Conditional pointer to VAL,REF,BIV,BIR
+	VAL<idnID?>   = GCodable value tipe
+	REF<idnID?>   = GCodable reference type
+	BIV<idnID?>   = BinaryIO value type
+	BIR<idnID?>   = BinaryIO reference type
+	NIL<idnID?>   = nil (Optional.none) VAL,REF,BIV,BIR
+	PTS<idnID>    = Strong pointer to VAL,REF,BIV,BIR
+	PTC<idnID>    = Conditional pointer to VAL,REF,BIV,BIR
 
 	• VAL, REF are followed by their internal fields ending with '.'
 	• The '+ key/KEY<keyID>' symbol precedes keyed fields.
 	• The '-' symbol precedes unkeyed fields.
-	• objID is an unique integer code associated with REF, VAL, BIV,
-	  BIR, NIL only if they have identities. The PTC and PTS objID
+	• idnID is an unique integer code associated with REF, VAL, BIV,
+	  BIR, NIL only if they have identities. The PTC and PTS idnID
 	  code is the same as the REF, VAL, BIV, BIR, NIL the pointer
 	  points to.
 
 Other codes:
-	TYPE<typeID>  = uniquely identifies the class of a reference
+	TYPE<refID>  = uniquely identifies the class of a reference
 	                (REF, BIR). Depending on the options selected,
 	                the qualified name of the class may be displayed
 	                alternatively.

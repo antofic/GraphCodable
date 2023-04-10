@@ -20,7 +20,7 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
-typealias ClassInfoMap	= [TypeID:ClassInfo]
+typealias ClassInfoMap	= [RefID:ClassInfo]
 
 struct ClassInfo : CustomStringConvertible {
 	let	decodedType:	any GDecodable.Type

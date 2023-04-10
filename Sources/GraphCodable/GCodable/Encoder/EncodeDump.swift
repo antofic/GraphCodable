@@ -86,16 +86,16 @@ final class EncodeDump : EncodeFileBlocks {
 	func appendNil( keyID:KeyID? ) throws {
 		append( .Nil(keyID: keyID), binaryValue:nil )
 	}
-	func appendPtr( keyID:KeyID?, objID:ObjID, conditional:Bool ) throws {
-		append( .Ptr(keyID: keyID,objID:objID, conditional:conditional ), binaryValue:nil )
+	func appendPtr( keyID:KeyID?, idnID:IdnID, conditional:Bool ) throws {
+		append( .Ptr(keyID: keyID,idnID:idnID, conditional:conditional ), binaryValue:nil )
 	}
 	
-	func appendVal( keyID:KeyID?, typeID:TypeID?, objID:ObjID? ) throws {
-		append( .Val(keyID: keyID, objID:objID, typeID:typeID ), binaryValue:nil )
+	func appendVal( keyID:KeyID?, refID:RefID?, idnID:IdnID? ) throws {
+		append( .Val(keyID: keyID, idnID:idnID, refID:refID ), binaryValue:nil )
 	}
 
-	func appendBin<T:BEncodable>( keyID:KeyID?, typeID:TypeID?, objID:ObjID?, binaryValue: T ) throws {
-		append( .Bin(keyID: keyID, objID:objID, typeID:typeID, binSize: BinSize() ), binaryValue:binaryValue  )
+	func appendBin<T:BEncodable>( keyID:KeyID?, refID:RefID?, idnID:IdnID?, binaryValue: T ) throws {
+		append( .Bin(keyID: keyID, idnID:idnID, refID:refID, binSize: BinSize() ), binaryValue:binaryValue  )
 	}
 
 	// FileBlockEncoder protocol end
@@ -205,24 +205,24 @@ final class EncodeDump : EncodeFileBlocks {
 	static private var helpString : String  {
 """
 Codes:
-\tVAL<objID?>   = GCodable value tipe
-\tREF<objID?>   = GCodable reference type
-\tBIV<objID?>   = BinaryIO value type
-\tBIR<objID?>   = BinaryIO reference type
-\tNIL<objID?>   = nil (Optional.none) VAL,REF,BIV,BIR
-\tPTS<objID>    = Strong pointer to VAL,REF,BIV,BIR
-\tPTC<objID>    = Conditional pointer to VAL,REF,BIV,BIR
+\tVAL<idnID?>   = GCodable value tipe
+\tREF<idnID?>   = GCodable reference type
+\tBIV<idnID?>   = BinaryIO value type
+\tBIR<idnID?>   = BinaryIO reference type
+\tNIL<idnID?>   = nil (Optional.none) VAL,REF,BIV,BIR
+\tPTS<idnID>    = Strong pointer to VAL,REF,BIV,BIR
+\tPTC<idnID>    = Conditional pointer to VAL,REF,BIV,BIR
 
 \t• VAL, REF are followed by their internal fields ending with '.'
 \t• The '+ key/KEY<keyID>' symbol precedes keyed fields.
 \t• The '-' symbol precedes unkeyed fields.
-\t• objID is an unique integer code associated with REF, VAL, BIV,
-\t  BIR, NIL only if they have identities. The PTC and PTS objID
+\t• idnID is an unique integer code associated with REF, VAL, BIV,
+\t  BIR, NIL only if they have identities. The PTC and PTS idnID
 \t  code is the same as the REF, VAL, BIV, BIR, NIL the pointer
 \t  points to.
 
 Other codes:
-\tTYPE<typeID>  = uniquely identifies the class of a reference
+\tTYPE<refID>  = uniquely identifies the class of a reference
 \t                (REF, BIR). Depending on the options selected,
 \t                the qualified name of the class may be displayed
 \t                alternatively.

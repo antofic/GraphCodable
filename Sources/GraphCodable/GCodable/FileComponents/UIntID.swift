@@ -22,7 +22,7 @@
 
 import Foundation
 
-//	ObjID's, KeyID's, TypeID's can consume a non-negligible amount
+//	IdnID's, KeyID's, RefID's can consume a non-negligible amount
 //	of disk space. On the other hand they are generally small
 //	unsigned integers and for this we use a simple algorithm
 //	to compress them.
@@ -60,7 +60,7 @@ extension UIntID {
 
 //	We use three distinct structures so as not to run
 //	the risk of confusing them.
-struct ObjID : UIntID {
+struct IdnID : UIntID {
 	
 	let id: UInt32
 	init(_ id: UInt32) { self.id = id }
@@ -71,7 +71,7 @@ struct KeyID : UIntID {
 	init(_ id: UInt32) { self.id = id }
 }
 
-struct TypeID : UIntID {
+struct RefID : UIntID {
 	let id: UInt32
 	init(_ id: UInt32) { self.id = id }
 }

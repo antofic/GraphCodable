@@ -218,8 +218,8 @@ KEY0004:	"aclass"
 ```
 You can see:
 - The **HEADER** section, with the file format name (gcodable), its global version, and some unused fields;
-- The **BODY** section, which uses typeIDs and keyIDs;
-- The **REFERENCEMAP** section, in which an **TypeID** is associated with each class with its version;
+- The **BODY** section, which uses refIDs and keyIDs;
+- The **REFERENCEMAP** section, in which an **RefID** is associated with each class with its version;
 - The **KEYMAP** section, in which an **KeyID** is associated with each key used in keyed coding.
 
 

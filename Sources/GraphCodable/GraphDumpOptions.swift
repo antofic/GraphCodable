@@ -44,7 +44,7 @@ public struct GraphDumpOptions: OptionSet {
 	// BODY/FLATTENEDBODY OPTIONS:
 	///	disable indentation in body
 	public static let	dontIndentBody							= Self( rawValue: 1 << 16 )
-	///	in Body / Flattended Body section, show the qualified class name instead of the TypeID
+	///	in Body / Flattended Body section, show the qualified class name instead of the RefID
 	public static let	showClassNamesInBody					= Self( rawValue: 1 << 17 )
 	///	in Body / Flattended Body section, show the key string instead of the KeyID
 	public static let	showKeyStringsInBody					= Self( rawValue: 1 << 18 )
@@ -68,7 +68,7 @@ public struct GraphDumpOptions: OptionSet {
 	// REFERENCEMAP OPTIONS (DECODER DUMP ONLY):
 	///	if disabled, unqualified type names will be shown when possible
 	public static let	qualifiedNamesInConstructionMap			= Self( rawValue: 1 << 33 )
-	public static let	hideTypeIDsInConstructionMap			= Self( rawValue: 1 << 34 )
+	public static let	hideRefIDsInConstructionMap			= Self( rawValue: 1 << 34 )
 	public static let	onlyUndecodableClassesInConstructionMap	= Self( rawValue: 1 << 35 )
 	
 	// OTHER OPTIONS:
