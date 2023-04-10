@@ -4,7 +4,7 @@
 //
 //  Created by Antonino Ficarra on 09/04/23.
 //
-
+/*
 import Foundation
 
 struct GEncoderImplNew {
@@ -67,3 +67,4 @@ struct GEncoderImplNew {
 		return dumpEncoder.dump()
 	}
 }
+*/

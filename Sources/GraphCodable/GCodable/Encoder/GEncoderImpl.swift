@@ -137,38 +137,45 @@ final class GEncoderImpl : EncodeFileBlocksDelegate {
 // MARK: GEncoderImpl conformance to GEncoder/GEncoderView protocol
 extension GEncoderImpl : GEncoder, GEncoderView {
 	func encode<Value>(_ value: Value) throws where Value:GEncodable {
-		try level1_encodeValue( value, keyID: nil, conditional:false )
+		try level2_encodeValue( value, keyID: nil, conditional:false )
 	}
 	
 	func encodeConditional<Value>(_ value: Value?) throws where Value:GEncodable {
+		try level2_encodeValue( value, keyID: nil, conditional:true )
+		/*
 		if let value {
 			try level1_encodeValue( value, keyID: nil, conditional:true )
 		} else {
 			try blockEncoder.appendNil(keyID: nil)
 		}
+		 */
 	}
 	
 	func encode<Key, Value>(_ value: Value, for key: Key) throws
 	where Key : RawRepresentable, Value : GEncodable, Key.RawValue == String
 	{
-		try level1_encodeValue( value, keyID: try createKeyID( for:key.rawValue ), conditional:false )
+		try level2_encodeValue( value, keyID: try createKeyID( for:key.rawValue ), conditional:false )
 	}
 	
 	func encodeConditional<Key, Value>(_ value: Value?, for key: Key) throws
 	where Key : RawRepresentable, Value : GEncodable, Key.RawValue == String
 	{
+		try level2_encodeValue( value, keyID: try createKeyID( for:key.rawValue ), conditional:true )
+
+		/*
 		let keyID	= try createKeyID( for:key.rawValue )
 		if let value {
 			try level1_encodeValue( value, keyID: keyID, conditional:true )
 		} else {
 			try blockEncoder.appendNil(keyID: keyID)
 		}
+		*/
 	}
 }
 
 // MARK: GEncoderImpl private section
 extension GEncoderImpl {
-
+	/*
 	private func level1_encodeValue(_ possiblyManyLevelOptionalValue: some GEncodable, keyID: KeyID?, conditional:Bool ) throws {
 		//	possiblyManyLevelOptionalValue can really be a value, an Optional(value), an Optional(Optional(value)), etc…
 		//	Optional(fullUnwrapping:_) turns anyValue into an one-level Optional(value)
@@ -181,7 +188,7 @@ extension GEncoderImpl {
 			try blockEncoder.appendNil(keyID: keyID)
 		}
 	}
-
+	*/
 	private func level2_encodeValue(_ value: some GEncodable, keyID: KeyID?, conditional:Bool ) throws {
 		// now value is not nil
 		if let trivialValue = value as? any GPackEncodable {

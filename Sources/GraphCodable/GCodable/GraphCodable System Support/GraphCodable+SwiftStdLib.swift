@@ -79,7 +79,7 @@ extension Never 	: GPackable {}
 
 //	Optional SUPPORT ------------------------------------------------------
 
-
+/*
 extension Optional: GEncodable where Wrapped: GEncodable {
 	//	The encoder always unwraps optional values
 	//	and so this function is never called.
@@ -103,8 +103,8 @@ extension Optional: GDecodable where Wrapped: GDecodable {
 		)
 	}
 }
+*/
 
-/*
 extension Optional: GEncodable where Wrapped: GEncodable {
 	public func encode(to encoder: some GEncoder) throws {
 		switch self {
@@ -128,7 +128,7 @@ extension Optional: GDecodable where Wrapped: GDecodable {
 		}
 	}
 }
-*/
+
 
 
 extension Optional: GBinaryEncodable where Wrapped: GBinaryEncodable {}

@@ -228,7 +228,7 @@ extension TypeConstructor {
 extension TypeConstructor {
 	
 	
-	
+/*
 	private func decodeValue<T,D>( type:T.Type, element:FlattenedElement, from decoder:D ) throws -> T
 	where T:GDecodable, D:GDecoder {
 		let saved	= currentElement
@@ -293,8 +293,8 @@ extension TypeConstructor {
 		 
 		return value
 	}
-	
-/*
+*/
+
 	private func decodeValue<T,D>( type:T.Type, element:FlattenedElement, from decoder:D ) throws -> T
 	where T:GDecodable, D:GDecoder {
 		let saved	= currentElement
@@ -342,7 +342,7 @@ extension TypeConstructor {
 		 
 		return value
 	}
-*/
+
 	
 	
 	private func decodeRefOrBinRef<T,D>( type:T.Type, typeID:TypeID, isBinary: Bool, element:FlattenedElement, from decoder:D ) throws -> T
