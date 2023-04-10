@@ -21,6 +21,7 @@
 //	SOFTWARE.
 
 // optimized for the most common case: ObjectIdentifier
+
 struct Identity {
 	fileprivate enum ID {
 		case objIdentifier( ObjectIdentifier )
@@ -66,16 +67,18 @@ struct IdentityMap {
 		}
 	}
 	
-	private struct WeakStrongTable<IDE:Hashable> {
+	private struct WeakToStrongTable<IDE:Hashable> {
 		private var	strongObjDict	= [IDE:ObjID]()
 		private var	weakObjDict		= [IDE:ObjID]()
-		
+
 		func strongID( _ identifier: IDE ) -> ObjID? {
 			strongObjDict[ identifier ]
 		}
-		
+
 		mutating func createWeakID( _ identifier: IDE, actualId: inout ObjID ) -> ObjID {
-			if let objID = weakObjDict[ identifier ] {
+			if let objID = strongObjDict[ identifier ] {
+				return objID
+			} else if let objID = weakObjDict[ identifier ] {
 				return objID
 			} else {
 				defer { actualId = actualId.next }
@@ -101,8 +104,8 @@ struct IdentityMap {
 	}
 
 	private	var actualId	= ObjID()
-	private var	objTable	= WeakStrongTable<ObjectIdentifier>()
-	private var	boxTable	= WeakStrongTable<HashableBox>()
+	private var	objTable	= WeakToStrongTable<ObjectIdentifier>()
+	private var	boxTable	= WeakToStrongTable<HashableBox>()
 	
 	func strongID( for identity: Identity ) -> ObjID? {
 		switch identity.id {

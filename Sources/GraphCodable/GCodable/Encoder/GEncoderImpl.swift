@@ -183,11 +183,10 @@ extension GEncoderImpl {
 					// already encoded value: we encode a pointer
 					try blockEncoder.appendPtr(keyID: keyID, objID: objID, conditional: conditional)
 				} else if conditional {
-					// conditional encoding: we encode only a pointer
-					
 					// Anyway we check if the reference class can be constructed from its name
 					try throwIfNotConstructible( typeOf:value )
 
+					// conditional encoding: we encode only a pointer
 					let objID	= identityMap.createWeakID( for: identity )
 					try blockEncoder.appendPtr(keyID: keyID, objID: objID, conditional: conditional)
 				} else {
