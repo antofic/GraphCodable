@@ -141,7 +141,12 @@ extension GEncoderImpl : GEncoder, GEncoderView {
 	}
 	
 	func encodeConditional<Value>(_ value: Value?) throws where Value:GEncodable {
-		try level2_encodeValue( value, keyID: nil, conditional:true )
+		if let value {
+			try level2_encodeValue( value, keyID: nil, conditional:true )
+		} else {
+			let pippo = Optional<Value>.none
+			try level2_encodeValue( pippo, keyID: nil, conditional:true )
+		}
 		/*
 		if let value {
 			try level1_encodeValue( value, keyID: nil, conditional:true )
@@ -160,7 +165,13 @@ extension GEncoderImpl : GEncoder, GEncoderView {
 	func encodeConditional<Key, Value>(_ value: Value?, for key: Key) throws
 	where Key : RawRepresentable, Value : GEncodable, Key.RawValue == String
 	{
-		try level2_encodeValue( value, keyID: try createKeyID( for:key.rawValue ), conditional:true )
+		if let value {
+			try level2_encodeValue( value, keyID: try createKeyID( for:key.rawValue ), conditional:true )
+		} else {
+			let pippo = Optional<Value>.none
+			try level2_encodeValue( pippo, keyID: try createKeyID( for:key.rawValue ), conditional:true )
+		}
+
 
 		/*
 		let keyID	= try createKeyID( for:key.rawValue )
