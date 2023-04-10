@@ -71,8 +71,8 @@ public protocol GDecoder {
 	///			...
 	///		}
 	///
-	/// **Note: Just as encoding a variable appends it to the encoder,**
-	/// **decoding it removes it from the decoder.**
+	/// - Note: Just as encoding a variable appends it to the encoder,
+	/// decoding it removes it from the decoder.
 	/// - parameter type: The decoded value type.
 	/// - parameter key: The key that the decoded value is associated with.
 	/// - returns: A value of the requested type, if present for the given key
@@ -92,8 +92,8 @@ public protocol GDecoder {
 	///	    	try decoder.deferDecode( type(of:valueA), for: Key.valueA ) { self.valueA = $0 }
 	///			...
 	///		}
-	/// **Note: Just as encoding a variable appends it to the encoder,**
-	/// **decoding it removes it from the decoder.**
+	/// - Note: Just as encoding a variable appends it to the encoder,
+	/// decoding it removes it from the decoder.
 	/// - parameter type: The decoded value type.
 	/// - parameter key: The key that the decoded reference is associated with.
 	/// - parameter setter: A closure to which the required value is provided.
@@ -114,8 +114,8 @@ public protocol GDecoder {
 	///	    	valueA	= try decoder.decode( type(of:valueA) )
 	///			...
 	///		}
-	/// **Note: Just as encoding a variable appends it to the encoder,**
-	/// **decoding it removes it from the decoder.**
+	/// - Note: Just as encoding a variable appends it to the encoder,
+	/// decoding it removes it from the decoder.
 	/// - parameter type: The decoded value type.
 	/// - returns: A value of the requested type, if present
 	///   and convertible to the requested type.
@@ -133,8 +133,8 @@ public protocol GDecoder {
 	///	    	try decoder.deferDecode( type(of:valueA) ) { self.valueA = $0 }
 	///			...
 	///		}
-	/// **Note: Just as encoding a variable appends it to the encoder,**
-	/// **decoding it removes it from the decoder.**
+	/// - Note: Just as encoding a variable appends it to the encoder,
+	/// decoding it removes it from the decoder.
 	/// - parameter type: The decoded value type.
 	/// - parameter setter: A closure to which the required reference is provided.
 	func deferDecode<Value>( _ type:Value.Type, _ setter: @escaping (Value)->() ) throws where
@@ -155,8 +155,8 @@ public extension GDecoder {
 	///			...
 	///		}
 	///
-	/// **Note: Just as encoding a variable appends it to the encoder,**
-	/// **decoding it removes it from the decoder.**
+	/// - Note: Just as encoding a variable appends it to the encoder,
+	/// decoding it removes it from the decoder.
 	/// - parameter key: The key that the decoded value is associated with.
 	/// - returns: A value of the requested type, if present for the given key
 	///   and convertible to the requested type.
@@ -180,8 +180,8 @@ public extension GDecoder {
 	///	    	try decoder.deferDecode( for: Key.valueA ) { self.valueA = $0 }
 	///			...
 	///		}
-	/// **Note: Just as encoding a variable appends it to the encoder,**
-	/// **decoding it removes it from the decoder.**
+	/// - Note: Just as encoding a variable appends it to the encoder,
+	/// decoding it removes it from the decoder.
 	/// - parameter key: The key that the decoded reference is associated with.
 	/// - parameter setter: A closure to which the required value is provided.
 	func deferDecode<Key, Value>( for key: Key, _ setter: @escaping (Value) -> ()) throws where
@@ -195,8 +195,11 @@ public extension GDecoder {
 	/// associated with `key`, or if the value is `nil`. The difference between
 	/// these states can be distinguished with a `contains(_:)` call.
 	///
-	/// **Note: Just as encoding a variable appends it to the encoder,**
-	/// **decoding it removes it from the decoder.**
+	/// - Note: Just as encoding a variable appends it to the encoder,
+	/// decoding it removes it from the decoder.
+	/// - Warning: Use **only** with values encoded with `encodeIfPresent(...)`
+	/// methods. Don't use with values encoded with `encode(...)` or
+	/// `encodeConditional(...)` methods.
 	/// - parameter type: The decoded value type.
 	/// - parameter key: The key that the decoded value is associated with.
 	/// - returns: A decoded value of the requested type, or `nil` if the
@@ -213,8 +216,11 @@ public extension GDecoder {
 	/// associated with `key`, or if the value is `nil`. The difference between
 	/// these states can be distinguished with a `contains(_:)` call.
 	///
-	/// **Note: Just as encoding a variable appends it to the encoder,**
-	/// **decoding it removes it from the decoder.**
+	/// - Note: Just as encoding a variable appends it to the encoder,
+	/// decoding it removes it from the decoder.
+	/// - Warning: Use **only** with values encoded with `encodeIfPresent(...)`
+	/// methods. Don't use with values encoded with `encode(...)` or
+	/// `encodeConditional(...)` methods.
 	/// - parameter key: The key that the decoded value is associated with.
 	/// - returns: A decoded value of the requested type, or `nil` if the
 	///   `Decoder` does not have an entry associated with the given key, or if
@@ -224,6 +230,55 @@ public extension GDecoder {
 		try decodeIfPresent( Value.self, for: key )
 	}
 
+	/// Decodes a value/reference of the given type for the given key when it
+	/// become available.
+	///
+	/// If your data forms a cyclic graph, use this method to "break" the cycle
+	/// and decode the graph.
+	/// Example:
+	///
+	///    	init(from decoder: some GDecoder) throws {
+	///     	...
+	///	    	try decoder.deferDecodeIfPresent( type(of:valueA), for: Key.valueA ) { self.valueA = $0 }
+	///			...
+	///		}
+	/// - Note: Just as encoding a variable appends it to the encoder,
+	/// decoding it removes it from the decoder.
+	/// - Warning: Use **only** with values encoded with `encodeIfPresent(...)`
+	/// methods. Don't use with values encoded with `encode(...)` or
+	/// `encodeConditional(...)` methods.
+	/// - parameter type: The decoded value type.
+	/// - parameter key: The key that the decoded reference is associated with.
+	/// - parameter setter: A closure to which the required value is provided.
+	func deferDecodeIfPresent<Key, Value>( _ type:Value.Type, for key: Key, _ setter: @escaping (Value) -> ()) throws where
+	Key : RawRepresentable, Value : GDecodable, Key.RawValue == String {
+		if contains(key) { try deferDecode( type, for: key, setter ) }
+	}
+
+	/// Decodes a value/reference of the given type for the given key when it
+	/// become available.
+	///
+	/// If your data forms a cyclic graph, use this method to "break" the cycle
+	/// and decode the graph.
+	/// Example:
+	///
+	///    	init(from decoder: some GDecoder) throws {
+	///     	...
+	///	    	try decoder.deferDecodeIfPresent( for: Key.valueA ) { self.valueA = $0 }
+	///			...
+	///		}
+	/// - Note: Just as encoding a variable appends it to the encoder,
+	/// decoding it removes it from the decoder.
+	/// - Warning: Use **only** with values encoded with `encodeIfPresent(...)`
+	/// methods. Don't use with values encoded with `encode(...)` or
+	/// `encodeConditional(...)` methods.
+	/// - parameter key: The key that the decoded reference is associated with.
+	/// - parameter setter: A closure to which the required value is provided.
+	func deferDecodeIfPresent<Key, Value>( for key: Key, _ setter: @escaping (Value) -> ()) throws where
+	Key : RawRepresentable, Value : GDecodable, Key.RawValue == String {
+		try deferDecodeIfPresent( Value.self, for: key, setter )
+	}
+	
 	/// Decodes a value/reference of the given type.
 	///
 	/// The type is taken from the variable whenever possible, otherwise
