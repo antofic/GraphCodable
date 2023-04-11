@@ -1,24 +1,8 @@
-//	MIT License
+//	Apache License
+//	Version 2.0, January 2004
+//	http://www.apache.org/licenses/
 //
 //	Copyright (c) 2021-2023 Antonino Ficarra
-//
-//	Permission is hereby granted, free of charge, to any person obtaining a copy
-//	of this software and associated documentation files (the "Software"), to deal
-//	in the Software without restriction, including without limitation the rights
-//	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//	copies of the Software, and to permit persons to whom the Software is
-//	furnished to do so, subject to the following conditions:
-//
-//	The above copyright notice and this permission notice shall be included in all
-//	copies or substantial portions of the Software.
-//
-//	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-//	SOFTWARE.
 
 final class EncodeDump : EncodeFileBlocks {
 	weak var			delegate	: (any EncodeFileBlocksDelegate)?
@@ -156,13 +140,14 @@ final class EncodeDump : EncodeFileBlocks {
 	private var referenceMapDescription : String {
 		func typeString( _ options:GraphDumpOptions, _ classData:ClassData ) -> String {
 			var string	= ""
-			if options.contains( .showMangledNames ) {
+			let qualified	= options.contains( .qualifiedTypeNames )
+			if options.contains( .showMangledClassNames ) {
 				let version	= "\(classData.encodedClassVersion)".align(.right, length: 4, filler: "0")
-				string.append( "QualifiedName  = \( classData.qualifiedName )"  )
-				string.append( "\n\t\t\tMangledName    = \( classData.mangledName )"  )
+				string.append( "QualifiedName  = \( classData.className(qualified) )"  )
+				string.append( "\n\t\t\tMangledName    = \( classData.mangledClassName )"  )
 				string.append( "\n\t\t\tEncodedVersion = \( version )"  )
 			} else {
-				string.append("class \(classData.qualifiedName)")
+				string.append("class \(classData.className(qualified))")
 			}
 			return string
 		}
