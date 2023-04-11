@@ -1,6 +1,8 @@
 //	Apache License
 //	Version 2.0, January 2004
 //	http://www.apache.org/licenses/
+//
+//	Copyright (c) 2021-2023 Antonino Ficarra
 
 /// A dummy protocol to mark trivial types
 public protocol GPackable {}

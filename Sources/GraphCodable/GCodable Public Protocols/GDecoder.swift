@@ -1,6 +1,8 @@
 //	Apache License
 //	Version 2.0, January 2004
 //	http://www.apache.org/licenses/
+//
+//	Copyright (c) 2021-2023 Antonino Ficarra
 
 /// A type that can decode values from a native format into in-memory
 /// representations.
