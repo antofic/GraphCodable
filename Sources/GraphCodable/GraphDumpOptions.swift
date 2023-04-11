@@ -52,14 +52,19 @@ public struct GraphDumpOptions: OptionSet {
 	public static let	showClassVersionsInBody					= Self( rawValue: 1 << 19 )
 	
 	// BODY (only) OPTIONS FOR BINARYVALUES :
-	///	show value description (ENCODER DUMP ONLY)
-	public static let	showValueDescriptionInBody				= Self( rawValue: 1 << 24 )
+	///	show `GBinaryEncodable` value description (ENCODER DUMP ONLY)
+	public static let	showBinaryValueDescriptionInBody		= Self( rawValue: 1 << 24 )
+	///	show `GEncodable` but not value `GBinaryEncodable` description (ENCODER DUMP ONLY)
+	///
+	///	- Note: Since the description of the fields is printed, it is usually not
+	///	necessary to activate this option.
+	public static let	showNotBinaryValueDescriptionInBody		= Self( rawValue: 1 << 25 )
 	///	value descriptions can be very large strings (example: a large int array)
 	///	so the dump function by default truncate this description to 48 characters
 	///	displaying ellipses (…).
 	///	When showValueDescription in enablen, this option disable description
 	///	truncation. (ENCODER DUMP ONLY)
-	public static let	dontTruncateValueDescriptionInBody		= Self( rawValue: 1 << 25 )
+	public static let	dontTruncateValueDescriptionInBody		= Self( rawValue: 1 << 26 )
 
 	// REFERENCEMAP OPTIONS:
 	///	show mangledName/nsClassName
@@ -77,14 +82,14 @@ public struct GraphDumpOptions: OptionSet {
 	
 
 	public static let	readable: Self = [
-		.showBody, .showClassNamesInBody, .showKeyStringsInBody, .showValueDescriptionInBody
+		.showBody, .showClassNamesInBody, .showKeyStringsInBody, .showBinaryValueDescriptionInBody
 	]
 	public static let	binaryLike: Self = [
 		.showHeader, .showBody, .showReferenceMap, .showKeyStringMap
 	]
 	public static let	fullInfo: Self = [
 		.readable, .showHeader, .showFlattenedBody, .showReferenceMap, .showKeyStringMap,
-		.showClassVersionsInBody, .showFlattenedBody, .showValueDescriptionInBody
+		.showClassVersionsInBody, .showFlattenedBody, .showBinaryValueDescriptionInBody
 	]
 	public static let	referenceMapOnly: Self = [
 		.showReferenceMap,.showMangledNames

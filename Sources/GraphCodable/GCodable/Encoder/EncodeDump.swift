@@ -64,12 +64,10 @@ final class EncodeDump : EncodeFileBlocks {
 		if dumpOptions.contains( .showBody ) {
 			if case .exit = fileBlock.level { tabs?.removeLast() }
 			
-			let binValue = dumpOptions.contains( .showValueDescriptionInBody ) ? value : nil
-			
 			if let tbs = tabs { dumpString.append( tbs ) }
 			dumpString.append( fileBlock.description(
 				options:		dumpOptions,
-				value:	binValue,
+				value:			value,
 				classDataMap:	delegate?.classDataMap,
 				keyStringMap:	delegate?.keyStringMap
 			) )

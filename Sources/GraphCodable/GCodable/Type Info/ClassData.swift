@@ -40,7 +40,6 @@ extension ClassData { 	// init
 				)
 			)
 		}
-		
 		self.mangledName 			= mangledName
 		self.encodedClassVersion	= type.classVersion
 	}

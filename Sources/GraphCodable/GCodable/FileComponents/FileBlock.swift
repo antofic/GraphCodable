@@ -317,7 +317,7 @@ extension FileBlock : CustomStringConvertible {
 		func keyName( _ keyID:KeyID?, _ keyStringMap: KeyStringMap? ) -> String {
 			if let keyID {
 				if let key = keyStringMap?[keyID] {
-					return "+ \"\(key)\": "
+					return "+ KEY(\(key)): "
 				} else {
 					return "+ KEY\(keyID): "
 				}
@@ -345,12 +345,11 @@ extension FileBlock : CustomStringConvertible {
 				//	REF			= [refID]
 				//	VAL<idnID>	= [idnID]
 				//	REF<idnID>	= [idnID,refID]
-				
 				string.append( keyName( keyID, keyStringMap ) )
 				string.append( refID != nil ? "REF" : "VAL" )
 				if let idnID	{ string.append( idnID.description ) }
-				if let refID	{ string.append( " \( typeName( refID,options,classDataMap ) )") }
-				if let value {
+				if let refID	{ string.append( "(\( typeName( refID,options,classDataMap ) ))") }
+				if options.contains( .showNotBinaryValueDescriptionInBody ), let value {
 					string.append( " \( small( value, options ) )")
 				} 
 			case .Bin( let keyID, let idnID, let refID, let binSize ):
@@ -361,14 +360,15 @@ extension FileBlock : CustomStringConvertible {
 				string.append( keyName( keyID, keyStringMap ) )
 				string.append( refID != nil ? "BIR" : "BIV" )
 				if let idnID	{ string.append( idnID.description ) }
-				if let refID	{ string.append( " \( typeName( refID,options,classDataMap ) )") }
-				if let value {
-					string.append( " \( small( value, options ) )")
-				} else if binSize >= 0 {
-					string.append( " { \(binSize) bytes }")
+				if let refID	{ string.append( "(\( typeName( refID,options,classDataMap ) ))") }
+				if options.contains( .showBinaryValueDescriptionInBody ) {
+					if let value {
+						string.append( " \( small( value, options ) )")
+					} else if binSize >= 0 {
+						string.append( " { \(binSize) bytes }")
+					}
 				}
 		}
 		return string
 	}
 }
-

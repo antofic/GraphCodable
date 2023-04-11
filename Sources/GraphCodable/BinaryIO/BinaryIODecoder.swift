@@ -81,7 +81,21 @@ public struct BinaryIODecoder: BDecoder {
 	
 	
 	private var _enableCompression		: Bool
-	public var enableCompression		: Bool {
+
+	/// Enable/Disable compression
+	///
+	///	You can temporarily disable and then re-enable compression by setting this variable
+	///	only if compression has been enabled in the encoder's `init` method when the
+	///	archive was created. If it has not been enabled, setting this variable has no effect.
+	///
+	///	Instead of setting this variable directly, it is preferable to use the method:
+	///	```
+	///	func withCompressionDisabled<T>(
+	///	  decodeFunc: ( inout BinaryIODecoder ) throws -> T
+	///	  ) rethrows -> T
+	///	```
+	/// Note: The compression must be set as it was set during encoding.
+	public var enableCompression : Bool {
 		get { _enableCompression }
 		set { _enableCompression = newValue && encodedBinaryIOFlags.contains( .compressionEnabled ) }
 	}
