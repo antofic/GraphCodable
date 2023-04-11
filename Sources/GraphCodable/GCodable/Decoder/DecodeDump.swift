@@ -51,7 +51,7 @@ final class DecodeDump: EncodeFileBlocksDelegate {
 		)
 		encoderDump.delegate	= self
 		readBlocks.forEach {
-			encoderDump.append($0.fileBlock, binaryValue: nil)
+			encoderDump.append( $0.fileBlock, value: nil )
 		}
 		if dumpOptions.contains( .showFlattenedBody ) {
 			do {

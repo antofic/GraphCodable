@@ -36,16 +36,15 @@ enum FileBlock {	// size = 32 bytes
 		private static let	b7 = Self( rawValue: 1 << 7 )
 		
 		private static let	catMask:		Self = [ b0,b1,b2 ]
-		private static let	catEnd:			Self = []
-		private static let	catNil:			Self = [ b0 ]
-		private static let	catPtr:			Self = [ b1 ]
-		private static let	catVal:			Self = [ b1, b0 ]
-		private static let	catBin:			Self = [ b2 ]
+		private static let	catEnd:			Self = []			//	0
+		private static let	catNil:			Self = [ b0 ]		//	1
+		private static let	catPtr:			Self = [ b1 ]		//	2
+		private static let	catVal:			Self = [ b1, b0 ]	//	3
+		private static let	catBin:			Self = [ b2 ]		//	4
 
-		private static let	hasKeyID:		Self = [ b3 ]		// catNil, catVal, catBin, catPtr
+		private static let	hasKeyID:		Self = [ b3 ]		// catVal, catBin, catPtr, catNil
 		private static let	hasIdnID:		Self = [ b4 ]		// catVal, catBin, catPtr
-		private static let	hasRefID:		Self = [ b5 ]		// catVal
-//		private static let	isBinary:		Self = [ b6 ]		// catVal
+		private static let	hasRefID:		Self = [ b5 ]		// catVal, catBin, (catPtr as conditional)
 		
 		private static let	conditional:	Self = hasRefID	// conditional (!= hasIdnID,hasKeyID ) may overlap hasRefID
 
@@ -88,9 +87,6 @@ enum FileBlock {	// size = 32 bytes
 		//	idnID != nil	fileBlock have Identity
 		//	refID == nil	fileBlock don't supports inheritance (value type)
 		//	refID != nil	fileBlock supports inheritance (reference type) (*)
-		//
-		//	(*) a reference can disable inheritance with the GClassName protocol
-		//	(*) inheritance can be disabled globally with a GraphEncoder option
 		//	-----------------------------------------------------------------------
 
 		static func End() -> Self {
@@ -104,25 +100,25 @@ enum FileBlock {	// size = 32 bytes
 		}
 		
 		static func Ptr( keyID:KeyID?, idnID:IdnID, conditional:Bool ) -> Self {
-			var code	= ptr
-			if keyID	!= nil	{ code.formUnion( hasKeyID ) }
-			if conditional 		{ code.formUnion( Self.conditional ) }
+			var code = ptr
+			if keyID != nil	{ code.formUnion( hasKeyID ) }
+			if conditional 	{ code.formUnion( Self.conditional ) }
 			return code
 		}
 		
 		static func  Val( keyID:KeyID?, idnID:IdnID?, refID:RefID? ) -> Self {
-			var code	= catVal
-			if keyID	!= nil	{ code.formUnion( hasKeyID ) }
-			if refID	!= nil	{ code.formUnion( hasRefID ) }
-			if idnID	!= nil	{ code.formUnion( hasIdnID ) }
+			var code = catVal
+			if keyID != nil	{ code.formUnion( hasKeyID ) }
+			if refID != nil	{ code.formUnion( hasRefID ) }
+			if idnID != nil	{ code.formUnion( hasIdnID ) }
 			return code
 		}
 
 		static func  Bin( keyID:KeyID?, idnID:IdnID?, refID:RefID? ) -> Self {
-			var code	= catBin
-			if keyID	!= nil	{ code.formUnion( hasKeyID ) }
-			if refID	!= nil	{ code.formUnion( hasRefID ) }
-			if idnID	!= nil	{ code.formUnion( hasIdnID ) }
+			var code = catBin
+			if keyID != nil	{ code.formUnion( hasKeyID ) }
+			if refID != nil	{ code.formUnion( hasRefID ) }
+			if idnID != nil	{ code.formUnion( hasIdnID ) }
 			return code
 		}
 	}
@@ -150,12 +146,15 @@ extension FileBlock {
 		}
 	}
 
-	var binarySize : Int {
+	var nextFileBlockDistance : Int {
 		switch self {
-		case .Bin( _, _ , _ , let binSize ):	return	binSize
-			default:	return 0
+			case .Bin( _, _ , _ , let binSize ):
+				return binSize
+			default:
+				return 0
 		}
 	}
+
 }
 
 extension FileBlock {
@@ -203,7 +202,7 @@ extension FileBlock {
 		if let refID	{ try encoder.encode( refID ) }
 	}
 	
-	static func writeBin<T:BEncodable>(
+	static func writeBin<T:GBinaryEncodable>(
 		keyID:KeyID?, idnID:IdnID?, refID:RefID?, binaryValue: T,
 		to encoder: inout BinaryIOEncoder, fileHeader:FileHeader
 	) throws {
@@ -211,19 +210,23 @@ extension FileBlock {
 		if let keyID	{ try encoder.encode( keyID ) }
 		if let idnID	{ try encoder.encode( idnID ) }
 		if let refID	{ try encoder.encode( refID ) }
+		//	The decoder requires to encode the size of the data occupied by each binaryValue
+		//	in front of the encoding of the binaryValue itself.
 		if fileHeader.gcoadableFlags.contains( .useBinaryIOInsert ) {
-			//	allows slightly reducing the file size by packing BinSize but
-			//	involves shifting a possibly large binSize.size amount of data
-			//	by a small offset (1-2-3-4-5 bytes). As much as it doesn't seem
-			//	to reduce performance I don't like it.
+			//	allows slightly reducing the file size by compress binSize but
+			//	involves shifting a possibly large binSize amount of data
+			//	by a small offset (1,2,...,9 bytes). I don't like it but it
+			//	doesn't seem to reduce performance .
 			try encoder.insert(
 				firstEncode: 		{ try $0.encode( binaryValue ) },
 				thenInsertInFront:	{ try $0.encode( $1 ) }
 			)
 		} else {
-			//	we write a bogus binSize = BinSize(), write the data and when
+			//	we write a bogus binSize = 0, write the data and when
 			//	we know their size we update binSize. BinSize must have a known
-			//	size, so we can't allow BinaryIO to pack BinSize.
+			//	size, so we can't allow compression in BinaryIO.
+			//	`encoder.prepend` don't compress binSize integer value,
+			//	so the encoder writes 8 bytes for binSize.
 			//	Result: slightly larger files.
 			try encoder.prepend(
 				dummyEncode: 		{ try $0.encode( 0 ) },
@@ -245,6 +248,9 @@ extension FileBlock {
 				}
 			}
 		}
+		func decodeIf<T:BDecodable>( _ type:T.Type, _ test:Bool ) throws -> T? {
+			test ? try decoder.decode( type ) : nil
+		}
 		
 		let code	= try decoder.decode() as Code
 		
@@ -252,21 +258,21 @@ extension FileBlock {
 			case .End:
 				self			= .End
 			case .Nil:
-				let keyID		= code.hasKeyID ? try decoder.decode() as KeyID : nil
+				let keyID		= try decodeIf( KeyID.self, code.hasKeyID )
 				self			= .Nil(keyID: keyID)
 			case .Ptr:
-				let keyID		= code.hasKeyID	? try decoder.decode() as KeyID : nil
-				let idnID		= try decoder.decode() as IdnID
+				let keyID		= try decodeIf( KeyID.self, code.hasKeyID )
+				let idnID		= try decoder.decode( IdnID.self )
 				self			= .Ptr( keyID: keyID, idnID: idnID, conditional: code.isConditional )
 			case .Val:
-				let keyID		= code.hasKeyID	 ?	try decoder.decode() as KeyID  : nil
-				let idnID		= code.hasIdnID	 ?	try decoder.decode() as IdnID  : nil
-				let refID		= code.hasRefID ?	try decoder.decode() as RefID : nil
+				let keyID		= try decodeIf( KeyID.self, code.hasKeyID )
+				let idnID		= try decodeIf( IdnID.self, code.hasIdnID )
+				let refID		= try decodeIf( RefID.self, code.hasRefID )
 				self 			= .Val( keyID: keyID, idnID: idnID, refID: refID )
 			case .Bin:
-				let keyID		= code.hasKeyID	 ?	try decoder.decode() as KeyID  : nil
-				let idnID		= code.hasIdnID	 ?	try decoder.decode() as IdnID  : nil
-				let refID		= code.hasRefID ?	try decoder.decode() as RefID : nil
+				let keyID		= try decodeIf( KeyID.self, code.hasKeyID )
+				let idnID		= try decodeIf( IdnID.self, code.hasIdnID )
+				let refID		= try decodeIf( RefID.self, code.hasRefID )
 				let binSize		= try decodeBinSize( &decoder )
 				self 			= .Bin( keyID: keyID, idnID: idnID, refID: refID, binSize: binSize )
 		}
@@ -275,12 +281,12 @@ extension FileBlock {
 
 extension FileBlock : CustomStringConvertible {
 	var description: String {
-		description(options: .readable, binaryValue: nil, classDataMap: nil, keyStringMap: nil)
+		description(options: .readable, value: nil, classDataMap: nil, keyStringMap: nil)
 	}
 	
 	func description(
 		options:			GraphDumpOptions,
-		binaryValue: 		(any BEncodable)?,
+		value: 				(any GEncodable)?,
 		classDataMap cdm:	ClassDataMap?,
 		keyStringMap ksm: 	KeyStringMap?
 	) -> String {
@@ -344,6 +350,9 @@ extension FileBlock : CustomStringConvertible {
 				string.append( refID != nil ? "REF" : "VAL" )
 				if let idnID	{ string.append( idnID.description ) }
 				if let refID	{ string.append( " \( typeName( refID,options,classDataMap ) )") }
+				if let value {
+					string.append( " \( small( value, options ) )")
+				} 
 			case .Bin( let keyID, let idnID, let refID, let binSize ):
 				//	BIV			= [bytes]
 				//	BIR			= [refID,bytes]
@@ -353,8 +362,8 @@ extension FileBlock : CustomStringConvertible {
 				string.append( refID != nil ? "BIR" : "BIV" )
 				if let idnID	{ string.append( idnID.description ) }
 				if let refID	{ string.append( " \( typeName( refID,options,classDataMap ) )") }
-				if let binaryValue {
-					string.append( " \( small( binaryValue, options ) )")
+				if let value {
+					string.append( " \( small( value, options ) )")
 				} else if binSize >= 0 {
 					string.append( " { \(binSize) bytes }")
 				}

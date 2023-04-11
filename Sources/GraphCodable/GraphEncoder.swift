@@ -27,7 +27,7 @@ typealias TheEncoder = GEncoderImpl
 ///	An object that encodes instances of a **GEncodable** type
 ///	into a data buffer that uses **GraphCodable** format.
 public final class GraphEncoder {
-	private var encoder	: TheEncoder
+	private let encoder	: TheEncoder
 
 	/// GraphEncoder init method
 	///

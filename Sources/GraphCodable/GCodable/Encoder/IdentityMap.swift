@@ -28,12 +28,12 @@ struct Identity {
 		case anyHashable( any Hashable )
 	}
 	fileprivate let id : ID
-	
+
 	init( _ id:ObjectIdentifier ) {
 		self.id = ID.objIdentifier(id)
 	}
-	
-	init( _ id:any Hashable ) {
+
+	init<T:Hashable>( _ id:T ) {
 		// make sure you get all the ObjectIdentifier's
 		if let id = id as? ObjectIdentifier {
 			self.id = ID.objIdentifier( id )
@@ -66,7 +66,7 @@ struct IdentityMap {
 			hasher.combine( value )
 		}
 	}
-	
+	 
 	private struct WeakToStrongTable<IDE:Hashable> {
 		private var	strongObjDict	= [IDE:IdnID]()
 		private var	weakObjDict		= [IDE:IdnID]()

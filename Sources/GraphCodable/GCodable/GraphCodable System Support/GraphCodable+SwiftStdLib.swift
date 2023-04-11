@@ -79,12 +79,13 @@ extension Never 	: GPackable {}
 
 //	Optional SUPPORT ------------------------------------------------------
 
-
 extension Optional: GEncodable where Wrapped: GEncodable {
-	public var _optionalWrappedValue : (any GEncodable)? {
+	public var _fullOptionalUnwrappedValue : (any GEncodable)? {
 		switch self {
-			case .none: return nil
-			case .some( let value ): return value._optionalWrappedValue
+			case .none:
+				return nil
+			case .some( let value ):
+				return value._fullOptionalUnwrappedValue
 		}
 	}
 	//	The encoder always unwraps optional values
@@ -99,11 +100,11 @@ extension Optional: GEncodable where Wrapped: GEncodable {
 }
 
 extension Optional: GDecodable where Wrapped: GDecodable {
-	public static var _fullWrappedType : any GDecodable.Type {
-		Wrapped.self._fullWrappedType
+	public static var _fullOptionalUnwrappedType : any GDecodable.Type {
+		Wrapped.self._fullOptionalUnwrappedType
 	}
 	
-	//	The encoder always unwraps optional values
+	//	The decoder always unwraps optional types
 	//	and so this function is never called.
 	public init(from decoder: some GDecoder) throws {
 		throw GraphCodableError.internalInconsistency(

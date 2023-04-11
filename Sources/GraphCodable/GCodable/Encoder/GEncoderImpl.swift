@@ -26,26 +26,27 @@ import Foundation
 //---------------------------------------------------------------------------------------------
 //	Encoder Structure:
 //		GraphEncoder	(public interface)
-//		⤷	GEncoderImpl : GEncoder, FileBlockEncoderDelegate
-//			⤷	AnyIdentifierMap	(IdnID → Identifier)
+//		⤷	GEncoderImpl : GEncoder, EncodeFileBlocksDelegate
+//			⤷	IdentityMap			(IdnID → Identifier)
 //					• manage Identity
 //			⤷	ReferenceMap		(ObjectIdentifier → RefID → ClassData )
 //					• manage Inheritance (reference types only)
 //			⤷	KeyMap				(KeyID ↔︎ keystring)
-//					• manage keystring (keyed encoding / KeyID==0 → unkeyed encoding)
-//			⤷	FileBlockEncoder
+//					• manage keystring (keyed encoding / KeyID==nil → unkeyed encoding)
+//			⤷	EncodeFileBlocks
 //					• a protocol for converting values into their representation
 //
-//		FileBlockEncoder protocol
-//			DecodeDump : FileBlockEncoder
+//		EncodeFileBlocks protocol
+//			EncodeBinary : EncodeFileBlocks
 //			⤷	delegate = GEncoderImpl
 //				• generate a binary rapresentation of values for encoding
 //
-//			EncodeDump : FileBlockEncoder
+//			EncodeDump : EncodeFileBlocks
 //			⤷	delegate = GEncoderImpl
 //				• generate readable/not decodable string rapresentation of values
 //
-//	Both data encoders produce their output as they receive the input values (single pass)
+//	Both EncodeBinary and EncodeDump produce their output as they receive the
+//	input values (single pass)
 //---------------------------------------------------------------------------------------------
 
 
@@ -160,10 +161,9 @@ extension GEncoderImpl : GEncoder, GEncoderView {
 // MARK: GEncoderImpl private section
 extension GEncoderImpl {
 	private func level1_encodeValue(_ value: some GEncodable, keyID: KeyID?, conditional:Bool ) throws {
-		if let value = value._optionalWrappedValue {
+		if let value = value._fullOptionalUnwrappedValue {
 			try level2_encodeValue( value, keyID: keyID, conditional:conditional )
-		} else {
-			// if value is nil, encode nil and return
+		} else { // if value is nil, encode nil and return
 			try blockEncoder.appendNil(keyID: keyID)
 		}
 	}
@@ -200,13 +200,13 @@ extension GEncoderImpl {
 						try blockEncoder.appendBin(keyID: keyID, refID: refID, idnID: idnID, binaryValue: binaryValue)
 					} else {
 						// Encodable type
-						try blockEncoder.appendVal(keyID: keyID, refID: refID, idnID: idnID)
+						try blockEncoder.appendVal(keyID: keyID, refID: refID, idnID: idnID, value: value)
 						try level3_encodeValue( value )
 						try blockEncoder.appendEnd()
 					}
 				}
 			} else {	// NO IDENTITY
-				// INHERITANCE: only classes have a refID != 0
+				// INHERITANCE: only classes have a refID (value refID == nil)
 				let refID	= try createRefIDIfNeeded( for: value )
 
 				if encodeOptions.contains( .printWarnings ) {
@@ -219,7 +219,7 @@ extension GEncoderImpl {
 					// BinaryEncodable type
 					try blockEncoder.appendBin(keyID: keyID, refID: refID, idnID: nil, binaryValue: binaryValue)
 				} else {
-					try blockEncoder.appendVal(keyID: keyID, refID: refID, idnID: nil )
+					try blockEncoder.appendVal(keyID: keyID, refID: refID, idnID: nil, value: value )
 					try level3_encodeValue( value )
 					try blockEncoder.appendEnd()
 				}
@@ -234,6 +234,7 @@ extension GEncoderImpl {
 		
 		try value.encode(to: self)
 	}
+	
 	
 	private func identity( of value:some GEncodable ) -> Identity? {
 		if encodeOptions.contains( .disableIdentity ) {
@@ -250,7 +251,7 @@ extension GEncoderImpl {
 			if let id = value.gcodableID {
 				return Identity( id )
 			}
-		} else if let value = value as? any (GEncodable & AnyObject) {
+		} else if let value = value as? any (AnyObject & GEncodable) {
 			return Identity( ObjectIdentifier( value ) )
 		}
 		
@@ -262,7 +263,7 @@ extension GEncoderImpl {
 		
 		return nil
 	}
-	
+
 	private func createKeyID( for key: String ) throws -> KeyID {
 		defer { currentKeys.insert( key ) }
 		if currentKeys.contains( key ) {
@@ -293,7 +294,6 @@ extension GEncoderImpl {
 			try ClassData.throwIfNotConstructible( type: type(of:object) )
 		}
 	}
-		
 }
 
 

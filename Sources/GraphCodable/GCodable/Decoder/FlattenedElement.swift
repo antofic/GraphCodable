@@ -89,25 +89,29 @@ extension FlattenedElement {
 	private static func flatten<T>(
 		elementMap map: inout ElementMap, element:FlattenedElement, lineIterator: inout T, keyStringMap:KeyStringMap, reverse:Bool
 	) throws where T:IteratorProtocol, T.Element == ReadBlock {
+		func pointerRoot( element:FlattenedElement, elementMap map: ElementMap, keyID:KeyID?, idnID:IdnID ) throws -> FlattenedElement {
+			//	l'oggetto non può già trovarsi nella map
+			guard map.index(forKey: idnID) == nil else {
+				throw GraphCodableError.internalInconsistency(
+					Self.self, GraphCodableError.Context(
+						debugDescription: "Object \(element.readBlock) already exists."
+					)
+				)
+			}
+			// creo un nuovo elemento con il readBlock
+			let root = FlattenedElement( readBlock: element.readBlock )
+			// in quello vecchio metto un puntatore al vecchio elemento
+			element.readBlock	= ReadBlock( strongPointerKeyID: keyID, idnID: idnID, position: element.readBlock.position )
+			
+			return root
+		}
 		
 		switch element.readBlock.fileBlock {
 			case .Val( let keyID, let idnID, _ ):
 				if let idnID {
-					//	l'oggetto non può già trovarsi nella map
-					guard map.index(forKey: idnID) == nil else {
-						throw GraphCodableError.internalInconsistency(
-							Self.self, GraphCodableError.Context(
-								debugDescription: "Object \(element.readBlock) already exists."
-							)
-						)
-					}
-					// creo un nuovo elemento con il readBlock
-					let root = FlattenedElement( readBlock: element.readBlock )
-					// in quello vecchio metto un puntatore al vecchio elemento
-					element.readBlock	= ReadBlock( with: .Ptr( keyID: keyID, idnID: idnID, conditional: false ), copying: element.readBlock )
-					// metto il nuovo elelemnto nella mappa
+					let root = try pointerRoot( element:element, elementMap: map, keyID:keyID, idnID:idnID )
+					// metto il nuovo elemento nella mappa
 					map[ idnID ]	= root
-					
 					try subFlatten(
 						elementMap: &map, parentElement:root, lineIterator:&lineIterator,
 						keyStringMap:keyStringMap, reverse:reverse
@@ -120,19 +124,8 @@ extension FlattenedElement {
 				}
 			case .Bin( let keyID, let idnID, _, _ ):
 				if let idnID {
-					//	l'oggetto non può già trovarsi nella map
-					guard map.index(forKey: idnID) == nil else {
-						throw GraphCodableError.internalInconsistency(
-							Self.self, GraphCodableError.Context(
-								debugDescription: "Object \(element.readBlock) already exists."
-							)
-						)
-					}
-					// creo un nuovo elemento con il readBlock
-					let root = FlattenedElement( readBlock: element.readBlock )
-					// in quello vecchio metto un puntatore al vecchio elemento
-					element.readBlock	= ReadBlock( with: .Ptr( keyID: keyID, idnID: idnID, conditional: false ), copying: element.readBlock )
-					// metto il nuovo elelemnto nella mappa
+					let root = try pointerRoot( element:element, elementMap: map, keyID:keyID, idnID:idnID )
+					// metto il nuovo elemento nella mappa
 					map[ idnID ]	= root
 				}
 				// ATT! NO subFlatten for BinValue's
@@ -208,7 +201,7 @@ extension FlattenedElement {
 		var dump = ""
 		
 		let string = readBlock.fileBlock.description(
-			options: options, binaryValue: nil,
+			options: options, value: nil,
 			classDataMap: classDataMap, keyStringMap: keyStringMap
 		)
 		let tabs = String(repeating: "\t", count: level)

@@ -28,35 +28,35 @@ import Foundation
 ///
 /// Needed for binaryValues
 struct ReadBlock {
-	let fileBlock			: FileBlock
-	private let position	: Int
+	let fileBlock	: FileBlock
+	let position	: Int
 	
 	fileprivate init(from ioDecoder: inout BinaryIODecoder, fileHeader:FileHeader ) throws {
 		self.fileBlock	= try FileBlock(from: &ioDecoder, fileHeader: fileHeader)
-		//	memorizzo la posizione della fine del fileBlock
+		//	store the fileblock terminal position
 		self.position	= ioDecoder.position
-		//	sposto avanti la posizione della dimensione di binaryValue
-		//	in modo che la posizione del BinaryIODecoder punti al
-		//	FileBlock successivo
-		//	(binarySize = 0 for non binary values)
-		ioDecoder.position += self.fileBlock.binarySize
+		//	advance the cursor to the next fileblock
+		//	(only .Bin fileblocks are distance more than 0 bytes)
+		ioDecoder.position += self.fileBlock.nextFileBlockDistance
 	}
 
-	init( with fileBlock:FileBlock, copying readBlock:ReadBlock ) {
-		self.fileBlock	= fileBlock
-		self.position	= readBlock.position
+	init( strongPointerKeyID keyID:KeyID?, idnID:IdnID, position:Int ) {
+		self.fileBlock	= .Ptr(keyID: keyID, idnID: idnID, conditional: false)
+		self.position	= position
 	}
 	
 	///	The regionRange of a BinaryIO type
 	///
-	///	- `fileBlock.binarySize` return the size (>=0) of a BinaryIO value fileBlock
-	///	- `fileBlock.binarySize` return always 0 for not BinaryIO fileBlocks
+	///	- `fileBlock.nextFileBlockDistance` return the size (>=0) of .Bin fileBlock
+	///	- `fileBlock.nextFileBlockDistance` return always 0 for not .Bin fileBlocks
 	///
 	/// then:
 	///
-	///	- `valueRegion` contains the file region of a BinaryIO type
-	/// - `valueRegion` contains the starting position of not BinaryIO types
-	var binaryIORegionRange : Range<Int> { position ..< (position + fileBlock.binarySize) }
+	///	- `binaryIORegionRange` contains the file region of a BinaryIO type
+	/// - `binaryIORegionRange` contains the starting position of not BinaryIO types
+	var binaryIORegionRange : Range<Int> {
+		return position ..< (position + fileBlock.nextFileBlockDistance)
+	}
 }
 
 typealias ReadBlocks = [ReadBlock]

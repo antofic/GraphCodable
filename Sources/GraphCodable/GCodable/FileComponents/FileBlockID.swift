@@ -22,20 +22,15 @@
 
 import Foundation
 
-//	IdnID's, KeyID's, RefID's can consume a non-negligible amount
-//	of disk space. On the other hand they are generally small
-//	unsigned integers and for this we use a simple algorithm
-//	to compress them.
-//	Note: this will make written BinSize data variable in size
 
-protocol UnsignedID: Hashable, BCodable, CustomStringConvertible {
+protocol FileBlockID: Hashable, BCodable, CustomStringConvertible {
 	associatedtype uID : FixedWidthInteger & UnsignedInteger & BCodable
 	
 	init( _ id:uID )
 	var id : uID { get }
 }
 
-extension UnsignedID {
+extension FileBlockID {
 	init() {
 		self.init( 1 )
 	}
@@ -57,20 +52,24 @@ extension UnsignedID {
 	}
 }
 
+//	I put these integers in three different structures
+//	so that there is no way to swap them as they often
+//	appear together in FileBlocks.
+
 ///	An unique id for value/reference identity
-struct IdnID : UnsignedID {
+struct IdnID : FileBlockID {
 	let id: UInt32
 	init(_ id: UInt32) { self.id = id }
 }
 
 ///	An unique id for a field key
-struct KeyID : UnsignedID {
+struct KeyID : FileBlockID {
 	let id: UInt32
 	init(_ id: UInt32) { self.id = id }
 }
 
 ///	An unique id for reference inheritance
-struct RefID : UnsignedID {
+struct RefID : FileBlockID {
 	let id: UInt32
 	init(_ id: UInt32) { self.id = id }
 }

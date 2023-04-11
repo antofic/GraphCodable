@@ -29,5 +29,5 @@ public protocol GIdentifiable<GID> {
 
 	/// The stable identity **over encoding/decoding** of the entity associated
 	/// with this instance.
-	var gcodableID: Self.GID? { get }
+	var gcodableID: GID? { get }
 }

@@ -37,7 +37,8 @@ public typealias Bytes	= [UInt8]
 /// - the BinaryIODecoder `init` method
 /// - the BDecodable `init( binaryIOData:... )` method
 ///
-/// Note: User can even choose a `nil` string
+/// Note: A BinaryIODecoder `nil` string match with
+/// any encoded `archiveIdentifier` string
 public let defaultBinaryIOArchiveIdentifier = "binaryIO"
 
 
@@ -96,26 +97,4 @@ public extension BDecodable {
 		var decoder = try BinaryIODecoder( data:binaryIOData, archiveIdentifier:archiveIdentifier, userData:userData )
 		self = try decoder.decode()
 	}
-	
-	/*
-	 /// Try peeking a value of type `Self` from the `decoder`.
-	 ///
-	 ///	Peek try to read a value of type `Self` from the `decoder`.
-	 ///	If reading throws an error, the error is catched, the `decoder`
-	 ///	cursor doesn't move and the function returns `nil`.
-	 /// If reading is successful, it pass the value to the `accept`
-	 /// function.
-	 /// If accept returns `true`, the value is considered good,
-	 /// the `decoder` cursor moves to the next value, and the function
-	 /// returns the value.
-	 /// If accept returns `false`, the value is not considered good,
-	 /// the `decoder` cursor doesn't move, and the function returns `nil`.
-	 ///
-	 /// - parameter decoder: The `BDecoder` istance to read data from.
-	 /// - parameter accept: A function to check the readed value
-	 /// - returns: The accepted value, `nil` otherwise.
-	 static func peek( from decoder: inout some BDecoder, _ accept:( Self ) -> Bool ) -> Self? {
-	 decoder.peek( accept)
-	 }
-	 */
 }

@@ -238,10 +238,10 @@ extension TypeConstructor {
 		defer { currentElement = saved }
 		currentElement	= element
 		
-		guard let value =  try T._fullWrappedType.init(from: decoder) as? T else {
+		guard let value =  try T._fullOptionalUnwrappedType.init(from: decoder) as? T else {
 			throw GraphCodableError.malformedArchive(
 				Self.self, GraphCodableError.Context(
-					debugDescription: "Block \(element) wrapped type \(T._fullWrappedType) not GDecodable."
+					debugDescription: "Block \(element) wrapped type \(T._fullOptionalUnwrappedType) not GDecodable."
 				)
 			)
 		}
@@ -255,10 +255,10 @@ extension TypeConstructor {
 		defer { currentElement = saved }
 		currentElement	= element
 		
-		guard let binaryIType = type._fullWrappedType as? any GBinaryDecodable.Type else {
+		guard let binaryIType = type._fullOptionalUnwrappedType as? any GBinaryDecodable.Type else {
 			throw GraphCodableError.malformedArchive(
 				Self.self, GraphCodableError.Context(
-					debugDescription: "\(element) wrapped type \(type._fullWrappedType) is not GBinaryDecodable."
+					debugDescription: "\(element) wrapped type \(type._fullOptionalUnwrappedType) is not GBinaryDecodable."
 				)
 			)
 		}

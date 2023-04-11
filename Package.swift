@@ -4,10 +4,10 @@
 import PackageDescription
 
 let settings: [SwiftSetting] = [
-	.unsafeFlags( [
-		"-enable-upcoming-feature", "ExistentialAny",
-		"-enable-upcoming-feature", "ForwardTrailingClosures"
-	])
+//	.unsafeFlags( [
+//		"-enable-upcoming-feature", "ExistentialAny",
+//		"-enable-upcoming-feature", "ForwardTrailingClosures"
+//	])
 ]
 
 let package = Package(

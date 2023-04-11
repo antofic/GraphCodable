@@ -81,7 +81,7 @@ final class EncodeBinary<Output:MutableDataProtocol> : EncodeFileBlocks {
 		)
 	}
 	
-	func appendVal(keyID: KeyID?, refID: RefID?, idnID: IdnID?) throws {
+	func appendVal<T:GEncodable>(keyID: KeyID?, refID: RefID?, idnID: IdnID?, value: T) throws {
 		try writeInit()
 		try FileBlock.writeVal(
 			keyID: keyID,idnID: idnID, refID: refID,
@@ -89,7 +89,7 @@ final class EncodeBinary<Output:MutableDataProtocol> : EncodeFileBlocks {
 		)
 	}
 
-	func appendBin<T:BEncodable>(keyID: KeyID?, refID: RefID?, idnID: IdnID?, binaryValue: T) throws {
+	func appendBin<T:GBinaryEncodable>(keyID: KeyID?, refID: RefID?, idnID: IdnID?, binaryValue: T) throws {
 		try writeInit()
 		try FileBlock.writeBin(
 			keyID: keyID,idnID: idnID, refID: refID, binaryValue:binaryValue,

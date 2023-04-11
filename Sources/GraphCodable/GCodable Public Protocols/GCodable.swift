@@ -20,20 +20,17 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
-
-/// The default string that identiefies a BinaryIO archive
+/// The default string that identiefies a GraphCodable archive
 ///
-/// You can choose a different archive identifier in:
-/// - the BinaryIOEncoder `init` method
-/// - the BEncodable `binaryIOData(...)` method
+/// You can choose a different archive identifier with:
+/// - the GraphEncoder `init` method
 ///
 /// During decoding this string must match the `archiveIdentifier` in:
-/// - the BinaryIODecoder `init` method
-/// - the BDecodable `init( binaryIOData:... )` method
+/// - the GraphDecoder `init` method
 ///
-/// Note: User can even choose a `nil` string
+/// Note: A GraphDecoder `nil` string match with
+/// any encoded `archiveIdentifier` string
 public let defaultGraphCodableArchiveIdentifier = "graphCodable"
-
 
 /// A type that can be encoded from in-memory representations
 /// into a native data format
@@ -65,18 +62,22 @@ public protocol GEncodable {
 	/// inheritance and their type name is never archived
 	var inheritanceEnabled : Bool { get }
 	
-	/// Reserved for package use.
-	var _optionalWrappedValue : (any GEncodable)? { get }
+	/// Optional support: reserved for package use.
+	var _fullOptionalUnwrappedValue : (any GEncodable)? { get }
 }
 
 extension GEncodable {
 	/// Default classVersion = 0
 	public static var classVersion : UInt32 { 0 }
-	/// No inheritance for all types
+	/// Inheritance disabled for value types
+	/// Enabling inheritance of value types has no effect.
 	public var inheritanceEnabled : Bool { false }
 	
-	/// Reserved for package use.
-	public var _optionalWrappedValue : (any GEncodable)? { self }
+	/// Optional support: reserved for package use.
+	///
+	/// Wraps or unwraps self until a **single level optional value**
+	/// is obtained.
+	public var _fullOptionalUnwrappedValue : (any GEncodable)? { self }
 }
 
 extension GEncodable where Self:AnyObject {
@@ -84,7 +85,7 @@ extension GEncodable where Self:AnyObject {
 	public static var supportsCodableInheritance: Bool {
 		ClassData.isConstructible( type:self )
 	}
-	/// inheritance enabled by default for reference types
+	/// Inheritance enabled by default for reference types
 	public var inheritanceEnabled : Bool { true }
 }
 
@@ -109,16 +110,19 @@ public protocol GDecodable {
 	/// - returns: The class that replaces `Self` (`Self.self` by default).
 	static var decodeType : any GDecodable.Type { get }
 	
-	/// Reserved for package use.
-	static var _fullWrappedType	: any GDecodable.Type { get }
+	/// Optional support: reserved for package use.
+	///
+	/// Unwraps `Self` until the inner **non optional** `GDecodable` type
+	/// is obtained.
+	static var _fullOptionalUnwrappedType	: any GDecodable.Type { get }
 }
 
 extension GDecodable {
 	/// Default decodeType = `Self.self`
 	public static var decodeType : any GDecodable.Type { Self.self }
 
-	/// Reserved for package use.
-	public static var _fullWrappedType : any GDecodable.Type { Self.self }
+	/// Optional support: reserved for package use.
+	public static var _fullOptionalUnwrappedType : any GDecodable.Type { Self.self }
 }
 
 /// A type that can be encoded from in-memory representations

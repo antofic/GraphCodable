@@ -39,7 +39,7 @@ struct FileHeader : CustomStringConvertible, BCodable {
 	let gcodableVersion		: UInt32			// encoded/decoded by FileHeader
 	let gcoadableFlags		: Flags				// encoded/decoded by FileHeader
 	
-	func description( dataSize:Int? ) -> String {
+	func description( fileSize:Int? ) -> String {
 		func alignR( _ value:Any,length: Int = 12 ) -> String  {
 			"\(value)".align( .right, length: length )
 		}
@@ -62,15 +62,15 @@ struct FileHeader : CustomStringConvertible, BCodable {
 		string.append(		"\n- userVersion         = \( alignR(userVersion) ) \( bitString(userVersion) )")
 		string.append(		"\n- gcodableVersion     = \( alignR(gcodableVersion) ) \( bitString(gcodableVersion) )")
 		string.append(		"\n- gcodableFlags       = \( alignR(gcoadableFlags.rawValue) ) \( bitString(gcoadableFlags) )")
-		if let dataSize {
-			string.append(	"\n- fileSize            = \( alignR(dataSize) ) bytes")
+		if let fileSize {
+			string.append(	"\n- fileSize            = \( alignR(fileSize) ) bytes")
 			
 		}
 		return string
 	}
 	
 	var description: String {
-		description(dataSize: nil)
+		description(fileSize: nil)
 	}
 
 	init(
