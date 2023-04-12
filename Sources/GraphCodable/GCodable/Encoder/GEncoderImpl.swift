@@ -66,6 +66,11 @@ final class GEncoderImpl : EncodeFileBlocksDelegate {
 	var classDataMap: ClassDataMap 	{ referenceMap.classDataMap }
 	var keyStringMap: KeyStringMap 	{ keyMap.keyStringMap }
 	
+	private var manglingFunction : ManglingFunction {
+		encodeOptions.contains( .useNSClassFromStringMangling ) ?
+			.nsclassfromstring : .mangledTypeName
+	}
+	
 	init( _ options: GraphEncoder.Options, userVersion:UInt32, archiveIdentifier: String? ) {
 		#if DEBUG
 		self.encodeOptions		= [options, .printWarnings]
@@ -121,6 +126,10 @@ final class GEncoderImpl : EncodeFileBlocksDelegate {
 
 // MARK: GEncoderImpl conformance to GEncoder/GEncoderView protocol
 extension GEncoderImpl : GEncoder, GEncoderView {
+	func isCodableClass(_ type: (AnyObject & GEncodable).Type) -> Bool {
+		ClassData.isConstructible( type: type, manglingFunction: manglingFunction )
+	}
+	
 	func encode<Value>(_ value: Value) throws where Value:GEncodable {
 		try level1_encodeValue( value, keyID: nil, conditional:false )
 	}
@@ -267,7 +276,7 @@ extension GEncoderImpl {
 			let object = value as? any (AnyObject & GEncodable) else {
 			return nil
 		}
-		return try referenceMap.createRefIDIfNeeded( for: object )
+		return try referenceMap.createRefIDIfNeeded( for: object, manglingFunction: manglingFunction )
 	}
 
 	
@@ -275,7 +284,7 @@ extension GEncoderImpl {
 		if	!encodeOptions.contains( .disableInheritance ),
 			value.inheritanceEnabled,
 			let object = value as? any (AnyObject & GEncodable) {
-			try ClassData.throwIfNotConstructible( type: type(of:object) )
+			try ClassData.throwIfNotConstructible( type: type(of:object), manglingFunction: manglingFunction )
 		}
 	}
 }

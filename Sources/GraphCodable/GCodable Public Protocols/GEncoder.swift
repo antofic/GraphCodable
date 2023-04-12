@@ -12,6 +12,7 @@ public protocol GEncoder {
 
 	var	userVersion	: UInt32 { get }
 
+	func isCodableClass( _ type: any (AnyObject & GEncodable).Type ) -> Bool
 	
 	/// Encodes the given value/reference for the given key.
 	///

@@ -61,7 +61,7 @@ final class DecodeDump: EncodeFileBlocksDelegate {
 	
 	var referenceMapDescription: String? {
 		func name( _ type:Any.Type ) -> String {
-			_typeName( type, qualified:qualified )
+			ClassData.typeName( type, qualified: qualified )
 		}
 		
 		func typeString( _ type:Any.Type ) -> String {
@@ -80,21 +80,15 @@ final class DecodeDump: EncodeFileBlocksDelegate {
 		)
 		
 		if classInfoMap.isEmpty == false,
-		   dumpOptions.contains( .onlyUndecodableClassesInConstructionMap ) == false
+		   dumpOptions.contains( .onlyUndecodableClassesInReferenceMap ) == false
 		{
 			string.append( "Encoded class types will be decoded as:" )
 			do {
 				let couples	: [(RefID,any GDecodable.Type)] = classInfoMap.map {
 					($0.key, $0.value.decodedType)
 				}
-				if dumpOptions.contains( .hideRefIDsInConstructionMap ) {
-					string = couples.sorted { name( $0.1 ) < name( $1.1 ) }.reduce(into: string) {
-						$0.append( "\n- \( typeString($1.1) )" )
-					}
-				} else {
-					string = couples.sorted { $0.0.id < $1.0.id }.reduce(into: string) {
-						$0.append( "\n- TYPE\( $1.0 ): \( typeString($1.1) )" )
-					}
+				string = couples.sorted { $0.0.id < $1.0.id }.reduce(into: string) {
+					$0.append( "\n- TYPE\( $1.0 ): \( typeString($1.1) )" )
 				}
 			}
 			do {
@@ -107,16 +101,9 @@ final class DecodeDump: EncodeFileBlocksDelegate {
 				}
 				if couples.isEmpty == false {
 					string.append( "\nwhere:" )
-					if dumpOptions.contains( .hideRefIDsInConstructionMap ) {
-						string = couples.sorted { name( $0.1 ) < name( $1.1 ) }.reduce(into: string) {
-							$0.append( "\n- the encoded \( typeString($1.1) )")
-							$0.append( "\n  was replaced by \( typeString($1.1.decodeType) )" )
-						}
-					} else {
-						string = couples.sorted { $0.0.id < $1.0.id }.reduce(into: string) {
-							$0.append( "\n- the encoded TYPE\( $1.0 ): \( typeString($1.1) )")
-							$0.append( "\n  was replaced by \( typeString($1.1.decodeType) )" )
-						}
+					string = couples.sorted { $0.0.id < $1.0.id }.reduce(into: string) {
+						$0.append( "\n- the encoded TYPE\( $1.0 ): \( typeString($1.1) )")
+						$0.append( "\n  was replaced by \( typeString($1.1.decodeType) )" )
 					}
 				}
 			}
@@ -128,22 +115,17 @@ final class DecodeDump: EncodeFileBlocksDelegate {
 			classDataMap: classDataMap, classNameMap: classNameMap
 		)
 		if undecodableClassDataMap.isEmpty == false {
-			let qualified	= dumpOptions.contains( .qualifiedTypeNames )
 			string.append( "Undecodable encoded classes:" )
-			if dumpOptions.contains( .hideRefIDsInConstructionMap ) {
-				string = undecodableClassDataMap.sorted { $0.1.className(qualified) < $1.1.className(qualified) }.reduce(into: string) {
-					$0.append( "\n- class  \( $1.1.className(qualified) )")
-					if dumpOptions.contains( .showMangledClassNames ) {
-						$0.append( "\n\t  mangledClassName = \( $1.1.mangledClassName )" )
-					}
-				}
-			} else {
 				string = undecodableClassDataMap.sorted { $0.0.id < $1.0.id }.reduce(into: string) {
-					$0.append( "\n\t- class  \( $1.1.className(qualified) )")
+					$0.append( "\n- TYPE\( $1.0 ): class \( $1.1.className(qualified: qualified) )")
 					if dumpOptions.contains( .showMangledClassNames ) {
-						$0.append( "\n\t  mangledClassName = \( $1.1.mangledClassName )" )
+						let version	= "\($1.1.encodedClassVersion)".align(.right, length: 4, filler: "0")
+						if qualified == false {
+							$0.append( "\n  QualifiedName    = \( $1.1.className(qualified: true) )"  )
+						}
+						$0.append( "\n  MangledClassName = \( $1.1.mangledClassName )" )
+						$0.append( "\n  EncodedVersion   = \( version )" )
 					}
-				}
 			}
 			string.append( "\n" )
 		}

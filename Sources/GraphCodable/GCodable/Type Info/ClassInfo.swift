@@ -17,7 +17,10 @@ struct ClassInfo : CustomStringConvertible {
 			self.decodedType	= type
 			return
 		} else if let classNameMap {
-			if let type	= classNameMap[ .mangledClassName(classData.mangledClassName) ] {
+			if let type	= classNameMap[ .mangledClassName( classData.mangledClassName ) ] {
+				self.decodedType	= type
+				return
+			} else if let type	= classNameMap[ .qualifiedClassName( classData.className( qualified: true ) ) ] {
 				self.decodedType	= type
 				return
 			}
@@ -25,7 +28,7 @@ struct ClassInfo : CustomStringConvertible {
 		
 		throw GraphCodableError.cantConstructClass(
 			Self.self, GraphCodableError.Context(
-				debugDescription:"The class \(classData.className( true )) can't be constructed."
+				debugDescription:"The class \(classData.className( qualified: true )) can't be constructed."
 			)
 		)
 	}

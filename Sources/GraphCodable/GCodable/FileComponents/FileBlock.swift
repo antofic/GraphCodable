@@ -278,9 +278,9 @@ extension FileBlock : CustomStringConvertible {
 			if let classData	= classDataMap?[refID] {
 				let qualified	= options.contains( .qualifiedTypeNames )
 				if options.contains( .showClassVersionsInBody ) {
-					return "\(classData.className( qualified )) V\(classData.encodedClassVersion)"
+					return "\(classData.className( qualified: qualified )) V\(classData.encodedClassVersion)"
 				} else {
-					return classData.className( qualified )
+					return classData.className( qualified: qualified )
 				}
 			} else {
 				return "TYPE\(refID)"

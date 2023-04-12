@@ -464,13 +464,8 @@ Value types usually don't have an identity. In analogy to the `Identifiable` sys
 ```swift
 public protocol GIdentifiable<GID> {
 	associatedtype GID : Hashable
-	var gcodableID: Self.GID? { get }
+	var gcodableID: GID? { get }
 }
-
-extension GIdentifiable where Self:Identifiable {
-	public var gcodableID: Self.ID? { id }
-}
-
 ```
 
 **Note**: `gcodableID` automatically returns the `Identifiable.id` as `gcodableID` if the type adopt the `Identifiable` protocol. 
@@ -481,8 +476,9 @@ A value type conforming to the `GIdentifiable` protocol acquires the same abilit
 import Foundation
 import GraphCodable
 
-struct Example : GCodable, Equatable, Codable, Identifiable, GIdentifiable {
+struct Example : GCodable, Equatable, Codable, GIdentifiable {
 	var id = UUID()
+	var gcodableID: UUID? { id }
 	
 	private(set) var name		: String
 	private(set) var examples	: [Example]
@@ -635,7 +631,9 @@ The next example uses the value <u>with identity</u>. `A` contains  `VeryLargeDa
 import Foundation
 import GraphCodable
 
-struct VeryLargeData : GCodable, Identifiable, GIdentifiable {
+struct VeryLargeData : GCodable, GIdentifiable {
+	var gcodableID: UUID? { id }
+
 	let id = UUID()
 	let veryLargeData : String
 	
@@ -1015,7 +1013,6 @@ print( outRoot )	// print 'Screen [Window [View [], View [View []]], Window [Vie
 //	If parent variables are set correctly the operation will be successful:
 
 print( outRoot === outRoot.childs.first?.childs.first?.parent?.parent! )	// print true
-
 ```
 
 #### A more general example
@@ -1250,7 +1247,7 @@ The output shows that the array `a ` has been encoded 4 times and that's not wha
 
 ```
 ••• MYArray = [[[1, 2], [1, 2]], [[1, 2], [1, 2]]] 
-== BODY ==========================================================
+= BODY =================================================================================
 - VAL
 	- VAL
 		- VAL
@@ -1275,7 +1272,7 @@ The output shows that the array `a ` has been encoded 4 times and that's not wha
 		.
 	.
 .
-==================================================================
+========================================================================================
 ```
 
 The solution is to adopt the `GIdentifiable` protocol to give an identity to MyArray and the identity is obviously the *ObjectIdentifier* of the box.
@@ -1290,7 +1287,7 @@ The output becomes now:
 
 ```
 ••• MYArray = [[[1, 2], [1, 2]], [[1, 2], [1, 2]]] 
-== BODY ==========================================================
+= BODY =================================================================================
 - VAL0001
 	- VAL
 		- VAL0002
@@ -1304,7 +1301,7 @@ The output becomes now:
 		- PTS0002
 	.
 .
-==================================================================
+========================================================================================
 ```
 
 Not only array `a` (VAL0003) is encoded only once, but array `b` (VAL0002) is also encoded once.
@@ -1461,7 +1458,7 @@ public protocol GDecoder {
 
 ```
 
-**Note**: If inheritance is disabled, information about reference types (including classVersion) is not encoded and therefore versions cannot be used.
+**Note**: If inheritance is disabled, information about reference types (including `classVersion`) is not encoded and therefore versions cannot be used.
 
 A very simple example: suppose that your program saves its data in the "Documents/MyFile.graph" file:
 
@@ -1748,13 +1745,13 @@ final class Model<S:GDecodable> : GDecodable {
 		self.value	= Pair(inner, Pair(inner, string))
 	}
 	
-	init(from decoder: GraphCodable.GDecoder) throws {
+	init(from decoder: some GDecoder) throws {
 		value	= try decoder.decode()
 	}
 }
 
 extension Model: GEncodable where S:GEncodable {
-	func encode(to encoder: GraphCodable.GEncoder) throws {
+	func encode(to encoder: some GEncoder) throws {
 		try encoder.encode( value )
 	}
 }
@@ -1770,7 +1767,7 @@ extension Model where S:GEncodable {
 		let graphEncoder	= GraphEncoder()
 		if verbose {
 			print( "••• Encoding:\n\t\(self)\n••• to file:\n\t'\(fileName)'" )
-			print( try graphEncoder.dump(self, options: [.showBody,.showValueDescriptionInBody]))
+			print( try graphEncoder.dump(self, options: [.showBody,.showBinaryValueDescriptionInBody,.showReferenceMap]))
 		}
 		
 		let data = try graphEncoder.encode(self) as Data
@@ -1792,7 +1789,7 @@ extension Model {
 		
 		if verbose {
 			print( try graphDecoder.dump(from: data, options: [
-				.showBody,.showConstructionMap
+				.showBody,.showReferenceMap
 			]))
 		}
 		
@@ -1816,7 +1813,7 @@ var model	: DataModel
 
 model	= Model( string: "A", value: Two(1.0,3) )
 
-try model.encode( fileName, verbose: false )
+try model.encode( fileName, verbose: true )
 
 model	= try DataModel.decode( fileName, verbose: true )
 ```
@@ -1829,48 +1826,55 @@ The program prints:
 ••• to file:
 	'ModelPair.graph'
 = BODY =================================================================================
-- REF0001 TYPE0001
-	- REF0002 TYPE0002
-		- REF0003 TYPE0003
-			- REF0004 TYPE0004
+- REF0001(TYPE0001)
+	- REF0002(TYPE0002)
+		- REF0003(TYPE0003)
+			- REF0004(TYPE0004)
 				- BIV 1.0
 				- BIV 3
 			.
 			- BIV "A"
 		.
-		- REF0005 TYPE0005
+		- REF0005(TYPE0005)
 			- PTS0003
 			- BIV "A"
 		.
 	.
 .
+= REFERENCEMAP =========================================================================
+Encoded class types:
+- TYPE0002: class Pair<Pair<Pair<Double, Int>, String>, Pair<Pair<Pair<Double, Int>, String>, String>>
+- TYPE0005: class Pair<Pair<Pair<Double, Int>, String>, String>
+- TYPE0001: class Model<Pair<Double, Int>>
+- TYPE0004: class Pair<Double, Int>
+- TYPE0003: class Pair<Pair<Double, Int>, String>
 ========================================================================================
 
 ••• Decoding from file
 	'ModelPair.graph'
 = BODY =================================================================================
-- REF0001 TYPE0001
-	- REF0002 TYPE0002
-		- REF0003 TYPE0003
-			- REF0004 TYPE0004
-				- BIV { 8 bytes }
-				- BIV { 8 bytes }
+- REF0001(TYPE0001)
+	- REF0002(TYPE0002)
+		- REF0003(TYPE0003)
+			- REF0004(TYPE0004)
+				- BIV
+				- BIV
 			.
-			- BIV { 2 bytes }
+			- BIV
 		.
-		- REF0005 TYPE0005
+		- REF0005(TYPE0005)
 			- PTS0003
-			- BIV { 2 bytes }
+			- BIV
 		.
 	.
 .
-= CONSTRUCTIONMAP ======================================================================
-Encoded class types will create the following decoded types:
-	- TYPE0001: class Model<Pair<Double, Int>>
-	- TYPE0002: class Pair<Pair<Pair<Double, Int>, String>, Pair<Pair<Pair<Double, Int>, String>, String>>
-	- TYPE0003: class Pair<Pair<Double, Int>, String>
-	- TYPE0004: class Pair<Double, Int>
-	- TYPE0005: class Pair<Pair<Pair<Double, Int>, String>, String>
+= REFERENCEMAP =========================================================================
+Encoded class types will be decoded as:
+- TYPE0001: class Model<Pair<Double, Int>>
+- TYPE0002: class Pair<Pair<Pair<Double, Int>, String>, Pair<Pair<Pair<Double, Int>, String>, String>>
+- TYPE0003: class Pair<Pair<Double, Int>, String>
+- TYPE0004: class Pair<Double, Int>
+- TYPE0005: class Pair<Pair<Pair<Double, Int>, String>, String>
 ========================================================================================
 
 ••• Decoded:
@@ -1940,7 +1944,7 @@ The code is substantially identical to the one already seen by `Generic` `decode
 
 ```swift
 extension Couple {
-	static var decodeType: GDecodable.Type {
+	class var decodeType: GDecodable.Type {
 		func buildSelf<newT,newQ>( _ typeT:newT.Type, _ typeQ:newQ.Type ) -> GDecodable.Type
 		where newT:GDecodable, newQ:GDecodable { Couple<newT,newQ>.self }
 		
@@ -1988,39 +1992,39 @@ The program now print:
 ••• Decoding from file
 	'ModelPair.graph'
 = BODY =================================================================================
-- REF0001 TYPE0001
-	- REF0002 TYPE0002
-		- REF0003 TYPE0003
-			- REF0004 TYPE0004
-				- BIV { 8 bytes }
-				- BIV { 8 bytes }
+- REF0001(TYPE0001)
+	- REF0002(TYPE0002)
+		- REF0003(TYPE0003)
+			- REF0004(TYPE0004)
+				- BIV
+				- BIV
 			.
-			- BIV { 2 bytes }
+			- BIV
 		.
-		- REF0005 TYPE0005
+		- REF0005(TYPE0005)
 			- PTS0003
-			- BIV { 2 bytes }
+			- BIV
 		.
 	.
 .
-= CONSTRUCTIONMAP ======================================================================
-Encoded class types will create the following decoded types:
-	- TYPE0001: class Model<Couple<Double, Int>>
-	- TYPE0002: class Couple<Couple<Couple<Double, Int>, String>, Couple<Couple<Couple<Double, Int>, String>, String>>
-	- TYPE0003: class Couple<Couple<Double, Int>, String>
-	- TYPE0004: class Couple<Double, Int>
-	- TYPE0005: class Couple<Couple<Couple<Double, Int>, String>, String>
+= REFERENCEMAP =========================================================================
+Encoded class types will be decoded as:
+- TYPE0001: class Model<Couple<Double, Int>>
+- TYPE0002: class Couple<Couple<Couple<Double, Int>, String>, Couple<Couple<Couple<Double, Int>, String>, String>>
+- TYPE0003: class Couple<Couple<Double, Int>, String>
+- TYPE0004: class Couple<Double, Int>
+- TYPE0005: class Couple<Couple<Couple<Double, Int>, String>, String>
 where:
-	- the encoded TYPE0001: class Model<Pair<Double, Int>>
-	  was replaced by class Model<Couple<Double, Int>>
-	- the encoded TYPE0002: class Pair<Pair<Pair<Double, Int>, String>, Pair<Pair<Pair<Double, Int>, String>, String>>
-	  was replaced by class Couple<Couple<Couple<Double, Int>, String>, Couple<Couple<Couple<Double, Int>, String>, String>>
-	- the encoded TYPE0003: class Pair<Pair<Double, Int>, String>
-	  was replaced by class Couple<Couple<Double, Int>, String>
-	- the encoded TYPE0004: class Pair<Double, Int>
-	  was replaced by class Couple<Double, Int>
-	- the encoded TYPE0005: class Pair<Pair<Pair<Double, Int>, String>, String>
-	  was replaced by class Couple<Couple<Couple<Double, Int>, String>, String>
+- the encoded TYPE0001: class Model<Pair<Double, Int>>
+  was replaced by class Model<Couple<Double, Int>>
+- the encoded TYPE0002: class Pair<Pair<Pair<Double, Int>, String>, Pair<Pair<Pair<Double, Int>, String>, String>>
+  was replaced by class Couple<Couple<Couple<Double, Int>, String>, Couple<Couple<Couple<Double, Int>, String>, String>>
+- the encoded TYPE0003: class Pair<Pair<Double, Int>, String>
+  was replaced by class Couple<Couple<Double, Int>, String>
+- the encoded TYPE0004: class Pair<Double, Int>
+  was replaced by class Couple<Double, Int>
+- the encoded TYPE0005: class Pair<Pair<Pair<Double, Int>, String>, String>
+  was replaced by class Couple<Couple<Couple<Double, Int>, String>, String>
 ========================================================================================
 
 ••• Decoded:
@@ -2030,25 +2034,32 @@ where:
 ••• to file:
 	'ModelPair2.graph'
 = BODY =================================================================================
-- REF0001 TYPE0001
-	- REF0002 TYPE0002
-		- REF0003 TYPE0003
-			- REF0004 TYPE0004
+- REF0001(TYPE0001)
+	- REF0002(TYPE0002)
+		- REF0003(TYPE0003)
+			- REF0004(TYPE0004)
 				- BIV 1.0
 				- BIV 3
 			.
 			- BIV "A"
 		.
-		- REF0005 TYPE0005
+		- REF0005(TYPE0005)
 			- PTS0003
 			- BIV "A"
 		.
 	.
 .
+= REFERENCEMAP =========================================================================
+Encoded class types:
+- TYPE0002: class Couple<Couple<Couple<Double, Int>, String>, Couple<Couple<Couple<Double, Int>, String>, String>>
+- TYPE0004: class Couple<Double, Int>
+- TYPE0001: class Model<Couple<Double, Int>>
+- TYPE0005: class Couple<Couple<Couple<Double, Int>, String>, String>
+- TYPE0003: class Couple<Couple<Double, Int>, String>
 ========================================================================================
 ```
 
-The `.showConstructionMap` option shows the *Construction Map* giving an overview of which type is actually being built and which is being replaced during decoding. In this it differs from the *Reference Map* which is instead the list of classes encoded in the file. 
+The `.showReferenceMap` option of the `GraphDecoder` `dump(...)` function  give an overview of which type is actually being built and which is being replaced during decoding. In this it differs from the  `.showReferenceMap` option of the `GraphEncoder` `dump(...)` function which is instead the list of classes encoded in the file.
 
 It is also possible to replace a reference type with a value type:
 
@@ -2071,39 +2082,39 @@ The program now print:
 ••• Decoding from file
 	'ModelPair.graph'
 = BODY =================================================================================
-- REF0001 TYPE0001
-	- REF0002 TYPE0002
-		- REF0003 TYPE0003
-			- REF0004 TYPE0004
-				- BIV { 8 bytes }
-				- BIV { 8 bytes }
+- REF0001(TYPE0001)
+	- REF0002(TYPE0002)
+		- REF0003(TYPE0003)
+			- REF0004(TYPE0004)
+				- BIV
+				- BIV
 			.
-			- BIV { 2 bytes }
+			- BIV
 		.
-		- REF0005 TYPE0005
+		- REF0005(TYPE0005)
 			- PTS0003
-			- BIV { 2 bytes }
+			- BIV
 		.
 	.
 .
-= CONSTRUCTIONMAP ======================================================================
-Encoded class types will create the following decoded types:
-	- TYPE0001: class Model<Couple<Double, Int>>
-	- TYPE0002: struct Couple<Couple<Couple<Double, Int>, String>, Couple<Couple<Couple<Double, Int>, String>, String>>
-	- TYPE0003: struct Couple<Couple<Double, Int>, String>
-	- TYPE0004: struct Couple<Double, Int>
-	- TYPE0005: struct Couple<Couple<Couple<Double, Int>, String>, String>
+= REFERENCEMAP =========================================================================
+Encoded class types will be decoded as:
+- TYPE0001: class Model<Couple<Double, Int>>
+- TYPE0002: struct Couple<Couple<Couple<Double, Int>, String>, Couple<Couple<Couple<Double, Int>, String>, String>>
+- TYPE0003: struct Couple<Couple<Double, Int>, String>
+- TYPE0004: struct Couple<Double, Int>
+- TYPE0005: struct Couple<Couple<Couple<Double, Int>, String>, String>
 where:
-	- the encoded TYPE0001: class Model<Pair<Double, Int>>
-	  was replaced by class Model<Couple<Double, Int>>
-	- the encoded TYPE0002: class Pair<Pair<Pair<Double, Int>, String>, Pair<Pair<Pair<Double, Int>, String>, String>>
-	  was replaced by struct Couple<Couple<Couple<Double, Int>, String>, Couple<Couple<Couple<Double, Int>, String>, String>>
-	- the encoded TYPE0003: class Pair<Pair<Double, Int>, String>
-	  was replaced by struct Couple<Couple<Double, Int>, String>
-	- the encoded TYPE0004: class Pair<Double, Int>
-	  was replaced by struct Couple<Double, Int>
-	- the encoded TYPE0005: class Pair<Pair<Pair<Double, Int>, String>, String>
-	  was replaced by struct Couple<Couple<Couple<Double, Int>, String>, String>
+- the encoded TYPE0001: class Model<Pair<Double, Int>>
+  was replaced by class Model<Couple<Double, Int>>
+- the encoded TYPE0002: class Pair<Pair<Pair<Double, Int>, String>, Pair<Pair<Pair<Double, Int>, String>, String>>
+  was replaced by struct Couple<Couple<Couple<Double, Int>, String>, Couple<Couple<Couple<Double, Int>, String>, String>>
+- the encoded TYPE0003: class Pair<Pair<Double, Int>, String>
+  was replaced by struct Couple<Couple<Double, Int>, String>
+- the encoded TYPE0004: class Pair<Double, Int>
+  was replaced by struct Couple<Double, Int>
+- the encoded TYPE0005: class Pair<Pair<Pair<Double, Int>, String>, String>
+  was replaced by struct Couple<Couple<Couple<Double, Int>, String>, String>
 ========================================================================================
 
 ••• Decoded:
@@ -2113,7 +2124,7 @@ where:
 ••• to file:
 	'ModelPair2.graph'
 = BODY =================================================================================
-- REF0001 TYPE0001
+- REF0001(TYPE0001)
 	- VAL
 		- VAL
 			- VAL
@@ -2134,6 +2145,9 @@ where:
 		.
 	.
 .
+= REFERENCEMAP =========================================================================
+Encoded class types:
+- TYPE0001: class Model<Couple<Double, Int>>
 ========================================================================================
 ```
 
@@ -2156,7 +2170,7 @@ thus obtaining:
 ••• to file:
 	'ModelPair2.graph'
 = BODY =================================================================================
-- REF0001 TYPE0001
+- REF0001(TYPE0001)
 	- VAL0002
 		- VAL0003
 			- VAL0004
@@ -2171,6 +2185,9 @@ thus obtaining:
 		.
 	.
 .
+= REFERENCEMAP =========================================================================
+Encoded class types:
+- TYPE0001: class Model<Couple<Double, Int>>
 ========================================================================================
 ```
 
@@ -2182,25 +2199,24 @@ It is still possible to use strings for class names. Let's go back to the exampl
 let path = FileManager.default.urls(
 	for: .documentDirectory, in: .userDomainMask
 )[0].appendingPathComponent("MyFile.graph")
-
 let data	= try Data(contentsOf: path)
-
-let dump	= try GraphDecoder().dump(from: data, options: [.showReferenceMap,.showMangledNamesInReferenceMap])
-
+let dump	= try GraphDecoder().dump(from: data, options: [.showReferenceMap,.showMangledClassNames])
 print(dump)
 ```
 
-The output is:
+Please comment out the `MyData` class so that the decoder can't "see" it. When the decoder does not find in the code the class it should decode it prints, if the `.showReferenceMap` option is activated, the list of undecodable classes:
 
 ```
 = REFERENCEMAP =========================================================================
-TYPE0001:	QualifiedName  = MyGraphCodableApp.MyData
-			MangledName    = 17MyGraphCodableApp0A4DataC
-			EncodedVersion = 0
+Undecodable encoded classes:
+- TYPE0001: class MyData
+  QualifiedName    = MyGraphCodableApp.MyData
+  MangledClassName = 17MyGraphCodableApp0A4DataC
+  EncodedVersion   = 0000
 ========================================================================================
 ```
 
-You then see that the `MyData` class has been stored with the qualified name `MyGraphCodableApp.MyData` and the mangledName `17MyGraphCodableApp0A4DataC`. Then you can use the GraphDecoder function:
+Also, the `.foo` option displays the information encoded in the file about each undecodable class. You then see that the `MyData` class has been stored with the the mangledName `17MyGraphCodableApp0A4DataC`. Then you can use the GraphDecoder function:
 
 ```swift
 func setType( _ type:GDecodable.Type, for className:ClassName )
@@ -2210,9 +2226,10 @@ to match the encoded name to the class to decode. `ClassName` allows you to choo
 
 ```swift
 public enum ClassName : Hashable {
-	case mangledName( _:String )
-	case qualifiedName( _:String )
+	case mangledClassName( _:String )
+	case qualifiedClassName( _:String )
 }
+
 ```
 
 It's best to use `mangledName`, as in the following example:
@@ -2321,7 +2338,7 @@ let data	= try Data(contentsOf: path)
 
 let graphDecoder = GraphDecoder()
 // set up the dictionary
-graphDecoder.setType( MyNewData.self, for: .mangledName("17MyGraphCodableApp0A4DataC") )
+graphDecoder.setType( MyNewData.self, for: .mangledClassName("17MyGraphCodableApp0A4DataC") )
 
 let outRoot	= try graphDecoder.decode( MyNewData.self, from: data )
 print( outRoot )	// MyNewData(string: 3)
@@ -2430,22 +2447,22 @@ Other codes:
 				    Only used by the VAL and REF fields.
 = BODY =================================================================================
 - VAL
-	+ "pivot": VAL
-		- BIV SIMD3<Double>(-0.2725589512361022, 0.7122552082341422, 0.0625146…
-		- BIV simd_double3x3([[0.16157689531179997, 0.0, 0.0], [0.0, 0.3656748…
+	+ KEY(pivot): VAL
+		- BIV SIMD3<Double>(-0.6864696993600672, 0.5783071479066506, -0.270742…
+		- BIV simd_double3x3([[-0.48831245985039673, 0.0, 0.0], [0.0, 0.967749…
 	.
-	+ "array": VAL
+	+ KEY(array): VAL
 		- VAL
-			- BIV SIMD3<Double>(0.9414066953372839, 0.24043265597465324, -0.115703…
-			- BIV simd_double3x3([[-0.44418940482243396, 0.0, 0.0], [0.0, -0.55923…
+			- BIV SIMD3<Double>(0.623498935090441, 0.920189975336384, 0.7799827137…
+			- BIV simd_double3x3([[-0.4716588015254697, 0.0, 0.0], [0.0, 0.8439647…
 		.
 		- VAL
-			- BIV SIMD3<Double>(-0.2725589512361022, 0.7122552082341422, 0.0625146…
-			- BIV simd_double3x3([[0.16157689531179997, 0.0, 0.0], [0.0, 0.3656748…
+			- BIV SIMD3<Double>(-0.6864696993600672, 0.5783071479066506, -0.270742…
+			- BIV simd_double3x3([[-0.48831245985039673, 0.0, 0.0], [0.0, 0.967749…
 		.
 		- VAL
-			- BIV SIMD3<Double>(0.6624169536017868, 0.2376033765091996, -0.0233138…
-			- BIV simd_double3x3([[0.9841120917825208, 0.0, 0.0], [0.0, -0.7105751…
+			- BIV SIMD3<Double>(0.019405823879496076, 0.2685272288526013, 0.990373…
+			- BIV simd_double3x3([[0.691603100505157, 0.0, 0.0], [0.0, 0.856670744…
 		.
 	.
 .
@@ -2542,11 +2559,11 @@ Now the program prints:
 ```
 = BODY =================================================================================
 - VAL
-	+ "pivot": BIV NumericData(vector: SIMD3<Double>(0.33286539114840163, 0.0492638…
-	+ "array": VAL
-		- BIV NumericData(vector: SIMD3<Double>(-0.11284242645824238, 0.563343…
-		- BIV NumericData(vector: SIMD3<Double>(0.33286539114840163, 0.0492638…
-		- BIV NumericData(vector: SIMD3<Double>(0.879366714506493, 0.640246215…
+	+ KEY(pivot): BIV NumericData(vector: SIMD3<Double>(0.059304225073158134, -0.23639…
+	+ KEY(array): VAL
+		- BIV NumericData(vector: SIMD3<Double>(-0.11938184026030152, 0.762595…
+		- BIV NumericData(vector: SIMD3<Double>(0.9840956811611952, -0.6811992…
+		- BIV NumericData(vector: SIMD3<Double>(0.059304225073158134, -0.23639…
 	.
 .
 ========================================================================================
@@ -2569,8 +2586,8 @@ Now the program prints:
 ```
 = BODY =================================================================================
 - VAL
-	+ "pivot": BIV NumericData(vector: SIMD3<Double>(0.045236581447066104, 0.951692…
-	+ "array": BIV [MyGraphCodableApp.NumericData(vector: SIMD3<Double>(0.735150985…
+	+ KEY(pivot): BIV NumericData(vector: SIMD3<Double>(-0.7003175098115006, 0.3300809…
+	+ KEY(array): BIV [MyGraphCodableApp.NumericData(vector: SIMD3<Double>(0.998340960…
 .
 ========================================================================================
 ```
@@ -2871,59 +2888,63 @@ The program prints:
 ```
 Encoding and writing version: 'initial(0)':
 = HEADER ===============================================================================
-- fileType            =       'gcod' {4 bytes}
-- userVersion         =            0 {4 bytes}
-- gcodableVersion     =            4 {4 bytes}
-- binaryIOVersion     =            0 {4 bytes}
-- flags               =            1 {2 bytes}
+- archiveIdentifier   = "graphCodable"
+- binaryIOFlags       =            3 {16 bit value}
+- binaryIOVersion     =            0 {16 bit value}
+- userVersion         =            0 {32 bit value}
+- gcodableVersion     =            4 {32 bit value}
+- gcodableFlags       =            1 {16 bit value}
 = BODY =================================================================================
 - VAL
-	+ "pivot": BIV NumericData(vector: SIMD3<Double>(0.986647922492967, 0.471000163…
-	+ "array": BIV [MyGraphCodableApp.NumericData(vector: SIMD3<Double>(0.374499004…
+	+ KEY(pivot): BIV NumericData(vector: SIMD3<Double>(-0.6472945727427066, -0.061927…
+	+ KEY(array): BIV [MyGraphCodableApp.NumericData(vector: SIMD3<Double>(-0.34853834…
 .
 ========================================================================================
 
 Reading and decoding:
 = HEADER ===============================================================================
-- fileType            =       'gcod' {4 bytes}
-- userVersion         =            0 {4 bytes}
-- gcodableVersion     =            4 {4 bytes}
-- binaryIOVersion     =            0 {4 bytes}
-- flags               =            1 {2 bytes}
-- data size           =          521 bytes
+- archiveIdentifier   = "graphCodable"
+- binaryIOFlags       =            3 {16 bit value}
+- binaryIOVersion     =            0 {16 bit value}
+- userVersion         =            0 {32 bit value}
+- gcodableVersion     =            4 {32 bit value}
+- gcodableFlags       =            1 {16 bit value}
+- fileSize            =          492 bytes
 = BODY =================================================================================
 - VAL
-	+ "pivot": BIV { 96 bytes }
-	+ "array": BIV { 296 bytes }
+	+ KEY(pivot): BIV { 96 bytes }
+	+ KEY(array): BIV { 289 bytes }
 .
 ========================================================================================
 
 Encoding and writing version: 'newNumericData(1)':
 = HEADER ===============================================================================
-- fileType            =       'gcod' {4 bytes}
-- userVersion         =            1 {4 bytes}
-- gcodableVersion     =            4 {4 bytes}
-- binaryIOVersion     =            0 {4 bytes}
-- flags               =            1 {2 bytes}
+- archiveIdentifier   = "graphCodable"
+- binaryIOFlags       =            3 {16 bit value}
+- binaryIOVersion     =            0 {16 bit value}
+- userVersion         =            1 {32 bit value}
+- gcodableVersion     =            4 {32 bit value}
+- gcodableFlags       =            1 {16 bit value}
 = BODY =================================================================================
 - VAL
-	+ "pivot": BIV NumericData(vector: SIMD3<Double>(0.986647922492967, 0.471000163…
-	+ "array": BIV [MyGraphCodableApp.NumericData(vector: SIMD3<Double>(0.374499004…
+	+ KEY(pivot): BIV NumericData(vector: SIMD3<Double>(-0.6472945727427066, -0.061927…
+	+ KEY(array): BIV [MyGraphCodableApp.NumericData(vector: SIMD3<Double>(-0.34853834…
 .
 ========================================================================================
 
 Reading and decoding:
 = HEADER ===============================================================================
-- fileType            =       'gcod' {4 bytes}
-- userVersion         =            1 {4 bytes}
-- gcodableVersion     =            4 {4 bytes}
-- binaryIOVersion     =            0 {4 bytes}
-- flags               =            1 {2 bytes}
-- data size           =          525 bytes
+- archiveIdentifier   = "graphCodable"
+- binaryIOFlags       =            3 {16 bit value}
+- binaryIOVersion     =            0 {16 bit value}
+- userVersion         =            1 {32 bit value}
+- gcodableVersion     =            4 {32 bit value}
+- gcodableFlags       =            1 {16 bit value}
+- fileSize            =          496 bytes
 = BODY =================================================================================
 - VAL
-	+ "pivot": BIV { 97 bytes }
-	+ "array": BIV { 299 bytes }
+	+ KEY(pivot): BIV { 97 bytes }
+	+ KEY(array): BIV { 292 bytes }
 .
 ========================================================================================
 ```
@@ -2972,16 +2993,20 @@ extension CGSize 			: GPackable {}
 **BinaryIO package**:
 
 ```swift
-extension String	: BEncodable {
-  public func encode(to encoder: inout some BEncoder) throws {
-    try encoder.encodeString( self )
-  }
+extension String:	BEncodable {
+	public func encode(to encoder: inout some BEncoder) throws {
+		try encoder.withUnderlyingType {
+			try $0.encodeString(self)
+		}
+	}
 }
 
-extension String	: BDecodable {
-  public init(from decoder: inout some BDecoder) throws {
-    self = try decoder.decodeString()
-  }
+extension String: BDecodable {
+	public init(from decoder: inout some BDecoder) throws {
+		self = try decoder.withUnderlyingType {
+			try $0.decodeString()
+		}
+	}
 }
 ```
 

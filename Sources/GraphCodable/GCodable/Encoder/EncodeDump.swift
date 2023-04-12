@@ -141,13 +141,15 @@ final class EncodeDump : EncodeFileBlocks {
 		func typeString( _ options:GraphDumpOptions, _ classData:ClassData ) -> String {
 			var string	= ""
 			let qualified	= options.contains( .qualifiedTypeNames )
+			
+			string.append( "class \(classData.className( qualified: qualified ))" )
 			if options.contains( .showMangledClassNames ) {
 				let version	= "\(classData.encodedClassVersion)".align(.right, length: 4, filler: "0")
-				string.append( "QualifiedName  = \( classData.className(qualified) )"  )
-				string.append( "\n\t\t\tMangledName    = \( classData.mangledClassName )"  )
-				string.append( "\n\t\t\tEncodedVersion = \( version )"  )
-			} else {
-				string.append("class \(classData.className(qualified))")
+				if qualified == false {
+					string.append( "\n  QualifiedName    = \( classData.className(qualified: true) )"  )
+				}
+				string.append( "\n  MangledClassName = \( classData.mangledClassName )"  )
+				string.append( "\n  EncodedVersion   = \( version )"  )
 			}
 			return string
 		}

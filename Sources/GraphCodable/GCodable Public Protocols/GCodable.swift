@@ -65,12 +65,8 @@ extension GEncodable {
 }
 
 extension GEncodable where Self:AnyObject {
-	/// Returns true if the type can be constructed from its type name.
-	public static var supportsCodableInheritance: Bool {
-		ClassData.isConstructible( type:self )
-	}
 	/// Inheritance enabled by default for reference types
-	public var inheritanceEnabled : Bool { true }
+	public var inheritanceEnabled : Bool { true }	
 }
 
 /// A type that can be decoded from a native data format

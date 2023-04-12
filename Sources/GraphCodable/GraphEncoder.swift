@@ -91,13 +91,15 @@ extension GraphEncoder {
 			self.rawValue	= rawValue
 		}
 		
+		///	Select the mangling mode
+		public static let	useNSClassFromStringMangling						= Self( rawValue: 1 << 0 )
 		///	Disable compression
 		///
 		/// By default integers are compressed to produce smaller files.
 		/// This option disables compression.
 		///
 		/// - Note: Compression is enabled by default
-		public static let	disableCompression									= Self( rawValue: 1 << 0 )
+		public static let	disableCompression									= Self( rawValue: 1 << 1 )
 		
 		///	Disable moving encoded data
 		///
@@ -108,21 +110,21 @@ extension GraphEncoder {
 		/// `prepend(...)` function instead).
 		///
 		/// - Note: This option is disabled by default
-		public static let	dontMoveEncodedData									= Self( rawValue: 1 << 1 )
+		public static let	dontMoveEncodedData									= Self( rawValue: 1 << 2 )
 		
 		///	Disable identity
 		///
 		/// All types will be encoded with no identity regardless of how they are defined.
 		///
 		/// - Note: This option is disabled by default
-		public static let	disableIdentity										= Self( rawValue: 1 << 2 )
+		public static let	disableIdentity										= Self( rawValue: 1 << 3 )
 		
 		///	Disable inheritance
 		///
 		/// All reference types will be encoded with no class name info's.
 		///
 		/// - Note: This option is disabled by default
-		public static let	disableInheritance									= Self( rawValue: 1 << 3 )
+		public static let	disableInheritance									= Self( rawValue: 1 << 4 )
 
 		///	Resort to hashable identity
 		///
@@ -138,7 +140,7 @@ extension GraphEncoder {
 		///
 		/// - Note: This option is disabled by default
 		/// - Note: The option can be expensive in certain situations
-		public static let	tryHashableIdentityAtLast							= Self( rawValue: 1 << 5 )
+		public static let	tryHashableIdentityAtLast							= Self( rawValue: 1 << 6 )
 
 		///	Enable printing of warnings
 		///
@@ -150,7 +152,7 @@ extension GraphEncoder {
 		/// system, the reference type must have identity.
 		///
 		/// - Note: This option is auto-enabled if DEBUG is active.
-		public static let	printWarnings										= Self( rawValue: 1 << 6 )
+		public static let	printWarnings										= Self( rawValue: 1 << 7 )
 
 		public static let	mimicSwiftCodable:				Self 	= [ disableIdentity, disableInheritance ]
 		public static let	defaultOptions:					Self 	= []

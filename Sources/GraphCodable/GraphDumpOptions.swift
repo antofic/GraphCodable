@@ -56,9 +56,7 @@ public struct GraphDumpOptions: OptionSet {
 	public static let	qualifiedTypeNames						= Self( rawValue: 1 << 33 )
 
 	// REFERENCEMAP OPTIONS (DECODER DUMP ONLY):
-	///	if disabled, unqualified type names will be shown when possible
-	public static let	hideRefIDsInConstructionMap				= Self( rawValue: 1 << 34 )
-	public static let	onlyUndecodableClassesInConstructionMap	= Self( rawValue: 1 << 35 )
+	public static let	onlyUndecodableClassesInReferenceMap	= Self( rawValue: 1 << 35 )
 	
 	// OTHER OPTIONS:
 	///	disable '== SECTION TITLE =========================================='

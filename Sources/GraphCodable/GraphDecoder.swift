@@ -5,22 +5,6 @@
 //	Copyright (c) 2021-2023 Antonino Ficarra
 
 import Foundation
-import SwiftDemangle
-
-public protocol ClassDataProtocol {
-	var mangledClassName: 		String { get }
-	var encodedClassVersion:	UInt32 { get }
-}
-
-public extension ClassDataProtocol {
-//	var typeName:			String {
-//		try! mangledClassName.demangling( .simplifiedOptions )
-//	}
-	
-	func className( _ qualified: Bool ) -> String {
-		try! mangledClassName.demangling( qualified ? .defaultOptions : .simplifiedOptions )
-	}
-}
 
 ///	A struct that specifies the name of the encoded
 /// class to match the type to create
@@ -29,23 +13,28 @@ public extension ClassDataProtocol {
 public enum ClassName : Hashable {
 	///	The `mangledClassName` string
 	///
-	/// You can specify the class `mangledClassName` generated
-	/// by `NSStringFromClass( type )` during encoding.
+	/// You can specify the encoded class `mangledClassName`
 	case mangledClassName( _:String )
+	///	The `qualifiedClassName` string
+	///
+	/// You can specify the encoded class `qualifiedClassName`
+	case qualifiedClassName( _:String )
 }
 
-public typealias ClassNameMap 		= [ClassName : any GDecodable.Type ]
+public typealias ClassNameMap = [ClassName : any GDecodable.Type ]
 
 /// Cointains info of encodeded classes that cannot be decoded.
-public struct UndecodableClass : ClassDataProtocol {
+public struct UndecodableClass : GEncodedClassInfo {
+	public let	manglingFunction: 		ManglingFunction
 	///	the class `mangledClassName` generated during encoding.
 	public let	mangledClassName:		String
 	///	the class encoded version
 	public let	encodedClassVersion:	UInt32
 	
-	fileprivate init( _ mangledClassName: String, _ encodedClassVersion: UInt32) {
-		self.mangledClassName 		= mangledClassName
-		self.encodedClassVersion	= encodedClassVersion
+	fileprivate init( classData:ClassData ) {
+		self.manglingFunction 		= classData.manglingFunction
+		self.mangledClassName 		= classData.mangledClassName
+		self.encodedClassVersion	= classData.encodedClassVersion
 	}
 }
 
@@ -161,10 +150,9 @@ public final class GraphDecoder {
 	public func undecodableClasses( from data: some DataProtocol ) throws -> [UndecodableClass] {
 		return try decoder.allClassData( from: data ).compactMap {
 			$0.decodedType == nil ?
-			UndecodableClass( $0.mangledClassName, $0.encodedClassVersion ) : nil
+			UndecodableClass( classData: $0 ) : nil
 		}
 	}
-	
 }
 
 
