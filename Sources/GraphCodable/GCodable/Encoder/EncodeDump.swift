@@ -49,7 +49,7 @@ final class EncodeDump : EncodeFileBlocks {
 		beforeBodyAppend()
 		
 		if dumpOptions.contains( .showBody ) {
-			if case .exit = fileBlock.level { tabs.exit() }
+			if case FileBlock.End = fileBlock { tabs.exit() }
 			
 			dumpString.append( tabs.description )
 			let fileBlockString = fileBlock.description(
@@ -70,8 +70,8 @@ final class EncodeDump : EncodeFileBlocks {
 			
 			dumpString.append( fileBlockString )
 			dumpString.append( "\n" )
-			
-			if case .enter = fileBlock.level { tabs.enter() }
+	
+			if case FileBlock.Val = fileBlock { tabs.enter() }
 		}
 	}
 	

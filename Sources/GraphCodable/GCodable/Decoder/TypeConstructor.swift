@@ -36,18 +36,21 @@ final class TypeConstructor {
 		return value
 	}
 	
+	private func keyID( for key:String ) -> KeyID? {
+		decodeBinary.keyIDMap[ key ]
+	}
+	
 	func contains(key: String) -> Bool {
-		if let keyID = decodeBinary.keyIDMap[ key ] {
-			return currentElement.contains(keyID: keyID)
-		} else {
+		guard let keyID = keyID( for: key ) else {
 			return false
 		}
+		return currentElement.contains( keyID: keyID )
 	}
 	
 	func popBodyElement( key:String ) throws -> FlattenedElement {
 		// keyed case
 		guard
-			let keyID = decodeBinary.keyIDMap[ key ],
+			let keyID = keyID( for: key ),
 			let element = currentElement.pop(keyID: keyID) else {
 			throw GraphCodableError.valueNotFound(
 				Self.self, GraphCodableError.Context(
@@ -163,7 +166,7 @@ extension TypeConstructor {
 				}
 				throw GraphCodableError.internalInconsistency(
 					Self.self, GraphCodableError.Context(
-						debugDescription: "Inappropriate fileblock \(element.readBlock.fileBlock) here."
+						debugDescription: "Inappropriate fileblock \(element.readBlock.fileBlock) while decoding type \(T.self)."
 					)
 				)
 			} else {
@@ -182,7 +185,7 @@ extension TypeConstructor {
 						throw GraphCodableError.possibleCyclicGraphDetected(
 							Self.self, GraphCodableError.Context(
 								debugDescription:
-									"Value of type pointed from \(element.readBlock.fileBlock) not found. Try deferDecode to break the cycle."
+									"Value of type pointed from \(element.readBlock.fileBlock) not found while decoding type \(T.self). Try deferDecode to break the cycle."
 							)
 						)
 					}
@@ -191,7 +194,7 @@ extension TypeConstructor {
 			default:	// .Struct & .Object are inappropriate here!
 				throw GraphCodableError.internalInconsistency(
 					Self.self, GraphCodableError.Context(
-						debugDescription: "Inappropriate fileblock \(element.readBlock.fileBlock) here."
+						debugDescription: "Inappropriate fileblock \(element.readBlock.fileBlock) while decoding type \(T.self)."
 					)
 				)
 		}
@@ -223,7 +226,8 @@ extension TypeConstructor {
 		guard let value =  try T._fullOptionalUnwrappedType.init(from: decoder) as? T else {
 			throw GraphCodableError.malformedArchive(
 				Self.self, GraphCodableError.Context(
-					debugDescription: "Block \(element) wrapped type \(T._fullOptionalUnwrappedType) not GDecodable."
+					debugDescription:
+						"Fileblock \(element.readBlock.fileBlock): wrapped type \(T._fullOptionalUnwrappedType) not GDecodable encountered while decoding type \(T.self)."
 				)
 			)
 		}
@@ -240,7 +244,8 @@ extension TypeConstructor {
 		guard let binaryIType = type._fullOptionalUnwrappedType as? any GBinaryDecodable.Type else {
 			throw GraphCodableError.malformedArchive(
 				Self.self, GraphCodableError.Context(
-					debugDescription: "\(element) wrapped type \(type._fullOptionalUnwrappedType) is not GBinaryDecodable."
+					debugDescription:
+						"Fileblock \(element.readBlock.fileBlock): wrapped type \(T._fullOptionalUnwrappedType) not GBinaryDecodable encountered while decoding type \(T.self)."
 				)
 			)
 		}
@@ -251,7 +256,7 @@ extension TypeConstructor {
 		) as? T else {
 			throw GraphCodableError.malformedArchive(
 				Self.self, GraphCodableError.Context(
-					debugDescription: "\(element) decoded type is not a \(T.self) type."
+					debugDescription: "Fileblock \(element.readBlock.fileBlock): decoded type is not a \(T.self) type."
 				)
 			)
 		}
@@ -264,7 +269,7 @@ extension TypeConstructor {
 		guard let classInfo = decodeBinary.classInfoMap[ refID ] else {
 			throw GraphCodableError.internalInconsistency(
 				Self.self, GraphCodableError.Context(
-					debugDescription: "Type name not found for refID \(refID)."
+					debugDescription: "Fileblock \(element.readBlock.fileBlock): class info not found for refID \(refID)."
 				)
 			)
 		}
@@ -281,7 +286,7 @@ extension TypeConstructor {
 		guard let object = object as? T else {
 			throw GraphCodableError.internalInconsistency(
 				Self.self, GraphCodableError.Context(
-					debugDescription: "\(type) must be a subtype of \(T.self)."
+					debugDescription: "Fileblock \(element.readBlock.fileBlock): \(type) is not a subtype of \(T.self)."
 				)
 			)
 		}

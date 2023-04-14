@@ -139,17 +139,6 @@ extension FileBlock {
 }
 
 extension FileBlock {
-	enum Level { case exit, same, enter }
-	var level : Level {
-		switch self {
-		case .Val( _,_,_ ):	return .enter
-		case .End:			return .exit
-		default:			return .same
-		}
-	}
-}
-
-extension FileBlock {
 	static func encodeEnd(
 		to encoder: inout BinaryIOEncoder, fileHeader:FileHeader
 	) throws {

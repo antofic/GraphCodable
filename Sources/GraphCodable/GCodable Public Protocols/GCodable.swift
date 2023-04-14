@@ -62,8 +62,9 @@ extension GEncodable {
 	
 	/// Optional support: **reserved for package use**.
 	///
-	/// Wraps or unwraps self until a single level optional value
-	/// is obtained.
+	/// Unwraps Self until the "inner" non optional type
+	/// is obtained so by default non Optional types returns
+	/// self. Only Optional redefine this.
 	public var _fullOptionalUnwrappedValue : (any GEncodable)? { self }
 }
 
