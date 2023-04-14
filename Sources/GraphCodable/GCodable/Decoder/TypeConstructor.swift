@@ -37,12 +37,18 @@ final class TypeConstructor {
 	}
 	
 	func contains(key: String) -> Bool {
-		currentElement.contains(key: key)
+		if let keyID = decodeBinary.keyIDMap[ key ] {
+			return currentElement.contains(keyID: keyID)
+		} else {
+			return false
+		}
 	}
 	
 	func popBodyElement( key:String ) throws -> FlattenedElement {
 		// keyed case
-		guard let element = currentElement.pop(key: key) else {
+		guard
+			let keyID = decodeBinary.keyIDMap[ key ],
+			let element = currentElement.pop(keyID: keyID) else {
 			throw GraphCodableError.valueNotFound(
 				Self.self, GraphCodableError.Context(
 					debugDescription: "Keyed value for key \(key) not found in \(currentElement.readBlock)."

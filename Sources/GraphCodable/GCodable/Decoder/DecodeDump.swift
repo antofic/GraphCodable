@@ -41,7 +41,6 @@ final class DecodeDump: EncodeFileBlocksDelegate {
 			do {
 				let (rootElement,elementMap)	= try FlattenedElement.rootElement(
 					readBlocks:	readBlocks,
-					keyStringMap:	keyStringMap,
 					reverse:		true
 				)
 				let string = rootElement.dump(

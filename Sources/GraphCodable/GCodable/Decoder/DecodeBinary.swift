@@ -6,29 +6,38 @@
 
 import Foundation
 
+typealias KeyIDMap		= [String : KeyID]
 
 struct DecodeBinary {
 	let fileHeader			: FileHeader
 	let	classInfoMap		: ClassInfoMap
 	let rootElement 		: FlattenedElement
+	let keyIDMap			: KeyIDMap
+	
 	private var	elementMap	: ElementMap
 	
 	init( from ioDecoder:BinaryIODecoder, classNameMap:ClassNameMap? ) throws {
 		var readBlockDecoder	= try DecodeReadBlocks( from: ioDecoder )
 		let fileHeader			= readBlockDecoder.fileHeader
 		let readBlocks			= try readBlockDecoder.readBlocks()
+		
 		let classInfoMap		= try ClassInfo.classInfoMap(
 			classDataMap: readBlockDecoder.classDataMap(), classNameMap: classNameMap
 		)
-		let keyStringMap		= try readBlockDecoder.keyStringMap()
-		
+
 		self.fileHeader			= fileHeader
 		self.classInfoMap		= classInfoMap
 		(self.rootElement,self.elementMap)	= try FlattenedElement.rootElement(
 			readBlocks:	readBlocks,
-			keyStringMap:	keyStringMap,
 			reverse:		true
 		)
+
+		let keyStringMap	= try readBlockDecoder.keyStringMap()
+		var keyIDMap		= KeyIDMap()
+		for (key,element) in keyStringMap {
+			keyIDMap[ element ] = key
+		}
+		self.keyIDMap		= keyIDMap
 	}
 	
 	mutating func pop( idnID:IdnID ) -> FlattenedElement? {
