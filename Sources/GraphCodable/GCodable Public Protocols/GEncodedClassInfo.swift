@@ -8,13 +8,13 @@ import Foundation
 import CwlDemangle
 
 public enum ManglingFunction: UInt8, BCodable {
-	case nsclassfromstring, mangledTypeName
+	case nsClassFromString, mangledTypeName
 }
 
 public protocol GEncodedClassInfo {
+	var manglingFunction:		ManglingFunction { get }
 	var mangledClassName: 		String { get }
 	var encodedClassVersion:	UInt32 { get }
-	var manglingFunction:		ManglingFunction { get }
 }
 
 extension GEncodedClassInfo {
@@ -31,14 +31,14 @@ extension GEncodedClassInfo {
 	static func classType( from mangledClassName:String, manglingFunction:ManglingFunction ) -> AnyClass? {
 		switch manglingFunction {
 			case .mangledTypeName:		return _typeByName( mangledClassName ) as? AnyClass
-			case .nsclassfromstring:	return NSClassFromString( mangledClassName )
+			case .nsClassFromString:	return NSClassFromString( mangledClassName )
 		}
 	}
 	
 	static func mangledClassName( of classType:AnyClass, manglingFunction:ManglingFunction ) -> String? {
 		switch manglingFunction {
 			case .mangledTypeName:		return _mangledTypeName( classType )
-			case .nsclassfromstring:	return NSStringFromClass( classType )
+			case .nsClassFromString:	return NSStringFromClass( classType )
 		}
 	}
 

@@ -178,7 +178,7 @@ You can check if a keyed value is present in the archive with `try decoder.conta
 
 ## Unkeyed coding
 
-The same example using unkeyed coding. With unkeyed coding you must decode values in the same order in which they are encoded.
+The same example using unkeyed coding. With unkeyed coding you **must** decode values in the same order in which they are encoded.
 
 ```swift
 import Foundation
@@ -237,7 +237,6 @@ extension Array: GEncodable where Element:GEncodable {
 extension Array: GDecodable where Element:GDecodable {
 	public init(from decoder: some GDecoder) throws {
 		self.init()
-		
 		self.reserveCapacity( decoder.unkeyedCount )
 		while decoder.unkeyedCount > 0 {
 			self.append( try decoder.decode() )
@@ -300,26 +299,30 @@ do {	// Codable
 
 The encoder stores the following information for each reference type:
 
-- the qualified name of the class produced by `_typeName( type, qualified:true )` for informational purposes only;
-- the mangled name of the class produced by `_mangledTypeName( type );`
+- the mangled name of the class produced by `_mangledTypeName( type )`;
 - a `UInt32` user defined version of the class (see paragraph [Versioning of reference types](#Versioning-of-reference-types)).
 
 During decoding, the class is *reified* using `_typeByName( mangledName )` and used to construct all of its instances in the archive.
 
-**Note**: When used on classes, `_mangledTypeName()` and `_typeByName()` are respectively equivalent to `NSStringFromClass()` and `NSClassFromString()`, although they produce a slightly different mangling. But the former are faster, so I chose them.
+**Note**: If the `GraphEncoder.Option.useNSClassFromStringMangling` flag is set in the  `GraphEncoder( _ options: )` init method, functions `NSStringFromClass` and `NSClassFromString` will be used instead of `_mangledTypeName` and `_typeByName`.
 
-It is therefore evident that **if you change the name of a class it becomes impossible to decode archives created before the change**. For this reason it is very important to:
+It is therefore evident that **if you change the name of a class it becomes impossible to decode archives created before the change**. For this reason it is important to:
 
 - carefully choose the name of a class intended to be archived so that it is not necessary to change it later;
 - use all available strategies (a `typealias`, for example) to keep using the name initially chosen;
 
-If all possible alternatives have been exhausteds, GraphCodable offers two methods for handling class renaming (see paragraph [Obsolete reference types](#Obsolete-reference-types)).
+If all possible alternatives have been exhausteds, GraphCodable offers two methods for handling class renaming (see paragraph [Renaming reference types](#Renaming-reference-types)).
 
 ### Disable inheritance
 
 There are situations where it is necessary or desirable to **disable** inheritance:
 
-- A **private** reference type cannot be decoded because it cannot be constructed from its type name. The encoder always checks if a type is constructible: if not, it throws an exception at runtime. You can also check whether a `GEncodable` reference type is constructible by calling the `supportsCodableInheritance` property.
+- A **private** reference type cannot be decoded because it cannot be constructed from its type name. The encoder always checks if a type is constructible: if not, it throws an exception at runtime. You can also check whether a `GEncodable` reference type is constructible by calling the `GEncoder` function:
+
+  ```swift
+  	func isCodableClass(_ type: (AnyObject & GEncodable).Type) -> Bool
+  ```
+
 - If a reference type **is not part of a class hierarchy**, encoding its type name to support inheritance is unnecessary.
 
 For cases like these, the `GEncodable` protocol provides  the `inheritanceEnabled` property:
@@ -355,7 +358,7 @@ class MyReferenceType: GEncodable {
 
 ### Control inheritance globally
 
-Some options in the `GraphEncoder(  _ options: )` method control inheritance **globally**, that is, they apply to all encoded reference types:
+An option in the `GraphEncoder( _ options: )` init method control inheritance **globally**, that is, they apply to all encoded reference types:
 
 - the `.disableInheritance` option disable inheritance for all reference types, regardless of protocol `GInheritance`;
 
@@ -432,7 +435,7 @@ final class Example : GCodable, Equatable, Codable {
 }
 
 let eA	= Example(name: "exampleA")
-let eB	= Example(name: "exampleB", examples: [eA,eA,eA] )
+let eB	= Example(name: "exampleB", examples: [eA,eA] )
 
 let inRoot	= eB
 
@@ -442,7 +445,6 @@ do {	//	GraphCodable
 	
 	print( outRoot == inRoot )	// prints: true
 	print( outRoot.examples[0] === outRoot.examples[1] )	// true --> we use '===': same reference!
-	print( outRoot.examples[0] === outRoot.examples[2] )	// true --> we use '===': same reference!
 }
 
 do {	//	Codable
@@ -451,7 +453,6 @@ do {	//	Codable
 	
 	print( outRoot == inRoot )	// prints: true
 	print( outRoot.examples[0] === outRoot.examples[1] )	// false --> we use '===': reference duplicated!
-	print( outRoot.examples[0] === outRoot.examples[2] )	// false --> we use '===': reference duplicated!
 }
 ```
 
@@ -468,8 +469,6 @@ public protocol GIdentifiable<GID> {
 }
 ```
 
-**Note**: `gcodableID` automatically returns the `Identifiable.id` as `gcodableID` if the type adopt the `Identifiable` protocol. 
-
 A value type conforming to the `GIdentifiable` protocol acquires the same ability as reference types to not be duplicated during encoding and decoding. See the next example:
 
 ```swift
@@ -477,8 +476,7 @@ import Foundation
 import GraphCodable
 
 struct Example : GCodable, Equatable, Codable, GIdentifiable {
-	var id = UUID()
-	var gcodableID: UUID? { id }
+	let gcodableID: UUID? = UUID()
 	
 	private(set) var name		: String
 	private(set) var examples	: [Example]
@@ -531,7 +529,7 @@ struct Example : GCodable, Equatable, Codable, GIdentifiable {
 }
 
 let eA	= Example(name: "exampleA")
-let eB	= Example(name: "exampleB", examples: [eA,eA,eA] )
+let eB	= Example(name: "exampleB", examples: [eA,eA] )
 
 let inRoot	= eB
 
@@ -541,7 +539,6 @@ do {	//	GraphCodable
 	
 	print( outRoot == inRoot )	// true
 	print( outRoot.examples[0] === outRoot.examples[1] )	// true --> we use '===': same id!
-	print( outRoot.examples[0] === outRoot.examples[2] )	// true --> we use '===': same id!
 }
 
 do {	//	Codable
@@ -550,7 +547,6 @@ do {	//	Codable
 	
 	print( outRoot == inRoot )	// prints: true
 	print( outRoot.examples[0] === outRoot.examples[1] )	// false --> we use '===': different id: value duplicated!
-	print( outRoot.examples[0] === outRoot.examples[2] )	// false --> we use '===': different id: value duplicated!
 }
 ```
 
@@ -625,7 +621,7 @@ do {
 }
 ```
 
-The next example uses the value <u>with identity</u>. `A` contains  `VeryLargeData`  and encode it.  `B` optionally contains  `VeryLargeData`  and conditionally encode it. Finally, Model hold `A` optionally and `B`.
+The next example uses the value <u>with identity</u>. `A` contains  `VeryLargeData`  and encode it.  `B` optionally contains  `VeryLargeData`  and conditionally encode it. Finally, `Model` hold `A` optionally and `B`.
 
 ```swift
 import Foundation
@@ -760,7 +756,7 @@ outRoot.a == nil
 outRoot.b.data == nil 
 ```
 
-So, `b` encodes `data` conditionally. If `Model` don't encode  `a`, which encodes `data` unconditionally, `data` isn't encoded att all.
+So, `b` encodes `data` conditionally. If `Model` don't encode  `a`, which encodes `data` unconditionally, `data` isn't encoded at all.
 
 If you try to **conditionally** encode a value **without identity**, GraphCodable encodes it **unconditionally**. If it happens and the `.printWarnings` option in the `GraphEncoder(  _ options: )` method is selected, GraphCodable prints a warning message during encoding.
 
@@ -1023,7 +1019,7 @@ If `decode` is used for those connections, the decoding fails due to reference c
 
 ```swift
 required init(from decoder: some GDecoder) throws {
-	name		= try decoder.decode( for: Key.name  )
+	name = try decoder.decode( for: Key.name )
   try decoder.deferDecode( for: Key.connections ) { self.connections = $0 }
 }
 ```
@@ -2690,8 +2686,8 @@ extension NumericData : GBinaryDecodable {
 The `userInfo` dictionary set in the `GraphEncoder` is accessible to types adopting the `GBinaryEncodable` protocol with:
 
 ```swift
-	func write(to encoder: inout some BEncoder) throws {
-		let encoderView	= try encoder.encoderView
+	func encode(to encoder: inout some BEncoder) throws {
+		let encoderView	= Self.encoderView( encoder )
 		let userInfo	= encoderView.userInfo
 		/* ... */
 	}
@@ -2702,8 +2698,8 @@ The `userInfo` dictionary set in the `GraphDecoder` is accessible to types adopt
 
 ```swift
 	init(from decoder: inout some BDecoder) throws {
-		let decoderView	= try decoder.decoderView
-		let userInfo = decoderView.userInfo
+		let decoderView	= Self.decoderView( decoder )
+		let userInfo 		= decoderView.userInfo
 		/* ... */
 	}
 
@@ -2712,8 +2708,9 @@ The `userInfo` dictionary set in the `GraphDecoder` is accessible to types adopt
 When dearchiving `GBinaryDecodable` **reference** types, you may also need access to `encodedClassVersion` and `replacedClass`:
 
 ```swift
-	init(from decoder: inout BinaryIODecoder) throws {
-		let decoderView					= try decoder.decoderView
+	init(from decoder: inout some BDecoder ) throws {
+		let decoderView					= Self.decoderView( decoder )
+		let userInfo						= decoderView.userInfo
 		let encodedClassVersion	= try decoderView.encodedClassVersion
 		let replacedClass				= try decoderView.replacedClass
 	}
@@ -2779,7 +2776,7 @@ extension NumericData : GPackCodable {
 	
 	//	here we implement the possibility to write also
 	//	in previous versions
-	func encode(to encoder: inout some GraphCodable.BEncoder) throws {
+	func encode(to encoder: inout some BEncoder) throws {
 		try encoder.encode( vector )
 		try encoder.encode( matrix )
 

@@ -84,15 +84,15 @@ final class DecodeDump: EncodeFileBlocksDelegate {
 		{
 			string.append( "Encoded class types will be decoded as:" )
 			do {
-				let couples	: [(RefID,any GDecodable.Type)] = classInfoMap.map {
+				let couples	: [(refID:RefID,type:any GDecodable.Type)] = classInfoMap.map {
 					($0.key, $0.value.decodedType)
 				}
-				string = couples.sorted { $0.0.id < $1.0.id }.reduce(into: string) {
-					$0.append( "\n- TYPE\( $1.0 ): \( typeString($1.1) )" )
+				string = couples.sorted { $0.refID < $1.refID }.reduce(into: string) {
+					$0.append( "\n- TYPE\( $1.refID ): \( typeString($1.type) )" )
 				}
 			}
 			do {
-				let couples	: [(RefID,any (AnyObject & GDecodable).Type)] = classInfoMap.compactMap {
+				let couples	: [(refID:RefID,type:any (AnyObject & GDecodable).Type)] = classInfoMap.compactMap {
 					if let replacedClass = $0.value.classData.replacedClass {
 						return ($0.key,replacedClass)
 					} else {
@@ -101,9 +101,9 @@ final class DecodeDump: EncodeFileBlocksDelegate {
 				}
 				if couples.isEmpty == false {
 					string.append( "\nwhere:" )
-					string = couples.sorted { $0.0.id < $1.0.id }.reduce(into: string) {
-						$0.append( "\n- the encoded TYPE\( $1.0 ): \( typeString($1.1) )")
-						$0.append( "\n  was replaced by \( typeString($1.1.decodeType) )" )
+					string = couples.sorted { $0.refID < $1.refID }.reduce(into: string) {
+						$0.append( "\n- the encoded TYPE\( $1.refID ): \( typeString($1.type) )")
+						$0.append( "\n  was replaced by \( typeString($1.type.decodeType) )" )
 					}
 				}
 			}
@@ -116,14 +116,14 @@ final class DecodeDump: EncodeFileBlocksDelegate {
 		)
 		if undecodableClassDataMap.isEmpty == false {
 			string.append( "Undecodable encoded classes:" )
-				string = undecodableClassDataMap.sorted { $0.0.id < $1.0.id }.reduce(into: string) {
-					$0.append( "\n- TYPE\( $1.0 ): class \( $1.1.className(qualified: qualified) )")
+			string = undecodableClassDataMap.sorted { $0.key < $1.key }.reduce(into: string) {
+				$0.append( "\n- TYPE\( $1.key ): class \( $1.value.className(qualified: qualified) )")
 					if dumpOptions.contains( .showMangledClassNames ) {
-						let version	= "\($1.1.encodedClassVersion)".align(.right, length: 4, filler: "0")
+						let version	= "\($1.value.encodedClassVersion)".align(.right, length: 4, filler: "0")
 						if qualified == false {
-							$0.append( "\n  QualifiedName    = \( $1.1.className(qualified: true) )"  )
+							$0.append( "\n  QualifiedName    = \( $1.value.className(qualified: true) )"  )
 						}
-						$0.append( "\n  MangledClassName = \( $1.1.mangledClassName )" )
+						$0.append( "\n  MangledClassName = \( $1.value.mangledClassName )" )
 						$0.append( "\n  EncodedVersion   = \( version )" )
 					}
 			}

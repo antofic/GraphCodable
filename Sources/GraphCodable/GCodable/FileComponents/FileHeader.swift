@@ -9,18 +9,16 @@
 struct FileHeader : CustomStringConvertible, BCodable {
 	struct Flags : OptionSet, BCodable {
 		let rawValue: UInt16
-		static let	useBinaryIOInsert		= Self( rawValue: 1 << 0 )
 	}
 	private enum Versions {
-		static var NEWFILEBLOCK_VERSION	: UInt32 { 4 }
-		static var CURRENT_FILE_VERSION	: UInt32 { NEWFILEBLOCK_VERSION }
+		static var CURRENT_FILE_VERSION	: UInt16 { 0 }
 	}
 
 	let archiveIdentifier	: String?			// encoded/decoded by BinaryIO
 	let binaryIOFlags		: BinaryIOFlags		// encoded/decoded by BinaryIO
 	let binaryIOVersion		: UInt16			// encoded/decoded by BinaryIO
 	let userVersion			: UInt32			// encoded/decoded by BinaryIO
-	let gcodableVersion		: UInt32			// encoded/decoded by FileHeader
+	let gcodableVersion		: UInt16			// encoded/decoded by FileHeader
 	let gcoadableFlags		: Flags				// encoded/decoded by FileHeader
 	
 	func description( fileSize:Int? ) -> String {
@@ -41,11 +39,11 @@ struct FileHeader : CustomStringConvertible, BCodable {
 		
 		var string = ""
 		string.append(		  "- archiveIdentifier   = \( identifier() )")
+		string.append(		"\n- userVersion         = \( alignR(userVersion) ) \( bitString(userVersion) )")
 		string.append(		"\n- binaryIOFlags       = \( alignR(binaryIOFlags.rawValue) ) \( bitString(binaryIOFlags) )")
 		string.append(		"\n- binaryIOVersion     = \( alignR(binaryIOVersion) ) \( bitString(binaryIOVersion) )")
-		string.append(		"\n- userVersion         = \( alignR(userVersion) ) \( bitString(userVersion) )")
-		string.append(		"\n- gcodableVersion     = \( alignR(gcodableVersion) ) \( bitString(gcodableVersion) )")
 		string.append(		"\n- gcodableFlags       = \( alignR(gcoadableFlags.rawValue) ) \( bitString(gcoadableFlags) )")
+		string.append(		"\n- gcodableVersion     = \( alignR(gcodableVersion) ) \( bitString(gcodableVersion) )")
 		if let fileSize {
 			string.append(	"\n- fileSize            = \( alignR(fileSize) ) bytes")
 			
@@ -58,8 +56,9 @@ struct FileHeader : CustomStringConvertible, BCodable {
 	}
 
 	init(
-		binaryIOEncoder:BinaryIOEncoder, gcodableVersion: UInt32 = Versions.CURRENT_FILE_VERSION,
-		gcoadableFlags: Flags = [], unused0: UInt64 = 0
+		binaryIOEncoder: BinaryIOEncoder,
+		gcoadableFlags: Flags = [],
+		gcodableVersion: UInt16 = Versions.CURRENT_FILE_VERSION
 	) {
 		self.archiveIdentifier	= binaryIOEncoder.archiveIdentifier
 		self.userVersion		= binaryIOEncoder.userVersion
@@ -70,19 +69,11 @@ struct FileHeader : CustomStringConvertible, BCodable {
 	}
 	
 	init(from decoder: inout some BDecoder) throws {
-		let gcodableVersion		= try decoder.decode() as UInt32
-		if gcodableVersion < Versions.NEWFILEBLOCK_VERSION {
-			throw GraphCodableError.malformedArchive(
-				Self.self, GraphCodableError.Context(
-					debugDescription: "GCodable file version < \(Versions.NEWFILEBLOCK_VERSION) are non more supported."
-				)
-			)
-		}
 		self.archiveIdentifier	= decoder.encodedArchiveIdentifier
 		self.userVersion		= decoder.encodedUserVersion
 		self.binaryIOFlags		= decoder.withUnderlyingType { $0.encodedBinaryIOFlags }
 		self.binaryIOVersion	= decoder.withUnderlyingType { $0.encodedBinaryIOVersion }
-		self.gcodableVersion	= gcodableVersion
+		self.gcodableVersion	= try decoder.decode()
 		self.gcoadableFlags		= try decoder.decode()
 	}
 	

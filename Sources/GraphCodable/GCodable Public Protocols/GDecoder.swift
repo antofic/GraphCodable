@@ -7,7 +7,7 @@
 /// A type that can decode values from a native format into in-memory
 /// representations.
 public protocol GDecoder {
-	/// Any contextual information set by the user for encoding.
+	/// Any contextual information set by the user for decoding.
 	var userInfo : [String:Any] { get }
 
 	///	Encoded version for user defined types for

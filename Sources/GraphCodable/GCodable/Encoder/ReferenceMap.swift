@@ -18,7 +18,7 @@ struct ReferenceMap {
 			return refID
 		} else {
 			defer { currentId = currentId.next }
-			classDataMap[ currentId ]	= try ClassData( type: T.self, manglingFunction:manglingFunction )
+			classDataMap[ currentId ]	= try ClassData( type:T.self, manglingFunction:manglingFunction )
 			identifierMap[ objIdentifier ] = currentId
 			return currentId
 		}

@@ -26,7 +26,7 @@ public struct GraphDumpOptions: OptionSet {
 	public static let	showKeyStringMap						= Self( rawValue: 1 << 5 )
 	
 	// BODY/FLATTENEDBODY OPTIONS:
-	///	disable indentation in body
+	///	disable indentation in body/flattenedbody
 	public static let	dontIndentBody							= Self( rawValue: 1 << 16 )
 	///	in Body / Flattended Body section, show the qualified class name instead of the RefID
 	public static let	showClassNamesInBody					= Self( rawValue: 1 << 17 )

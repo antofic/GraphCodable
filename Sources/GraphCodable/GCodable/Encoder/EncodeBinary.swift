@@ -24,14 +24,14 @@ final class EncodeBinary<Output:MutableDataProtocol> : EncodeFileBlocks {
 			
 			// write header:
 			try ioEncoder.encode( fileHeader )
+			
 			//	save the section map position
 			sectionMapPosition	= ioEncoder.position
-			
-			//	Let's write a dummy sectionmap.
+			//	Let's encode a dummy sectionmap.
 			//	We will overwrite it when the positions of the sections are
 			//	known.
-			//	we need to disable compression, because the sectionMap
-			//	write size must be fixed.
+			//	We need to disable compression, because the sectionMap
+			//	encoded size must be fixed.
 			try ioEncoder.withCompressionDisabled { ioEncoder in
 				for section in FileSection.allCases {
 					sectionMap[ section ] = Range(uncheckedBounds: (0,0))
@@ -46,12 +46,12 @@ final class EncodeBinary<Output:MutableDataProtocol> : EncodeFileBlocks {
 	
 	func appendEnd() throws {
 		try writeInit()
-		try FileBlock.writeEnd(to: &ioEncoder, fileHeader: fileHeader)
+		try FileBlock.encodeEnd(to: &ioEncoder, fileHeader: fileHeader)
 	}
 	
 	func appendNil(keyID: KeyID?) throws {
 		try writeInit()
-		try FileBlock.writeNil(
+		try FileBlock.encodeNil(
 			keyID: keyID,
 			to: &ioEncoder, fileHeader: fileHeader
 		)
@@ -59,23 +59,23 @@ final class EncodeBinary<Output:MutableDataProtocol> : EncodeFileBlocks {
 	
 	func appendPtr(keyID: KeyID?, idnID: IdnID, conditional: Bool) throws {
 		try writeInit()
-		try FileBlock.writePtr(
+		try FileBlock.encodePtr(
 			keyID: keyID, idnID: idnID, conditional:conditional,
 			to: &ioEncoder, fileHeader: fileHeader
 		)
 	}
 	
-	func appendVal<T:GEncodable>(keyID: KeyID?, refID: RefID?, idnID: IdnID?, value: T) throws {
+	func appendVal(keyID: KeyID?, refID: RefID?, idnID: IdnID?, value: some GEncodable) throws {
 		try writeInit()
-		try FileBlock.writeVal(
+		try FileBlock.encodeVal(
 			keyID: keyID,idnID: idnID, refID: refID,
 			to: &ioEncoder, fileHeader: fileHeader
 		)
 	}
 
-	func appendBin<T:GBinaryEncodable>(keyID: KeyID?, refID: RefID?, idnID: IdnID?, binaryValue: T) throws {
+	func appendBin(keyID: KeyID?, refID: RefID?, idnID: IdnID?, binaryValue: some GBinaryEncodable) throws {
 		try writeInit()
-		try FileBlock.writeBin(
+		try FileBlock.encodeBin(
 			keyID: keyID,idnID: idnID, refID: refID, binaryValue:binaryValue,
 			to: &ioEncoder, fileHeader: fileHeader
 		)
@@ -87,13 +87,13 @@ final class EncodeBinary<Output:MutableDataProtocol> : EncodeFileBlocks {
 		var bounds	= (sectionMap[.body]!.startIndex,ioEncoder.position)
 		sectionMap[.body]	= Range( uncheckedBounds:bounds )
 		
-		// referenceMap:
+		// encoding referenceMap
 		let classDataMap	= delegate!.classDataMap
 		try ioEncoder.encode(classDataMap)
 		bounds	= ( bounds.1,ioEncoder.position )
 		sectionMap[ FileSection.classDataMap ] = Range( uncheckedBounds:bounds )
 		
-		// keyStringMap:
+		// encoding keyStringMap
 		let keyStringMap	= delegate!.keyStringMap
 		try ioEncoder.encode(keyStringMap)
 		bounds	= ( bounds.1,ioEncoder.position )

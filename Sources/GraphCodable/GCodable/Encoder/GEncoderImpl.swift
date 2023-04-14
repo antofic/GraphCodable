@@ -68,7 +68,7 @@ final class GEncoderImpl : EncodeFileBlocksDelegate {
 	
 	private var manglingFunction : ManglingFunction {
 		encodeOptions.contains( .useNSClassFromStringMangling ) ?
-			.nsclassfromstring : .mangledTypeName
+			.nsClassFromString : .mangledTypeName
 	}
 	
 	init( _ options: GraphEncoder.Options, userVersion:UInt32, archiveIdentifier: String? ) {
@@ -90,7 +90,7 @@ final class GEncoderImpl : EncodeFileBlocksDelegate {
 		)
 		let fileHeader		= FileHeader(
 			binaryIOEncoder: ioEncoder,
-			gcoadableFlags: encodeOptions.contains( .dontMoveEncodedData ) ? [] : .useBinaryIOInsert
+			gcoadableFlags: []
 		)
 		return (ioEncoder,fileHeader)
 	}

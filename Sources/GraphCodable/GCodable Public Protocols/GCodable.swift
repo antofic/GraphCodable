@@ -46,7 +46,10 @@ public protocol GEncodable {
 	/// inheritance and their type name is never archived
 	var inheritanceEnabled : Bool { get }
 	
-	/// Optional support: reserved for package use.
+	/// Optional support:  **reserved for package use**.
+	///
+	/// Unwraps Self until the "inner" non optional type
+	/// is obtained.
 	var _fullOptionalUnwrappedValue : (any GEncodable)? { get }
 }
 
@@ -57,9 +60,9 @@ extension GEncodable {
 	/// Enabling inheritance of value types has no effect.
 	public var inheritanceEnabled : Bool { false }
 	
-	/// Optional support: reserved for package use.
+	/// Optional support: **reserved for package use**.
 	///
-	/// Wraps or unwraps self until a **single level optional value**
+	/// Wraps or unwraps self until a single level optional value
 	/// is obtained.
 	public var _fullOptionalUnwrappedValue : (any GEncodable)? { self }
 }

@@ -27,6 +27,7 @@ public struct BinaryIODecoder: BDecoder {
 	///	It can be changed with X and Y.
 	private var dataRegion				: Bytes.SubSequence
 
+	private var _enableCompression		: Bool
 
 	///	Encoded flags.
 	///
@@ -38,7 +39,7 @@ public struct BinaryIODecoder: BDecoder {
 	///	Reserved for package use.
 	let	encodedBinaryIOVersion			: UInt16
 	
-	public let encodedArchiveIdentifier		: String?
+	public let encodedArchiveIdentifier	: String?
 
 	///	Encoded version for user defined types for
 	///	decoding strategies.
@@ -62,9 +63,23 @@ public struct BinaryIODecoder: BDecoder {
 	///	The real size in bytes of encoded data is
 	///	`fileSize - startOfFile`
 	public var	fileSize				: Int 	{ data.count }
-	
-	
-	private var _enableCompression		: Bool
+}
+
+// MARK: public section
+
+extension BinaryIODecoder {
+	/// Creates a new instance of `BinaryIODecoder`.
+	///
+	/// - Parameter data: The data to read from.
+	/// - Parameter archiveIdentifier: An optional string to match the encoded identifier of the archive.
+	///	- Parameter userData: User defined data for decoding strategies.
+	public init<Q>( data: Q, archiveIdentifier: String? = defaultBinaryIOArchiveIdentifier, userData:Any? = nil ) throws where Q:DataProtocol {
+		if let data = data as? Bytes {
+			try self.init( data, archiveIdentifier:archiveIdentifier, userData:userData )
+		} else {
+			try self.init( Bytes(data), archiveIdentifier:archiveIdentifier, userData:userData )
+		}
+	}
 
 	/// Enable/Disable compression
 	///
@@ -82,20 +97,6 @@ public struct BinaryIODecoder: BDecoder {
 	public var enableCompression : Bool {
 		get { _enableCompression }
 		set { _enableCompression = newValue && encodedBinaryIOFlags.contains( .compressionEnabled ) }
-	}
-}
-
-extension BinaryIODecoder {
-	/// Creates a new instance of `BinaryIODecoder`.
-	///
-	/// - Parameter data: The data to read from.
-	///	- Parameter userData: User defined data for decoding strategies.
-	public init<Q>( data: Q, archiveIdentifier: String? = defaultBinaryIOArchiveIdentifier, userData:Any? = nil ) throws where Q:DataProtocol {
-		if let data = data as? Bytes {
-			try self.init( data, archiveIdentifier:archiveIdentifier, userData:userData )
-		} else {
-			try self.init( Bytes(data), archiveIdentifier:archiveIdentifier, userData:userData )
-		}
 	}
 
 	///	Check if the end of the current region has been reached.
@@ -166,156 +167,7 @@ extension BinaryIODecoder {
 			dataRegion	= data[ newValue ]
 		}
 	}
-}
-
-// private init ---------------------------------------------------------
-extension BinaryIODecoder {
-	private init( _ data: Bytes, archiveIdentifier: String?, userData:Any?) throws {
-		var dataRegion					= data[...]
-		self._enableCompression			= false
-		self.encodedBinaryIOFlags		= try Self.readValue(from: &dataRegion)
-		if self.encodedBinaryIOFlags.contains( .hasArchiveIdentifier ) {
-			self.encodedArchiveIdentifier = try Self.readString( from: &dataRegion )
-		} else {
-			self.encodedArchiveIdentifier = nil
-		}
-		if let archiveIdentifier, archiveIdentifier != self.encodedArchiveIdentifier {
-			throw BinaryIOError.archiveIdentifierDontMatch(
-				Self.self, BinaryIOError.Context(
-					debugDescription: "Encoded archiveIdentifier -\(encodedArchiveIdentifier ?? "nil" )- doesn't match the requested identifier -\(archiveIdentifier)-."
-				)
-			)
-		}
-		if self.encodedBinaryIOFlags.contains( .compressionEnabled ) {
-			self.encodedBinaryIOVersion	= try Self.readAndUnpack(from: &dataRegion)
-			self.encodedUserVersion		= try Self.readAndUnpack(from: &dataRegion)
-		} else {
-			self.encodedBinaryIOVersion	= try Self.readValue(from: &dataRegion)
-			self.encodedUserVersion		= try Self.readValue(from: &dataRegion)
-		}
-		self.data						= data
-		self.dataRegion					= dataRegion
-		self.startOfFile				= dataRegion.startIndex
-		self.userData					= userData
-		self.enableCompression			= true
-	}
-}
-
-// private static section ----------------------------------------------------
-extension BinaryIODecoder {
-	/// read a pod value
-	private static func readValue<T>( from dataRegion:inout Bytes.SubSequence ) throws  -> T {
-		let inSize	= MemoryLayout<T>.size
-		try checkRemainingSize( dataRegion, size:inSize )
-		defer { dataRegion.removeFirst( inSize ) }
-		
-		return dataRegion.withUnsafeBytes { source in
-#if swift(>=5.7)
-			source.loadUnaligned(as: T.self)
-#elseif swift(>=5.6)
-			withUnsafeTemporaryAllocation(of: T.self, capacity: 1) {
-				let temporary = $0.baseAddress!
-				
-				memcpy( temporary, source.baseAddress, inSize )
-				return temporary.pointee
-			}
-#else
-#error("Minimum swift version = 5.6")
-#endif
-		}
-	}
-	 
-	private static func checkRemainingSize( _ dataRegion:Bytes.SubSequence, size:Int ) throws {
-		if dataRegion.count < size {
-			throw BinaryIOError.outOfBounds(
-				Self.self, BinaryIOError.Context(
-					debugDescription: "\(size) bytes requested; \(dataRegion.count) bytes remaining."
-				)
-			)
-		}
-	}
-	
-	private static func readAndUnpack<T>( from dataRegion:inout Bytes.SubSequence ) throws -> T
-	where T:FixedWidthInteger, T:UnsignedInteger {
-		var	byte	= try readValue( from:&dataRegion ) as UInt8
-		var	val		= T( byte & 0x7F )
-		
-		for index in 1...MemoryLayout<Self>.size {
-			guard byte & 0x80 != 0 else {
-				return val
-			}
-			byte	= 	try readValue( from:&dataRegion ) as UInt8
-			val		|=	T( byte & 0x7F ) &<< (index*7)
-		}
-		return val
-	}
-	
-	// read a null terminated utf8 string
-	private static func readString( from dataRegion:inout Bytes.SubSequence ) throws -> String {
-		var inSize = 0
-		
-		let string = try dataRegion.withUnsafeBytes {
-			try $0.withMemoryRebound( to: Int8.self ) { buffer in
-				for char in buffer {
-					inSize += 1
-					if char == 0 {	// ho trovato NULL
-						return String( cString: buffer.baseAddress! )
-					}
-				}
-				
-				throw BinaryIOError.outOfBounds(
-					Self.self, BinaryIOError.Context(
-						debugDescription: "No more bytes available for a null terminated string."
-					)
-				)
-			}
-		}
-		// ci deve essere almeno un carattere: null
-		guard inSize > 0 else {
-			throw BinaryIOError.outOfBounds(
-				Self.self, BinaryIOError.Context(
-					debugDescription: "No more bytes available for a null terminated string."
-				)
-			)
-		}
-		dataRegion.removeFirst( inSize )
-		return string
-	}
-}
-
-// private section ----------------------------
-extension BinaryIODecoder {
-	/// read a pod value
-	private mutating func readPODValue<T>() throws  -> T {
-		/*
-		guard _isPOD(T.self) else {
-			throw BinaryIOError.notPODType(
-				Self.self, BinaryIOError.Context(
-					debugDescription: "\(T.self) must be a POD type."
-				)
-			)
-		}
-		*/
-		return try Self.readValue( from:&dataRegion )
-	}
-	
-	private func checkRemainingSize( size:Int ) throws {
-		try Self.checkRemainingSize( dataRegion, size: size )
-	}
-
-	///	Decodes and reconstructs the integer encoded by
-	///	BinaryIOEncoder `readAndUnpack` function.
-	private mutating func readAndUnpack<T>() throws -> T
-	where T:FixedWidthInteger, T:UnsignedInteger {
-		assert( MemoryLayout<T>.size > 1, "\(#function) the unsigned integer value must be at least 2 bytes." )
-		
-		return try Self.readAndUnpack( from:&dataRegion )
-	}
-}
-
-// public section ----------------------------
-extension BinaryIODecoder {
-	/// Disable integers packing for the duration of the closure
+	/// Disable compression for the duration of the closure
 	///
 	/// - parameter decodeFunc: The closure
 	public mutating func withCompressionDisabled<T>(
@@ -344,10 +196,7 @@ extension BinaryIODecoder {
 		}
 		return result
 	}
-}
-
-// public section ----------------------------
-extension BinaryIODecoder {
+	
 	//	Generic
 	public mutating func decode<Value>( _ type:Value.Type ) throws -> Value
 	where Value : BDecodable {
@@ -372,7 +221,8 @@ extension BinaryIODecoder {
 	}
 }
 
-// internal section ---------------------------------------------------------
+// MARK: internal section
+
 extension BinaryIODecoder {
 	//	Bool
 	mutating func decodeBool() throws -> Bool {
@@ -498,4 +348,140 @@ extension BinaryIODecoder {
 		}
 	}
 }
+
+// MARK: private section
+
+extension BinaryIODecoder {
+	private init( _ data: Bytes, archiveIdentifier: String?, userData:Any?) throws {
+		var dataRegion					= data[...]
+		self._enableCompression			= false
+		self.encodedBinaryIOFlags		= try Self.readValue(from: &dataRegion)
+		if self.encodedBinaryIOFlags.contains( .hasArchiveIdentifier ) {
+			self.encodedArchiveIdentifier = try Self.readString( from: &dataRegion )
+		} else {
+			self.encodedArchiveIdentifier = nil
+		}
+		if let archiveIdentifier, archiveIdentifier != self.encodedArchiveIdentifier {
+			throw BinaryIOError.archiveIdentifierDontMatch(
+				Self.self, BinaryIOError.Context(
+					debugDescription: "Encoded archiveIdentifier -\(encodedArchiveIdentifier ?? "nil" )- doesn't match the requested identifier -\(archiveIdentifier)-."
+				)
+			)
+		}
+		if self.encodedBinaryIOFlags.contains( .compressionEnabled ) {
+			self.encodedBinaryIOVersion	= try Self.readAndUnpack(from: &dataRegion)
+			self.encodedUserVersion		= try Self.readAndUnpack(from: &dataRegion)
+		} else {
+			self.encodedBinaryIOVersion	= try Self.readValue(from: &dataRegion)
+			self.encodedUserVersion		= try Self.readValue(from: &dataRegion)
+		}
+		self.data						= data
+		self.dataRegion					= dataRegion
+		self.startOfFile				= dataRegion.startIndex
+		self.userData					= userData
+		self.enableCompression			= true
+	}
+
+	/// read a pod value
+	private mutating func readPODValue<T>() throws  -> T {
+		return try Self.readValue( from:&dataRegion )
+	}
+	
+	private func checkRemainingSize( size:Int ) throws {
+		try Self.checkRemainingSize( dataRegion, size: size )
+	}
+
+	///	Decodes and reconstructs the integer encoded by
+	///	BinaryIOEncoder `readAndUnpack` function.
+	private mutating func readAndUnpack<T>() throws -> T
+	where T:FixedWidthInteger, T:UnsignedInteger {
+		assert( MemoryLayout<T>.size > 1, "\(#function) the unsigned integer value must be at least 2 bytes." )
+		
+		return try Self.readAndUnpack( from:&dataRegion )
+	}
+}
+
+// MARK: private static section
+
+extension BinaryIODecoder {
+	/// read a pod value
+	private static func readValue<T>( from dataRegion:inout Bytes.SubSequence ) throws  -> T {
+		let inSize	= MemoryLayout<T>.size
+		try checkRemainingSize( dataRegion, size:inSize )
+		defer { dataRegion.removeFirst( inSize ) }
+		
+		return dataRegion.withUnsafeBytes { source in
+#if swift(>=5.7)
+			source.loadUnaligned(as: T.self)
+#elseif swift(>=5.6)
+			withUnsafeTemporaryAllocation(of: T.self, capacity: 1) {
+				let temporary = $0.baseAddress!
+				
+				memcpy( temporary, source.baseAddress, inSize )
+				return temporary.pointee
+			}
+#else
+#error("Minimum swift version = 5.6")
+#endif
+		}
+	}
+	 
+	private static func checkRemainingSize( _ dataRegion:Bytes.SubSequence, size:Int ) throws {
+		if dataRegion.count < size {
+			throw BinaryIOError.outOfBounds(
+				Self.self, BinaryIOError.Context(
+					debugDescription: "\(size) bytes requested; \(dataRegion.count) bytes remaining."
+				)
+			)
+		}
+	}
+	
+	private static func readAndUnpack<T>( from dataRegion:inout Bytes.SubSequence ) throws -> T
+	where T:FixedWidthInteger, T:UnsignedInteger {
+		var	byte	= try readValue( from:&dataRegion ) as UInt8
+		var	val		= T( byte & 0x7F )
+		
+		for index in 1...MemoryLayout<Self>.size {
+			guard byte & 0x80 != 0 else {
+				return val
+			}
+			byte	= 	try readValue( from:&dataRegion ) as UInt8
+			val		|=	T( byte & 0x7F ) &<< (index*7)
+		}
+		return val
+	}
+	
+	// read a null terminated utf8 string
+	private static func readString( from dataRegion:inout Bytes.SubSequence ) throws -> String {
+		var inSize = 0
+		
+		let string = try dataRegion.withUnsafeBytes {
+			try $0.withMemoryRebound( to: Int8.self ) { buffer in
+				for char in buffer {
+					inSize += 1
+					if char == 0 {	// ho trovato NULL
+						return String( cString: buffer.baseAddress! )
+					}
+				}
+				
+				throw BinaryIOError.outOfBounds(
+					Self.self, BinaryIOError.Context(
+						debugDescription: "No more bytes available for a null terminated string."
+					)
+				)
+			}
+		}
+		// ci deve essere almeno un carattere: null
+		guard inSize > 0 else {
+			throw BinaryIOError.outOfBounds(
+				Self.self, BinaryIOError.Context(
+					debugDescription: "No more bytes available for a null terminated string."
+				)
+			)
+		}
+		dataRegion.removeFirst( inSize )
+		return string
+	}
+}
+
 

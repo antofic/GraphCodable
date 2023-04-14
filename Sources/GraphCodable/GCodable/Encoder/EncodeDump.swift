@@ -11,12 +11,15 @@ final class EncodeDump : EncodeFileBlocks {
 	private var			fileSize	: Int?
 	private var			dumpString	= String()
 	private var 		beforeBody	= false
-	private var 		tabs		: String?
+	private var 		tabs		: Tabs
 
 	init( fileHeader: FileHeader, dumpOptions:GraphDumpOptions, fileSize:Int? ) {
 		self.fileHeader		= fileHeader
 		self.dumpOptions	= dumpOptions
 		self.fileSize		= fileSize
+		self.tabs			= Tabs(
+			tabString: dumpOptions.contains( .dontIndentBody ) ? Tabs.noTabs : Tabs.defaultTabs
+		)
 	}
 
 	static func titleString( _ string: String, filler:Character = "=", lenght: Int = 88 ) -> String {
@@ -46,18 +49,29 @@ final class EncodeDump : EncodeFileBlocks {
 		beforeBodyAppend()
 		
 		if dumpOptions.contains( .showBody ) {
-			if case .exit = fileBlock.level { tabs?.removeLast() }
+			if case .exit = fileBlock.level { tabs.exit() }
 			
-			if let tbs = tabs { dumpString.append( tbs ) }
-			dumpString.append( fileBlock.description(
+			dumpString.append( tabs.description )
+			let fileBlockString = fileBlock.description(
 				options:		dumpOptions,
-				value:			value,
 				classDataMap:	delegate?.classDataMap,
 				keyStringMap:	delegate?.keyStringMap
-			) )
+			) {
+				if let value {
+					if let string = value as? String {
+						return "\"\(string)\""
+					} else {
+						return String( describing: value )
+					}
+				} else {
+					return nil
+				}
+			}
+			
+			dumpString.append( fileBlockString )
 			dumpString.append( "\n" )
 			
-			if case .enter = fileBlock.level { tabs?.append("\t") }
+			if case .enter = fileBlock.level { tabs.enter() }
 		}
 	}
 	
@@ -72,11 +86,11 @@ final class EncodeDump : EncodeFileBlocks {
 		append( .Ptr(keyID: keyID,idnID:idnID, conditional:conditional ), value:nil )
 	}
 	
-	func appendVal<T:GEncodable>(keyID: KeyID?, refID: RefID?, idnID: IdnID?, value: T) throws {
+	func appendVal(keyID: KeyID?, refID: RefID?, idnID: IdnID?, value: some GEncodable ) throws {
 		append( .Val(keyID: keyID, idnID:idnID, refID:refID ), value:value )
 	}
 
-	func appendBin<T:GBinaryEncodable>( keyID:KeyID?, refID:RefID?, idnID:IdnID?, binaryValue: T ) throws {
+	func appendBin( keyID:KeyID?, refID:RefID?, idnID:IdnID?, binaryValue: some GBinaryEncodable ) throws {
 		append( .Bin(keyID: keyID, idnID:idnID, refID:refID, binSize: 0 ), value:binaryValue  )
 	}
 
@@ -108,7 +122,7 @@ final class EncodeDump : EncodeFileBlocks {
 				if dumpOptions.contains( .hideSectionTitles ) == false {
 					dumpString.append( Self.titleString( "BODY" ) )
 				}
-				tabs = dumpOptions.contains( .dontIndentBody ) ? nil : ""
+				// tabs = dumpOptions.contains( .dontIndentBody ) ? nil : ""
 			}
 		}
 	}
@@ -192,8 +206,8 @@ final class EncodeDump : EncodeFileBlocks {
 Codes:
 \tVAL<idnID?>   = GCodable value tipe
 \tREF<idnID?>   = GCodable reference type
-\tBIV<idnID?>   = BinaryIO value type
-\tBIR<idnID?>   = BinaryIO reference type
+\tBIV<idnID?>   = GBinaryCodable value type
+\tBIR<idnID?>   = GBinaryCodable reference type
 \tNIL<idnID?>   = nil (Optional.none) VAL,REF,BIV,BIR
 \tPTS<idnID>    = Strong pointer to VAL,REF,BIV,BIR
 \tPTC<idnID>    = Conditional pointer to VAL,REF,BIV,BIR
@@ -211,7 +225,7 @@ Other codes:
 \t                (REF, BIR). Depending on the options selected,
 \t                the qualified name of the class may be displayed
 \t                alternatively.
-\tKEY<keyID>    = uniquely identifies the key used in keyed coding.
+\tKEY<keyID>   = uniquely identifies the key used in keyed coding.
 \t			    Only used by the VAL and REF fields.
 """
 	}

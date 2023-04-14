@@ -162,47 +162,203 @@ extension FlattenedElement {
 
 // MARK: BodyElement dump section
 extension FlattenedElement {
-	func dump( elementMap: ElementMap, classDataMap: ClassDataMap?, keyStringMap: KeyStringMap?, options: GraphDumpOptions ) -> String {
-		let level	= 0
+	func dump(
+		elementMap: ElementMap, classDataMap: ClassDataMap?, keyStringMap: KeyStringMap?,
+		options: GraphDumpOptions
+	) -> String {
+		var tabs	= Tabs(tabString: options.contains( .dontIndentBody ) ? Tabs.noTabs : Tabs.defaultTabs )		
 		var dump 	= ""
-		
-		dump.append( EncodeDump.titleString("FLATTENED BODY" ) )
+		dump.append( EncodeDump.titleString( "FLATTENED BODY" ) )
 		dump.append( EncodeDump.titleString( "ROOT:", filler: "-") )
-		dump.append( subdump(elementMap: elementMap, classDataMap: classDataMap, keyStringMap: keyStringMap, options:options, level: level ))
+		dump.append( subdump(elementMap: elementMap, classDataMap: classDataMap, keyStringMap: keyStringMap, options:options, tabs: &tabs ))
 		
 		if elementMap.isEmpty == false {
 			dump.append( EncodeDump.titleString( "WHERE:", filler: "-") )
-			for (id,element) in elementMap {
+			for (id,element) in elementMap.sorted( by: { $0.key < $1.key } ) {
 				dump.append( "# PTR\(id) is:\n")
-				dump.append( element.subdump( elementMap:elementMap, classDataMap: classDataMap, keyStringMap: keyStringMap, options:options, level: level ))
+				dump.append( element.subdump( elementMap:elementMap, classDataMap: classDataMap, keyStringMap: keyStringMap, options:options, tabs: &tabs ))
 			}
 		}
 		
 		return dump
 	}
-	
-	private func subdump( elementMap: ElementMap, classDataMap: ClassDataMap?, keyStringMap: KeyStringMap?, options: GraphDumpOptions, level:Int ) -> String {
-		var dump = ""
+
+	private func subdump(
+		elementMap: ElementMap, classDataMap: ClassDataMap?, keyStringMap: KeyStringMap?,
+		options: GraphDumpOptions, tabs: inout Tabs
+	) -> String {
+		var dump 	= ""
+		let string	= readBlock.fileBlock.description( options: options, classDataMap: classDataMap, keyStringMap: keyStringMap )
 		
-		let string = readBlock.fileBlock.description(
-			options: options, value: nil,
-			classDataMap: classDataMap, keyStringMap: keyStringMap
-		)
-		let tabs = String(repeating: "\t", count: level)
 		dump.append( "\(tabs)\(string)\n" )
+		tabs.enter()
 		var end	= false
 		for element in keyedValues.values {
 			end	= true
-			dump.append( element.subdump( elementMap:elementMap, classDataMap: classDataMap, keyStringMap: keyStringMap, options:options, level: level+1 ))
+			dump.append(
+				element.subdump(
+					elementMap:elementMap, classDataMap: classDataMap, keyStringMap: keyStringMap, options:options, tabs: &tabs
+				)
+			)
 		}
 		for element in unkeyedValues {
 			end	= true
-			dump.append( element.subdump( elementMap:elementMap, classDataMap: classDataMap, keyStringMap: keyStringMap, options:options, level: level+1 ))
+			dump.append(
+				element.subdump(
+					elementMap:elementMap, classDataMap: classDataMap, keyStringMap: keyStringMap, options:options, tabs: &tabs
+				)
+			)
 		}
+		tabs.exit()
 		if end {
 			dump.append( "\(tabs).\n" )
 		}
-		
+
 		return dump
 	}
 }
+/*
+typealias ElementMap2 = [IdnID : FlattenedElement2]
+
+final class FlattenedElement2 {
+	private weak var	parentElement 	: FlattenedElement2?
+	private(set) var	readBlock		: ReadBlock
+	private		var		keyedValues		= [KeyID:FlattenedElement2]()
+	private		var 	unkeyedValues 	= [FlattenedElement2]()
+	
+	private init( readBlock:ReadBlock ) {
+		self.readBlock	= readBlock
+	}
+	
+	static func rootElement<S>(
+		readBlocks:S, reverse:Bool
+	) throws -> ( rootElement: FlattenedElement2, elementMap: ElementMap2 )
+	where S:Sequence, S.Element == ReadBlock {
+		var elementMap	= ElementMap2()
+		var lineIterator = readBlocks.makeIterator()
+		
+		guard let readBlock = lineIterator.next() else {
+			throw GraphCodableError.malformedArchive(
+				Self.self, GraphCodableError.Context(
+					debugDescription: "Root not found."
+				)
+			)
+		}
+		
+		guard readBlock.fileBlock.level != .exit else {
+			throw GraphCodableError.malformedArchive(
+				Self.self, GraphCodableError.Context(
+					debugDescription: "The archive begins with an end block."
+				)
+			)
+		}
+		
+		let root = Self.init(readBlock: readBlock)
+		try Self.flatten( elementMap: &elementMap, element: root, lineIterator: &lineIterator, reverse: reverse )
+		
+		return (root,elementMap)
+	}
+	
+	var unkeyedCount : Int {
+		unkeyedValues.count
+	}
+	
+	func contains( keyID:KeyID ) -> Bool {
+		keyedValues.index(forKey: keyID) != nil
+	}
+	
+	func pop( keyID:KeyID ) -> FlattenedElement2? {
+		keyedValues.removeValue(forKey: keyID)
+	}
+	
+	func pop() -> FlattenedElement2? {
+		unkeyedCount > 0 ? unkeyedValues.removeLast() : nil
+	}
+}
+
+// MARK: BodyElement private flatten section
+extension FlattenedElement2 {
+	private static func flatten<T>(
+		elementMap map: inout ElementMap2, element:FlattenedElement2, lineIterator: inout T, reverse:Bool
+	) throws where T:IteratorProtocol, T.Element == ReadBlock {
+		func pointerRoot( element:FlattenedElement2, elementMap map: ElementMap2, keyID:KeyID?, idnID:IdnID ) throws -> FlattenedElement2 {
+			//	l'oggetto non può già trovarsi nella map
+			guard map.index(forKey: idnID) == nil else {
+				throw GraphCodableError.internalInconsistency(
+					Self.self, GraphCodableError.Context(
+						debugDescription: "Object \(element.readBlock) already exists."
+					)
+				)
+			}
+			// creo un nuovo elemento con il readBlock
+			let root = FlattenedElement2( readBlock: element.readBlock )
+			// in quello vecchio metto un puntatore al vecchio elemento
+			element.readBlock	= ReadBlock( strongPointerKeyID: keyID, idnID: idnID, position: element.readBlock.position )
+			
+			return root
+		}
+		
+		switch element.readBlock.fileBlock {
+			case .Val( let keyID, let idnID, _ ):
+				if let idnID {
+					let root = try pointerRoot( element:element, elementMap: map, keyID:keyID, idnID:idnID )
+					// metto il nuovo elemento nella mappa
+					map[ idnID ]	= root
+					try subFlatten(
+						elementMap: &map, parentElement:root, lineIterator:&lineIterator,
+						reverse:reverse
+					)
+				} else {
+					try subFlatten(
+						elementMap: &map, parentElement:element, lineIterator:&lineIterator,
+						reverse:reverse
+					)
+				}
+			case .Bin( let keyID, let idnID, _, _ ):
+				if let idnID {
+					let root = try pointerRoot( element:element, elementMap: map, keyID:keyID, idnID:idnID )
+					// metto il nuovo elemento nella mappa
+					map[ idnID ]	= root
+				}
+				// ATT! NO subFlatten for BinValue's
+			default:
+				//	nothing to do
+				break
+		}
+	}
+	
+	
+	private static func subFlatten<T>(
+		elementMap map: inout ElementMap2, parentElement:FlattenedElement2, lineIterator: inout T, reverse:Bool
+	) throws where T:IteratorProtocol, T.Element == ReadBlock {
+		while let readBlock = lineIterator.next() {
+			let element = FlattenedElement2( readBlock: readBlock )
+			
+			if case .End = readBlock.fileBlock {
+				break
+			} else {
+				element.parentElement = parentElement
+				
+				if let keyID = readBlock.fileBlock.keyID {
+					guard parentElement.keyedValues.index(forKey: keyID) == nil else {
+						throw GraphCodableError.malformedArchive(
+							Self.self, GraphCodableError.Context(
+								debugDescription: "Key \(keyID) already used."
+							)
+						)
+					}
+					
+					parentElement.keyedValues[ keyID ] = element
+				} else {
+					parentElement.unkeyedValues.append( element )
+				}
+				
+				try flatten( elementMap: &map, element: element, lineIterator: &lineIterator, reverse: reverse )
+			}
+		}
+		if reverse {
+			parentElement.unkeyedValues.reverse()
+		}
+	}
+}
+*/

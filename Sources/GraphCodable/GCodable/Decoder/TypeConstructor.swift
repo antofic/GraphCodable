@@ -6,7 +6,6 @@
 
 import Foundation
 
-
 final class TypeConstructor {
 	private var			ioDecoder			: BinaryIODecoder
 	private var			decodeBinary		: DecodeBinary
@@ -64,7 +63,6 @@ final class TypeConstructor {
 		}
 		return element
 	}
-	
 	
 	var encodedClassVersion : UInt32 {
 		get throws {
@@ -178,7 +176,7 @@ extension TypeConstructor {
 						throw GraphCodableError.possibleCyclicGraphDetected(
 							Self.self, GraphCodableError.Context(
 								debugDescription:
-									"Value pointed from \(element.readBlock.fileBlock) not found. Try deferDecode to break the cycle."
+									"Value of type pointed from \(element.readBlock.fileBlock) not found. Try deferDecode to break the cycle."
 							)
 						)
 					}
@@ -206,12 +204,6 @@ extension TypeConstructor {
 			return try decodeValue( type:T.self, element:element, from: decoder )
 		}
 	}
-	
-	
-	
-	
-	
-	
 }
 
 // MARK: TypeConstructor private level 3

@@ -5,38 +5,71 @@
 //	Copyright (c) 2021-2023 Antonino Ficarra
 
 
-public protocol	GBinaryEncodable : BEncodable, GEncodable {}
-public protocol	GBinaryDecodable : BDecodable, GDecodable {}
-
-///	To bypass the standard coding mechanism and use the faster
-///	`BCodable` one, adopt the `GBinaryCodable` protocol and write
-///	the required methods of `BCodable` protocol to encode and decode
-///	the fields of the type.
+/// The `GEncoderView` protocol allows `GBinaryEncodable` values to access part
+/// of the methods of the `GEncoder` protocol.
 ///
-///	You can use GBinaryEncodable when you still want to give type
+///	Example:
+///	```
+///	func encode(to encoder: inout some BEncoder) throws {
+///	  let encoderView = Self.encoderView( encoder )
+///	  let userInfo = encoderView.userInfo
+///	  /* ... */
+/// }
+///	```
+public protocol GEncoderView {
+	/// A view to the `GEncoder` `userInfo` property
+	var	userInfo : [String:Any] { get }
+}
+
+///	A `GEncodable` type that directly accesses faster `BEncoder`'s
+///	methods for encoding while bypassing those of `GEncoder`.
+///
+///	To bypass the standard encoding mechanism and use the faster
+///	`BEncodable` one, adopt the `GBinaryEncodable` protocol and write
+///	the required methods of `BEncodable` protocol to encode the fields
+///	of the type.
+///
+///	You can use `GBinaryEncodable` when you still want to give type
 ///	identity and/or inheritance in case of reference types,
 ///	but all its fields are trivial.
 ///
-///	In the case of generic types, GBinaryEncodable can be applied
+///	In the case of generic types, `GBinaryEncodable` can be applied
 ///	when the generic fields are trivial, leaving the normal mechanism
 ///	to operate when they are not.
 ///
-///	For example, `Array` is defined as `GCodable` when its elements
-///	are `GCodable` and `GBinaryEncodable` when its elements are
-///	`GPackCodable`:
+///	For example, `Array` is defined as `GBinaryEncodable` when its
+///	elements are `GEncodable` and `GBinaryEncodable` when its elements
+///	are `GPackEncodable`:
 /// ```
-///	extension Array: GCodable where Element:GCodable ...
+///	extension Array: GEncodable where Element:GEncodable ...
 ///
-///	extension Array: GBinaryCodable where Element: GPackCodable...
+///	extension Array: GBinaryEncodable where Element: GPackEncodable...
 /// ```
-/// In this way, an array of integers, for example, is stored quickly
-/// with the methods of `BinaryIO`, while an array of non-trivial elements,
-/// for example reference types, is stored with the methods of `GCodable`
-/// so that these elements continue to retain identity and inheritance.
-public typealias GBinaryCodable = GBinaryEncodable & GBinaryDecodable
+/// In this way, an array of integers, for example, is encoded quickly
+/// with the methods of BinaryIO package, while an array of non-trivial
+/// elements, for example reference types, is encoded with the methods
+/// of `GEncodable` so that these elements continue to retain identity
+/// and inheritance.
+///
+/// - Note: All field of a `GBinaryEncodable` type **must** be
+/// at least `BEncodable`
+public protocol	GBinaryEncodable : BEncodable, GEncodable {}
 
 extension GBinaryEncodable {
-	public func encode(to encoder: some GEncoder) throws	{
+	///	Allows `GBinaryEncodable` values to access a view of `GEncoder`.
+	///
+	///	Example:
+	///	```
+	///	func encode(to encoder: inout some BEncoder) throws {
+	///	  let encoderView = Self.encoderView( encoder )
+	///	  /* ... */
+	/// }
+	public static func encoderView( _ encoder: some BEncoder ) -> some GEncoderView {
+		// can't fail
+		return encoder.userData as! GEncoderImpl
+	}
+	
+	public func encode(to encoder: some GEncoder) throws {
 		throw GraphCodableError.internalInconsistency(
 			Self.self, GraphCodableError.Context(
 				debugDescription: "Unreachable code."
@@ -44,7 +77,82 @@ extension GBinaryEncodable {
 		)
 	}
 }
+
+/// The `GDecoderView` protocol allows `GBinaryDecodable` values to access part
+/// of the methods of the `GDecoder` protocol.
+///
+///	Example:
+///	```
+///	init(from decoder: inout BinaryIODecoder) throws
+///	  let decoderView = Self.decoderView( decoder )
+///	  let userInfo = decoderView.userInfo
+///	  let encodedClassVersion = try decoderView.encodedClassVersion
+///	  let replacedClass = try decoderView.replacedClass
+///	  /* ... */
+/// }
+///	```
+public protocol GDecoderView {
+	/// A view to the `GDecoder` `userInfo` property
+	var	userInfo			: [String:Any] { get }
+	/// A view to the `GDecoder` `encodedClassVersion` property
+	///
+	/// Only `GBinaryDecodable` reference types can have a version.
+	var encodedClassVersion	: UInt32  { get throws }
+	/// A view to the `GDecoder` `replacedClass` property
+	///
+	/// Only `GBinaryDecodable` reference types can be replaced.
+	var replacedClass		: (any (AnyObject & GDecodable).Type)?  { get throws }
+}
+
+///	A `GDecodable` type that directly accesses faster `BDecoder`'s
+///	methods for decoding while bypassing those of `GDecoder`.
+///
+///	To bypass the standard decoding mechanism and use the faster
+///	`BDecodable` one, adopt the `GBinaryDecodable` protocol and write
+///	the required methods of `BDecodable` protocol to decode the fields
+///	of the type.
+///
+///	You can use `GBinaryDecodable` when you still want to give type
+///	identity and/or inheritance in case of reference types,
+///	but all its fields are trivial.
+///
+///	In the case of generic types, `GBinaryDecodable` can be applied
+///	when the generic fields are trivial, leaving the normal mechanism
+///	to operate when they are not.
+///
+///	For example, `Array` is defined as `GBinaryDecodable` when its
+///	elements are `GDecodable` and `GBinaryDecodable` when its elements
+///	are `GPackDecodable`:
+/// ```
+///	extension Array: GDecodable where Element:GDecodable ...
+///
+///	extension Array: GBinaryDecodable where Element: GPackDecodable...
+/// ```
+/// In this way, an array of integers, for example, is decoded quickly
+/// with the methods of BinaryIO package, while an array of non-trivial
+/// elements, for example reference types, is decoded with the methods
+/// of `GEncodable` so that these elements continue to retain identity
+/// and inheritance.
+///
+/// - Note: All field of a `GBinaryDecodable` type **must** be
+/// at least `BDecodable`
+public protocol	GBinaryDecodable : BDecodable, GDecodable {}
+
 extension GBinaryDecodable {
+	///	Allows `GBinaryDecodable` values to access a view of `GDecoder`.
+	///
+	///	Example:
+	///	```
+	///	init(from decoder: inout some BDecoder) throws
+	///	  let decoderView = Self.decoderView( decoder )
+	///	  /* ... */
+	/// }
+	///	```
+	public static func decoderView( _ decoder: some BDecoder ) -> some GDecoderView {
+		// can't fail
+		return decoder.userData as! GDecoderImpl
+	}
+	
 	public init(from decoder: some GDecoder) throws {
 		throw GraphCodableError.internalInconsistency(
 			Self.self, GraphCodableError.Context(
@@ -54,42 +162,8 @@ extension GBinaryDecodable {
 	}
 }
 
-public protocol GEncoderView {
-	var	userInfo : [String:Any] { get }
-}
+/// A type that is both `GBinaryEncodable` and `GBinaryDecodable`.
+public typealias GBinaryCodable = GBinaryEncodable & GBinaryDecodable
 
-extension BEncoder {
-	public var encoderView : any GEncoderView {
-		get throws {
-			guard let encoderView = userData as? any GEncoderView else {
-				throw GraphCodableError.internalInconsistency(
-					Self.self, GraphCodableError.Context(
-						debugDescription: "encoderView can be accessed only from the GraphCodable BinaryIOEncoder"
-					)
-				)
-			}
-			return encoderView
-		}
-	}
-}
 
-public protocol GDecoderView {
-	var	userInfo			: [String:Any] { get }
-	var encodedClassVersion	: UInt32  { get throws }
-	var replacedClass		: (any (AnyObject & GDecodable).Type)?  { get throws }
-}
 
-extension BDecoder {
-	public var decoderView : any GDecoderView {
-		get throws {
-			guard let decoderView = userData as? any GDecoderView else {
-				throw GraphCodableError.internalInconsistency(
-					Self.self, GraphCodableError.Context(
-						debugDescription: "decoderView can be accessed only from the GraphCodable BinaryIODecoder"
-					)
-				)
-			}
-			return decoderView
-		}
-	}
-}

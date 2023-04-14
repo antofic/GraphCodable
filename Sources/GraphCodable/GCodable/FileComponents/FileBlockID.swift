@@ -6,8 +6,7 @@
 
 import Foundation
 
-
-protocol FileBlockID: Hashable, BCodable, CustomStringConvertible {
+protocol FileBlockID: Hashable, BCodable, CustomStringConvertible, Comparable {
 	associatedtype uID : FixedWidthInteger & UnsignedInteger & BCodable
 	
 	init( _ id:uID )
@@ -33,6 +32,10 @@ extension FileBlockID {
 	
 	var description: String {
 		return "\(id)".align(.right, length: 4, filler: "0")
+	}
+	
+	static func < (lhs: Self, rhs: Self) -> Bool {
+		return lhs.id < rhs.id
 	}
 }
 
