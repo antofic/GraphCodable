@@ -133,7 +133,7 @@ extension FlattenedElement {
 					guard parentElement.keyedValues.index(forKey: keyID) == nil else {
 						throw GraphCodableError.malformedArchive(
 							Self.self, GraphCodableError.Context(
-								debugDescription: "Key \(keyID) already used."
+								debugDescription: "KeyID \(keyID) already used."
 							)
 						)
 					}

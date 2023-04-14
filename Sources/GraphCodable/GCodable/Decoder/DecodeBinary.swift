@@ -33,11 +33,11 @@ struct DecodeBinary {
 		)
 
 		let keyStringMap	= try readBlockDecoder.keyStringMap()
-		var keyIDMap		= KeyIDMap()
-		for (key,element) in keyStringMap {
-			keyIDMap[ element ] = key
-		}
-		self.keyIDMap		= keyIDMap
+		self.keyIDMap		= Dictionary(
+			uniqueKeysWithValues: keyStringMap.map {
+				(key,value) in (value,key)
+			}
+		)
 	}
 	
 	mutating func pop( idnID:IdnID ) -> FlattenedElement? {
