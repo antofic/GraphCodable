@@ -84,9 +84,9 @@ extension TimeZone : BDecodable {
 	public init(from decoder: inout some BDecoder) throws {
 		let identifier = try decoder.decode() as String
 		guard let timeZone = TimeZone( identifier: identifier ) else {
-			throw BinaryIOError.libDecodingError(
-				Self.self, BinaryIOError.Context(
-					debugDescription: "Invalid timezone identifier -\(identifier)-"
+			throw Errors.BinaryIO.libDecodingError(
+				Self.self, Errors.Context(
+					debugDescription: "Invalid timezone identifier |\(identifier)|"
 				)
 			)
 		}
@@ -106,9 +106,9 @@ extension UUID : BDecodable  {
 		let uuidString	= try decoder.decode() as String
 		
 		guard let uuid = UUID(uuidString: uuidString) else {
-			throw BinaryIOError.libDecodingError(
-				Self.self, BinaryIOError.Context(
-					debugDescription: "Attempted to decode UUID from invalid UUID string -\(uuidString)-."
+			throw Errors.BinaryIO.libDecodingError(
+				Self.self, Errors.Context(
+					debugDescription: "Attempted to decode UUID from invalid UUID string |\(uuidString)|."
 				)
 			)
 		}
@@ -313,9 +313,9 @@ extension Calendar : BDecodable {
 	public init(from decoder: inout some BDecoder) throws {
 		let nsIdentifier = try decoder.decode() as NSCalendar.Identifier
 		guard var calendar = NSCalendar(calendarIdentifier: nsIdentifier) as Calendar? else {
-			throw BinaryIOError.libDecodingError(
-				Self.self, BinaryIOError.Context(
-					debugDescription: "Invalid calendar identifier -\(nsIdentifier)-"
+			throw Errors.BinaryIO.libDecodingError(
+				Self.self, Errors.Context(
+					debugDescription: "Invalid calendar identifier |\(nsIdentifier)|"
 				)
 			)
 		}
@@ -448,9 +448,9 @@ extension URL : BDecodable {
 		let base		= try decoder.decode() as URL?
 		
 		guard let url = URL(string: relative, relativeTo: base) else {
-			throw BinaryIOError.libDecodingError(
-				Self.self, BinaryIOError.Context(
-					debugDescription: "Invalid relative -\(relative)- and base -\(base as Any)-"
+			throw Errors.BinaryIO.libDecodingError(
+				Self.self, Errors.Context(
+					debugDescription: "Invalid relative |\(relative)| and base |\(base as Any)|"
 				)
 			)
 		}

@@ -245,9 +245,9 @@ extension BinaryIOEncoder {
 	mutating func encodeUInt( _ value:UInt ) throws {
 		// UInt are always archived as UInt64
 		guard let value64 = UInt64( exactly: value ) else {
-			throw BinaryIOError.libDecodingError(
-				Self.self, BinaryIOError.Context(
-					debugDescription: "Int \(value) can't be converted to UInt64."
+			throw Errors.BinaryIO.libDecodingError(
+				Self.self, Errors.Context(
+					debugDescription: "Int |\(value)| can't be converted to UInt64."
 				)
 			)
 		}
@@ -290,9 +290,9 @@ extension BinaryIOEncoder {
 	mutating func encodeInt( _ value:Int ) throws {
 		// Int are always archived as Int64
 		guard let value64 = Int64( exactly: value ) else {
-			throw BinaryIOError.libDecodingError(
-				Self.self, BinaryIOError.Context(
-					debugDescription: "Int \(value) can't be converted to Int64."
+			throw Errors.BinaryIO.libDecodingError(
+				Self.self, Errors.Context(
+					debugDescription: "Int |\(value)| can't be converted to Int64."
 				)
 			)
 		}
@@ -357,9 +357,9 @@ extension BinaryIOEncoder {
 				)
 			}
 		} else {
-			throw BinaryIOError.outOfBounds(
-				Self.self, BinaryIOError.Context(
-					debugDescription: "\(Self.self): file position out of data bounds."
+			throw Errors.BinaryIO.outOfBounds(
+				Self.self, Errors.Context(
+					debugDescription: "|\(Self.self)|: file position out of data bounds."
 				)
 			)
 		}
@@ -370,8 +370,8 @@ extension BinaryIOEncoder {
 	private mutating func writePODValue<T>( _ value:T ) throws {
 		/*
 		guard _isPOD(T.self) else {
-			throw BinaryIOError.notPODType(
-				Self.self, BinaryIOError.Context(
+			throw Errors.BinaryIOError.notPODType(
+				Self.self, Errors.Context(
 					debugDescription: "\(T.self) must be a POD type."
 				)
 			)

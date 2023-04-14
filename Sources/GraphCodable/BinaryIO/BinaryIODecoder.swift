@@ -188,9 +188,9 @@ extension BinaryIODecoder {
 		regionRange	= range
 		let result	= try decodeFunc( &self )
 		guard position == range.endIndex else {
-			throw BinaryIOError.outOfBounds(
-				Self.self, BinaryIOError.Context(
-					debugDescription: "\(Self.self): decode do not consume exactly the requested region."
+			throw Errors.BinaryIO.outOfBounds(
+				Self.self, Errors.Context(
+					debugDescription: "|\(Self.self)|: decode do not consume exactly the requested region."
 				)
 			)
 		}
@@ -264,9 +264,9 @@ extension BinaryIODecoder {
 		// UInt are always archived as UInt64
 		let value64 = try decode() as UInt64
 		guard let value = UInt( exactly: value64 ) else {
-			throw BinaryIOError.libDecodingError(
-				Self.self, BinaryIOError.Context(
-					debugDescription: "UInt64 \(value64) can't be converted to UInt."
+			throw Errors.BinaryIO.libDecodingError(
+				Self.self, Errors.Context(
+					debugDescription: "UInt64 |\(value64)| can't be converted to UInt."
 				)
 			)
 		}
@@ -305,9 +305,9 @@ extension BinaryIODecoder {
 		// Int are always archived as Int64
 		let value64 = try decode() as Int64
 		guard let value = Int( exactly: value64 ) else {
-			throw BinaryIOError.libDecodingError(
-				Self.self, BinaryIOError.Context(
-					debugDescription: "Int64 \(value64) can't be converted to Int."
+			throw Errors.BinaryIO.libDecodingError(
+				Self.self, Errors.Context(
+					debugDescription: "Int64 |\(value64)| can't be converted to Int."
 				)
 			)
 		}
@@ -362,9 +362,9 @@ extension BinaryIODecoder {
 			self.encodedArchiveIdentifier = nil
 		}
 		if let archiveIdentifier, archiveIdentifier != self.encodedArchiveIdentifier {
-			throw BinaryIOError.archiveIdentifierDontMatch(
-				Self.self, BinaryIOError.Context(
-					debugDescription: "Encoded archiveIdentifier -\(encodedArchiveIdentifier ?? "nil" )- doesn't match the requested identifier -\(archiveIdentifier)-."
+			throw Errors.BinaryIO.archiveIdentifierDontMatch(
+				Self.self, Errors.Context(
+					debugDescription: "Encoded archiveIdentifier |\(encodedArchiveIdentifier ?? "nil" )| doesn't match the requested identifier |\(archiveIdentifier)|."
 				)
 			)
 		}
@@ -428,9 +428,9 @@ extension BinaryIODecoder {
 	 
 	private static func checkRemainingSize( _ dataRegion:Bytes.SubSequence, size:Int ) throws {
 		if dataRegion.count < size {
-			throw BinaryIOError.outOfBounds(
-				Self.self, BinaryIOError.Context(
-					debugDescription: "\(size) bytes requested; \(dataRegion.count) bytes remaining."
+			throw Errors.BinaryIO.outOfBounds(
+				Self.self, Errors.Context(
+					debugDescription: "|\(size)| bytes requested; |\(dataRegion.count)| bytes remaining."
 				)
 			)
 		}
@@ -464,8 +464,8 @@ extension BinaryIODecoder {
 					}
 				}
 				
-				throw BinaryIOError.outOfBounds(
-					Self.self, BinaryIOError.Context(
+				throw Errors.BinaryIO.outOfBounds(
+					Self.self, Errors.Context(
 						debugDescription: "No more bytes available for a null terminated string."
 					)
 				)
@@ -473,8 +473,8 @@ extension BinaryIODecoder {
 		}
 		// ci deve essere almeno un carattere: null
 		guard inSize > 0 else {
-			throw BinaryIOError.outOfBounds(
-				Self.self, BinaryIOError.Context(
+			throw Errors.BinaryIO.outOfBounds(
+				Self.self, Errors.Context(
 					debugDescription: "No more bytes available for a null terminated string."
 				)
 			)

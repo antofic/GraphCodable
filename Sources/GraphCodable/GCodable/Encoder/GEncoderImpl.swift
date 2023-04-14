@@ -260,9 +260,9 @@ extension GEncoderImpl {
 	private func createKeyID( for key: String ) throws -> KeyID {
 		defer { currentKeys.insert( key ) }
 		if currentKeys.contains( key ) {
-			throw GraphCodableError.duplicateKey(
-				Self.self, GraphCodableError.Context(
-					debugDescription: "Key \(key) already used."
+			throw Errors.GraphCodable.duplicateKey(
+				Self.self, Errors.Context(
+					debugDescription: "Key |\(key)| already used."
 				)
 			)
 		}

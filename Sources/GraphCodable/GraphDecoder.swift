@@ -46,7 +46,7 @@ public final class GraphDecoder {
 	/// GraphDecoder init method
 	///
 	/// - If `archiveIdentifier` is not `nil`, it must match the encoded one otherwise the
-	/// `BinaryIOError.archiveIdentifierDontMatch` exception is thrown.
+	/// `Errors.BinaryIOError.archiveIdentifierDontMatch` exception is thrown.
 	/// - If `archiveIdentifier` is `nil`, any encoded archiveIdentifier match
 	///
 	/// - Parameter archiveIdentifier: a string identifier to match the encoded one

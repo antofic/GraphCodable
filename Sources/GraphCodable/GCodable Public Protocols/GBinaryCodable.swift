@@ -70,8 +70,8 @@ extension GBinaryEncodable {
 	}
 	
 	public func encode(to encoder: some GEncoder) throws {
-		throw GraphCodableError.internalInconsistency(
-			Self.self, GraphCodableError.Context(
+		throw Errors.GraphCodable.internalInconsistency(
+			Self.self, Errors.Context(
 				debugDescription: "Unreachable code."
 			)
 		)
@@ -154,8 +154,8 @@ extension GBinaryDecodable {
 	}
 	
 	public init(from decoder: some GDecoder) throws {
-		throw GraphCodableError.internalInconsistency(
-			Self.self, GraphCodableError.Context(
+		throw Errors.GraphCodable.internalInconsistency(
+			Self.self, Errors.Context(
 				debugDescription: "Unreachable code."
 			)
 		)

@@ -14,8 +14,8 @@ extension Never : BEncodable {
 
 extension Never : BDecodable {
 	public init(from decoder: inout some BDecoder) throws {
-		throw BinaryIOError.libDecodingError(
-			Self.self, BinaryIOError.Context(
+		throw Errors.BinaryIO.libDecodingError(
+			Self.self, Errors.Context(
 				debugDescription: "Never type can't be istantiated."
 			)
 		)
@@ -61,9 +61,9 @@ extension RawRepresentable where Self.RawValue : BDecodable {
 	public init(from decoder: inout some BDecoder) throws {
 		let rawValue	= try decoder.decode() as RawValue
 		guard let value = Self(rawValue: rawValue ) else {
-			throw BinaryIOError.libDecodingError(
-				Self.self, BinaryIOError.Context(
-					debugDescription: "Invalid rawValue = \(rawValue)"
+			throw Errors.BinaryIO.libDecodingError(
+				Self.self, Errors.Context(
+					debugDescription: "Invalid rawValue |\(rawValue)|"
 				)
 			)
 		}
@@ -282,9 +282,9 @@ extension CollectionDifference : BDecodable where ChangeElement:BDecodable {
 			changes.append( try decoder.decode() as CollectionDifference.Change )
 		}
 		guard let value = Self(changes) else {
-			throw BinaryIOError.libDecodingError(
-				Self.self, BinaryIOError.Context(
-					debugDescription: "Invalid \(changes)"
+			throw Errors.BinaryIO.libDecodingError(
+				Self.self, Errors.Context(
+					debugDescription: "Invalid |\(changes)|"
 				)
 			)
 		}

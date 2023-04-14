@@ -13,10 +13,10 @@ typealias ElementMap = [IdnID : FlattenedElement]
 ///	Reorder ReadBlock's in a `rootElement` and a `ElementMap = [idnID : FlattenedElement]`
 ///	dictionary to allow decoding of every acyclic graphs without requiring deferDecode
 final class FlattenedElement {
-	private weak var	parentElement 	: FlattenedElement?
-	private(set) var	readBlock		: ReadBlock
-	private		var		keyedValues		= [KeyID:FlattenedElement]()
-	private		var 	unkeyedValues 	= [FlattenedElement]()
+	private(set) weak var	parentElement 	: FlattenedElement?
+	private(set) var		readBlock		: ReadBlock
+	private		var			keyedValues		= [KeyID:FlattenedElement]()
+	private		var 		unkeyedValues 	= [FlattenedElement]()
 	
 	private init( readBlock:ReadBlock ) {
 		self.readBlock	= readBlock
@@ -30,16 +30,16 @@ final class FlattenedElement {
 		var lineIterator = readBlocks.makeIterator()
 		
 		guard let readBlock = lineIterator.next() else {
-			throw GraphCodableError.malformedArchive(
-				Self.self, GraphCodableError.Context(
+			throw Errors.GraphCodable.malformedArchive(
+				Self.self, Errors.Context(
 					debugDescription: "Root not found."
 				)
 			)
 		}
 		
 		if case FileBlock.End = readBlock.fileBlock {
-			throw GraphCodableError.malformedArchive(
-				Self.self, GraphCodableError.Context(
+			throw Errors.GraphCodable.malformedArchive(
+				Self.self, Errors.Context(
 					debugDescription: "The archive begins with an end block."
 				)
 			)
@@ -76,9 +76,9 @@ extension FlattenedElement {
 		func pointerRoot( element:FlattenedElement, elementMap map: ElementMap, keyID:KeyID?, idnID:IdnID ) throws -> FlattenedElement {
 			//	l'oggetto non può già trovarsi nella map
 			guard map.index(forKey: idnID) == nil else {
-				throw GraphCodableError.internalInconsistency(
-					Self.self, GraphCodableError.Context(
-						debugDescription: "Object \(element.readBlock) already exists."
+				throw Errors.GraphCodable.internalInconsistency(
+					Self.self, Errors.Context(
+						debugDescription: "Object |\(element.readBlock.fileBlock)| already exists."
 					)
 				)
 			}
@@ -131,9 +131,9 @@ extension FlattenedElement {
 				
 				if let keyID = readBlock.fileBlock.keyID {
 					guard parentElement.keyedValues.index(forKey: keyID) == nil else {
-						throw GraphCodableError.malformedArchive(
-							Self.self, GraphCodableError.Context(
-								debugDescription: "KeyID \(keyID) already used."
+						throw Errors.GraphCodable.malformedArchive(
+							Self.self, Errors.Context(
+								debugDescription: "KeyID |\(keyID)| already in use."
 							)
 						)
 					}

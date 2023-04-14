@@ -2514,8 +2514,8 @@ public typealias GBinaryCodable = GBinaryEncodable & GBinaryDecodable
 
 extension GBinaryEncodable {
 	public func encode(to encoder: some GEncoder) throws	{
-		throw GraphCodableError.internalInconsistency(
-			Self.self, GraphCodableError.Context(
+		throw Errors.GraphCodableError.internalInconsistency(
+			Self.self, Errors.Context(
 				debugDescription: "Unreachable code."
 			)
 		)
@@ -2523,8 +2523,8 @@ extension GBinaryEncodable {
 }
 extension GBinaryDecodable {
 	public init(from decoder: some GDecoder) throws {
-		throw GraphCodableError.internalInconsistency(
-			Self.self, GraphCodableError.Context(
+		throw Errors.GraphCodableError.internalInconsistency(
+			Self.self, Errors.Context(
 				debugDescription: "Unreachable code."
 			)
 		)

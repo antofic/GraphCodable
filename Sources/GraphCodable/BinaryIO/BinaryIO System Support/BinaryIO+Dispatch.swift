@@ -60,9 +60,9 @@ extension DispatchTimeInterval : BEncodable {
 			case .never:
 				try encoder.encode( IntervalType.never )
 			default:
-				throw BinaryIOError.libEncodingError(
-					Self.self, BinaryIOError.Context(
-						debugDescription: "\(Self.self) in a new unknown case -\(self)-."
+				throw Errors.BinaryIO.libEncodingError(
+					Self.self, Errors.Context(
+						debugDescription: "|\(Self.self)| in a new unknown case |\(self)|."
 					)
 				)
 		}

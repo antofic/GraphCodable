@@ -94,9 +94,9 @@ extension Calendar : GDecodable {
 	public init(from decoder: some GDecoder) throws {
 		let nsIdentifier	= try decoder.decode(for: Key.nsIdentifier) as NSCalendar.Identifier
 		guard var calendar = NSCalendar(calendarIdentifier: nsIdentifier) as Calendar? else {
-			throw GraphCodableError.libDecodingError(
-				Self.self, GraphCodableError.Context(
-					debugDescription: "Invalid calendar identifier \(nsIdentifier)"
+			throw Errors.GraphCodable.libDecodingError(
+				Self.self, Errors.Context(
+					debugDescription: "Invalid calendar identifier |\(nsIdentifier)|"
 				)
 			)
 		}
@@ -244,9 +244,9 @@ extension URL : GDecodable {
 		let base		= try decoder.decodeIfPresent( for: Key.baseURL ) as URL?
 		
 		guard let url = URL(string: relative, relativeTo: base) else {
-			throw GraphCodableError.libDecodingError(
-				Self.self, GraphCodableError.Context(
-					debugDescription: "Invalid relative \(relative) and base \(base as Any)"
+			throw Errors.GraphCodable.libDecodingError(
+				Self.self, Errors.Context(
+					debugDescription: "Invalid relative |\(relative)| and base |\(base as Any)|"
 				)
 			)
 		}

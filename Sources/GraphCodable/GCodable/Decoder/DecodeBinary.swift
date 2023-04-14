@@ -29,12 +29,11 @@ struct DecodeBinary {
 		self.classInfoMap		= classInfoMap
 		(self.rootElement,self.elementMap)	= try FlattenedElement.rootElement(
 			readBlocks:	readBlocks,
-			reverse:		true
+			reverse:	true
 		)
 
-		let keyStringMap	= try readBlockDecoder.keyStringMap()
-		self.keyIDMap		= Dictionary(
-			uniqueKeysWithValues: keyStringMap.map {
+		self.keyIDMap			= Dictionary(
+			uniqueKeysWithValues: try readBlockDecoder.keyStringMap().map {
 				(key,value) in (value,key)
 			}
 		)

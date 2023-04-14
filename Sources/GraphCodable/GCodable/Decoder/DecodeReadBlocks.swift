@@ -110,9 +110,9 @@ struct DecodeReadBlocks {
 	
 	private func regionRange( of section:FileSection ) throws -> Range<Int> {
 		guard let range = sectionMap[ section ] else {
-			throw GraphCodableError.malformedArchive(
-				Self.self, GraphCodableError.Context(
-					debugDescription: "File section -\(section)- not found."
+			throw Errors.GraphCodable.malformedArchive(
+				Self.self, Errors.Context(
+					debugDescription: "File section |\(section)| not found."
 				)
 			)
 		}

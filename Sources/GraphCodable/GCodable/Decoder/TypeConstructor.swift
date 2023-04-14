@@ -13,6 +13,12 @@ final class TypeConstructor {
 	private (set) var 	currentInfo 		: ClassInfo?
 	private var			objectRepository 	= [ IdnID: any GDecodable ]()
 	private var			setterRepository 	= [ (_:TypeConstructor) throws -> () ]()
+	private lazy var	keyStringMap		: KeyStringMap = {
+		// we use keyStringMap only in case of errors
+		Dictionary( uniqueKeysWithValues: decodeBinary.keyIDMap.map {
+				(key,value) in (value,key)
+			})
+	}()
 	
 	var fileHeader : FileHeader { decodeBinary.fileHeader }
 	
@@ -52,9 +58,9 @@ final class TypeConstructor {
 		guard
 			let keyID = keyID( for: key ),
 			let element = currentElement.pop(keyID: keyID) else {
-			throw GraphCodableError.valueNotFound(
-				Self.self, GraphCodableError.Context(
-					debugDescription: "Keyed value for key \(key) not found in \(currentElement.readBlock)."
+			throw Errors.GraphCodable.valueNotFound(
+				Self.self, Errors.Context(
+					debugDescription: "\( fileblockDescr( currentElement ) ): keyed value for key |\(key)| not found."
 				)
 			)
 		}
@@ -64,9 +70,9 @@ final class TypeConstructor {
 	func popBodyElement() throws -> FlattenedElement {
 		// keyed case
 		guard let element = currentElement.pop() else {
-			throw GraphCodableError.valueNotFound(
-				Self.self, GraphCodableError.Context(
-					debugDescription: "Unkeyed value not found in \(currentElement.readBlock)."
+			throw Errors.GraphCodable.valueNotFound(
+				Self.self, Errors.Context(
+					debugDescription: "\( fileblockDescr( currentElement ) ): unkeyed value not found."
 				)
 			)
 		}
@@ -76,8 +82,8 @@ final class TypeConstructor {
 	var encodedClassVersion : UInt32 {
 		get throws {
 			guard let classInfo = currentInfo else {
-				throw GraphCodableError.referenceTypeRequired(
-					Self.self, GraphCodableError.Context(
+				throw Errors.GraphCodable.referenceTypeRequired(
+					Self.self, Errors.Context(
 						debugDescription: "\(#function) not available for value types."
 					)
 				)
@@ -89,8 +95,8 @@ final class TypeConstructor {
 	var replacedClass : (any (AnyObject & GDecodable).Type)? {
 		get throws {
 			guard let classInfo = currentInfo else {
-				throw GraphCodableError.referenceTypeRequired(
-					Self.self, GraphCodableError.Context(
+				throw Errors.GraphCodable.referenceTypeRequired(
+					Self.self, Errors.Context(
 						debugDescription: "\(#function) not available for value types."
 					)
 				)
@@ -124,9 +130,9 @@ final class TypeConstructor {
 				break
 		}
 		guard let value = try decodeAny( element:element, from:decoder, type:T.self ) as? T else {
-			throw GraphCodableError.malformedArchive(
-				Self.self, GraphCodableError.Context(
-					debugDescription: "Block \(element) doesn't contains a \(T.self) type."
+			throw Errors.GraphCodable.malformedArchive(
+				Self.self, Errors.Context(
+					debugDescription: "\( fileblockDescr( element ) ) doesn't contains a |\(T.self)| type."
 				)
 			)
 		}
@@ -164,9 +170,9 @@ extension TypeConstructor {
 					default:
 						break
 				}
-				throw GraphCodableError.internalInconsistency(
-					Self.self, GraphCodableError.Context(
-						debugDescription: "Inappropriate fileblock \(element.readBlock.fileBlock) while decoding type \(T.self)."
+				throw Errors.GraphCodable.internalInconsistency(
+					Self.self, Errors.Context(
+						debugDescription: "\( fileblockDescr( element ) ) not appropriate while decoding type |\(T.self)|."
 					)
 				)
 			} else {
@@ -182,19 +188,19 @@ extension TypeConstructor {
 					return try decodeIdentifiable( type:T.self, idnID:idnID, from:decoder ) as Any
 				} else {
 					guard let object = try decodeIdentifiable( type:T.self, idnID:idnID, from:decoder ) else {
-						throw GraphCodableError.possibleCyclicGraphDetected(
-							Self.self, GraphCodableError.Context(
+						throw Errors.GraphCodable.possibleCyclicGraphDetected(
+							Self.self, Errors.Context(
 								debugDescription:
-									"Value of type pointed from \(element.readBlock.fileBlock) not found while decoding type \(T.self). Try deferDecode to break the cycle."
+									"\( fileblockDescr( element ) ) not found while decoding type |\(T.self)|. Try deferDecode to break the cycle."
 							)
 						)
 					}
 					return object
 				}
 			default:	// .Struct & .Object are inappropriate here!
-				throw GraphCodableError.internalInconsistency(
-					Self.self, GraphCodableError.Context(
-						debugDescription: "Inappropriate fileblock \(element.readBlock.fileBlock) while decoding type \(T.self)."
+				throw Errors.GraphCodable.internalInconsistency(
+					Self.self, Errors.Context(
+						debugDescription: "\( fileblockDescr( element ) ) not appropriate while decoding type |\(T.self)|."
 					)
 				)
 		}
@@ -224,10 +230,10 @@ extension TypeConstructor {
 		currentElement	= element
 		
 		guard let value =  try T._fullOptionalUnwrappedType.init(from: decoder) as? T else {
-			throw GraphCodableError.malformedArchive(
-				Self.self, GraphCodableError.Context(
+			throw Errors.GraphCodable.malformedArchive(
+				Self.self, Errors.Context(
 					debugDescription:
-						"Fileblock \(element.readBlock.fileBlock): wrapped type \(T._fullOptionalUnwrappedType) not GDecodable encountered while decoding type \(T.self)."
+						"\( fileblockDescr( element ) ): wrapped type |\(T._fullOptionalUnwrappedType)| retrieved while decoding type |\(T.self)| is not GDecodable."
 				)
 			)
 		}
@@ -242,10 +248,10 @@ extension TypeConstructor {
 		currentElement	= element
 		
 		guard let binaryIType = type._fullOptionalUnwrappedType as? any GBinaryDecodable.Type else {
-			throw GraphCodableError.malformedArchive(
-				Self.self, GraphCodableError.Context(
+			throw Errors.GraphCodable.malformedArchive(
+				Self.self, Errors.Context(
 					debugDescription:
-						"Fileblock \(element.readBlock.fileBlock): wrapped type \(T._fullOptionalUnwrappedType) not GBinaryDecodable encountered while decoding type \(T.self)."
+						"\( fileblockDescr( element ) ): wrapped type |\(T._fullOptionalUnwrappedType)| retrieved while decoding type |\(T.self)| is not GBinaryDecodable."
 				)
 			)
 		}
@@ -254,9 +260,9 @@ extension TypeConstructor {
 			range: 		element.readBlock.binaryIORegionRange,
 			decodeFunc:	{ try $0.decode( binaryIType.self ) }
 		) as? T else {
-			throw GraphCodableError.malformedArchive(
-				Self.self, GraphCodableError.Context(
-					debugDescription: "Fileblock \(element.readBlock.fileBlock): decoded type is not a \(T.self) type."
+			throw Errors.GraphCodable.malformedArchive(
+				Self.self, Errors.Context(
+					debugDescription: "\( fileblockDescr( element ) ): decoded type is not a |\(T.self)| type."
 				)
 			)
 		}
@@ -267,9 +273,9 @@ extension TypeConstructor {
 	private func decodeRefOrBinRef<T,D>( type:T.Type, refID:RefID, isBinary: Bool, element:FlattenedElement, from decoder:D ) throws -> T
 	where T:GDecodable, D:GDecoder {
 		guard let classInfo = decodeBinary.classInfoMap[ refID ] else {
-			throw GraphCodableError.internalInconsistency(
-				Self.self, GraphCodableError.Context(
-					debugDescription: "Fileblock \(element.readBlock.fileBlock): class info not found for refID \(refID)."
+			throw Errors.GraphCodable.internalInconsistency(
+				Self.self, Errors.Context(
+					debugDescription: "\( fileblockDescr( element ) ): class info not found for refID |\(refID)|."
 				)
 			)
 		}
@@ -278,20 +284,35 @@ extension TypeConstructor {
 		defer { currentInfo = saved }
 		currentInfo	= classInfo
 		
-		let type = classInfo.decodedType.self
+		let type 	= classInfo.decodedType.self
 		let object	= isBinary ?
 			try decodeBinValue( type:type, element:element, from: decoder ):
 			try decodeValue( type:type, element:element, from: decoder )
 		
 		guard let object = object as? T else {
-			throw GraphCodableError.internalInconsistency(
-				Self.self, GraphCodableError.Context(
-					debugDescription: "Fileblock \(element.readBlock.fileBlock): \(type) is not a subtype of \(T.self)."
+			throw Errors.GraphCodable.internalInconsistency(
+				Self.self, Errors.Context(
+					debugDescription: "\( fileblockDescr( element ) ): |\(type)| is not a subtype of |\(T.self)|."
 				)
 			)
 		}
 
 		return object
+	}
+	
+	/// ful fileblock information used only for errors
+	private func fileblockDescr( _ element: FlattenedElement ) -> String {
+		let string = element.readBlock.fileBlock.description(
+			options: .readable, classInfoMap: decodeBinary.classInfoMap, keyStringMap: keyStringMap
+		)
+		if let parent = element.parentElement {
+			let  parentString = parent.readBlock.fileBlock.description(
+				options: .readable, classInfoMap: decodeBinary.classInfoMap, keyStringMap: keyStringMap
+			)
+			return "Field |\(string)| of value |\(parentString)|"
+		} else {
+			return "Value |\(string)|"
+		}
 	}
 }
 
