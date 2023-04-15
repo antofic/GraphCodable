@@ -6,6 +6,7 @@
 
 
 public enum Errors {
+	/// A context for package errors.
 	public struct Context: CustomStringConvertible {
 		let file:				String
 		let function:			String
@@ -41,6 +42,14 @@ public enum Errors {
 	}
 	
 	public enum BinaryIO: Error {
+		///	Indicates that the archive is not a BinaryIO archive.
+		///
+		/// This is the error usually reported if the decoded archive
+		/// is corrupted.
+		///
+		/// It can happen **while decoding**
+		case malformedArchive( Any.Type, Context )
+		
 		/// Indicate that the archiveIdentifier specified in the
 		/// decoder init method don't match the encoded one.
 		///
@@ -68,7 +77,7 @@ public enum Errors {
 		
 		///	Indicates that something went wrong in reading or writing.
 		///
-		/// This is the error usually reported if the read archive
+		/// This is the error usually reported if the decoded archive
 		/// is corrupted.
 		///
 		/// It can happen **while encoding** and **while decoding**

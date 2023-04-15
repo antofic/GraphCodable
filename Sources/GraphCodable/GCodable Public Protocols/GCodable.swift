@@ -76,7 +76,6 @@ extension GEncodable where Self:AnyObject {
 /// A type that can be decoded from a native data format
 /// into in-memory representations
 public protocol GDecodable {
-	
 	/// Creates a new instance by decoding from the given decoder.
 	///
 	/// This initializer throws an error if reading from the decoder fails, or
@@ -91,14 +90,15 @@ public protocol GDecodable {
 	/// not to be replaced.
 	///	**See the UserGuide**.
 	///
-	/// - returns: The class that replaces `Self` (`Self.self` by default).
+	/// - returns: Possibly the class that replaces `Self`
+	/// The default is `Self.self`.
 	static var decodeType : any GDecodable.Type { get }
 	
 	/// Optional support: reserved for package use.
 	///
 	/// Unwraps `Self` until the inner **non optional** `GDecodable` type
 	/// is obtained.
-	static var _fullOptionalUnwrappedType	: any GDecodable.Type { get }
+	static var _fullOptionalUnwrappedType: any GDecodable.Type { get }
 }
 
 extension GDecodable {
@@ -106,7 +106,7 @@ extension GDecodable {
 	public static var decodeType : any GDecodable.Type { Self.self }
 
 	/// Optional support: reserved for package use.
-	public static var _fullOptionalUnwrappedType : any GDecodable.Type { Self.self }
+	public static var _fullOptionalUnwrappedType: any GDecodable.Type { Self.self }
 }
 
 /// A type that can be encoded from in-memory representations

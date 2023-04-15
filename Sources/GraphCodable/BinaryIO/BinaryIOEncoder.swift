@@ -6,12 +6,6 @@
 
 import Foundation
 
-/*
- BinaryIOEncoder data format uses always:
- • little-endian
- • store Int, UInt as Int64, UInt64
-*/
-
 ///	A value that encodes instances of a **BEncodable** type
 ///	into a data buffer that uses **BinaryIO** format.
 public struct BinaryIOEncoder: BEncoder {
@@ -20,8 +14,6 @@ public struct BinaryIOEncoder: BEncoder {
 	private var _enableCompression	: Bool
 	private var	insertMode			: Bool
 
-	// public	let defaultBinaryFileCode = FileCode( "bina" )
-	
 	///	The first bytes of the file are reserved so the file
 	///	data section begins from `startOfFile` offset.
 	public private(set) var startOfFile 	: Int
@@ -36,7 +28,10 @@ public struct BinaryIOEncoder: BEncoder {
 	///	Reserved for package use.
 	let binaryIOVersion				: UInt16
 	
-	public let archiveIdentifier	: String?	
+	/// A sting that identifies the archive
+	///
+	///	You supply this value in the `init` method.
+	public let archiveIdentifier	: String?
 	
 	/// Current version for user defined types for
 	///	decoding strategies.
@@ -56,10 +51,29 @@ public struct BinaryIOEncoder: BEncoder {
 extension BinaryIOEncoder {
 	/// Creates a new instance of `BinaryIODecoder`.
 	///
-	/// - Parameter userVersion: An user definde version for its data.
-	/// - Parameter archiveIdentifier: An optional string to identify the archive.
-	///	- Parameter userData: User defined data for decoding strategies.
-	///	- Parameter enableCompression: compress integer values to reduce file size.
+	/// - Parameter userVersion: An user defined version for its data. It is recommended
+	/// to start at 0 and increment this value by 1 each time a type change requires a
+	/// different encoding so that you can continue to decode previously encoded types.
+	///
+	/// - Parameter archiveIdentifier: An optional string that will be encoded to identify
+	/// the archive. If specified, decoding occurs only if the decoder is instantiated by
+	/// specifying the same string.
+	/// By default, both encoder and decoder use the string:
+	/// `defaultBinaryIOArchiveIdentifier = "binaryIO"`
+	/// If `nil` is specified, no `archiveIdentifier` string will be encoded. A `nil`
+	/// archiveIdentifier should be used only to create temporary data internal to
+	/// the application that will not be saved on disk.
+	///	The GraphCodable package uses
+	///	`defaultGraphCodableArchiveIdentifier = "graphCodable"`
+	/// as default archive identifier string.
+	///
+	///	- Parameter userData: User defined data for encoding strategies.
+	///	GraphCodable uses this parameter to store the `encoderView` property accessible
+	///	from `GBinaryEncodable` types.
+	///
+	///	- Parameter enableCompression: compress integer values to reduce file size. Compression
+	///	is enabled by default.
+	///
 	public init( userVersion: UInt32, archiveIdentifier: String? = defaultBinaryIOArchiveIdentifier, userData:Any? = nil, enableCompression:Bool = true ) {
 		self.userVersion			= userVersion
 		self._data					= Bytes()
@@ -70,13 +84,17 @@ extension BinaryIOEncoder {
 		self.binaryIOVersion		= 0
 		self.insertMode				= false
 		self.userData				= userData
+		self._enableCompression		= false
+		// encode BinaryIOFlags
+		try! self.encodeUInt16( self.binaryIOFlags.rawValue )	// NO compression
 		self._enableCompression		= enableCompression
-		// really can't throw
-		try! self.writePODValue( self.binaryIOFlags )	// NO compression
+		// encode archiveIdentifier
 		if let archiveIdentifier { try! self.encode( archiveIdentifier ) }
-		try! self.encode( self.binaryIOVersion )		// compressed if enableCompression
-		try! self.encode( self.userVersion )			// compressed if enableCompression
-		self.startOfFile		= position
+		// encode binaryIOVersion (compressed if enableCompression)
+		try! self.encodeUInt16( self.binaryIOVersion )
+		// encode userVersion (compressed if enableCompression)
+		try! self.encodeUInt32( self.userVersion )
+		self.startOfFile			= position
 		self.enableCompression		= enableCompression
 	}
 
@@ -110,11 +128,15 @@ extension BinaryIOEncoder {
 	///	The current end of file position
 	public var endOfFile	: Int { _data.endIndex }
 	
-	///	Reads and sets the the position in the file in which data will be encoded.
+	///	Get and sets the the position in the file in which data will be encoded.
 	///
-	///	`position` cannot be less than `startOfFile`.
+	///	If `position < endOfFile`, each coding operation **overwrites** the data present
+	///	starting from position. Use `withInsertionEnabled` if you want to **insert**
+	///	them instead.
 	///
-	///	`position` cannot be greater than the current end of the
+	///	- Note: `position` cannot be less than `startOfFile`.
+	///
+	///	- Note: `position` cannot be greater than the current end of the
 	///	file (i.e. `endOfFile`).
 	///
 	/// - Note: This method is only necessary in case of **non-sequential** encoding/decoding
@@ -130,6 +152,7 @@ extension BinaryIOEncoder {
 	/// Disable compression for the duration of the closure
 	///
 	/// - parameter encodeFunc: The closure
+	/// - Returns: the `encodeFunc` return value
 	public mutating func withCompressionDisabled<T>(
 		encodeFunc: ( inout BinaryIOEncoder ) throws -> T
 	) rethrows -> T {
@@ -139,9 +162,17 @@ extension BinaryIOEncoder {
 		return try encodeFunc( &self )
 	}
 	
-	/// Enable insertMode for the duration of the closure
+	/// Enable **insertMode** for the duration of the closure
+	///
+	/// Normally the encoder writes the data adding them
+	/// to those already present (if `position == endOfFile`)
+	/// or otherwise overwriting them. This function allows
+	/// the closure to insert data at the current position,
+	/// moving forward any subsequent ones that may already
+	/// be present.
 	///
 	/// - parameter encodeFunc: The closure
+	/// - Returns: the `encodeFunc` return value
 	public mutating func withInsertionEnabled<T>(
 		encodeFunc: ( inout BinaryIOEncoder ) throws -> T
 	) rethrows -> T {
@@ -208,40 +239,44 @@ extension BinaryIOEncoder {
 // MARK:  internal section
 
 extension BinaryIOEncoder {
-	//	Bool
+	/// Encodes a `Bool` value
 	mutating func encodeBool( _ value:Bool ) throws {
-		try writePODValue( value )
+		try encodePODValue( value )
 	}
 	
-	//	Unsigned Integers
+	/// Encodes a `UInt8` value
 	mutating func encodeUInt8( _ value:UInt8 ) throws {
-		try writePODValue( value )
+		try encodePODValue( value )
 	}
 	
+	/// Encodes a `UInt16` value
 	mutating func encodeUInt16( _ value:UInt16 ) throws {
 		if enableCompression {
-			try packAndWrite( value )
+			try compressAndEncode( value )
 		} else {
-			try writePODValue( value.littleEndian )
+			try encodePODValue( value.littleEndian )
 		}
 	}
 	
+	/// Encodes a `UInt32` value
 	mutating func encodeUInt32( _ value:UInt32 ) throws {
 		if enableCompression {
-			try packAndWrite( value )
+			try compressAndEncode( value )
 		} else {
-			try writePODValue( value.littleEndian )
+			try encodePODValue( value.littleEndian )
 		}
 	}
 	
+	/// Encodes a `UInt64` value
 	mutating func encodeUInt64( _ value:UInt64 ) throws {
 		if enableCompression {
-			try packAndWrite( value )
+			try compressAndEncode( value )
 		} else {
-			try writePODValue( value.littleEndian )
+			try encodePODValue( value.littleEndian )
 		}
 	}
 
+	/// Encodes a `UInt` value
 	mutating func encodeUInt( _ value:UInt ) throws {
 		// UInt are always archived as UInt64
 		guard let value64 = UInt64( exactly: value ) else {
@@ -254,39 +289,43 @@ extension BinaryIOEncoder {
 		try encode( value64 )
 	}
 
-	//	Signed Integers
+	/// Encodes a `Int8` value
 	mutating func encodeInt8( _ value:Int8 ) throws {
-		try writePODValue( value )
+		try encodePODValue( value )
 	}
 
 	
+	/// Encodes a `Int16` value
 	mutating func encodeInt16( _ value:Int16 ) throws {
 		if enableCompression {
 			try encode( ZigZag.encode( value ) )
 		}
 		else {
-			try writePODValue( value.littleEndian )
+			try encodePODValue( value.littleEndian )
 		}
 	}
 	
+	/// Encodes a `Int32` value
 	mutating func encodeInt32( _ value:Int32 ) throws {
 		if enableCompression {
 			try encode( ZigZag.encode( value ) )
 		}
 		else {
-			try writePODValue( value.littleEndian )
+			try encodePODValue( value.littleEndian )
 		}
 	}
 	
+	/// Encodes a `Int64` value
 	mutating func encodeInt64( _ value:Int64 ) throws {
 		if enableCompression {
 			try encode( ZigZag.encode( value ) )
 		}
 		else {
-			try writePODValue( value.littleEndian )
+			try encodePODValue( value.littleEndian )
 		}
 	}
 	
+	/// Encodes a `Int` value
 	mutating func encodeInt( _ value:Int ) throws {
 		// Int are always archived as Int64
 		guard let value64 = Int64( exactly: value ) else {
@@ -298,8 +337,8 @@ extension BinaryIOEncoder {
 		}
 		try encode( value64 )
 	}
-	
-	//	Floats
+		
+	/// Encodes a `Float` value
 	mutating func encodeFloat( _ value:Float ) throws {
 		let saveCompression = enableCompression
 		defer { enableCompression = saveCompression }
@@ -308,6 +347,7 @@ extension BinaryIOEncoder {
 		try encode( value.bitPattern )
 	}
 	
+	/// Encodes a `Double` value
 	mutating func encodeDouble( _ value:Double ) throws {
 		let saveCompression = enableCompression
 		defer { enableCompression = saveCompression }
@@ -316,24 +356,27 @@ extension BinaryIOEncoder {
 		try encode( value.bitPattern )
 	}
 	
-	//	Strings
+	/// Encodes a `String` value
+	///
+	/// Strings are encoded as null terminated sequences
+	/// of utf8 values
 	mutating func encodeString( _ value:String ) throws {
 		try value.withCString() { ptr in
 			var endptr	= ptr
 			while endptr.pointee != 0 { endptr += 1 }	// null terminated
 			let size = endptr - ptr + 1
 			try ptr.withMemoryRebound(to: UInt8.self, capacity: size ) {
-				try write( contentsOf: UnsafeBufferPointer( start: $0, count: size ) )
+				try encode( contentsOf: UnsafeBufferPointer( start: $0, count: size ) )
 			}
 		}
 	}
 	
-	//	Data
+	/// Encodes a `Data` value
 	mutating func encodeData( _ value:Data ) throws {
 		try encode( value.count )
 		for region in value.regions {
 			try region.withUnsafeBytes { source in
-				try write(contentsOf: source)
+				try encode(contentsOf: source)
 			}
 		}
 	}
@@ -342,15 +385,15 @@ extension BinaryIOEncoder {
 // MARK: private section
 
 extension BinaryIOEncoder {
-	/// write a bytes collection
-	private mutating func write<C>( contentsOf source:C ) throws
+	/// Encodes a bytes collection
+	private mutating func encode<C>( contentsOf source:C ) throws
 	where C:RandomAccessCollection, C.Element == UInt8 {
 		if position == _data.endIndex {
 			_data.append( contentsOf: source )
 		} else if position >= _data.startIndex {
-			if insertMode {
+			if insertMode { // insert
 				_data.insert( contentsOf: source, at: position )
-			} else {
+			} else { // overwrite
 				_data.replaceSubrange(
 					Range( uncheckedBounds: (position, position + source.count)
 					).clamped(to: _data.indices), with: source
@@ -366,21 +409,12 @@ extension BinaryIOEncoder {
 		position += source.count
 	}
 
-	/// write a pod value
-	private mutating func writePODValue<T>( _ value:T ) throws {
-		/*
-		guard _isPOD(T.self) else {
-			throw Errors.BinaryIOError.notPODType(
-				Self.self, Errors.Context(
-					debugDescription: "\(T.self) must be a POD type."
-				)
-			)
-		}
-		*/
+	/// Encodes a pod value
+	private mutating func encodePODValue<T>( _ value:T ) throws {
 		try withUnsafePointer(to: value) { source in
 			let size = MemoryLayout<T>.size
 			try source.withMemoryRebound(to: UInt8.self, capacity: size ) {
-				try write( contentsOf: UnsafeBufferPointer( start: $0, count: size ) )
+				try encode( contentsOf: UnsafeBufferPointer( start: $0, count: size ) )
 			}
 		}
 	}
@@ -389,7 +423,7 @@ extension BinaryIOEncoder {
 	///	(worst case) but much less for small numbers, and then encodes them.
 	///
 	///	It usually greatly reduces the size of the generated archive.
-	private mutating func packAndWrite<T>( _ value:T )
+	private mutating func compressAndEncode<T>( _ value:T )
 	throws where T:FixedWidthInteger, T:UnsignedInteger {
 		assert(
 			MemoryLayout<T>.size > 1,
@@ -401,11 +435,11 @@ extension BinaryIOEncoder {
 		
 		while val & (~0x7F) != 0 {
 			byte 	|= 0x80
-			try 	writePODValue( byte )
+			try 	encodePODValue( byte )
 			val 	&>>= 7
 			byte	= UInt8( val & 0x7F )
 		}
-		try writePODValue( byte )
+		try encodePODValue( byte )
 	}
 }
 

@@ -17,10 +17,10 @@ struct ClassInfo : CustomStringConvertible {
 			self.decodedType	= type
 			return
 		} else if let classNameMap {
-			if let type	= classNameMap[ .mangledClassName( classData.mangledClassName ) ] {
+			if let type	= classNameMap[ .mangled( classData.mangledClassName ) ] {
 				self.decodedType	= type
 				return
-			} else if let type	= classNameMap[ .qualifiedClassName( classData.className( qualified: true ) ) ] {
+			} else if let type	= classNameMap[ .qualified( classData.className( qualified: true ) ) ] {
 				self.decodedType	= type
 				return
 			}

@@ -13,8 +13,8 @@
 public protocol GObsolete : GCodable {
 }
 
-/// dummy functions to satisfy the GCodable protocol
 public extension GObsolete {
+	// dummy init to satisfy the GDecodable protocol
 	init(from decoder: some GDecoder) throws {
 		throw Errors.GraphCodable.misuseOfGObsoleteProtocol(
 			Self.self, Errors.Context(
@@ -23,6 +23,7 @@ public extension GObsolete {
 		)
 	}
 
+	// dummy encode to satisfy the GEncodable protocol
 	func encode(to encoder: some GEncoder) throws {
 		throw Errors.GraphCodable.misuseOfGObsoleteProtocol(
 			Self.self, Errors.Context(

@@ -6,37 +6,6 @@
 
 import Foundation
 
-///	A struct that specifies the name of the encoded
-/// class to match the type to create
-///
-/// Used by `GraphDecoder` `setType(...)` function.
-public enum ClassName : Hashable {
-	///	The `mangledClassName` string
-	///
-	/// You can specify the encoded class `mangledClassName`
-	case mangledClassName( _:String )
-	///	The `qualifiedClassName` string
-	///
-	/// You can specify the encoded class `qualifiedClassName`
-	case qualifiedClassName( _:String )
-}
-
-public typealias ClassNameMap = [ClassName : any GDecodable.Type ]
-
-/// Cointains info of encodeded classes that cannot be decoded.
-public struct UndecodableClass : GEncodedClassInfo {
-	public let	manglingFunction: 		ManglingFunction
-	///	the class `mangledClassName` generated during encoding.
-	public let	mangledClassName:		String
-	///	the class encoded version
-	public let	encodedClassVersion:	UInt32
-	
-	fileprivate init( classData:ClassData ) {
-		self.manglingFunction 		= classData.manglingFunction
-		self.mangledClassName 		= classData.mangledClassName
-		self.encodedClassVersion	= classData.encodedClassVersion
-	}
-}
 
 ///	An object that decodes instances of a **GDecodable** type
 ///	from a data buffer that uses **GraphCodable** format.
@@ -147,10 +116,10 @@ public final class GraphDecoder {
 	///
 	/// - Parameter data: the archived data to decode.
 	/// - Returns: the requested array of `UndecodableClass` values.
-	public func undecodableClasses( from data: some DataProtocol ) throws -> [UndecodableClass] {
+	public func undecodableClasses( from data: some DataProtocol ) throws -> [ClassInformation] {
 		return try decoder.allClassData( from: data ).compactMap {
 			$0.decodedType == nil ?
-			UndecodableClass( classData: $0 ) : nil
+			$0.info : nil
 		}
 	}
 }

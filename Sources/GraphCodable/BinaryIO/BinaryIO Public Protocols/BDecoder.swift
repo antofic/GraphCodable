@@ -21,18 +21,18 @@ public protocol BDecoder {
 	///	`peek(_:)` try to decode a `BDecodable` value from the `decoder`.
 	///	If decoding throws an error, the error is catched, the decoder
 	///	cursor doesn't move and the function returns `nil`.
-	/// If decoding is successful, it pass the value to the `accept`
-	/// closure.
-	/// If accept returns `true`, the value is considered good,
+	/// If decoding is successful, it pass the decoded value to
+	/// the `isValid` closure.
+	/// If `isValid` returns `true`, the value is considered good,
 	/// the `decoder` cursor moves to the next value, and `peek`
 	/// returns the value.
-	/// If accept returns `false`, the value is not considered good,
+	/// If `isValid` returns `false`, the value is not considered good,
 	/// the `decoder` cursor doesn't move and `peek` returns `nil`.
 	///
 	/// - parameter type: The type of the value to decode
-	/// - parameter accept: A function to check the decoded value
-	/// - returns: The accepted value, `nil` otherwise.
-	mutating func peek<Value:BDecodable >( _ type:Value.Type, _ accept:( Value ) -> Bool ) -> Value?
+	/// - parameter isValid: A function to check the decoded value
+	/// - returns: The decoded and valid value, `nil` otherwise.
+	mutating func peek<Value:BDecodable >( _ type:Value.Type, _ isValid:( Value ) -> Bool ) -> Value?
 
 	/// Decodes a value of the given type.
 	///
@@ -51,7 +51,12 @@ public protocol BDecoder {
 	/// to the requested type.
 	mutating func decode<Value:BDecodable>( _ type:Value.Type ) throws -> Value
 
-	mutating func withUnderlyingType<T>( _: (inout BinaryIODecoder) throws -> T ) rethrows -> T
+	/// Give access to the underlying type `BinaryIODecoder` for the
+	/// duration of the closure
+	///
+	/// - parameter decodeFunc: the closure
+	/// - returns: the return value of the closure
+	mutating func withUnderlyingType<T>( _ decodeFunc: (inout BinaryIODecoder) throws -> T ) rethrows -> T
 }
 
 public extension BDecoder {

@@ -6,12 +6,10 @@
 
 import Foundation
 
-typealias TheEncoder = GEncoderImpl
-
 ///	An object that encodes instances of a **GEncodable** type
 ///	into a data buffer that uses **GraphCodable** format.
 public final class GraphEncoder {
-	private let encoder	: TheEncoder
+	private let encoder	: GEncoderImpl
 
 	/// GraphEncoder init method
 	///
@@ -25,7 +23,7 @@ public final class GraphEncoder {
 		userVersion: UInt32 = 0,
 		archiveIdentifier: String? = defaultGraphCodableArchiveIdentifier
 	) {
-		encoder	= TheEncoder(
+		encoder	= GEncoderImpl(
 			options, userVersion:userVersion, archiveIdentifier: archiveIdentifier
 		)
 	}
