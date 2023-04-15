@@ -24,3 +24,24 @@ public enum ClassName : Hashable {
 public typealias ClassNameMap = [ClassName : any GDecodable.Type ]
 
 
+public enum ManglingFunction: UInt8, BCodable {
+	case nsClassFromString, mangledTypeName
+}
+
+public struct ClassBubbu {
+	public let	manglingFunction:		ManglingFunction
+	public let	mangledClassName:		String
+	public let	encodedClassVersion:	UInt32
+}
+
+extension ClassBubbu {
+	init(
+		_ manglingFunction: ManglingFunction,
+		_ mangledClassName: String,
+		_ encodedClassVersion: UInt32
+	) {
+		self.manglingFunction		= manglingFunction
+		self.mangledClassName		= mangledClassName
+		self.encodedClassVersion	= encodedClassVersion
+	}
+}
