@@ -54,7 +54,7 @@ final class EncodeDump : EncodeFileBlocks {
 			dumpString.append( tabs.description )
 			let fileBlockString = fileBlock.description(
 				options:		dumpOptions,
-				classDataMap:	delegate?.classDataMap,
+				encodedClassMap:	delegate?.encodedClassMap,
 				keyStringMap:	delegate?.keyStringMap
 			) {
 				if let value {
@@ -152,17 +152,17 @@ final class EncodeDump : EncodeFileBlocks {
 	}
 
 	private var referenceMapDescription : String {
-		func typeString( _ options:GraphDumpOptions, _ classData:ClassData ) -> String {
+		func typeString( _ options:GraphDumpOptions, _ encodedClass:EncodedClass ) -> String {
 			var string	= ""
 			let qualified	= options.contains( .qualifiedTypeNames )
 			
-			string.append( "class \(classData.className( qualified: qualified ))" )
+			string.append( "class \(encodedClass.className( qualified: qualified ))" )
 			if options.contains( .showMangledClassNames ) {
-				let version	= "\(classData.encodedClassVersion)".align(.right, length: 4, filler: "0")
+				let version	= "\(encodedClass.encodedClassVersion)".align(.right, length: 4, filler: "0")
 				if qualified == false {
-					string.append( "\n  QualifiedName    = \( classData.className(qualified: true) )"  )
+					string.append( "\n  QualifiedName    = \( encodedClass.className(qualified: true) )"  )
 				}
-				string.append( "\n  MangledClassName = \( classData.mangledClassName )"  )
+				string.append( "\n  MangledClassName = \( encodedClass.mangledClassName )"  )
 				string.append( "\n  EncodedVersion   = \( version )"  )
 			}
 			return string
@@ -177,7 +177,7 @@ final class EncodeDump : EncodeFileBlocks {
 				string.append( description )
 			} else {
 				string.append( "Encoded class types:\n" )
-				string = delegate?.classDataMap.reduce( into: string ) {
+				string = delegate?.encodedClassMap.reduce( into: string ) {
 					result, tuple in
 					result.append( "- TYPE\( tuple.key ): \( typeString( dumpOptions, tuple.value ) )\n")
 				} ?? "UNAVAILABLE DELEGATE \(#function)\n"

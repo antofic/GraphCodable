@@ -10,7 +10,7 @@ typealias KeyIDMap		= [String : KeyID]
 
 struct DecodeBinary {
 	let fileHeader			: FileHeader
-	let	classInfoMap		: ClassInfoMap
+	let	decodedClassMap		: DecodedClassMap
 	let rootElement 		: FlattenedElement
 	let keyIDMap			: KeyIDMap
 	
@@ -21,12 +21,12 @@ struct DecodeBinary {
 		let fileHeader			= readBlockDecoder.fileHeader
 		let readBlocks			= try readBlockDecoder.readBlocks()
 		
-		let classInfoMap		= try ClassInfo.classInfoMap(
-			classDataMap: readBlockDecoder.classDataMap(), classNameMap: classNameMap
+		let decodedClassMap		= try DecodedClass.decodedClassMap(
+			encodedClassMap: readBlockDecoder.encodedClassMap(), classNameMap: classNameMap
 		)
 
 		self.fileHeader			= fileHeader
-		self.classInfoMap		= classInfoMap
+		self.decodedClassMap		= decodedClassMap
 		(self.rootElement,self.elementMap)	= try FlattenedElement.rootElement(
 			readBlocks:	readBlocks,
 			reverse:	true

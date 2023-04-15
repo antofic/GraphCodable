@@ -10,7 +10,7 @@ final class DecodeDump: EncodeFileBlocksDelegate {
 	let	fileSize		: Int
 	let fileHeader		: FileHeader
 	let readBlocks		: ReadBlocks
-	let classDataMap	: ClassDataMap
+	let encodedClassMap	: EncodedClassMap
 	let classNameMap	: ClassNameMap?
 	let keyStringMap	: KeyStringMap
 	let dumpOptions		: GraphDumpOptions
@@ -21,7 +21,7 @@ final class DecodeDump: EncodeFileBlocksDelegate {
 		self.fileSize		= ioDecoder.fileSize
 		self.fileHeader		= readBlockDecoder.fileHeader
 		self.readBlocks		= try readBlockDecoder.readBlocks()
-		self.classDataMap	= try readBlockDecoder.classDataMap()
+		self.encodedClassMap	= try readBlockDecoder.encodedClassMap()
 		self.classNameMap	= classNameMap
 		self.keyStringMap	= try readBlockDecoder.keyStringMap()
 		self.dumpOptions	= options
@@ -45,7 +45,7 @@ final class DecodeDump: EncodeFileBlocksDelegate {
 				)
 				let string = rootElement.dump(
 					elementMap:		elementMap,
-					classDataMap:	classDataMap,
+					encodedClassMap:	encodedClassMap,
 					keyStringMap:	keyStringMap,
 					options: 		dumpOptions
 				)
@@ -60,7 +60,7 @@ final class DecodeDump: EncodeFileBlocksDelegate {
 	
 	var referenceMapDescription: String? {
 		func name( _ type:Any.Type ) -> String {
-			ClassData.typeName( type, qualified: qualified )
+			EncodedClass.typeName( type, qualified: qualified )
 		}
 		
 		func typeString( _ type:Any.Type ) -> String {
@@ -74,16 +74,16 @@ final class DecodeDump: EncodeFileBlocksDelegate {
 		var string		= ""
 		let qualified	= dumpOptions.contains( .qualifiedTypeNames )
 		
-		let classInfoMap	= ClassInfo.classInfoMapNoThrow(
-			classDataMap: classDataMap, classNameMap: classNameMap
+		let decodedClassMap	= DecodedClass.decodedClassMapNoThrow(
+			encodedClassMap: encodedClassMap, classNameMap: classNameMap
 		)
 		
-		if classInfoMap.isEmpty == false,
+		if decodedClassMap.isEmpty == false,
 		   dumpOptions.contains( .onlyUndecodableClassesInReferenceMap ) == false
 		{
 			string.append( "Encoded class types will be decoded as:" )
 			do {
-				let couples	: [(refID:RefID,type:any GDecodable.Type)] = classInfoMap.map {
+				let couples	: [(refID:RefID,type:any GDecodable.Type)] = decodedClassMap.map {
 					($0.key, $0.value.decodedType)
 				}
 				string = couples.sorted { $0.refID < $1.refID }.reduce(into: string) {
@@ -91,8 +91,8 @@ final class DecodeDump: EncodeFileBlocksDelegate {
 				}
 			}
 			do {
-				let couples	: [(refID:RefID,type:any (AnyObject & GDecodable).Type)] = classInfoMap.compactMap {
-					if let replacedClass = $0.value.classData.replacedClass {
+				let couples	: [(refID:RefID,type:any (AnyObject & GDecodable).Type)] = decodedClassMap.compactMap {
+					if let replacedClass = $0.value.encodedClass.replacedClass {
 						return ($0.key,replacedClass)
 					} else {
 						return nil
@@ -110,12 +110,12 @@ final class DecodeDump: EncodeFileBlocksDelegate {
 		}
 		
 		
-		let undecodableClassDataMap	= ClassInfo.undecodablesClassDataMap(
-			classDataMap: classDataMap, classNameMap: classNameMap
+		let undecodableEncodedClassMap	= DecodedClass.undecodablesEncodedClassMap(
+			encodedClassMap: encodedClassMap, classNameMap: classNameMap
 		)
-		if undecodableClassDataMap.isEmpty == false {
+		if undecodableEncodedClassMap.isEmpty == false {
 			string.append( "Undecodable encoded classes:" )
-			string = undecodableClassDataMap.sorted { $0.key < $1.key }.reduce(into: string) {
+			string = undecodableEncodedClassMap.sorted { $0.key < $1.key }.reduce(into: string) {
 				$0.append( "\n- TYPE\( $1.key ): class \( $1.value.className(qualified: qualified) )")
 					if dumpOptions.contains( .showMangledClassNames ) {
 						let version	= "\($1.value.encodedClassVersion)".align(.right, length: 4, filler: "0")

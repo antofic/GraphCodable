@@ -6,7 +6,7 @@
 
 
 protocol EncodeFileBlocksDelegate : AnyObject {
-	var	classDataMap:		ClassDataMap { get }
+	var	encodedClassMap:		EncodedClassMap { get }
 	var	keyStringMap:		KeyStringMap { get }
 	
 	var referenceMapDescription: String? { get }

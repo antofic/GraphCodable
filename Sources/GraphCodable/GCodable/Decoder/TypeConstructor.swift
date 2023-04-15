@@ -10,7 +10,7 @@ final class TypeConstructor {
 	private var			ioDecoder			: BinaryIODecoder
 	private var			decodeBinary		: DecodeBinary
 	private (set) var 	currentElement 		: FlattenedElement
-	private (set) var 	currentInfo 		: ClassInfo?
+	private (set) var 	currentClass 		: DecodedClass?
 	private var			objectRepository 	= [ IdnID: any GDecodable ]()
 	private var			setterRepository 	= [ (_:TypeConstructor) throws -> () ]()
 	private lazy var	keyStringMap		: KeyStringMap = {
@@ -81,27 +81,27 @@ final class TypeConstructor {
 	
 	var encodedClassVersion : UInt32 {
 		get throws {
-			guard let classInfo = currentInfo else {
+			guard let decodedClass = currentClass else {
 				throw Errors.GraphCodable.referenceTypeRequired(
 					Self.self, Errors.Context(
 						debugDescription: "\(#function) not available for value types."
 					)
 				)
 			}
-			return classInfo.classData.encodedClassVersion
+			return decodedClass.encodedClass.encodedClassVersion
 		}
 	}
 	
 	var replacedClass : (any (AnyObject & GDecodable).Type)? {
 		get throws {
-			guard let classInfo = currentInfo else {
+			guard let decodedClass = currentClass else {
 				throw Errors.GraphCodable.referenceTypeRequired(
 					Self.self, Errors.Context(
 						debugDescription: "\(#function) not available for value types."
 					)
 				)
 			}
-			return classInfo.classData.replacedClass
+			return decodedClass.encodedClass.replacedClass
 		}
 	}
 	
@@ -272,7 +272,7 @@ extension TypeConstructor {
 
 	private func decodeRefOrBinRef<T,D>( type:T.Type, refID:RefID, isBinary: Bool, element:FlattenedElement, from decoder:D ) throws -> T
 	where T:GDecodable, D:GDecoder {
-		guard let classInfo = decodeBinary.classInfoMap[ refID ] else {
+		guard let decodedClass = decodeBinary.decodedClassMap[ refID ] else {
 			throw Errors.GraphCodable.internalInconsistency(
 				Self.self, Errors.Context(
 					debugDescription: "\( fileblockDescr( element ) ): class info not found for refID |\(refID)|."
@@ -280,11 +280,11 @@ extension TypeConstructor {
 			)
 		}
 		
-		let saved	= currentInfo
-		defer { currentInfo = saved }
-		currentInfo	= classInfo
+		let saved	= currentClass
+		defer { currentClass = saved }
+		currentClass	= decodedClass
 		
-		let type 	= classInfo.decodedType.self
+		let type 	= decodedClass.decodedType.self
 		let object	= isBinary ?
 			try decodeBinValue( type:type, element:element, from: decoder ):
 			try decodeValue( type:type, element:element, from: decoder )
@@ -303,11 +303,11 @@ extension TypeConstructor {
 	/// ful fileblock information used only for errors
 	private func fileblockDescr( _ element: FlattenedElement ) -> String {
 		let string = element.readBlock.fileBlock.description(
-			options: .readable, classInfoMap: decodeBinary.classInfoMap, keyStringMap: keyStringMap
+			options: .readable, decodedClassMap: decodeBinary.decodedClassMap, keyStringMap: keyStringMap
 		)
 		if let parent = element.parentElement {
 			let  parentString = parent.readBlock.fileBlock.description(
-				options: .readable, classInfoMap: decodeBinary.classInfoMap, keyStringMap: keyStringMap
+				options: .readable, decodedClassMap: decodeBinary.decodedClassMap, keyStringMap: keyStringMap
 			)
 			return "Field |\(string)| of value |\(parentString)|"
 		} else {

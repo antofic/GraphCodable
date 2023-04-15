@@ -6,7 +6,7 @@
 
 struct ReferenceMap {
 	private	var			currentId 		= RefID()
-	private (set) var	classDataMap	= ClassDataMap()
+	private (set) var	encodedClassMap	= EncodedClassMap()
 	private var			identifierMap	= [ObjectIdentifier: RefID]()
 
 	mutating func createRefIDIfNeeded<T>( for object:T, manglingFunction:ManglingFunction ) throws -> RefID
@@ -18,7 +18,7 @@ struct ReferenceMap {
 			return refID
 		} else {
 			defer { currentId = currentId.next }
-			classDataMap[ currentId ]	= try ClassData( type:T.self, manglingFunction:manglingFunction )
+			encodedClassMap[ currentId ]	= try EncodedClass( type:T.self, manglingFunction:manglingFunction )
 			identifierMap[ objIdentifier ] = currentId
 			return currentId
 		}

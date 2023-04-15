@@ -154,20 +154,20 @@ extension FlattenedElement {
 // MARK: BodyElement dump section
 extension FlattenedElement {
 	func dump(
-		elementMap: ElementMap, classDataMap: ClassDataMap?, keyStringMap: KeyStringMap?,
+		elementMap: ElementMap, encodedClassMap: EncodedClassMap?, keyStringMap: KeyStringMap?,
 		options: GraphDumpOptions
 	) -> String {
 		var tabs	= Tabs(tabString: options.contains( .dontIndentBody ) ? Tabs.noTabs : Tabs.defaultTabs )
 		var dump 	= ""
 		dump.append( EncodeDump.titleString( "FLATTENED BODY" ) )
 		dump.append( EncodeDump.titleString( "ROOT:", filler: "-") )
-		dump.append( subdump(elementMap: elementMap, classDataMap: classDataMap, keyStringMap: keyStringMap, options:options, tabs: &tabs ))
+		dump.append( subdump(elementMap: elementMap, encodedClassMap: encodedClassMap, keyStringMap: keyStringMap, options:options, tabs: &tabs ))
 		
 		if elementMap.isEmpty == false {
 			dump.append( EncodeDump.titleString( "WHERE:", filler: "-") )
 			for (id,element) in elementMap.sorted( by: { $0.key < $1.key } ) {
 				dump.append( "# PTR\(id) is:\n")
-				dump.append( element.subdump( elementMap:elementMap, classDataMap: classDataMap, keyStringMap: keyStringMap, options:options, tabs: &tabs ))
+				dump.append( element.subdump( elementMap:elementMap, encodedClassMap: encodedClassMap, keyStringMap: keyStringMap, options:options, tabs: &tabs ))
 			}
 		}
 		
@@ -175,11 +175,11 @@ extension FlattenedElement {
 	}
 
 	private func subdump(
-		elementMap: ElementMap, classDataMap: ClassDataMap?, keyStringMap: KeyStringMap?,
+		elementMap: ElementMap, encodedClassMap: EncodedClassMap?, keyStringMap: KeyStringMap?,
 		options: GraphDumpOptions, tabs: inout Tabs
 	) -> String {
 		var dump 	= ""
-		let string	= readBlock.fileBlock.description( options: options, classDataMap: classDataMap, keyStringMap: keyStringMap )
+		let string	= readBlock.fileBlock.description( options: options, encodedClassMap: encodedClassMap, keyStringMap: keyStringMap )
 		
 		dump.append( "\(tabs)\(string)\n" )
 		tabs.enter()
@@ -188,7 +188,7 @@ extension FlattenedElement {
 			end	= true
 			dump.append(
 				element.subdump(
-					elementMap:elementMap, classDataMap: classDataMap, keyStringMap: keyStringMap, options:options, tabs: &tabs
+					elementMap:elementMap, encodedClassMap: encodedClassMap, keyStringMap: keyStringMap, options:options, tabs: &tabs
 				)
 			)
 		}
@@ -196,7 +196,7 @@ extension FlattenedElement {
 			end	= true
 			dump.append(
 				element.subdump(
-					elementMap:elementMap, classDataMap: classDataMap, keyStringMap: keyStringMap, options:options, tabs: &tabs
+					elementMap:elementMap, encodedClassMap: encodedClassMap, keyStringMap: keyStringMap, options:options, tabs: &tabs
 				)
 			)
 		}

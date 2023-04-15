@@ -54,7 +54,7 @@ struct DecodeReadBlocks {
 	private	var sectionMap		: SectionMap
 	private var ioDecoder		: BinaryIODecoder
 
-	private var _classDataMap	: ClassDataMap?
+	private var _encodedClassMap	: EncodedClassMap?
 	private var _readBlocks		: ReadBlocks?
 	private var _keyStringMap	: KeyStringMap?
 
@@ -68,14 +68,14 @@ struct DecodeReadBlocks {
 	
 	/// decode the class data of reference types
 	/// from the BinaryIODecoder
-	mutating func classDataMap() throws -> ClassDataMap {
-		if let classDataMap = self._classDataMap { return classDataMap }
+	mutating func encodedClassMap() throws -> EncodedClassMap {
+		if let encodedClassMap = self._encodedClassMap { return encodedClassMap }
 
-		let classDataMap	= try ioDecoder.withinRegion( range: regionRange( of:.classDataMap ) ) {
-			try ClassDataMap(from: &$0)
+		let encodedClassMap	= try ioDecoder.withinRegion( range: regionRange( of:.encodedClassMap ) ) {
+			try EncodedClassMap(from: &$0)
 		}
-		self._classDataMap	= classDataMap
-		return classDataMap
+		self._encodedClassMap	= encodedClassMap
+		return encodedClassMap
 	}
 
 	/// decode fileblocks from the BinaryIODecoder

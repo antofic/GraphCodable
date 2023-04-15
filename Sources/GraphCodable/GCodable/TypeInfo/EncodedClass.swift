@@ -7,8 +7,8 @@
 import Foundation
 import CwlDemangle
 
-struct ClassData {
-	let info : ClassInformation
+struct EncodedClass {
+	let info : ClassBubbu
 	
 	var	manglingFunction:		ManglingFunction { info.manglingFunction }
 	var	mangledClassName:		String { info.mangledClassName }
@@ -25,7 +25,7 @@ struct ClassData {
 	}
 }
 
-extension ClassData: BCodable {
+extension EncodedClass: BCodable {
 	func encode(to encoder: inout some BEncoder) throws {
 		try encoder.encode( info.manglingFunction )
 		try encoder.encode( info.mangledClassName )
@@ -37,17 +37,17 @@ extension ClassData: BCodable {
 		let	mangledClassName	= try decoder.decode( String.self )
 		let	encodedClassVersion	= try decoder.decode( UInt32.self )
 		
-		self.info = ClassInformation( manglingFunction, mangledClassName, encodedClassVersion )
+		self.info = ClassBubbu( manglingFunction, mangledClassName, encodedClassVersion )
 	}
 }
 
-extension ClassData: CustomStringConvertible { 	// CustomStringConvertible protocol
+extension EncodedClass: CustomStringConvertible { 	// CustomStringConvertible protocol
 	var description: String {
 		"\"\( className( qualified: true ) )\" V\(encodedClassVersion) "
 	}
 }
 
-extension ClassData {
+extension EncodedClass {
 	static func classType( from mangledClassName:String, manglingFunction:ManglingFunction ) -> AnyClass? {
 		switch manglingFunction {
 			case .mangledTypeName:		return _typeByName( mangledClassName ) as? AnyClass
@@ -67,7 +67,7 @@ extension ClassData {
 	}
 }
 
-extension ClassData { 	// init
+extension EncodedClass { 	// init
 	init<T>( type:T.Type, manglingFunction:ManglingFunction  ) throws where T:AnyObject, T:GEncodable {
 		guard
 			let mangledClassName = Self.mangledClassName( of: type, manglingFunction:manglingFunction ),
@@ -78,13 +78,13 @@ extension ClassData { 	// init
 				)
 			)
 		}
-		self.info	= ClassInformation(
+		self.info	= ClassBubbu(
 			manglingFunction, mangledClassName, type.classVersion 
 		)
 	}
 }
 
-extension ClassData {
+extension EncodedClass {
 	var isConstructible : Bool {
 		decodedType != nil
 	}
@@ -106,7 +106,7 @@ extension ClassData {
 }
 
 
-extension ClassData {	// static primitive functions
+extension EncodedClass {	// static primitive functions
 	static func isConstructible( type:AnyClass, manglingFunction:ManglingFunction ) -> Bool {
 		guard let mangledClassName = mangledClassName(of: type, manglingFunction:manglingFunction ) else {
 			return false

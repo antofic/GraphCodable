@@ -101,7 +101,7 @@ public final class GraphDecoder {
 	/// - Parameter data: the archived data to decode.
 	/// - Returns: the requested array of `GDecodable` types.
 	public func decodableTypes( from data: some DataProtocol ) throws -> [any GDecodable.Type] {
-		return try decoder.allClassData( from: data ).compactMap { $0.decodedType }
+		return try decoder.allEncodedClass( from: data ).compactMap { $0.decodedType }
 	}
 
 	///	Returns all replaced classes encoded in the data byte buffer
@@ -109,15 +109,15 @@ public final class GraphDecoder {
 	/// - Parameter data: the archived data to decode.
 	/// - Returns: the requested array of `GDecodable` types.
 	public func replacedClasses( from data: some DataProtocol ) throws -> [any GDecodable.Type] {
-		return try decoder.allClassData( from: data ).compactMap { $0.replacedClass }
+		return try decoder.allEncodedClass( from: data ).compactMap { $0.replacedClass }
 	}
 
 	///	Returns a `UndecodableClass` struct for every undecodable class in the data byte buffer
 	///
 	/// - Parameter data: the archived data to decode.
 	/// - Returns: the requested array of `UndecodableClass` values.
-	public func undecodableClasses( from data: some DataProtocol ) throws -> [ClassInformation] {
-		return try decoder.allClassData( from: data ).compactMap {
+	public func undecodableClasses( from data: some DataProtocol ) throws -> [ClassBubbu] {
+		return try decoder.allEncodedClass( from: data ).compactMap {
 			$0.decodedType == nil ?
 			$0.info : nil
 		}

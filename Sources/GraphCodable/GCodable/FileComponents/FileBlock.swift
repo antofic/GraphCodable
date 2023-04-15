@@ -217,56 +217,56 @@ extension FileBlock {
 	}
 }
 
-// ClassInfoMap
+// DecodedClassMap
 
 extension FileBlock : CustomStringConvertible {
 	var description: String {
-		description(options: .readable, classDataMap: nil, keyStringMap: nil)
+		description(options: .readable, encodedClassMap: nil, keyStringMap: nil)
 	}
 	
 	func description(
 		options:		GraphDumpOptions,
-		classDataMap:	ClassDataMap?,
+		encodedClassMap:	EncodedClassMap?,
 		keyStringMap: 	KeyStringMap?
 	) -> String {
-		description(options: options, classDataMap: classDataMap, keyStringMap: keyStringMap ) { nil }
+		description(options: options, encodedClassMap: encodedClassMap, keyStringMap: keyStringMap ) { nil }
 	}
 	
 	
 	func description(
 		options:			GraphDumpOptions,
-		classDataMap:		ClassDataMap?,
+		encodedClassMap:		EncodedClassMap?,
 		keyStringMap: 		KeyStringMap?,
 		valueDescription: 	() -> String?
 	) -> String {
 		description(
 			options:			options,
 			keyStringMap:		keyStringMap,
-			classDataSource:	classDataMap,
-			getClassData:		{ classDataMap, keyID in classDataMap?[keyID] },
+			encodedClassSource:	encodedClassMap,
+			getEncodedClass:		{ encodedClassMap, keyID in encodedClassMap?[keyID] },
 			valueDescription:	valueDescription
 		)
 	}
 
 	func description(
 		options:		GraphDumpOptions,
-		classInfoMap:		ClassInfoMap?,
+		decodedClassMap:		DecodedClassMap?,
 		keyStringMap: 	KeyStringMap?
 	) -> String {
-		description(options: options, classInfoMap: classInfoMap, keyStringMap: keyStringMap ) { nil }
+		description(options: options, decodedClassMap: decodedClassMap, keyStringMap: keyStringMap ) { nil }
 	}
 	
 	func description(
 		options:			GraphDumpOptions,
-		classInfoMap:		ClassInfoMap?,
+		decodedClassMap:		DecodedClassMap?,
 		keyStringMap: 		KeyStringMap?,
 		valueDescription: 	() -> String?
 	) -> String {
 		description(
 			options:			options,
 			keyStringMap:		keyStringMap,
-			classDataSource:	classInfoMap,
-			getClassData:		{ classInfoMap, keyID in classInfoMap?[keyID]?.classData },
+			encodedClassSource:	decodedClassMap,
+			getEncodedClass:		{ decodedClassMap, keyID in decodedClassMap?[keyID]?.encodedClass },
 			valueDescription:	valueDescription
 		)
 	}
@@ -274,25 +274,25 @@ extension FileBlock : CustomStringConvertible {
 	private func description<T>(
 		options:				GraphDumpOptions,
 		keyStringMap ksm: 		KeyStringMap?,
-		classDataSource cds:	T?,
-		getClassData: 			( T?, _ refID:RefID )->ClassData?,
+		encodedClassSource cds:	T?,
+		getEncodedClass: 			( T?, _ refID:RefID )->EncodedClass?,
 		valueDescription: 		() -> String?
 	) -> String {
-		func typeName<T>( _ refID:RefID, _ options:GraphDumpOptions, _ classDataSource: T?, _ getClassData: ( T?, _ refID:RefID )->ClassData? ) -> String? {
-			if let classData	= getClassData( classDataSource, refID ) {
+		func typeName<T>( _ refID:RefID, _ options:GraphDumpOptions, _ encodedClassSource: T?, _ getEncodedClass: ( T?, _ refID:RefID )->EncodedClass? ) -> String? {
+			if let encodedClass	= getEncodedClass( encodedClassSource, refID ) {
 				let qualified	= options.contains( .qualifiedTypeNames )
 				if options.contains( .showClassVersionsInBody ) {
-					return "\(classData.className( qualified: qualified )) V\(classData.encodedClassVersion)"
+					return "\(encodedClass.className( qualified: qualified )) V\(encodedClass.encodedClassVersion)"
 				} else {
-					return classData.className( qualified: qualified )
+					return encodedClass.className( qualified: qualified )
 				}
 			} else {
 				return nil
 			}
 		}
 		
-		func valTypeName<T>( _ refID:RefID, _ options:GraphDumpOptions, _ classDataSource: T?, _ getClassData: ( T?, _ refID:RefID )->ClassData? ) -> String {
-			return typeName( refID, options, classDataSource, getClassData ) ?? "TYPE\(refID)"
+		func valTypeName<T>( _ refID:RefID, _ options:GraphDumpOptions, _ encodedClassSource: T?, _ getEncodedClass: ( T?, _ refID:RefID )->EncodedClass? ) -> String {
+			return typeName( refID, options, encodedClassSource, getEncodedClass ) ?? "TYPE\(refID)"
 		}
 		
 		func truncate( _ valueDescription: String, _ options:GraphDumpOptions, maxLength:Int = 64 ) -> String {
@@ -318,7 +318,7 @@ extension FileBlock : CustomStringConvertible {
 			}
 		}
 		
-		let classDataSource = options.contains( .showClassNamesInBody ) ? cds : nil
+		let encodedClassSource = options.contains( .showClassNamesInBody ) ? cds : nil
 		let keyStringMap = options.contains( .showKeyStringsInBody ) ? ksm : nil
 		
 		var string	= ""
@@ -340,7 +340,7 @@ extension FileBlock : CustomStringConvertible {
 				string.append( keyName( keyID, keyStringMap ) )
 				string.append( refID != nil ? "REF" : "VAL" )
 				if let idnID	{ string.append( idnID.description ) }
-				if let refID	{ string.append( "(\( valTypeName( refID,options,classDataSource,getClassData ) ))") }
+				if let refID	{ string.append( "(\( valTypeName( refID,options,encodedClassSource,getEncodedClass ) ))") }
 				if options.contains( .showNotBinaryValueDescriptionInBody ),
 				   let stringDescription = valueDescription() {
 					string.append( " \( truncate( stringDescription, options ) )")
@@ -353,7 +353,7 @@ extension FileBlock : CustomStringConvertible {
 				string.append( keyName( keyID, keyStringMap ) )
 				string.append( refID != nil ? "BIR" : "BIV" )
 				if let idnID	{ string.append( idnID.description ) }
-				if let refID	{ string.append( "(\( valTypeName( refID,options,classDataSource,getClassData ) ))") }
+				if let refID	{ string.append( "(\( valTypeName( refID,options,encodedClassSource,getEncodedClass ) ))") }
 				if options.contains( .showBinaryValueDescriptionInBody ) {
 					if let stringDescription = valueDescription() {
 						string.append( " \( truncate( stringDescription, options ) )")

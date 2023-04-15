@@ -10,13 +10,13 @@ public enum ManglingFunction: UInt8, BCodable {
 	case nsClassFromString, mangledTypeName
 }
 
-public struct ClassInformation {
+public struct ClassBubbu {
 	public let	manglingFunction:		ManglingFunction
 	public let	mangledClassName:		String
 	public let	encodedClassVersion:	UInt32
 }
 
-extension ClassInformation {
+extension ClassBubbu {
 	init(
 		_ manglingFunction: ManglingFunction,
 		_ mangledClassName: String,

@@ -8,12 +8,12 @@ import Foundation
 
 struct DecodeClassNames {
 	let fileHeader				: FileHeader
-	let	classDataMap			: ClassDataMap
+	let	encodedClassMap			: EncodedClassMap
 	
 	init( from ioDecoder:BinaryIODecoder ) throws {
 		var readBlockDecoder	= try DecodeReadBlocks( from: ioDecoder )
 		fileHeader				= readBlockDecoder.fileHeader
-		classDataMap			= try readBlockDecoder.classDataMap()
+		encodedClassMap			= try readBlockDecoder.encodedClassMap()
 	}
 }
 

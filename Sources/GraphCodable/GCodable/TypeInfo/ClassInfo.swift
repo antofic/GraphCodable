@@ -4,23 +4,23 @@
 //
 //	Copyright (c) 2021-2023 Antonino Ficarra
 
-typealias ClassInfoMap	= [RefID:ClassInfo]
+typealias DecodedClassMap	= [RefID:DecodedClass]
 
-struct ClassInfo : CustomStringConvertible {
+struct DecodedClass : CustomStringConvertible {
 	let	decodedType:	any GDecodable.Type
-	let	classData:		ClassData
+	let	encodedClass:		EncodedClass
 	
-	init( classData:ClassData, classNameMap:ClassNameMap? ) throws {
-		self.classData		= classData
+	init( encodedClass:EncodedClass, classNameMap:ClassNameMap? ) throws {
+		self.encodedClass		= encodedClass
 		
-		if let type = classData.decodedType {
+		if let type = encodedClass.decodedType {
 			self.decodedType	= type
 			return
 		} else if let classNameMap {
-			if let type	= classNameMap[ .mangled( classData.mangledClassName ) ] {
+			if let type	= classNameMap[ .mangled( encodedClass.mangledClassName ) ] {
 				self.decodedType	= type
 				return
-			} else if let type	= classNameMap[ .qualified( classData.className( qualified: true ) ) ] {
+			} else if let type	= classNameMap[ .qualified( encodedClass.className( qualified: true ) ) ] {
 				self.decodedType	= type
 				return
 			}
@@ -28,30 +28,30 @@ struct ClassInfo : CustomStringConvertible {
 		
 		throw Errors.GraphCodable.cantConstructClass(
 			Self.self, Errors.Context(
-				debugDescription:"The class |\(classData.className( qualified: true ))| can't be constructed."
+				debugDescription:"The class |\(encodedClass.className( qualified: true ))| can't be constructed."
 			)
 		)
 	}
 	
 	var description: String {
-		return classData.description
+		return encodedClass.description
 	}
 	
-	static func classInfoMap( classDataMap:ClassDataMap, classNameMap:ClassNameMap? ) throws -> ClassInfoMap {
-		try classDataMap.mapValues {
-			try ClassInfo(classData: $0, classNameMap:classNameMap )
+	static func decodedClassMap( encodedClassMap:EncodedClassMap, classNameMap:ClassNameMap? ) throws -> DecodedClassMap {
+		try encodedClassMap.mapValues {
+			try DecodedClass(encodedClass: $0, classNameMap:classNameMap )
 		}
 	}
 
-	static func classInfoMapNoThrow( classDataMap:ClassDataMap, classNameMap:ClassNameMap? ) -> ClassInfoMap {
-		classDataMap.compactMapValues {
-			try? ClassInfo(classData: $0, classNameMap:classNameMap )
+	static func decodedClassMapNoThrow( encodedClassMap:EncodedClassMap, classNameMap:ClassNameMap? ) -> DecodedClassMap {
+		encodedClassMap.compactMapValues {
+			try? DecodedClass(encodedClass: $0, classNameMap:classNameMap )
 		}
 	}
 
-	static func undecodablesClassDataMap( classDataMap:ClassDataMap, classNameMap:ClassNameMap? ) -> ClassDataMap {
-		classDataMap.compactMapValues {
-			(try? ClassInfo(classData: $0, classNameMap:classNameMap )) == nil ? $0 : nil
+	static func undecodablesEncodedClassMap( encodedClassMap:EncodedClassMap, classNameMap:ClassNameMap? ) -> EncodedClassMap {
+		encodedClassMap.compactMapValues {
+			(try? DecodedClass(encodedClass: $0, classNameMap:classNameMap )) == nil ? $0 : nil
 		}
 	}
 }

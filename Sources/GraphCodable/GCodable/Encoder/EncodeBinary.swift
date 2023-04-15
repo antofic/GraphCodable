@@ -88,10 +88,10 @@ final class EncodeBinary<Output:MutableDataProtocol> : EncodeFileBlocks {
 		sectionMap[.body]	= Range( uncheckedBounds:bounds )
 		
 		// encoding referenceMap
-		let classDataMap	= delegate!.classDataMap
-		try ioEncoder.encode(classDataMap)
+		let encodedClassMap	= delegate!.encodedClassMap
+		try ioEncoder.encode(encodedClassMap)
 		bounds	= ( bounds.1,ioEncoder.position )
-		sectionMap[ FileSection.classDataMap ] = Range( uncheckedBounds:bounds )
+		sectionMap[ FileSection.encodedClassMap ] = Range( uncheckedBounds:bounds )
 		
 		// encoding keyStringMap
 		let keyStringMap	= delegate!.keyStringMap

@@ -13,7 +13,7 @@ import Foundation
 //		⤷	GEncoderImpl : GEncoder, EncodeFileBlocksDelegate
 //			⤷	IdentityMap			(IdnID → Identifier)
 //					• manage Identity
-//			⤷	ReferenceMap		(ObjectIdentifier → RefID → ClassData )
+//			⤷	ReferenceMap		(ObjectIdentifier → RefID → EncodedClass )
 //					• manage Inheritance (reference types only)
 //			⤷	KeyMap				(KeyID ↔︎ keystring)
 //					• manage keystring (keyed encoding / KeyID==nil → unkeyed encoding)
@@ -63,7 +63,7 @@ final class GEncoderImpl : EncodeFileBlocksDelegate {
 		}
 	}
 	
-	var classDataMap: ClassDataMap 	{ referenceMap.classDataMap }
+	var encodedClassMap: EncodedClassMap 	{ referenceMap.encodedClassMap }
 	var keyStringMap: KeyStringMap 	{ keyMap.keyStringMap }
 	
 	private var manglingFunction : ManglingFunction {
@@ -127,7 +127,7 @@ final class GEncoderImpl : EncodeFileBlocksDelegate {
 // MARK: GEncoderImpl conformance to GEncoder/GEncoderView protocol
 extension GEncoderImpl : GEncoder, GEncoderView {
 	func isCodableClass(_ type: (AnyObject & GEncodable).Type) -> Bool {
-		ClassData.isConstructible( type: type, manglingFunction: manglingFunction )
+		EncodedClass.isConstructible( type: type, manglingFunction: manglingFunction )
 	}
 	
 	func encode<Value>(_ value: Value) throws where Value:GEncodable {
@@ -284,7 +284,7 @@ extension GEncoderImpl {
 		if	!encodeOptions.contains( .disableInheritance ),
 			value.inheritanceEnabled,
 			let object = value as? any (AnyObject & GEncodable) {
-			try ClassData.throwIfNotConstructible( type: type(of:object), manglingFunction: manglingFunction )
+			try EncodedClass.throwIfNotConstructible( type: type(of:object), manglingFunction: manglingFunction )
 		}
 	}
 }

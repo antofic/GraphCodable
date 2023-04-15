@@ -20,11 +20,11 @@ final class GDecoderImpl {
 		try BinaryIODecoder(data: data, archiveIdentifier:archiveIdentifier, userData:self )
 	}
 	
-	func allClassData( from data: some DataProtocol ) throws -> [ClassData] {
+	func allEncodedClass( from data: some DataProtocol ) throws -> [EncodedClass] {
 		let ioDecoder 		= try ioDecoder(from: data)
 		let decodedNames	= try DecodeClassNames(from: ioDecoder)
 
-		return Array( decodedNames.classDataMap.values )
+		return Array( decodedNames.encodedClassMap.values )
 	}
 	
 	func decodeRoot<T>( _ type: T.Type, from data: some DataProtocol ) throws -> T

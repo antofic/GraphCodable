@@ -14,7 +14,7 @@ import Foundation
 //		B) sectionMap		= SectionMap	= [FileSection : Range<Int>]
 //		C) fileBlocks		= FileBlocks	= [FileBlock]
 //	then, in any order:
-//		D) classDataMap		= ClassDataMap	= [UIntID : ClassData]
+//		D) encodedClassMap		= EncodedClassMap	= [UIntID : EncodedClass]
 //		E) keyStringMap		= KeyStringMap	= [UIntID : String]
 //
 //	A) fileHeader: a 24 bytes fixed size header
@@ -30,8 +30,8 @@ import Foundation
 //			• a token (.Nil) when Optional.none is encountered
 //		or:
 //			• a token (.end) when all fields of a type are encoded
-//	D) classDataMap: a dictionary [refID: ClassData]
-//		ClassData contains the information needed to construct reference types
+//	D) encodedClassMap: a dictionary [refID: EncodedClass]
+//		EncodedClass contains the information needed to construct reference types
 //		from the type name to support inheritance
 //	E) keyStringMap: a dictionary [keyID: keystring]
 //		A table that stores the association between a numeric identifier and
@@ -39,11 +39,11 @@ import Foundation
 //---------------------------------------------------------------------------------------------
 
 enum FileSection : UInt16, CaseIterable, BCodable {
-	case body = 0x0010, classDataMap = 0x0020, keyStringMap = 0x0030
+	case body = 0x0010, encodedClassMap = 0x0020, keyStringMap = 0x0030
 }
 
 typealias SectionMap		= [FileSection : Range<Int>]
 typealias FileBlocks		= [FileBlock]
-typealias ClassDataMap		= [RefID : ClassData]
+typealias EncodedClassMap		= [RefID : EncodedClass]
 typealias KeyStringMap		= [KeyID : String]
 
