@@ -57,7 +57,7 @@ struct FileHeader : CustomStringConvertible, BCodable {
 
 	init(
 		binaryIOEncoder: BinaryIOEncoder,
-		gcoadableFlags: Flags = [],
+		gcodableFlags: Flags = [],
 		gcodableVersion: UInt16 = Versions.CURRENT_FILE_VERSION
 	) {
 		self.archiveIdentifier	= binaryIOEncoder.archiveIdentifier
@@ -65,7 +65,7 @@ struct FileHeader : CustomStringConvertible, BCodable {
 		self.binaryIOFlags		= binaryIOEncoder.binaryIOFlags
 		self.binaryIOVersion	= binaryIOEncoder.binaryIOVersion
 		self.gcodableVersion	= gcodableVersion
-		self.gcoadableFlags		= gcoadableFlags
+		self.gcoadableFlags		= gcodableFlags
 	}
 	
 	init(from decoder: inout some BDecoder) throws {

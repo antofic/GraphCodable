@@ -7,7 +7,6 @@
 
 extension Errors {
 	public enum GraphCodable : Error {
-		
 		/// Indicate an error occurring while decoding a system type
 		///
 		/// GraphCodable implements the GDecodable protocol for

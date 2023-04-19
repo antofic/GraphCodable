@@ -112,11 +112,11 @@ public final class GraphDecoder {
 		return try decoder.allEncodedClass( from: data ).compactMap { $0.replacedClass }
 	}
 
-	///	Returns a `UndecodableClass` struct for every undecodable class in the data byte buffer
+	///	Returns a `ClassInfo` value for every undecodable class in the data byte buffer
 	///
 	/// - Parameter data: the archived data to decode.
-	/// - Returns: the requested array of `UndecodableClass` values.
-	public func undecodableClasses( from data: some DataProtocol ) throws -> [ClassBubbu] {
+	/// - Returns: the requested array of `ClassInfo` values.
+	public func undecodableClasses( from data: some DataProtocol ) throws -> [ClassInfo] {
 		return try decoder.allEncodedClass( from: data ).compactMap {
 			$0.decodedType == nil ?
 			$0.info : nil

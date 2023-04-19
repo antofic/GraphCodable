@@ -5,23 +5,18 @@
 //	Copyright (c) 2021-2023 Antonino Ficarra
 
 import Foundation
-import CwlDemangle
+
+typealias ManglingFunction = ClassInfo.ManglingFunction
 
 struct EncodedClass {
-	let info : ClassBubbu
+	let info : ClassInfo
 	
 	var	manglingFunction:		ManglingFunction { info.manglingFunction }
 	var	mangledClassName:		String { info.mangledClassName }
 	var	encodedClassVersion:	UInt32 { info.encodedClassVersion }
 	
 	func className( qualified: Bool ) -> String {
-		do {
-			let isType		= manglingFunction == .mangledTypeName ? true : false
-			let swiftSymbol = try parseMangledSwiftSymbol( mangledClassName, isType:isType )
-			return swiftSymbol.print( using: qualified ? .default : .simplified )
-		} catch {
-			return mangledClassName
-		}
+		info.className(qualified: qualified)
 	}
 }
 
@@ -37,7 +32,7 @@ extension EncodedClass: BCodable {
 		let	mangledClassName	= try decoder.decode( String.self )
 		let	encodedClassVersion	= try decoder.decode( UInt32.self )
 		
-		self.info = ClassBubbu( manglingFunction, mangledClassName, encodedClassVersion )
+		self.info = ClassInfo( manglingFunction, mangledClassName, encodedClassVersion )
 	}
 }
 
@@ -78,7 +73,7 @@ extension EncodedClass { 	// init
 				)
 			)
 		}
-		self.info	= ClassBubbu(
+		self.info	= ClassInfo(
 			manglingFunction, mangledClassName, type.classVersion 
 		)
 	}

@@ -18,7 +18,7 @@ struct Identity {
 	}
 
 	init<T:Hashable>( _ id:T ) {
-		// make sure you get all the ObjectIdentifier's
+		// make sure to keep all the ObjectIdentifier's
 		if let id = id as? ObjectIdentifier {
 			self.id = ID.objIdentifier( id )
 		} else {
@@ -91,7 +91,7 @@ struct IdentityMap {
 	private var	objTable	= WeakToStrongTable<ObjectIdentifier>()
 	private var	boxTable	= WeakToStrongTable<HashableBox>()
 	
-	func strongID( for identity: Identity ) -> IdnID? {
+	func strongID( of identity: Identity ) -> IdnID? {
 		switch identity.id {
 			case .objIdentifier( let id):	return objTable.strongID( id )
 			case .anyHashable(let id): 		return boxTable.strongID( HashableBox(id) )

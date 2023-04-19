@@ -9,7 +9,7 @@ struct KeyMap  {
 	private (set) var	keyStringMap	= KeyStringMap()
 	private var			inverseMap		= [String: KeyID]()
 	
-	mutating func createKeyIDIfNeeded( key:String ) -> KeyID {
+	mutating func createKeyIDIfNeeded( for key:String ) -> KeyID {
 		if let keyID = inverseMap[ key ] {
 			return keyID
 		} else {

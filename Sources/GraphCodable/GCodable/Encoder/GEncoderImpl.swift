@@ -75,7 +75,7 @@ final class GEncoderImpl : EncodeFileBlocksDelegate {
 		#if DEBUG
 		self.encodeOptions		= [options, .printWarnings]
 		#else
-		self.encodeOptions		= options
+		self.encodeOptions		= [options]
 		#endif
 		self.userVersion		= userVersion
 		self.archiveIdentifier	= archiveIdentifier
@@ -90,7 +90,7 @@ final class GEncoderImpl : EncodeFileBlocksDelegate {
 		)
 		let fileHeader		= FileHeader(
 			binaryIOEncoder: ioEncoder,
-			gcoadableFlags: []
+			gcodableFlags: []
 		)
 		return (ioEncoder,fileHeader)
 	}
@@ -126,7 +126,7 @@ final class GEncoderImpl : EncodeFileBlocksDelegate {
 
 // MARK: GEncoderImpl conformance to GEncoder/GEncoderView protocol
 extension GEncoderImpl : GEncoder, GEncoderView {
-	func isCodableClass(_ type: (AnyObject & GEncodable).Type) -> Bool {
+	func isCodableClass(_ type: any (AnyObject & GEncodable).Type) -> Bool {
 		EncodedClass.isConstructible( type: type, manglingFunction: manglingFunction )
 	}
 	
@@ -172,7 +172,7 @@ extension GEncoderImpl {
 			try blockEncoder.appendBin(keyID: keyID, refID:nil, idnID:nil, binaryValue: trivialValue )
 		} else {
 			if let identity = identity( of:value ) {	// IDENTITY
-				if let idnID = identityMap.strongID( for:identity ) {
+				if let idnID = identityMap.strongID( of:identity ) {
 					// already encoded value: we encode a pointer
 					try blockEncoder.appendPtr(keyID: keyID, idnID: idnID, conditional: conditional)
 				} else if conditional {
@@ -266,7 +266,7 @@ extension GEncoderImpl {
 				)
 			)
 		}
-		return keyMap.createKeyIDIfNeeded(key: key)
+		return keyMap.createKeyIDIfNeeded(for: key)
 	}
 
 	private func createRefIDIfNeeded( for value:some GEncodable ) throws -> RefID? {
