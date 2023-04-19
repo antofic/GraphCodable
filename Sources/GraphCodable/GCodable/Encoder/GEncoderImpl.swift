@@ -44,8 +44,7 @@ final class GEncoderImpl : EncodeFileBlocksDelegate {
 	private let 		encodeOptions		: GraphEncoder.Options
 	let 				userVersion			: UInt32
 	let 				archiveIdentifier	: String?
-	
-	private var 		currentKeys			= Set<String>()
+	private var 		currentKeyIDs		= Set<KeyID>()
 	private var			identityMap			= IdentityMap()
 	private var			referenceMap		= ReferenceMap()
 	private var			keyMap				= KeyMap()
@@ -55,7 +54,7 @@ final class GEncoderImpl : EncodeFileBlocksDelegate {
 			self.blockEncoder?.delegate	= nil
 		}
 		didSet {
-			self.currentKeys			= Set<String>()
+			self.currentKeyIDs			= Set<KeyID>()
 			self.identityMap			= IdentityMap()
 			self.referenceMap			= ReferenceMap()
 			self.keyMap					= KeyMap()
@@ -221,9 +220,9 @@ extension GEncoderImpl {
 	}
 
 	private func level3_encodeValue( _ value:some GEncodable ) throws {
-		let savedKeys	= currentKeys
-		defer { currentKeys = savedKeys }
-		currentKeys.removeAll()
+		let saveKeyIDs	= currentKeyIDs
+		defer { currentKeyIDs = saveKeyIDs }
+		currentKeyIDs.removeAll()
 		
 		try value.encode(to: self)
 	}
@@ -258,35 +257,37 @@ extension GEncoderImpl {
 	}
 
 	private func createKeyID( for key: String ) throws -> KeyID {
-		defer { currentKeys.insert( key ) }
-		if currentKeys.contains( key ) {
+		let keyID = keyMap.createKeyIDIfNeeded(for: key)
+		guard currentKeyIDs.contains( keyID ) == false else {
 			throw Errors.GraphCodable.duplicateKey(
 				Self.self, Errors.Context(
 					debugDescription: "Key |\(key)| already used."
 				)
 			)
 		}
-		return keyMap.createKeyIDIfNeeded(for: key)
+		currentKeyIDs.insert( keyID )
+		return keyID
 	}
 
 	private func createRefIDIfNeeded( for value:some GEncodable ) throws -> RefID? {
 		guard
-			!encodeOptions.contains( .disableInheritance ),
 			value.inheritanceEnabled,
+			encodeOptions.contains( .disableInheritance ) == false,
 			let object = value as? any (AnyObject & GEncodable) else {
 			return nil
 		}
 		return try referenceMap.createRefIDIfNeeded( for: object, manglingFunction: manglingFunction )
 	}
 
-	
 	private func throwIfNotConstructible( typeOf value:some GEncodable ) throws {
-		if	!encodeOptions.contains( .disableInheritance ),
+		if
 			value.inheritanceEnabled,
+			encodeOptions.contains( .disableInheritance ) == false,
 			let object = value as? any (AnyObject & GEncodable) {
 			try EncodedClass.throwIfNotConstructible( type: type(of:object), manglingFunction: manglingFunction )
 		}
 	}
+	
 }
 
 
