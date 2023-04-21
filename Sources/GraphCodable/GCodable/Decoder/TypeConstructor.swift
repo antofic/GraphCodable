@@ -60,7 +60,7 @@ final class TypeConstructor {
 			let element = currentElement.pop(keyID: keyID) else {
 			throw Errors.GraphCodable.valueNotFound(
 				Self.self, Errors.Context(
-					debugDescription: "\( fileblockDescr( currentElement ) ): keyed value for key |\(key)| not found."
+					debugDescription: "\( fileblockDescr( currentElement ) ): keyed value for key |\(key)| not found or already decoded."
 				)
 			)
 		}

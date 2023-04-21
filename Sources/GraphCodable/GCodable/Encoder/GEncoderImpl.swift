@@ -140,13 +140,13 @@ extension GEncoderImpl : GEncoder, GEncoderView {
 	func encode<Key, Value>(_ value: Value, for key: Key) throws
 	where Key : RawRepresentable, Value : GEncodable, Key.RawValue == String
 	{
-		try level1_encodeValue( value, keyID: try createKeyID( for:key.rawValue ), conditional:false )
+		try level1_encodeValue( value, keyID: try createKeyID( for:key.rawValue, value: value ), conditional:false )
 	}
 	
 	func encodeConditional<Key, Value>(_ value: Value?, for key: Key) throws
 	where Key : RawRepresentable, Value : GEncodable, Key.RawValue == String
 	{
-		try level1_encodeValue( value, keyID: try createKeyID( for:key.rawValue ), conditional:true )
+		try level1_encodeValue( value, keyID: try createKeyID( for:key.rawValue, value: value ), conditional:true )
 	}
 }
 
@@ -256,12 +256,12 @@ extension GEncoderImpl {
 		return nil
 	}
 
-	private func createKeyID( for key: String ) throws -> KeyID {
+	private func createKeyID( for key: String, value:some GEncodable ) throws -> KeyID {
 		let keyID = keyMap.createKeyIDIfNeeded(for: key)
 		guard currentKeyIDs.contains( keyID ) == false else {
 			throw Errors.GraphCodable.duplicateKey(
 				Self.self, Errors.Context(
-					debugDescription: "Key |\(key)| already used."
+					debugDescription: "Key |\(key)| (value type |\( type(of: value) )|) already exists."
 				)
 			)
 		}
