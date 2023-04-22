@@ -140,14 +140,14 @@ extension FileBlock {
 
 extension FileBlock {
 	static func encodeEnd(
-		to encoder: inout BinaryIOEncoder, fileHeader:FileHeader
+		to encoder: inout BinaryIOEncoder
 	) throws {
 		try encoder.encode( Code.End() )
 	}
 
 	static func encodeNil(
 		keyID:KeyID?,
-		to encoder: inout BinaryIOEncoder, fileHeader:FileHeader
+		to encoder: inout BinaryIOEncoder
 	) throws {
 		try encoder.encode( Code.Nil(keyID: keyID) )
 		if let keyID 	{ try encoder.encode( keyID ) }
@@ -155,7 +155,7 @@ extension FileBlock {
 
 	static func encodePtr(
 		keyID:KeyID?, idnID:IdnID, conditional:Bool,
-		to encoder: inout BinaryIOEncoder, fileHeader:FileHeader
+		to encoder: inout BinaryIOEncoder
 	) throws {
 		try encoder.encode( Code.Ptr(keyID: keyID, idnID: idnID, conditional:conditional ) )
 		if let keyID 	{ try encoder.encode( keyID ) }
@@ -164,7 +164,7 @@ extension FileBlock {
 	
 	static func encodeVal(
 		keyID:KeyID?, idnID:IdnID?, refID:RefID?,
-		to encoder: inout BinaryIOEncoder, fileHeader:FileHeader
+		to encoder: inout BinaryIOEncoder
 	) throws {
 		try encoder.encode( Code.Val(keyID: keyID, idnID: idnID, refID: refID ) )
 		if let keyID	{ try encoder.encode( keyID ) }
@@ -173,19 +173,19 @@ extension FileBlock {
 	}
 	
 	static func encodeBin(
-		keyID:KeyID?, idnID:IdnID?, refID:RefID?, binaryValue: some GBinaryEncodable,
-		to encoder: inout BinaryIOEncoder, fileHeader:FileHeader
+		keyID:KeyID?, idnID:IdnID?, refID:RefID?, value: some GBinaryEncodable,
+		to encoder: inout BinaryIOEncoder
 	) throws {
 		try encoder.encode( Code.Bin(keyID: keyID, idnID: idnID, refID: refID ) )
 		if let keyID	{ try encoder.encode( keyID ) }
 		if let idnID	{ try encoder.encode( idnID ) }
 		if let refID	{ try encoder.encode( refID ) }
-		try encoder.withEncodedIntSizeBefore { try $0.encode( binaryValue ) }
+		try encoder.withEncodedIntSizeBefore { try $0.encode( value ) }
 	}
 }
 
 extension FileBlock {
-	init(from decoder: inout BinaryIODecoder, fileHeader:FileHeader ) throws {
+	init(from decoder: inout BinaryIODecoder ) throws {
 		func decode<T:BDecodable>( _ type:T.Type, if test:Bool ) throws -> T? {
 			test ? try decoder.decode( type ) : nil
 		}

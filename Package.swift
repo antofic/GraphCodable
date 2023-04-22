@@ -5,10 +5,10 @@ import PackageDescription
 
 let settings: [SwiftSetting] = [
 	.define("USE_CWL_DEMANGLE"),
-//	.unsafeFlags( [
-//		"-enable-upcoming-feature", "ExistentialAny",
-//		"-enable-upcoming-feature", "ForwardTrailingClosures"
-//	])
+	.unsafeFlags( [
+		"-enable-upcoming-feature", "ExistentialAny",
+		"-enable-upcoming-feature", "ForwardTrailingClosures"
+	])
 ]
 
 let package = Package(

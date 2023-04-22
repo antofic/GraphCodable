@@ -26,10 +26,9 @@ struct DecodeBinary {
 		)
 
 		self.fileHeader			= fileHeader
-		self.decodedClassMap		= decodedClassMap
+		self.decodedClassMap	= decodedClassMap
 		(self.rootElement,self.elementMap)	= try FlattenedElement.rootElement(
-			readBlocks:	readBlocks,
-			reverse:	true
+			readBlocks:	readBlocks
 		)
 
 		self.keyIDMap			= Dictionary(

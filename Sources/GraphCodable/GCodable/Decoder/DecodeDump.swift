@@ -40,14 +40,13 @@ final class DecodeDump: EncodeFileBlocksDelegate {
 		if dumpOptions.contains( .showFlattenedBody ) {
 			do {
 				let (rootElement,elementMap)	= try FlattenedElement.rootElement(
-					readBlocks:	readBlocks,
-					reverse:		true
+					readBlocks:	readBlocks
 				)
 				let string = rootElement.dump(
-					elementMap:		elementMap,
+					elementMap:			elementMap,
 					encodedClassMap:	encodedClassMap,
-					keyStringMap:	keyStringMap,
-					options: 		dumpOptions
+					keyStringMap:		keyStringMap,
+					options: 			dumpOptions
 				)
 				encoderDump.append( string )
 			} catch {

@@ -15,8 +15,8 @@ struct ReadBlock {
 	let fileBlock	: FileBlock
 	let position	: Int
 	
-	fileprivate init(from ioDecoder: inout BinaryIODecoder, fileHeader:FileHeader ) throws {
-		self.fileBlock	= try FileBlock(from: &ioDecoder, fileHeader: fileHeader)
+	fileprivate init(from ioDecoder: inout BinaryIODecoder ) throws {
+		self.fileBlock	= try FileBlock( from: &ioDecoder )
 		//	store the fileblock terminal position
 		self.position	= ioDecoder.position
 		//	advance the cursor to the next fileblock
@@ -50,13 +50,13 @@ typealias ReadBlocks = [ReadBlock]
 /// read the BinaryIODecoder content.
 /// FileBlocks are updated in ReadBlocks
 struct DecodeReadBlocks {
-	let 		fileHeader		: FileHeader
-	private	var sectionMap		: SectionMap
-	private var ioDecoder		: BinaryIODecoder
+	let 		fileHeader			: FileHeader
+	private	var sectionMap			: SectionMap
+	private var ioDecoder			: BinaryIODecoder
 
 	private var _encodedClassMap	: EncodedClassMap?
-	private var _readBlocks		: ReadBlocks?
-	private var _keyStringMap	: KeyStringMap?
+	private var _readBlocks			: ReadBlocks?
+	private var _keyStringMap		: KeyStringMap?
 
 	init( from ioDecoder:BinaryIODecoder ) throws {
 		var decoder	= ioDecoder
@@ -83,11 +83,10 @@ struct DecodeReadBlocks {
 	mutating func readBlocks() throws -> ReadBlocks {
 		if let readBlocks = self._readBlocks { return readBlocks }
 
-		let fileHeader	= self.fileHeader
 		let readBlocks	= try ioDecoder.withinRegion( range: regionRange( of:.body ) ) {
 			var readBlocks	= [ReadBlock]()
 			while $0.isEndOfRegion == false {
-				let readBlock	= try ReadBlock( from: &$0,fileHeader: fileHeader )
+				let readBlock	= try ReadBlock( from: &$0 )
 				readBlocks.append( readBlock )
 			}
 			return readBlocks

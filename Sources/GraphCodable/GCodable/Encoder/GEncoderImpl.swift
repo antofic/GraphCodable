@@ -154,6 +154,7 @@ extension GEncoderImpl : GEncoder, GEncoderView {
 extension GEncoderImpl {
 	private func level1_encodeValue(_ value: some GEncodable, keyID: KeyID?, conditional:Bool ) throws {
 		if let value = value._fullOptionalUnwrappedValue {
+			// now value is not nil
 			try level2_encodeValue( value, keyID: keyID, conditional:conditional )
 		} else { // if value is nil, encode nil and return
 			try blockEncoder.appendNil(keyID: keyID)
@@ -161,72 +162,55 @@ extension GEncoderImpl {
 	}
 	
 	private func level2_encodeValue(_ value: some GEncodable, keyID: KeyID?, conditional:Bool ) throws {
-		// now value is not nil
 		if let trivialValue = value as? any GPackEncodable {
 			if encodeOptions.contains( .printWarnings ) {
 				if conditional {
 					print( "### Warning: can't conditionally encode the type '\( type(of:value) )' without identity. It will be encoded unconditionally." )
 				}
 			}
-			try blockEncoder.appendBin(keyID: keyID, refID:nil, idnID:nil, binaryValue: trivialValue )
-		} else {
-			if let identity = identity( of:value ) {	// IDENTITY
-				if let idnID = identityMap.strongID( of:identity ) {
-					// already encoded value: we encode a pointer
-					try blockEncoder.appendPtr(keyID: keyID, idnID: idnID, conditional: conditional)
-				} else if conditional {
-					// Anyway we check if the reference class can be constructed from its name
-					try throwIfNotConstructible( typeOf:value )
-
-					// conditional encoding: we encode only a pointer
-					let idnID	= identityMap.createWeakID( for: identity )
-					try blockEncoder.appendPtr(keyID: keyID, idnID: idnID, conditional: conditional)
-				} else {
-					// not encoded value: we encode it
-					// INHERITANCE: only classes have a refID (value refID == nil)
-					let refID	= try createRefIDIfNeeded( for: value )
-					let idnID	= identityMap.createStrongID( for: identity )
-
-					if let binaryValue = value as? any GBinaryEncodable {
-						// BinaryEncodable type
-						try blockEncoder.appendBin(keyID: keyID, refID: refID, idnID: idnID, binaryValue: binaryValue)
-					} else {
-						// Encodable type
-						try blockEncoder.appendVal(keyID: keyID, refID: refID, idnID: idnID, value: value)
-						try level3_encodeValue( value )
-						try blockEncoder.appendEnd()
-					}
-				}
-			} else {	// NO IDENTITY
-				// INHERITANCE: only classes have a refID (value refID == nil)
-				let refID	= try createRefIDIfNeeded( for: value )
-
-				if encodeOptions.contains( .printWarnings ) {
-					if conditional {
-						print( "### Warning: can't conditionally encode the type '\( type(of:value) )' without identity. It will be encoded unconditionally." )
-					}
-				}
+			try blockEncoder.appendBin(keyID: keyID, refID:nil, idnID:nil, value: trivialValue )
+		} else if let identity = identity( of:value ) {	// IDENTITY
+			if let idnID = identityMap.strongID( of:identity ) {
+				// already encoded value: we encode a pointer
+				try blockEncoder.appendPtr(keyID: keyID, idnID: idnID, conditional: conditional)
+			} else if conditional {
+				// Anyway we check if the reference class can be constructed from its name
+				try throwIfNotConstructible( typeOf:value )
 				
-				if let binaryValue = value as? any GBinaryEncodable {
-					// BinaryEncodable type
-					try blockEncoder.appendBin(keyID: keyID, refID: refID, idnID: nil, binaryValue: binaryValue)
-				} else {
-					try blockEncoder.appendVal(keyID: keyID, refID: refID, idnID: nil, value: value )
-					try level3_encodeValue( value )
-					try blockEncoder.appendEnd()
+				// conditional encoding: we encode only a pointer
+				let idnID	= identityMap.createWeakID( for: identity )
+				try blockEncoder.appendPtr(keyID: keyID, idnID: idnID, conditional: conditional)
+			} else {
+				// not encoded value: we encode it
+				let idnID	= identityMap.createStrongID( for: identity )
+				try level3_encodeValue( value, keyID: keyID, idnID: idnID )
+			}
+		} else {	// NO IDENTITY
+			if encodeOptions.contains( .printWarnings ) {
+				if conditional {
+					print( "### Warning: can't conditionally encode the type '\( type(of:value) )' without identity. It will be encoded unconditionally." )
 				}
 			}
+			try level3_encodeValue( value, keyID: keyID, idnID: nil )
 		}
 	}
-
-	private func level3_encodeValue( _ value:some GEncodable ) throws {
-		let saveKeyIDs	= currentKeyIDs
-		defer { currentKeyIDs = saveKeyIDs }
-		currentKeyIDs.removeAll()
-		
-		try value.encode(to: self)
-	}
 	
+	private func level3_encodeValue( _ value:some GEncodable, keyID: KeyID?, idnID: IdnID? ) throws {
+		// INHERITANCE: only classes have a refID (value refID == nil)
+		let refID	= try createRefIDIfNeeded( for: value )
+		if let binaryValue = value as? any GBinaryEncodable {
+			// BinaryEncodable type
+			try blockEncoder.appendBin(keyID: keyID, refID: refID, idnID: idnID, value: binaryValue)
+		} else {
+			let saveKeyIDs	= currentKeyIDs
+			defer { currentKeyIDs = saveKeyIDs }
+			currentKeyIDs.removeAll()
+
+			try blockEncoder.appendVal(keyID: keyID, refID: refID, idnID: idnID, value: value )
+			try value.encode(to: self)
+			try blockEncoder.appendEnd()
+		}
+	}
 	
 	private func identity( of value:some GEncodable ) -> Identity? {
 		if encodeOptions.contains( .disableIdentity ) {

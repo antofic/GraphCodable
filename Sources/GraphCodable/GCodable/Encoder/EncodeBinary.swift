@@ -46,14 +46,14 @@ final class EncodeBinary<Output:MutableDataProtocol> : EncodeFileBlocks {
 	
 	func appendEnd() throws {
 		try writeInit()
-		try FileBlock.encodeEnd(to: &ioEncoder, fileHeader: fileHeader)
+		try FileBlock.encodeEnd(to: &ioEncoder)
 	}
 	
 	func appendNil(keyID: KeyID?) throws {
 		try writeInit()
 		try FileBlock.encodeNil(
 			keyID: keyID,
-			to: &ioEncoder, fileHeader: fileHeader
+			to: &ioEncoder
 		)
 	}
 	
@@ -61,7 +61,7 @@ final class EncodeBinary<Output:MutableDataProtocol> : EncodeFileBlocks {
 		try writeInit()
 		try FileBlock.encodePtr(
 			keyID: keyID, idnID: idnID, conditional:conditional,
-			to: &ioEncoder, fileHeader: fileHeader
+			to: &ioEncoder
 		)
 	}
 	
@@ -69,15 +69,15 @@ final class EncodeBinary<Output:MutableDataProtocol> : EncodeFileBlocks {
 		try writeInit()
 		try FileBlock.encodeVal(
 			keyID: keyID,idnID: idnID, refID: refID,
-			to: &ioEncoder, fileHeader: fileHeader
+			to: &ioEncoder
 		)
 	}
 
-	func appendBin(keyID: KeyID?, refID: RefID?, idnID: IdnID?, binaryValue: some GBinaryEncodable) throws {
+	func appendBin(keyID: KeyID?, refID: RefID?, idnID: IdnID?, value: some GBinaryEncodable) throws {
 		try writeInit()
 		try FileBlock.encodeBin(
-			keyID: keyID,idnID: idnID, refID: refID, binaryValue:binaryValue,
-			to: &ioEncoder, fileHeader: fileHeader
+			keyID: keyID,idnID: idnID, refID: refID, value:value,
+			to: &ioEncoder
 		)
 	}
 	
