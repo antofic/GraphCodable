@@ -174,7 +174,44 @@ print( outRoot == inRoot )	// prints: true
 ```
 
 You can check if a keyed value is present in the archive with `try decoder.contains(_ key:)` before decoding it.
-**Note**: Values are removed from the decoder data basket as they are decoded.
+
+**Note**: Values are removed from the decoder as they are decoded.
+
+**Note**: `GDecoder` offers both methods where you need to specify the type of the value to decode and those where the type is inferred from the context. In the example, the type of the `name` value is inferred from the context:
+
+```swift
+init(from decoder: some GDecoder) throws {
+	self.name	= try decoder.decode( for: Key.name )
+	* ... */
+}
+```
+
+In case the type cannot be inferred from the context, the other form can be used:
+
+```swift
+init(from decoder: some GDecoder) throws {
+	let name	= try decoder.decode( String.self, for: Key.name )
+	/* ... */
+}
+```
+
+But you can still use the first form by specifying the type as in this example:
+
+```swift
+init(from decoder: some GDecoder) throws {
+	let name : String	= try decoder.decode( for: Key.name )
+	/* ... */
+}
+```
+
+or this one:
+
+```swift
+init(from decoder: some GDecoder) throws {
+	let name = try decoder.decode( for: Key.name ) as String
+	/* ... */
+}
+```
 
 ## Unkeyed coding
 
@@ -354,13 +391,13 @@ class MyReferenceType: GEncodable {
 }
 ```
 
-**Note**: `inheritanceEnabled`  has no effect for a value type.
+**Note**: `inheritanceEnabled`  has no effect for a value types.
 
 ### Control inheritance globally
 
 An option in the `GraphEncoder( _ options: )` init method control inheritance **globally**, that is, they apply to all encoded reference types:
 
-- the `.disableInheritance` option disable inheritance for all reference types, regardless of protocol `GInheritance`;
+- the `.disableInheritance` option disable inheritance for all reference types, regardless of the value returned by `inheritanceEnabled` property.
 
 ## Identity
 
@@ -758,7 +795,9 @@ outRoot.b.data == nil
 
 So, `b` encodes `data` conditionally. If `Model` don't encode  `a`, which encodes `data` unconditionally, `data` isn't encoded at all.
 
-If you try to **conditionally** encode a value **without identity**, GraphCodable encodes it **unconditionally**. If it happens and the `.printWarnings` option in the `GraphEncoder(  _ options: )` method is selected, GraphCodable prints a warning message during encoding.
+**Note:** If you try to **conditionally** encode a value **without identity** and the `.disableIdentity` encoder flag is not set, GraphEncoder throw an error. If the `.disableIdentity` encoder flag is set, the value is **unconditionally** encoded.
+
+**Note:** GraphEncoder always throw an error if you try to **conditionally** encode values adopting protocol `GPackEncodable` (see [The `GPackCodable` protocol](#The-`GPackCodable`-protocol)).
 
 ### Directed acyclic graphs (DAG)
 
@@ -892,23 +931,24 @@ What happens if you add a connection from `e` to `b` in the previous example?
 - GraphCodable encodes it but generates an exception during decoding;
 - Codable generates an exception during encoding.
 
-Just like ARC cannot autamatically release `e`, `b` and d because each retain the other, GraphCodable cannot initialize `e`, `b` and `d` because the initialization of each of them requires that the other be initialized and Swift does not allow to exit from an init method without inizializing all variables. So, when GraphCodable during decode encounters a cycle that it cannot resolve, it throws an exception.
+Just like ARC cannot autamatically release `e`, `b` and d because each retain the other, GraphCodable cannot initialize `e`, `b` and `d` because the initialization of each of them requires that the other be initialized and Swift does not allow to exit from an init method without inizializing all variables. So, when GraphCodable **during decoding** encounters a cycle that it cannot resolve, it throws an exception.
 
 #### Weak variables example
 
-One possible solution for ARC is to use weak variables.
-Than, GraphCodable uses a slightly different way to decode weak variables used to break strong memory cycles: it postpones, calling a closure with the `deferDecode(...)` method, the setting of these variables (remember: they are optional, so they are auto-inizializated to nil) until the objects they point to have been initialized.
+One possible solution for ARC is to use weak variables. Than you use the `deferDecode(...)` method to decode weak variables used to break strong memory cycles.
 
-Let's see how with a classic example: the **parent-childs pattern**. In this pattern the parent variable is weak to break the strong cycles (self.parent.child === self) that would otherwise form with his childs. Similarly, this pattern requires to '*deferDecode*' the weak variable (parent):
+With the `deferDecode(...)` method, GraphCodable postpones the setting of these variables (remember: they are optional, so they are auto-inizializated to nil) until the objects they point to have been initialized.
+
+Let's see how with a classic example: the **parent-childs pattern**. In this pattern the parent variable is weak to break the strong cycles (self.parent.child === self) that would otherwise form with his childs. Similarly, this pattern requires to '*deferDecode*' the weak variable (parent) because the initialization of parent depends on that of its childs and vice versa.
 
 ```swift
 required init(from decoder: some GDecoder) throws {
 	self.childs	= try decoder.decode( for: Key.childs )
-	try decoder.deferDecode( for: Key.parent ) { self.parent = $0 }
+	try decoder.deferDecode( for: Key.parent ) { self.parent = $0 }	// <----
 }
 ```
 
-because the initialization of parent depends on that of its childs and vice versa.
+The example:
 
 ```swift
 import Foundation
@@ -1053,6 +1093,7 @@ class Model : GCodable, Equatable, CustomStringConvertible {
 		
 		required init(from decoder: some GDecoder) throws {
 			name		= try decoder.decode( for: Key.name  )
+      // see here:
       try decoder.deferDecode( for: Key.connections ) { self.connections = $0 }
 		}
 		
@@ -1152,7 +1193,7 @@ true
 
 ### Identity for value types that use copy on write (COW)
 
-The following example demonstrates how to give identity to an *Array-like* type that implements the COW mechanism. The buffer (for simplicity a standard Array is used) is contained in a box reference so that it can be copied only when the box is shared by multiple arrays.
+The following example demonstrates how to give identity to an *Array-like* type that implements the COW mechanism. The buffer (for simplicity a swift Array is used) is contained in a box reference so that it can be copied only when the box is shared by multiple arrays.
 
 ```swift
 struct MyArray<Element> {
@@ -1271,7 +1312,7 @@ The output shows that the array `a ` has been encoded 4 times and that's not wha
 ========================================================================================
 ```
 
-The solution is to adopt the `GIdentifiable` protocol to give an identity to MyArray and the identity is obviously the *ObjectIdentifier* of the box.
+The solution is to adopt the `GIdentifiable` protocol to give an identity to MyArray and the identity is of course the *ObjectIdentifier* of the box.
 
 ```swift
 extension MyArray: GIdentifiable {
@@ -1678,7 +1719,7 @@ class Generic<T:GDecodable> : GDecodable {
 
 Now suppose you encoded an instance of `Generic<MyData>`and replaced `MyData` with `MyNewData`.  During decoding, the decoder encounters the `Generic<MyData>` class and calls `Generic<MyData>.decodeType`, getting `Generic<MyData>.self` instead of  `Generic<MyNewData>.self`.
 
-It follows that any generic class that adopts `GCodable` protocol **must** correctly implement `decodeType` if there is a chance that its parameter types are **replaced**. That's how:
+It follows that **any** generic class that adopts `GCodable` protocol **must** correctly implement `decodeType` if there is a chance that its parameter types are **replaced**. That's how:
 
 ```swift
 extension Generic {
@@ -1730,7 +1771,7 @@ extension Pair: CustomStringConvertible {
 }
 ```
 
-We have a generic class `Model<S>`:
+And we have a generic class `Model<S>`:
 
 ```swift
 final class Model<S:GDecodable> : GDecodable {
@@ -2222,10 +2263,9 @@ to match the encoded name to the class to decode. `ClassName` allows you to choo
 
 ```swift
 public enum ClassName : Hashable {
-	case mangledClassName( _:String )
-	case qualifiedClassName( _:String )
+	case mangled( _:String )
+	case qualified( _:String )
 }
-
 ```
 
 It's best to use `mangledName`, as in the following example:
@@ -2284,7 +2324,9 @@ print( outRoot )	// MyNewData(string: 3)
 
 ```
 
-This system becomes very difficult to manage especially if generic classes are employed. The type can also be a **value type**.  In the following example we substitute `struct MyNewData:...` for `class MyNewData:...`:
+**Note:** This system becomes very difficult to manage with generic classes.
+
+The type can also be a **value type**.  In the following example we substitute `struct MyNewData:...` for `class MyNewData:...`:
 
 ```swift
 import Foundation
@@ -2683,7 +2725,7 @@ extension NumericData : GBinaryDecodable {
 
 ### UserInfo dictionary and other informations
 
-The `userInfo` dictionary set in the `GraphEncoder` is accessible to types adopting the `GBinaryEncodable` protocol with:
+The `userInfo` dictionary set in the `GraphEncoder` is accessible to types adopting the `GBinaryEncodable` protocol via the static `encoderView(...)` function:
 
 ```swift
 	func encode(to encoder: inout some BEncoder) throws {
@@ -2694,7 +2736,7 @@ The `userInfo` dictionary set in the `GraphEncoder` is accessible to types adopt
 
 ```
 
-The `userInfo` dictionary set in the `GraphDecoder` is accessible to types adopting the `GBinaryDecodable` protocol with:
+The `userInfo` dictionary set in the `GraphDecoder` is accessible to types adopting the `GBinaryDecodable` protocol via the static `decoderView(...)` function:
 
 ```swift
 	init(from decoder: inout some BDecoder) throws {
@@ -2702,7 +2744,6 @@ The `userInfo` dictionary set in the `GraphDecoder` is accessible to types adopt
 		let userInfo 		= decoderView.userInfo
 		/* ... */
 	}
-
 ```
 
 When dearchiving `GBinaryDecodable` **reference** types, you may also need access to `encodedClassVersion` and `replacedClass`:
@@ -2713,6 +2754,7 @@ When dearchiving `GBinaryDecodable` **reference** types, you may also need acces
 		let userInfo						= decoderView.userInfo
 		let encodedClassVersion	= try decoderView.encodedClassVersion
 		let replacedClass				= try decoderView.replacedClass
+    /* ... */
 	}
 
 ```
@@ -3103,7 +3145,7 @@ extension PersonNameComponents : BDecodable {
 }
 ```
 
-**GraphCodable package**: In this case GraphCodable does not use BinaryIO but stores `PersonNameComponents` using keys with `GCodable` methods. This means that the BinaryIO implementation in `PersonNameComponents` is only accessible by extracting the BinaryIO package and using it without the GraphCodable.
+**GraphCodable package**: In this case GraphCodable does not use BinaryIO but stores `PersonNameComponents` using keys with `GCodable` methods. This means that the BinaryIO implementation in `PersonNameComponents` is only accessible by extracting the BinaryIO package and using it without the GraphCodable one.
 
 ```swift
 extension PersonNameComponents {

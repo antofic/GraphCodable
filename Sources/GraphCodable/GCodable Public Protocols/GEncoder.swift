@@ -10,6 +10,7 @@ public protocol GEncoder {
 	/// Any contextual information set by the user for encoding.
 	var	userInfo	: [String:Any] { get }
 
+	/// A current version set by the user for encoding.
 	var	userVersion	: UInt32 { get }
 
 	func isCodableClass( _ type: any (AnyObject & GEncodable).Type ) -> Bool

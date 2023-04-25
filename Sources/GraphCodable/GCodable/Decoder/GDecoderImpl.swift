@@ -76,7 +76,7 @@ extension GDecoderImpl : GDecoder, GDecoderView {
 	func decode<Key, Value>( _ type:Value.Type, for key: Key ) throws -> Value
 	where Key : RawRepresentable, Value : GDecodable, Key.RawValue == String
 	{
-		let	element = try constructor.popBodyElement( key:key.rawValue )
+		let	element = try constructor.popElement( key:key.rawValue )
 		
 		return try constructor.decode( element:element, from: self )
 	}
@@ -84,7 +84,7 @@ extension GDecoderImpl : GDecoder, GDecoderView {
 	func deferDecode<Key, Value>( _ type:Value.Type, for key: Key, _ setter: @escaping (Value) -> ()) throws
 	where Key : RawRepresentable, Value : GDecodable, Key.RawValue == String
 	{
-		let	element = try constructor.popBodyElement( key:key.rawValue )
+		let	element = try constructor.popElement( key:key.rawValue )
 
 		try constructor.deferDecode( element:element, from: self, setter )
 	}
@@ -96,13 +96,13 @@ extension GDecoderImpl : GDecoder, GDecoderView {
 	}
 	
 	func decode<Value>( _ type:Value.Type ) throws -> Value where Value : GDecodable {
-		let	element = try constructor.popBodyElement()
+		let	element = try constructor.popElement()
 
 		return try constructor.decode( element:element, from: self )
 	}
 	
 	func deferDecode<Value>( _ type:Value.Type, _ setter: @escaping (Value) -> () ) throws where Value : GDecodable {
-		let	element = try constructor.popBodyElement()
+		let	element = try constructor.popElement()
 
 		try constructor.deferDecode( element:element, from: self, setter )
 	}

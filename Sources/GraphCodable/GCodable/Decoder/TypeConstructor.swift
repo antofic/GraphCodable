@@ -9,15 +9,13 @@ import Foundation
 final class TypeConstructor {
 	private var			ioDecoder			: BinaryIODecoder
 	private var			decodeBinary		: DecodeBinary
-	private (set) var 	currentElement 		: FlattenedElement
+	private (set) var 	currentElement 		: BlockElement
 	private (set) var 	currentClass 		: DecodedClass?
 	private var			objectRepository 	= [ IdnID: any GDecodable ]()
 	private var			setterRepository 	= [ (_:TypeConstructor) throws -> () ]()
 	private lazy var	keyStringMap		: KeyStringMap = {
 		// we use keyStringMap only in case of errors
-		Dictionary( uniqueKeysWithValues: decodeBinary.keyIDMap.map {
-				(key,value) in (value,key)
-			})
+		Dictionary( uniqueKeysWithValues: decodeBinary.keyIDMap.map { ($1,$0) })
 	}()
 	
 	var fileHeader : FileHeader { decodeBinary.fileHeader }
@@ -53,7 +51,7 @@ final class TypeConstructor {
 		return currentElement.contains( keyID: keyID )
 	}
 	
-	func popBodyElement( key:String ) throws -> FlattenedElement {
+	func popElement( key:String ) throws -> BlockElement {
 		// keyed case
 		guard
 			let keyID = keyID( for: key ),
@@ -67,8 +65,8 @@ final class TypeConstructor {
 		return element
 	}
 	
-	func popBodyElement() throws -> FlattenedElement {
-		// keyed case
+	func popElement() throws -> BlockElement {
+		// unkeyed case
 		guard let element = currentElement.pop() else {
 			throw Errors.GraphCodable.valueNotFound(
 				Self.self, Errors.Context(
@@ -105,7 +103,7 @@ final class TypeConstructor {
 		}
 	}
 	
-	func deferDecode<T,D>( element:FlattenedElement, from decoder:D, _ setter: @escaping (T) -> () ) throws
+	func deferDecode<T,D>( element:BlockElement, from decoder:D, _ setter: @escaping (T) -> () ) throws
 	where T:GDecodable, D:GDecoder {
 		let setterFunc : ( _:TypeConstructor ) throws -> () = {
 			let value : T = try $0.decode( element:element, from:decoder )
@@ -114,7 +112,7 @@ final class TypeConstructor {
 		setterRepository.append( setterFunc )
 	}
 	
-	func decode<T,D>( element:FlattenedElement, from decoder:D ) throws -> T
+	func decode<T,D>( element:BlockElement, from decoder:D ) throws -> T
 	where T:GDecodable, D:GDecoder {
 		switch element.readBlock.fileBlock {
 			case .Val( _, let idnID, let refID ):
@@ -142,7 +140,7 @@ final class TypeConstructor {
 
 // MARK: TypeConstructor private level 1
 extension TypeConstructor {
-	private func decodeAny<T,D>( element:FlattenedElement, from decoder:D, type:T.Type ) throws -> Any
+	private func decodeAny<T,D>( element:BlockElement, from decoder:D, type:T.Type ) throws -> Any
 	where T:GDecodable, D:GDecoder {
 		func decodeIdentifiable<D:GDecoder>( type:T.Type, idnID:IdnID, from decoder:D ) throws -> (any GDecodable)? {
 			//	quando arriva la prima richiesta di un particolare oggetto (da idnID)
@@ -209,7 +207,7 @@ extension TypeConstructor {
 
 // MARK: TypeConstructor private level 2
 extension TypeConstructor {
-	private func decode<T,D>( type:T.Type, refID:RefID?, isBinary:Bool , element:FlattenedElement, from decoder:D ) throws -> T
+	private func decode<T,D>( type:T.Type, refID:RefID?, isBinary:Bool , element:BlockElement, from decoder:D ) throws -> T
 	where T:GDecodable, D:GDecoder {
 		if let refID {
 			return try decodeRefOrBinRef( type:T.self, refID:refID , isBinary:isBinary, element:element, from: decoder )
@@ -223,7 +221,7 @@ extension TypeConstructor {
 
 // MARK: TypeConstructor private level 3
 extension TypeConstructor {
-	private func decodeValue<T,D>( type:T.Type, element:FlattenedElement, from decoder:D ) throws -> T
+	private func decodeValue<T,D>( type:T.Type, element:BlockElement, from decoder:D ) throws -> T
 	where T:GDecodable, D:GDecoder {
 		let saved	= currentElement
 		defer { currentElement = saved }
@@ -241,7 +239,7 @@ extension TypeConstructor {
 		return value
 	}
 
-	private func decodeBinValue<T,D>( type:T.Type, element:FlattenedElement, from decoder:D ) throws -> T
+	private func decodeBinValue<T,D>( type:T.Type, element:BlockElement, from decoder:D ) throws -> T
 	where T:GDecodable, D:GDecoder {
 		let saved	= currentElement
 		defer { currentElement = saved }
@@ -270,7 +268,7 @@ extension TypeConstructor {
 		return value
 	}
 
-	private func decodeRefOrBinRef<T,D>( type:T.Type, refID:RefID, isBinary: Bool, element:FlattenedElement, from decoder:D ) throws -> T
+	private func decodeRefOrBinRef<T,D>( type:T.Type, refID:RefID, isBinary: Bool, element:BlockElement, from decoder:D ) throws -> T
 	where T:GDecodable, D:GDecoder {
 		guard let decodedClass = decodeBinary.decodedClassMap[ refID ] else {
 			throw Errors.GraphCodable.internalInconsistency(
@@ -301,18 +299,11 @@ extension TypeConstructor {
 	}
 	
 	/// ful fileblock information used only for errors
-	private func fileblockDescr( _ element: FlattenedElement ) -> String {
+	private func fileblockDescr( _ element: BlockElement ) -> String {
 		let string = element.readBlock.fileBlock.description(
 			options: .readable, decodedClassMap: decodeBinary.decodedClassMap, keyStringMap: keyStringMap
 		)
-		if let parent = element.parentElement {
-			let  parentString = parent.readBlock.fileBlock.description(
-				options: .readable, decodedClassMap: decodeBinary.decodedClassMap, keyStringMap: keyStringMap
-			)
-			return "Field |\(string)| of value |\(parentString)|"
-		} else {
-			return "Value |\(string)|"
-		}
+		return "Value |\(string)|"
 	}
 }
 

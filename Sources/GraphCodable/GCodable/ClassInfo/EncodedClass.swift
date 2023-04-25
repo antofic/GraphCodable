@@ -74,7 +74,7 @@ extension EncodedClass { 	// init
 			)
 		}
 		self.info	= ClassInfo(
-			manglingFunction, mangledClassName, type.classVersion 
+			manglingFunction, mangledClassName, type.classVersion
 		)
 	}
 }
@@ -107,16 +107,6 @@ extension EncodedClass {	// static primitive functions
 			return false
 		}
 		return classType( from:mangledClassName, manglingFunction:manglingFunction ) != nil
-	}
-	
-	static func throwIfNotConstructible( type:AnyClass, manglingFunction:ManglingFunction ) throws {
-		guard isConstructible( type:type, manglingFunction:manglingFunction ) else {
-			throw Errors.GraphCodable.cantConstructClass(
-				Self.self, Errors.Context(
-					debugDescription:"The class |\( _typeName( type, qualified:true ) )| can't be constructed."
-				)
-			)
-		}
 	}
 }
 

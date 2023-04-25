@@ -77,6 +77,15 @@ extension Errors {
 		/// It can happen **while encoding** only
 		case duplicateKey( Any.Type, Context )
 		
+		///	Indicates that you are trying to conditional encode
+		///	a type without identity.
+		///
+		/// Types without identity (including GPackCodable types)
+		/// can't be conditional encoded.
+		///
+		/// It can happen **while encoding** only
+		case conditionalEncodingRequireIdentity( Any.Type, Context )
+		
 		///	Indicates that you are trying to get information not
 		///	available to value types
 		///

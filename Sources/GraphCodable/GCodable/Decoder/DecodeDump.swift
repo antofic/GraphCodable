@@ -39,7 +39,7 @@ final class DecodeDump: EncodeFileBlocksDelegate {
 		}
 		if dumpOptions.contains( .showFlattenedBody ) {
 			do {
-				let (rootElement,elementMap)	= try FlattenedElement.rootElement(
+				let (rootElement,elementMap)	= try BlockElement.rootElement(
 					readBlocks:	readBlocks
 				)
 				let string = rootElement.dump(

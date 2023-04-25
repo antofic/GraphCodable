@@ -6,23 +6,22 @@
 
 import Foundation
 
-typealias ElementMap = [IdnID : FlattenedElement]
+typealias ElementMap = [IdnID : BlockElement]
 
 /// Decoding Pass 2
 ///
-///	Reorder ReadBlock's in a `rootElement` and a `ElementMap = [idnID : FlattenedElement]`
+///	Reorder ReadBlock's in a `rootElement` and a `ElementMap = [idnID : BlockElement]`
 ///	dictionary to allow decoding of every acyclic graphs without requiring deferDecode
-final class FlattenedElement {
-	private(set) weak var	parentElement 	: FlattenedElement?
+final class BlockElement {
 	private(set) var		readBlock		: ReadBlock
-	private		var			keyedValues		= [KeyID:FlattenedElement]()
-	private		var 		unkeyedValues 	= [FlattenedElement]()
+	private		var			keyedValues		= [KeyID:BlockElement]()
+	private		var 		unkeyedValues 	= [BlockElement]()
 	
 	private init( readBlock:ReadBlock ) {
 		self.readBlock	= readBlock
 	}
 	
-	static func rootElement<S>( readBlocks:S ) throws -> ( rootElement: FlattenedElement, elementMap: ElementMap )
+	static func rootElement<S>( readBlocks:S ) throws -> ( rootElement: BlockElement, elementMap: ElementMap )
 	where S:Sequence, S.Element == ReadBlock {
 		var blockIterator = readBlocks.makeIterator()
 		
@@ -45,8 +44,8 @@ final class FlattenedElement {
 		let root = Self.init(readBlock: readBlock)
 	
 		var elementMap	= ElementMap()
-		try Self.flatten( elementMap: &elementMap, element: root, blockIterator: &blockIterator, reverse: true )
-		
+		try Self.buildGraph( root, elementMap: &elementMap, blockIterator: &blockIterator, flatten: true )
+
 		return (root,elementMap)
 	}
 	
@@ -58,19 +57,21 @@ final class FlattenedElement {
 		keyedValues.index(forKey: keyID) != nil
 	}
 	
-	func pop( keyID:KeyID ) -> FlattenedElement? {
+	func pop( keyID:KeyID ) -> BlockElement? {
 		keyedValues.removeValue(forKey: keyID)
 	}
 	
-	func pop() -> FlattenedElement? {
+	func pop() -> BlockElement? {
 		unkeyedCount > 0 ? unkeyedValues.removeLast() : nil
 	}
 }
 
 // MARK: BodyElement private flatten section
-extension FlattenedElement {
+extension BlockElement {
 	@discardableResult
-	private static func pointerRoot( element:FlattenedElement,elementMap map: inout ElementMap, keyID:KeyID?, idnID:IdnID ) throws -> FlattenedElement {
+	private static func replaceWithPtr(
+		_ element:BlockElement,elementMap map: inout ElementMap, keyID:KeyID?, idnID:IdnID
+	) throws -> BlockElement {
 		//	l'oggetto non può già trovarsi nella map
 		guard map.index(forKey: idnID) == nil else {
 			throw Errors.GraphCodable.internalInconsistency(
@@ -80,7 +81,7 @@ extension FlattenedElement {
 			)
 		}
 		// creo un nuovo elemento con il readBlock
-		let root = FlattenedElement( readBlock: element.readBlock )
+		let root = BlockElement( readBlock: element.readBlock )
 		// metto il nuovo elemento nella mappa
 		map[ idnID ]	= root
 		// al posto del vecchio elemento metto un puntatore al vecchio elemento
@@ -89,68 +90,149 @@ extension FlattenedElement {
 		return root
 	}
 	
-	private static func flatten<T>(
-		elementMap map: inout ElementMap, element:FlattenedElement, blockIterator: inout T, reverse:Bool
+	private static func buildGraph<T>(
+		_ element:BlockElement, elementMap map: inout ElementMap, blockIterator: inout T, flatten: Bool
 	) throws where T:IteratorProtocol, T.Element == ReadBlock {
 		switch element.readBlock.fileBlock {
 			case .Val( let keyID, let idnID, _ ):
-				if let idnID {
-					let root = try pointerRoot( element:element, elementMap: &map, keyID:keyID, idnID:idnID )
-					try subFlatten(
-						elementMap: &map, parentElement:root, blockIterator:&blockIterator, reverse:reverse
-					)
+				if flatten, let idnID {
+					let root = try replaceWithPtr( element, elementMap: &map, keyID:keyID, idnID:idnID )
+					try buildSubGraph( root, elementMap: &map, blockIterator:&blockIterator, flatten: flatten )
 				} else {
-					try subFlatten(
-						elementMap: &map, parentElement:element, blockIterator:&blockIterator, reverse:reverse
-					)
+					try buildSubGraph( element, elementMap: &map, blockIterator:&blockIterator, flatten: flatten )
 				}
 			case .Bin( let keyID, let idnID, _, _ ):
-				if let idnID {
-					try pointerRoot( element:element, elementMap: &map, keyID:keyID, idnID:idnID )
-				}
-				// ATT! NO subFlatten for BinValue's
-			default:
-				//	nothing to do
+				if flatten, let idnID {
+					try replaceWithPtr( element, elementMap: &map, keyID:keyID, idnID:idnID )
+				}	// ATT! NO subFlatten for BinValue's
+			default: //	nothing to do
 				break
 		}
 	}
 	
-	
-	private static func subFlatten<T>(
-		elementMap map: inout ElementMap, parentElement:FlattenedElement, blockIterator: inout T, reverse:Bool
+	private static func buildSubGraph<T>(
+		_ element:BlockElement, elementMap map: inout ElementMap, blockIterator: inout T, flatten: Bool
 	) throws where T:IteratorProtocol, T.Element == ReadBlock {
+		
 		while let readBlock = blockIterator.next() {
-			let element = FlattenedElement( readBlock: readBlock )
+			let field = BlockElement( readBlock: readBlock )
 			
 			if case .End = readBlock.fileBlock {
 				break
 			} else {
-				element.parentElement = parentElement
+				//	field.parentElement = element
 				
 				if let keyID = readBlock.fileBlock.keyID {
-					guard parentElement.keyedValues.index(forKey: keyID) == nil else {
+					guard element.keyedValues.index(forKey: keyID) == nil else {
 						throw Errors.GraphCodable.malformedArchive(
 							Self.self, Errors.Context(
 								debugDescription: "KeyID |\(keyID)| already in use."
 							)
 						)
 					}
-					parentElement.keyedValues[ keyID ] = element
+					element.keyedValues[ keyID ] = field
 				} else {
-					parentElement.unkeyedValues.append( element )
+					element.unkeyedValues.append( field )
 				}
 				
-				try flatten( elementMap: &map, element: element, blockIterator: &blockIterator, reverse: reverse )
+				try buildGraph( field, elementMap: &map, blockIterator: &blockIterator, flatten: flatten )
 			}
 		}
-		if reverse {
-			parentElement.unkeyedValues.reverse()
-		}
+		element.unkeyedValues.reverse()
 	}
 }
 
+
+
+/*
+extension BlockElement : Hashable {
+	static func == (lhs: BlockElement, rhs: BlockElement) -> Bool {
+		lhs === rhs
+	}
+	
+	func hash(into hasher: inout Hasher) {
+		hasher.combine( ObjectIdentifier( self ) )
+	}
+}
+
+extension BlockElement {
+	private struct ColorMap {
+		enum Color { case white, gray, black }
+		
+		private var colorMap = [BlockElement:Color]()
+		
+		subscript( elem:BlockElement ) -> Color {
+			get { colorMap[elem] ?? .white }
+			set { colorMap[elem] = newValue }
+		}
+	}
+	
+	func isCyclic( elementMap:ElementMap ) -> Bool {
+		var colorMap = ColorMap()
+		if let element = self.trueValue(elementMap: elementMap) {
+			return element.isCyclic(elementMap: elementMap, colorMap: &colorMap)
+		} else {
+			return false
+		}
+	}
+	
+	private func withField( apply: ( _ element:BlockElement )->Bool ) -> Bool {
+		for field in unkeyedValues {
+			if apply( field ) {
+				return true
+			}
+		}
+		for field in keyedValues.values {
+			if apply( field ) {
+				return true
+			}
+		}
+		return false
+	}
+	
+	private func isCyclic( elementMap:ElementMap, colorMap:inout ColorMap ) -> Bool {
+		colorMap[ self ] = .gray
+		
+		if withField( apply: { field in
+			if let trueField = field.trueValue( elementMap:elementMap ) {
+				switch colorMap[ trueField ] {
+					case .white:
+						if trueField.isCyclic(elementMap: elementMap, colorMap: &colorMap) {
+							return true
+						}
+					case .gray:
+						return true
+					case .black:
+						break
+				}
+			}
+			return false
+		}) {
+			return true
+		}
+		
+		colorMap[ self ] = .black
+		return false
+	}
+		 
+	private func trueValue( elementMap:ElementMap ) -> BlockElement? {
+		switch readBlock.fileBlock {
+			case .Ptr( _, let idnID , _ ):
+				return elementMap[ idnID ]
+			case .Val( _,_,_ ):
+				return self
+			case .Bin( _,_,_,_ ):
+				return self
+			default:
+				return nil
+		}
+	}
+}
+*/
+
+
 // MARK: BodyElement dump section
-extension FlattenedElement {
+extension BlockElement {
 	func dump(
 		elementMap: ElementMap, encodedClassMap: EncodedClassMap?, keyStringMap: KeyStringMap?,
 		options: GraphDumpOptions

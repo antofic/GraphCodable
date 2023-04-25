@@ -8,7 +8,7 @@ import Foundation
 
 ///	An object that encodes instances of a **GEncodable** type
 ///	into a data buffer that uses **GraphCodable** format.
-public final class GraphEncoder {
+public struct GraphEncoder {
 	private let encoder	: GEncoderImpl
 
 	/// GraphEncoder init method
@@ -115,31 +115,21 @@ extension GraphEncoder {
 
 		///	Resort to hashable identity
 		///
-		/// If .disableIdentity == false, uses immediately the value as identity.
+		/// If .disableIdentity == false, uses immediately the value as identity
+		/// if the value is Hashable.
 		///
 		/// - Note: This option is disabled by default
 		/// - Note: The option can be expensive in certain situations
 		public static let	tryHashableIdentityAtFirst							= Self( rawValue: 1 << 4 )
+		
 		///	Resort to hashable identity if any other fails
 		///
-		/// If .disableIdentity == false, any other tentative to aquire an identity
-		/// has failed, the value is Hashable, uses the value as identity.
+		/// If .disableIdentity == false and any other tentative to aquire an identity
+		/// has failed and the value is Hashable, uses the value as identity.
 		///
 		/// - Note: This option is disabled by default
 		/// - Note: The option can be expensive in certain situations
 		public static let	tryHashableIdentityAtLast							= Self( rawValue: 1 << 5 )
-
-		///	Enable printing of warnings
-		///
-		/// If this flag is enabled, the encoder doesn't generate an exception
-		/// but print a warning if:
-		/// - a value with no identity is conditionally encoded.
-		/// The value is encoded unconditionally.
-		/// - a reference type uses the versioning system. To use the versioning
-		/// system, the reference type must have identity.
-		///
-		/// - Note: This option is auto-enabled if DEBUG is active.
-		public static let	printWarnings										= Self( rawValue: 1 << 6 )
 
 		public static let	mimicSwiftCodable:				Self 	= [ disableIdentity, disableInheritance ]
 		public static let	defaultOptions:					Self 	= []

@@ -24,6 +24,11 @@ struct ReadBlock {
 		ioDecoder.position += self.fileBlock.nextFileBlockDistance
 	}
 
+	init( fileBlock:FileBlock, position:Int ) {
+		self.fileBlock	= fileBlock
+		self.position	= position
+	}
+	
 	init( strongPointerKeyID keyID:KeyID?, idnID:IdnID, position:Int ) {
 		self.fileBlock	= .Ptr(keyID: keyID, idnID: idnID, conditional: false)
 		self.position	= position

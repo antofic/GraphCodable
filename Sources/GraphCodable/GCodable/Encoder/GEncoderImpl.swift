@@ -71,11 +71,7 @@ final class GEncoderImpl : EncodeFileBlocksDelegate {
 	}
 	
 	init( _ options: GraphEncoder.Options, userVersion:UInt32, archiveIdentifier: String? ) {
-		#if DEBUG
-		self.encodeOptions		= [options, .printWarnings]
-		#else
-		self.encodeOptions		= [options]
-		#endif
+		self.encodeOptions		= options
 		self.userVersion		= userVersion
 		self.archiveIdentifier	= archiveIdentifier
 	}
@@ -163,10 +159,13 @@ extension GEncoderImpl {
 	
 	private func level2_encodeValue(_ value: some GEncodable, keyID: KeyID?, conditional:Bool ) throws {
 		if let trivialValue = value as? any GPackEncodable {
-			if encodeOptions.contains( .printWarnings ) {
-				if conditional {
-					print( "### Warning: can't conditionally encode the type '\( type(of:value) )' without identity. It will be encoded unconditionally." )
-				}
+			if conditional {
+				throw Errors.GraphCodable.conditionalEncodingRequireIdentity(
+					Self.self, Errors.Context(
+						debugDescription:
+							"Can't conditionally encode a GPackEncodable |\( type(of:value) )| type."
+					)
+				)
 			}
 			try blockEncoder.appendBin(keyID: keyID, refID:nil, idnID:nil, value: trivialValue )
 		} else if let identity = identity( of:value ) {	// IDENTITY
@@ -186,10 +185,13 @@ extension GEncoderImpl {
 				try level3_encodeValue( value, keyID: keyID, idnID: idnID )
 			}
 		} else {	// NO IDENTITY
-			if encodeOptions.contains( .printWarnings ) {
-				if conditional {
-					print( "### Warning: can't conditionally encode the type '\( type(of:value) )' without identity. It will be encoded unconditionally." )
-				}
+			if conditional, encodeOptions.contains(.disableIdentity) == false {
+				throw Errors.GraphCodable.conditionalEncodingRequireIdentity(
+					Self.self, Errors.Context(
+						debugDescription:
+							"Can't conditionally encode a type |\( type(of:value) )| without identity."
+					)
+				)
 			}
 			try level3_encodeValue( value, keyID: keyID, idnID: nil )
 		}
@@ -267,8 +269,14 @@ extension GEncoderImpl {
 		if
 			value.inheritanceEnabled,
 			encodeOptions.contains( .disableInheritance ) == false,
-			let object = value as? any (AnyObject & GEncodable) {
-			try EncodedClass.throwIfNotConstructible( type: type(of:object), manglingFunction: manglingFunction )
+			let type = type(of:value) as? AnyClass,
+			EncodedClass.isConstructible(type: type, manglingFunction: manglingFunction) == false
+		{
+			throw Errors.GraphCodable.cantConstructClass(
+				Self.self, Errors.Context(
+					debugDescription:"The class |\( type )| can't be constructed."
+				)
+			)
 		}
 	}
 	
