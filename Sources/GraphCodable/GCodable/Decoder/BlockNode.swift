@@ -79,7 +79,7 @@ extension BlockNode {
 extension BlockNode {
 	@discardableResult
 	private static func replaceWithPtr(
-		_ node:BlockNode, nodeMap map: inout [IdnID : BlockNode<Block>],
+		_ node:BlockNode, nodeMap map: [IdnID : BlockNode<Block>],
 		keyID:KeyID?, idnID:IdnID
 	) throws -> BlockNode {
 		//	l'oggetto non può già trovarsi nella map
@@ -106,7 +106,7 @@ extension BlockNode {
 		switch node.block.fileBlock {
 			case .Val( let keyID, let idnID, _ ):
 				if let idnID {
-					let root = try replaceWithPtr( node, nodeMap: &map, keyID:keyID, idnID:idnID )
+					let root = try replaceWithPtr( node, nodeMap: map, keyID:keyID, idnID:idnID )
 					try buildSubGraph( root, nodeMap: &map, blockIterator:&blockIterator )
 					map[ idnID ]	= root
 				} else {
@@ -114,7 +114,7 @@ extension BlockNode {
 				}
 			case .Bin( let keyID, let idnID, _, _ ):
 				if let idnID {
-					let root = try replaceWithPtr( node, nodeMap: &map, keyID:keyID, idnID:idnID )
+					let root = try replaceWithPtr( node, nodeMap: map, keyID:keyID, idnID:idnID )
 					map[ idnID ]	= root
 				}	// ATT! NO subFlatten for BinValue's
 			default: //	nothing to do
