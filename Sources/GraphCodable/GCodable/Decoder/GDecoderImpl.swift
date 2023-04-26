@@ -76,35 +76,35 @@ extension GDecoderImpl : GDecoder, GDecoderView {
 	func decode<Key, Value>( _ type:Value.Type, for key: Key ) throws -> Value
 	where Key : RawRepresentable, Value : GDecodable, Key.RawValue == String
 	{
-		let	element = try constructor.popElement( key:key.rawValue )
+		let	node = try constructor.popNode( key:key.rawValue )
 		
-		return try constructor.decode( element:element, from: self )
+		return try constructor.decode( node:node, from: self )
 	}
 	
 	func deferDecode<Key, Value>( _ type:Value.Type, for key: Key, _ setter: @escaping (Value) -> ()) throws
 	where Key : RawRepresentable, Value : GDecodable, Key.RawValue == String
 	{
-		let	element = try constructor.popElement( key:key.rawValue )
+		let	node = try constructor.popNode( key:key.rawValue )
 
-		try constructor.deferDecode( element:element, from: self, setter )
+		try constructor.deferDecode( node:node, from: self, setter )
 	}
 
 	// ------ unkeyed support
 	
 	var unkeyedCount : Int {
-		constructor.currentElement.unkeyedCount
+		constructor.currentNode.unkeyedCount
 	}
 	
 	func decode<Value>( _ type:Value.Type ) throws -> Value where Value : GDecodable {
-		let	element = try constructor.popElement()
+		let	node = try constructor.popNode()
 
-		return try constructor.decode( element:element, from: self )
+		return try constructor.decode( node:node, from: self )
 	}
 	
 	func deferDecode<Value>( _ type:Value.Type, _ setter: @escaping (Value) -> () ) throws where Value : GDecodable {
-		let	element = try constructor.popElement()
+		let	node = try constructor.popNode()
 
-		try constructor.deferDecode( element:element, from: self, setter )
+		try constructor.deferDecode( node:node, from: self, setter )
 	}
 }
 

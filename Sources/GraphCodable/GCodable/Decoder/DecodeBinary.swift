@@ -11,10 +11,10 @@ typealias KeyIDMap		= [String : KeyID]
 struct DecodeBinary {
 	let fileHeader			: FileHeader
 	let	decodedClassMap		: DecodedClassMap
-	let rootElement 		: BlockElement
+	let rootNode 			: ReadNode
 	let keyIDMap			: KeyIDMap
 	
-	private var	elementMap	: ElementMap
+	private var	nodeMap	: ReadNodeMap
 	
 	init( from ioDecoder:BinaryIODecoder, classNameMap:ClassNameMap? ) throws {
 		var readBlockDecoder	= try DecodeReadBlocks( from: ioDecoder )
@@ -27,8 +27,8 @@ struct DecodeBinary {
 
 		self.fileHeader			= fileHeader
 		self.decodedClassMap	= decodedClassMap
-		(self.rootElement,self.elementMap)	= try BlockElement.rootElement(
-			readBlocks:	readBlocks
+		(self.rootNode,self.nodeMap)	= try BlockNode.flatGraph(
+			blocks:	readBlocks
 		)
 
 		self.keyIDMap			= Dictionary(
@@ -36,8 +36,8 @@ struct DecodeBinary {
 		)
 	}
 	
-	mutating func pop( idnID:IdnID ) -> BlockElement? {
-		elementMap.removeValue( forKey: idnID )
+	mutating func pop( idnID:IdnID ) -> ReadNode? {
+		nodeMap.removeValue( forKey: idnID )
 	}
 	
 }

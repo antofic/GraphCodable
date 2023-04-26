@@ -39,11 +39,11 @@ final class DecodeDump: EncodeFileBlocksDelegate {
 		}
 		if dumpOptions.contains( .showFlattenedBody ) {
 			do {
-				let (rootElement,elementMap)	= try BlockElement.rootElement(
-					readBlocks:	readBlocks
+				let (rootNode,nodeMap)	= try BlockNode.flatGraph(
+					blocks:	readBlocks
 				)
-				let string = rootElement.dump(
-					elementMap:			elementMap,
+				let string = rootNode.dump(
+							nodeMap:	nodeMap,
 					encodedClassMap:	encodedClassMap,
 					keyStringMap:		keyStringMap,
 					options: 			dumpOptions
