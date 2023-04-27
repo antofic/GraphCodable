@@ -22,9 +22,10 @@ final class GDecoderImpl {
 	
 	func allEncodedClass( from data: some DataProtocol ) throws -> [EncodedClass] {
 		let ioDecoder 		= try ioDecoder(from: data)
-		let decodedNames	= try DecodeClassNames(from: ioDecoder)
-
-		return Array( decodedNames.encodedClassMap.values )
+		var blockDecoder	= try DecodeReadBlocks( from: ioDecoder )
+		let encodedClassMap	= try blockDecoder.encodedClassMap()
+		
+		return Array( encodedClassMap.values )
 	}
 	
 	func decodeRoot<T>( _ type: T.Type, from data: some DataProtocol ) throws -> T
@@ -42,6 +43,15 @@ final class GDecoderImpl {
 		let decodedDump	= try DecodeDump(from: ioDecoder, classNameMap:classNameMap, options: options)
 		
 		return decodedDump.dump()
+	}
+	
+	func isCyclic( from data: some DataProtocol ) throws -> Bool {
+		let ioDecoder 		= try ioDecoder(from: data)
+		var blockDecoder	= try DecodeReadBlocks( from: ioDecoder )
+		let readBlocks		= try blockDecoder.readBlocks()
+		let (root,nodeMap)	= try ReadNode.flatGraph(blocks: readBlocks)
+
+		return root.isCyclic(nodeMap: nodeMap)
 	}
 	
 	func encodedArchiveIdentifier( from data: some DataProtocol ) throws -> String? {

@@ -74,7 +74,6 @@ extension BlockNode {
 	}
 }
 
-
 // MARK: BlockNode private flatten section
 extension BlockNode {
 	@discardableResult
@@ -91,9 +90,7 @@ extension BlockNode {
 			)
 		}
 		// creo un nuovo nodo con il readBlock
-		let root 		= BlockNode( block: node.block )
-		// metto il nuovo nodo nella mappa
-		//	map[ idnID ]	= root
+		let root 	= BlockNode( block: node.block )
 		// al posto del vecchio nodo metto un puntatore al vecchio nodo
 		node.block	= Block(pointerTo: node.block, conditional: false)!
 		
@@ -128,12 +125,13 @@ extension BlockNode {
 		
 		while let block = blockIterator.next() {
 			let field = BlockNode( block: block )
-			
+
 			if case .End = block.fileBlock {
 				break
 			} else {
 				//	field.parentNode = node
-				
+				try buildGraph( field, nodeMap: &map, blockIterator: &blockIterator )
+
 				if let keyID = block.fileBlock.keyID {
 					guard node.keyedValues.index(forKey: keyID) == nil else {
 						throw Errors.GraphCodable.malformedArchive(
@@ -147,13 +145,13 @@ extension BlockNode {
 					node.unkeyedValues.append( field )
 				}
 				
-				try buildGraph( field, nodeMap: &map, blockIterator: &blockIterator )
 			}
 		}
 		node.unkeyedValues.reverse()
 	}
 }
-/*
+
+// MARK: BlockNode cycle discovering
 extension BlockNode : Hashable {
 	static func == (lhs: BlockNode, rhs: BlockNode) -> Bool {
 		lhs === rhs
@@ -185,14 +183,14 @@ extension BlockNode {
 		}
 	}
 	
-	private func withEachField( apply: ( _ node:BlockNode )->Bool ) -> Bool {
-		for field in unkeyedValues {
-			if apply( field ) {
+	private func withEachField( isCyclic: ( _ :BlockNode )->Bool ) -> Bool {
+		for field in keyedValues.values {
+			if isCyclic( field ) {
 				return true
 			}
 		}
-		for field in keyedValues.values {
-			if apply( field ) {
+		for field in unkeyedValues {
+			if isCyclic( field ) {
 				return true
 			}
 		}
@@ -202,7 +200,7 @@ extension BlockNode {
 	private func isCyclic( nodeMap:[IdnID : BlockNode<Block>], colorMap:inout ColorMap ) -> Bool {
 		colorMap[ self ] = .gray
 		
-		if withEachField( apply: { field in
+		let isCyclic = withEachField { field in
 			if let trueField = field.trueValue( nodeMap:nodeMap ) {
 				switch colorMap[ trueField ] {
 					case .white:
@@ -216,12 +214,14 @@ extension BlockNode {
 				}
 			}
 			return false
-		}) {
-			return true
 		}
 		
-		colorMap[ self ] = .black
-		return false
+		if isCyclic {
+			return true
+		} else {
+			colorMap[ self ] = .black
+			return false
+		}		
 	}
 		 
 	private func trueValue( nodeMap:[IdnID : BlockNode<Block>] ) -> BlockNode? {
@@ -237,7 +237,7 @@ extension BlockNode {
 		}
 	}
 }
-*/
+
 // MARK: BlockNode dump section
 extension BlockNode {
 	func dump(

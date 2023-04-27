@@ -103,8 +103,8 @@ final class TypeConstructor {
 		}
 	}
 	
-	func deferDecode<T,D>( node:ReadNode, from decoder:D, _ setter: @escaping (T) -> () ) throws
-	where T:GDecodable, D:GDecoder {
+	func deferDecode<T>( node:ReadNode, from decoder:some GDecoder, _ setter: @escaping (T) -> () ) throws
+	where T:GDecodable {
 		let setterFunc : ( _:TypeConstructor ) throws -> () = {
 			let value : T = try $0.decode( node:node, from:decoder )
 			setter( value )
@@ -112,8 +112,8 @@ final class TypeConstructor {
 		setterRepository.append( setterFunc )
 	}
 	
-	func decode<T,D>( node:ReadNode, from decoder:D ) throws -> T
-	where T:GDecodable, D:GDecoder {
+	func decode<T>( node:ReadNode, from decoder:some GDecoder ) throws -> T
+	where T:GDecodable {
 		switch node.block.fileBlock {
 			case .Val( _, let idnID, let refID ):
 				if idnID == nil {
@@ -123,7 +123,6 @@ final class TypeConstructor {
 				if idnID == nil {
 					return try decode(type: T.self, refID: refID, isBinary: true, node: node, from: decoder)
 				}
-				
 			default:
 				break
 		}
@@ -140,9 +139,9 @@ final class TypeConstructor {
 
 // MARK: TypeConstructor private level 1
 extension TypeConstructor {
-	private func decodeAny<T,D>( node:ReadNode, from decoder:D, type:T.Type ) throws -> Any
-	where T:GDecodable, D:GDecoder {
-		func decodeIdentifiable<D:GDecoder>( type:T.Type, idnID:IdnID, from decoder:D ) throws -> (any GDecodable)? {
+	private func decodeAny<T>( node:ReadNode, from decoder:some GDecoder, type:T.Type ) throws -> Any
+	where T:GDecodable {
+		func decodeIdentifiable( type:T.Type, idnID:IdnID, from decoder:some GDecoder ) throws -> (any GDecodable)? {
 			//	quando arriva la prima richiesta di un particolare oggetto (da idnID)
 			//	lo costruiamo (se esiste) e lo mettiamo nell'objectRepository in modo
 			//	che le richieste successive peschino di lì.
@@ -207,8 +206,8 @@ extension TypeConstructor {
 
 // MARK: TypeConstructor private level 2
 extension TypeConstructor {
-	private func decode<T,D>( type:T.Type, refID:RefID?, isBinary:Bool , node:ReadNode, from decoder:D ) throws -> T
-	where T:GDecodable, D:GDecoder {
+	private func decode<T>( type:T.Type, refID:RefID?, isBinary:Bool , node:ReadNode, from decoder:some GDecoder ) throws -> T
+	where T:GDecodable {
 		if let refID {
 			return try decodeRefOrBinRef( type:T.self, refID:refID , isBinary:isBinary, node:node, from: decoder )
 		} else if isBinary {
@@ -221,8 +220,8 @@ extension TypeConstructor {
 
 // MARK: TypeConstructor private level 3
 extension TypeConstructor {
-	private func decodeValue<T,D>( type:T.Type, node:ReadNode, from decoder:D ) throws -> T
-	where T:GDecodable, D:GDecoder {
+	private func decodeValue<T>( type:T.Type, node:ReadNode, from decoder:some GDecoder ) throws -> T
+	where T:GDecodable {
 		let saved	= currentNode
 		defer { currentNode = saved }
 		currentNode	= node
@@ -239,8 +238,8 @@ extension TypeConstructor {
 		return value
 	}
 
-	private func decodeBinValue<T,D>( type:T.Type, node:ReadNode, from decoder:D ) throws -> T
-	where T:GDecodable, D:GDecoder {
+	private func decodeBinValue<T>( type:T.Type, node:ReadNode, from decoder:some GDecoder ) throws -> T
+	where T:GDecodable {
 		let saved	= currentNode
 		defer { currentNode = saved }
 		currentNode	= node
@@ -268,8 +267,8 @@ extension TypeConstructor {
 		return value
 	}
 
-	private func decodeRefOrBinRef<T,D>( type:T.Type, refID:RefID, isBinary: Bool, node:ReadNode, from decoder:D ) throws -> T
-	where T:GDecodable, D:GDecoder {
+	private func decodeRefOrBinRef<T>( type:T.Type, refID:RefID, isBinary: Bool, node:ReadNode, from decoder:some GDecoder ) throws -> T
+	where T:GDecodable {
 		guard let decodedClass = decodeBinary.decodedClassMap[ refID ] else {
 			throw Errors.GraphCodable.internalInconsistency(
 				Self.self, Errors.Context(

@@ -117,6 +117,16 @@ final class GEncoderImpl : EncodeFileBlocksDelegate {
 		try encode( value )
 		return blockEncoder.dump()
 	}
+	
+	func isCyclic( _ value: some GEncodable ) throws -> Bool {
+		let blockEncoder	= EncodeBody()
+		self.blockEncoder	= blockEncoder
+		try encode( value )
+		let fileBlocks		= blockEncoder.fileBlocks
+		let (root,nodeMap)	= try BlockNode<FileBlock>.flatGraph(blocks: fileBlocks)
+
+		return root.isCyclic(nodeMap: nodeMap)
+	}
 }
 
 // MARK: GEncoderImpl conformance to GEncoder/GEncoderView protocol

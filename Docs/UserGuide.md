@@ -16,6 +16,7 @@
   - [Directed cyclic graphs (DCG): using `deferDecode(...)`](#Directed-cyclic-graphs-(DCG):-using-`deferDecode(...)`)
     - [Weak variables example](#Weak-variables-example)
     - [A more general example](#A-more-general-example)
+  - [The `isCyclic` function](#The-`isCyclic`-function)
   - [Identity for value types that use copy on write (COW)](#Identity-for-value-types-that-use-copy-on-write-(COW))
   - [Identity for swift system value types that use copy on write (COW)](#Identity-for-swift-system-value-types-that-use-copy-on-write-(COW))
   - [Identity alternative design](#Identity-alternative-design)
@@ -1191,6 +1192,22 @@ decoded Model:
 true 
 ```
 
+### The `isCyclic` function
+
+The GraphEncoder's function:
+
+```swift
+func isCyclic( _ value: some GEncodable ) throws -> Bool
+```
+
+allows you to check whether the value to be encoded will form a cyclic graph. Similarly, the GraphDecoder's function:
+
+```swift
+func isCyclic( from data: some DataProtocol ) throws -> Bool
+```
+
+ allows you to check whether the data to be decoded forms a cyclic graph.
+
 ### Identity for value types that use copy on write (COW)
 
 The following example demonstrates how to give identity to an *Array-like* type that implements the COW mechanism. The buffer (for simplicity a swift Array is used) is contained in a box reference so that it can be copied only when the box is shared by multiple arrays.
@@ -1273,9 +1290,9 @@ extension MyArray: GCodable where Element:GCodable {
 Let's see what happens by encoding a composition of MyArray and printing the result of the encoding in readable format.
 
 ```swift
-let a 			= MyArray( [1,2] )
-let b			= MyArray( [a,a] )
-let inRoot		= MyArray( [b,b] )
+let a = MyArray( [1,2] )
+let b = MyArray( [a,a] )
+let inRoot = MyArray( [b,b] )
 print("••• MYArray = \(inRoot) ")
 print( try GraphEncoder().dump( inRoot ) )
 ```
@@ -1406,7 +1423,7 @@ extension GEncodable where Self:AnyObject {
 
 ```
 
-In fact it was the first choice, because it was simpler, but in this way it would have been impossible for the user to choose to provide identities to system types (like `String`) that already adopt the `GEncodable` protocol in the library. This is why I then chose to adopt a separate protocol.
+In fact it was the first choice, because it was simpler and faster, but in this way it would have been impossible for the user to choose to provide identities to system types (like `String`) that already adopt the `GEncodable` protocol in the library. This is why I then chose to adopt a separate protocol.
 
 ### Control identity globally
 

@@ -6,8 +6,8 @@
 
 import Foundation
 
-
 typealias ReadBlocks = [ReadBlock]
+
 
 /// Decoding Pass 1
 ///
@@ -19,7 +19,7 @@ struct DecodeReadBlocks {
 	private var ioDecoder			: BinaryIODecoder
 
 	private var _encodedClassMap	: EncodedClassMap?
-	private var _readBlocks			: ReadBlocks?
+	private var _blocks				: ReadBlocks?
 	private var _keyStringMap		: KeyStringMap?
 
 	init( from ioDecoder:BinaryIODecoder ) throws {
@@ -45,19 +45,19 @@ struct DecodeReadBlocks {
 	/// decode fileblocks from the BinaryIODecoder
 	/// and trasform them in ReadBlock's
 	mutating func readBlocks() throws -> ReadBlocks {
-		if let readBlocks = self._readBlocks { return readBlocks }
+		if let blocks = self._blocks { return blocks }
 
-		let readBlocks	= try ioDecoder.withinRegion( range: regionRange( of:.body ) ) {
-			var readBlocks	= [ReadBlock]()
+		let blocks	= try ioDecoder.withinRegion( range: regionRange( of:.body ) ) {
+			var blocks	= ReadBlocks()
 			while $0.isEndOfRegion == false {
-				let readBlock	= try ReadBlock( from: &$0 )
-				readBlocks.append( readBlock )
+				let block	= try ReadBlock( from: &$0 )
+				blocks.append( block )
 			}
-			return readBlocks
+			return blocks
 		}
 
-		self._readBlocks	= readBlocks
-		return readBlocks
+		self._blocks	= blocks
+		return blocks
 	}
 
 	/// decode the keyString map from the BinaryIODecoder

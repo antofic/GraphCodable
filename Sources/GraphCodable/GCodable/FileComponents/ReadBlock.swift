@@ -7,8 +7,8 @@
 import Foundation
 
 protocol FileBlockProtocol {
+	init(from ioDecoder: inout BinaryIODecoder ) throws
 	init?( pointerTo:Self, conditional:Bool )
-	
 	var fileBlock : FileBlock { get }
 }
 
