@@ -36,5 +36,5 @@ public protocol BEncoder {
 	///
 	/// - parameter encodeFunc: the closure
 	/// - returns: the return value of the closure
-	mutating func withUnderlyingType<T>( _ encodeFunc: (inout BinaryIOEncoder) throws -> T ) rethrows -> T
+	mutating func withUnderlyingEncoder<T>( _ encodeFunc: (inout BinaryIOEncoder) throws -> T ) rethrows -> T
 }

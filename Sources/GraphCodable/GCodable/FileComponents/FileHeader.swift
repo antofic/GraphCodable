@@ -71,8 +71,8 @@ struct FileHeader : CustomStringConvertible, BCodable {
 	init(from decoder: inout some BDecoder) throws {
 		self.archiveIdentifier	= decoder.encodedArchiveIdentifier
 		self.userVersion		= decoder.encodedUserVersion
-		self.binaryIOFlags		= decoder.withUnderlyingType { $0.encodedBinaryIOFlags }
-		self.binaryIOVersion	= decoder.withUnderlyingType { $0.encodedBinaryIOVersion }
+		self.binaryIOFlags		= decoder.withUnderlyingDecoder { $0.encodedBinaryIOFlags }
+		self.binaryIOVersion	= decoder.withUnderlyingDecoder { $0.encodedBinaryIOVersion }
 		self.gcodableVersion	= try decoder.decode()
 		self.gcoadableFlags		= try decoder.decode()
 	}

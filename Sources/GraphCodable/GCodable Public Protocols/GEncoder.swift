@@ -4,6 +4,10 @@
 //
 //	Copyright (c) 2021-2023 Antonino Ficarra
 
+public protocol OptionalProtocol {}
+extension Optional : OptionalProtocol {}
+
+
 /// A type that can encode values into a native format for external
 /// representation.
 public protocol GEncoder {
@@ -38,7 +42,7 @@ public protocol GEncoder {
 	/// - parameter key: The key to associate the value with.
 	func encode<Key,Value>(_ value: Value, for key:Key ) throws where
 		Value : GEncodable, Key:RawRepresentable, Key.RawValue == String
-
+	
 	/// Encodes the given value/reference for the given key if it is not `nil`.
 	///
 	/// - parameter value: The value to encode.

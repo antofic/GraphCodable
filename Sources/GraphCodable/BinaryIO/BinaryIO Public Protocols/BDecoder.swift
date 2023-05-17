@@ -16,24 +16,6 @@ public protocol BDecoder {
 	/// Any contextual information set by the user for decoding.
 	var userData: Any? { get }
 	
-	/// Try peeking a value from the `decoder`.
-	///
-	///	`peek(_:)` try to decode a `BDecodable` value from the `decoder`.
-	///	If decoding throws an error, the error is catched, the decoder
-	///	cursor doesn't move and the function returns `nil`.
-	/// If decoding is successful, it pass the decoded value to
-	/// the `isValid` closure.
-	/// If `isValid` returns `true`, the value is considered good,
-	/// the `decoder` cursor moves to the next value, and `peek`
-	/// returns the value.
-	/// If `isValid` returns `false`, the value is not considered good,
-	/// the `decoder` cursor doesn't move and `peek` returns `nil`.
-	///
-	/// - parameter type: The type of the value to decode
-	/// - parameter isValid: A function to check the decoded value
-	/// - returns: The decoded and valid value, `nil` otherwise.
-	mutating func peek<Value:BDecodable >( _ type:Value.Type, _ isValid:( Value ) -> Bool ) -> Value?
-
 	/// Decodes a value of the given type.
 	///
 	///	Value must adopt the `BDecodable` protocol
@@ -56,29 +38,10 @@ public protocol BDecoder {
 	///
 	/// - parameter decodeFunc: the closure
 	/// - returns: the return value of the closure
-	mutating func withUnderlyingType<T>( _ decodeFunc: (inout BinaryIODecoder) throws -> T ) rethrows -> T
+	mutating func withUnderlyingDecoder<T>( _ decodeFunc: (inout BinaryIODecoder) throws -> T ) rethrows -> T
 }
 
 public extension BDecoder {
-	/// Try peeking a value from the `decoder`.
-	///
-	///	`peek(_:)` try to decode a `BDecodable` value from the `decoder`.
-	///	If decoding throws an error, the error is catched, the decoder
-	///	cursor doesn't move and the function returns `nil`.
-	/// If decoding is successful, it pass the value to the `accept`
-	/// closure.
-	/// If accept returns `true`, the value is considered good,
-	/// the `decoder` cursor moves to the next value, and `peek`
-	/// returns the value.
-	/// If accept returns `false`, the value is not considered good,
-	/// the `decoder` cursor doesn't move and `peek` returns `nil`.
-	///
-	/// - parameter accept: A function to check the decoded value
-	/// - returns: The accepted value, `nil` otherwise.
-	mutating func peek<Value:BDecodable>( _ accept:( Value ) -> Bool ) -> Value? {
-		peek( Value.self, accept )
-	}
-
 	/// Decodes a value of the given type.
 	///
 	///	Value must adopt the `BDecodable` protocol

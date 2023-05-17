@@ -12,9 +12,9 @@ typealias ReadNodeMap 	= [IdnID : ReadNode]
 /// Decoding Pass 2
 ///
 final class BlockNode<Block:FileBlockProtocol> {
-	private(set) var		block			: Block
-	private		var			keyedValues		= [KeyID:BlockNode]()
-	private		var 		unkeyedValues 	= [BlockNode]()
+	private(set)	var block			: Block
+	private			var	keyedValues		= [KeyID:BlockNode]()
+	private			var unkeyedValues 	= [BlockNode]()
 	
 	private init( block:Block ) {
 		self.block	= block
@@ -26,12 +26,28 @@ final class BlockNode<Block:FileBlockProtocol> {
 	-> ( rootNode: BlockNode, nodeMap: [IdnID : BlockNode<Block>] )
 	where S:Sequence, S.Element == Block {
 		var iterator	= blocks.makeIterator()
-		let block		= try firstBlock( blockIterator: &iterator )
+		
+		guard let block = iterator.next() else {
+			throw Errors.GraphCodable.malformedArchive(
+				Self.self, Errors.Context(
+					debugDescription: "Root not found."
+				)
+			)
+		}
+		
+		if case FileBlock.End = block.fileBlock {
+			throw Errors.GraphCodable.malformedArchive(
+				Self.self, Errors.Context(
+					debugDescription: "The archive begins with an end block."
+				)
+			)
+		}
+		
 		let root 		= Self.init(block: block)
 		var nodeMap		= [IdnID : BlockNode<Block>]()
 
-		try Self.buildGraph( root, nodeMap: &nodeMap, blockIterator: &iterator )
-
+		try Self.buildFlatGraph( root, nodeMap: &nodeMap, blockIterator: &iterator )
+		
 		return (root,nodeMap)
 	}
 	
@@ -52,32 +68,31 @@ final class BlockNode<Block:FileBlockProtocol> {
 	}
 }
 
-extension BlockNode {
-	private static func firstBlock<I>( blockIterator: inout I ) throws -> Block
-	where I:IteratorProtocol, I.Element == Block {
-		guard let block = blockIterator.next() else {
-			throw Errors.GraphCodable.malformedArchive(
-				Self.self, Errors.Context(
-					debugDescription: "Root not found."
-				)
-			)
-		}
-		
-		if case FileBlock.End = block.fileBlock {
-			throw Errors.GraphCodable.malformedArchive(
-				Self.self, Errors.Context(
-					debugDescription: "The archive begins with an end block."
-				)
-			)
-		}
-		return block
+extension BlockNode : CustomStringConvertible {
+	var description: String {
+		description(
+			options: .readable, encodedClassMap: nil, keyStringMap: nil
+		)
 	}
+	
+	func description(
+		options:			GraphDumpOptions,
+		encodedClassMap:	EncodedClassMap?,
+		keyStringMap: 		KeyStringMap?
+	) -> String {
+		block.fileBlock.description(
+			options: 			options,
+			encodedClassMap:	encodedClassMap,
+			keyStringMap:		keyStringMap
+		)
+	}
+	
 }
 
 // MARK: BlockNode private flatten section
 extension BlockNode {
 	@discardableResult
-	private static func replaceWithPtr(
+	private static func replaceValueWithPtr(
 		_ node:BlockNode, nodeMap map: [IdnID : BlockNode<Block>],
 		keyID:KeyID?, idnID:IdnID
 	) throws -> BlockNode {
@@ -97,13 +112,13 @@ extension BlockNode {
 		return root
 	}
 	
-	private static func buildGraph<T>(
+	private static func buildFlatGraph<T>(
 		_ node:BlockNode, nodeMap map: inout [IdnID : BlockNode<Block>], blockIterator: inout T
 	) throws where T:IteratorProtocol, T.Element == Block {
 		switch node.block.fileBlock {
 			case .Val( let keyID, let idnID, _ ):
 				if let idnID {
-					let root = try replaceWithPtr( node, nodeMap: map, keyID:keyID, idnID:idnID )
+					let root = try replaceValueWithPtr( node, nodeMap: map, keyID:keyID, idnID:idnID )
 					try buildSubGraph( root, nodeMap: &map, blockIterator:&blockIterator )
 					map[ idnID ]	= root
 				} else {
@@ -111,7 +126,7 @@ extension BlockNode {
 				}
 			case .Bin( let keyID, let idnID, _, _ ):
 				if let idnID {
-					let root = try replaceWithPtr( node, nodeMap: map, keyID:keyID, idnID:idnID )
+					let root = try replaceValueWithPtr( node, nodeMap: map, keyID:keyID, idnID:idnID )
 					map[ idnID ]	= root
 				}	// ATT! NO subFlatten for BinValue's
 			default: //	nothing to do
@@ -130,7 +145,7 @@ extension BlockNode {
 				break
 			} else {
 				//	field.parentNode = node
-				try buildGraph( field, nodeMap: &map, blockIterator: &blockIterator )
+				try buildFlatGraph( field, nodeMap: &map, blockIterator: &blockIterator )
 
 				if let keyID = block.fileBlock.keyID {
 					guard node.keyedValues.index(forKey: keyID) == nil else {
@@ -152,31 +167,22 @@ extension BlockNode {
 }
 
 // MARK: BlockNode cycle discovering
-extension BlockNode : Hashable {
-	static func == (lhs: BlockNode, rhs: BlockNode) -> Bool {
-		lhs === rhs
-	}
-	
-	func hash(into hasher: inout Hasher) {
-		hasher.combine( ObjectIdentifier( self ) )
-	}
-}
 
-extension BlockNode {
+extension BlockNode : Identifiable {
 	private struct ColorMap {
 		enum Color { case white, gray, black }
 		
-		private var colorMap = [BlockNode:Color]()
+		private var colorMap = [BlockNode.ID:Color]()
 		
 		subscript( node:BlockNode ) -> Color {
-			get { colorMap[node] ?? .white }
-			set { colorMap[node] = newValue }
+			get { colorMap[node.id] ?? .white }
+			set { colorMap[node.id] = newValue }
 		}
 	}
 	
 	func isCyclic( nodeMap:[IdnID : BlockNode<Block>] ) -> Bool {
 		var colorMap = ColorMap()
-		if let node = self.trueValue(nodeMap: nodeMap) {
+		if let node = self.pointedValue(nodeMap: nodeMap) {
 			return node.isCyclic(nodeMap: nodeMap, colorMap: &colorMap)
 		} else {
 			return false
@@ -201,10 +207,10 @@ extension BlockNode {
 		colorMap[ self ] = .gray
 		
 		let isCyclic = withEachField { field in
-			if let trueField = field.trueValue( nodeMap:nodeMap ) {
-				switch colorMap[ trueField ] {
+			if let pointedField = field.pointedValue( nodeMap:nodeMap ) {
+				switch colorMap[ pointedField ] {
 					case .white:
-						if trueField.isCyclic(nodeMap: nodeMap, colorMap: &colorMap) {
+						if pointedField.isCyclic(nodeMap: nodeMap, colorMap: &colorMap) {
 							return true
 						}
 					case .gray:
@@ -224,7 +230,7 @@ extension BlockNode {
 		}		
 	}
 		 
-	private func trueValue( nodeMap:[IdnID : BlockNode<Block>] ) -> BlockNode? {
+	private func pointedValue( nodeMap:[IdnID : BlockNode<Block>] ) -> BlockNode? {
 		switch block.fileBlock {
 			case .Ptr( _, let idnID , _ ):
 				return nodeMap[ idnID ]
@@ -246,15 +252,15 @@ extension BlockNode {
 	) -> String {
 		var tabs	= Tabs(tabString: options.contains( .dontIndentBody ) ? Tabs.noTabs : Tabs.defaultTabs )
 		var dump 	= ""
-		dump.append( EncodeDump.titleString( "FLATTENED BODY" ) )
+		dump.append( EncodeDump.titleString( "FLAT BODY" ) )
 		dump.append( EncodeDump.titleString( "ROOT:", filler: "-") )
-		dump.append( subdump(nodeMap: nodeMap, encodedClassMap: encodedClassMap, keyStringMap: keyStringMap, options:options, tabs: &tabs ))
+		dump.append( subdump(nodeMap: nodeMap, encodedClassMap: encodedClassMap, keyStringMap: keyStringMap, options:options, tabs: &tabs, first: false ))
 		
 		if nodeMap.isEmpty == false {
 			dump.append( EncodeDump.titleString( "WHERE:", filler: "-") )
 			for (id,node) in nodeMap.sorted( by: { $0.key < $1.key } ) {
-				dump.append( "# PTR\(id) is:\n")
-				dump.append( node.subdump( nodeMap: nodeMap, encodedClassMap: encodedClassMap, keyStringMap: keyStringMap, options:options, tabs: &tabs ))
+				dump.append( "- PTR\(id) is")
+				dump.append( node.subdump( nodeMap: nodeMap, encodedClassMap: encodedClassMap, keyStringMap: keyStringMap, options:options, tabs: &tabs, first: true ))
 			}
 		}
 		
@@ -263,19 +269,25 @@ extension BlockNode {
 
 	private func subdump(
 		nodeMap: [IdnID : BlockNode<Block>], encodedClassMap: EncodedClassMap?, keyStringMap: KeyStringMap?,
-		options: GraphDumpOptions, tabs: inout Tabs
+		options: GraphDumpOptions, tabs: inout Tabs, first: Bool
 	) -> String {
 		var dump 	= ""
-		let string	= block.fileBlock.description( options: options, encodedClassMap: encodedClassMap, keyStringMap: keyStringMap )
+		if first {
+			let string	= block.fileBlock.description( options: [options, .hideKeyString], encodedClassMap: encodedClassMap, keyStringMap: keyStringMap )
+			dump.append( " \(string)\n" )
+		} else {
+			let string	= block.fileBlock.description( options: options, encodedClassMap: encodedClassMap, keyStringMap: keyStringMap )
+			dump.append( "\(tabs)\(string)\n" )
+		}
 		
-		dump.append( "\(tabs)\(string)\n" )
 		tabs.enter()
 		var end	= false
 		for node in keyedValues.values {
 			end	= true
 			dump.append(
 				node.subdump(
-					nodeMap:nodeMap, encodedClassMap: encodedClassMap, keyStringMap: keyStringMap, options:options, tabs: &tabs
+					nodeMap:nodeMap, encodedClassMap: encodedClassMap, keyStringMap: keyStringMap,
+					options:options, tabs: &tabs, first: false
 				)
 			)
 		}
@@ -283,7 +295,8 @@ extension BlockNode {
 			end	= true
 			dump.append(
 				node.subdump(
-					nodeMap:nodeMap, encodedClassMap: encodedClassMap, keyStringMap: keyStringMap, options:options, tabs: &tabs
+					nodeMap:nodeMap, encodedClassMap: encodedClassMap, keyStringMap: keyStringMap,
+					options:options, tabs: &tabs, first: false
 				)
 			)
 		}

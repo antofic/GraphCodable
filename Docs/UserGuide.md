@@ -56,7 +56,7 @@ There remains a cumbersomeness that becomes apparent only when the data structur
 
 Also, GraphCodable cannot rely on compiler magic that allows Codable to encode and decode value types without writing code. In this regard, I intend to evaluate whether the next developments of the language (in particular, *reflection* and *macros*) will allow such "magic" to be implemented in GraphCodable.
 
-Graph Codable uses a very similar interface to Codable:
+GraphCodable uses a very similar interface to Codable:
 
 - `GEncodable`, `GDecodable`, `GCodable` have the same roles as `Encodable`, `Decodable`, `Codable`
 - `GEncoder`, `GDecoder` have the same roles as `Encoder`, `Decoder`
@@ -342,7 +342,7 @@ The encoder stores the following information for each reference type:
 
 During decoding, the class is *reified* using `_typeByName( mangledName )` and used to construct all of its instances in the archive.
 
-**Note**: If the `GraphEncoder.Option.useNSClassFromStringMangling` flag is set in the  `GraphEncoder( _ options: )` init method, functions `NSStringFromClass` and `NSClassFromString` will be used instead of `_mangledTypeName` and `_typeByName`.
+**Note**: If the `GraphEncoder.Option.nsClassFromStringMangling` flag is set in the  `GraphEncoder( _ options: )` init method, functions `NSStringFromClass` and `NSClassFromString` will be used instead of `_mangledTypeName` and `_typeByName`.
 
 It is therefore evident that **if you change the name of a class it becomes impossible to decode archives created before the change**. For this reason it is important to:
 
@@ -3222,4 +3222,367 @@ A type that adopts the `GPackCodable` protocol:
 
 ## BinaryIO as standalone package
 
-**To do ...**
+BinaryIO is a low-level package that allows fast encoding and decoding of data in a binary format. BinaryIO uses a very similar interface to Codable (or GraphCodable) where:
+
+- `BEncodable`, `BDecodable`, `BCodable` have the same roles as `Encodable`, `Decodable`, `Codable`
+- `BEncoder`, `BDecoder` have the same roles as `Encoder`, `Decoder`
+- `BinaryIOEncoder` has the same role as `JSONEncoder` or `PropertyListEncoder`
+- `BinaryIODecoder` has the same role as `JSONDecoder` or `PropertyListDecoder`
+
+BinaryIO has the following features:
+
+- All values are encoded in little-endian format, regardless of cpu endianness;
+- `Int` and `UInt` types are always encoded as `Int64` and `UInt64` regardless of the word size of the cpu;
+- `CGFloat` types are always encoded as `Double` regardless of the size of the Foundation  `CGFloat` type;
+- To reduce the size of the archives, BinaryIO uses a simple integer compression algorithm. It follows that the number of bytes needed to store an integer are variable and do not correspond to the size of the integer. It is possible to disable compression both globally (at the time of archive creation) and locally (for a certain portion of the archive);
+- BinaryIO natively supports most  types of Swift Standard Library, Foundation, SIMD and others;
+- **BinaryIO does not use keys**. Therefore the data must be decoded in the same order it is encoded.
+
+### Basic use of the package
+
+Look at the following example:
+
+```swift
+import Foundation
+import GraphCodable
+import simd
+
+struct MyData : Equatable {
+	let name: String
+	let	vector: SIMD64<Int>
+
+	init( name:String, range:Range<Int> ) {
+		self.name	= name
+		self.vector	= SIMD64<Int>.random(in: range)
+	}
+}
+
+extension MyData : BCodable {
+	init(from decoder: inout some BDecoder) throws {
+		self.name	= try decoder.decode()
+		self.vector	= try decoder.decode()
+	}
+	
+	func encode(to encoder: inout some BEncoder) throws {
+		try encoder.encode(name)
+		try encoder.encode(vector)
+	}
+}
+
+let inRoot	= [ MyData(name: "A", range: 0..<256),  MyData(name: "B", range: 0..<256) ]
+
+let data = try inRoot.binaryIOData(userVersion:0) as Data
+
+let outRoot	= try [MyData](binaryIOData: data)
+
+print( "DataSize = \( data.count) bytes - Equality check = \(inRoot == outRoot)" )
+// print -> "DataSize = 240 bytes - Equality check = true"
+```
+
+**Note:** `BCodable` is defined as `BEncodable & BDecodable`.
+
+#### Archive root encoding and decoding
+
+The root of the archive can be encoded using the method `binaryIOData(...)` defined in an extension of the `BEncodable` protocol in which an archive version (`userVersion`) must be specified:
+
+```swift
+func binaryIOData<Q>(
+		userVersion:UInt32,
+		archiveIdentifier: String? = defaultBinaryIOArchiveIdentifier,
+		userData:Any? = nil,
+		enableCompression:Bool = true
+	) throws -> Q
+```
+
+The root of the archive can be decoded with the `init( binaryIOData: ...)` method defined in an extension of the `BDecodable` protocol:
+
+```swift
+init<Q>(
+  binaryIOData: Q,
+  archiveIdentifier: String? = defaultBinaryIOArchiveIdentifier,
+  userData:Any? = nil
+) throws where Q:DataProtocol
+```
+
+#### Versioning
+
+The `userVersion` property defined in the `BEncoder` protocol returns the archive version during encoding:
+
+```swift
+func encode(to encoder: inout some BEncoder) throws {
+	let version = encoder.userVersion
+	/* ... */		
+}
+```
+
+Similarly, the `userVersion` property defined in the `BDecoder` protocol returns the archive version during decoding:
+
+```swift
+init(from decoder: inout some BDecoder) throws {
+	let version = decoder.encodedUserVersion
+	/* ... */		
+}
+```
+
+Normally the `userVersion` value is initially set to 0 and incremented by 1 whenever it is necessary to change the encoding of a type in order to be able to manage the decoding of the type according to the `userVersion` encoded in the archive.
+
+#### Archive identifier
+
+By default, each archive is encoded with the identifier string `archiveIdentifier = defaultBinaryIOArchiveIdentifier = "binaryIO"`. The `binaryIOData(...)` function allows you to specify a different identifier string:
+
+```swift
+let data	= try inRoot.binaryIOData(userVersion:0, archiveIdentifier:"MyIdentifier") as Data
+```
+
+or no identifier:
+
+```swift
+let data	= try inRoot.binaryIOData(userVersion:0, archiveIdentifier:nil) as Data
+```
+
+To decode the archive, the same identification string must be specified:
+
+```swift
+let outRoot	= try [MyData](binaryIOData: data, archiveIdentifier:"MyIdentifier")
+```
+
+```swift
+let outRoot	= try [MyData](binaryIOData: data, archiveIdentifier:nil)
+```
+
+The `archiveIdentifier` property defined in the `BEncoder` protocol returns the identifier:
+
+```swift
+func encode(to encoder: inout some BEncoder) throws {
+	let archiveIdentifier = encoder.archiveIdentifier
+	/* ... */		
+}
+```
+
+Similarly, the `encodedArchiveIdentifier` property defined in the `BDecoder` protocol returns the archive identifier during decoding:
+
+```swift
+init(from decoder: inout some BDecoder) throws {
+	let archiveIdentifier = decoder.encodedArchiveIdentifier
+	/* ... */		
+}
+```
+
+#### UserData
+
+You can specify any type of user data for both encoding and decoding:
+
+```swift
+let data	= try inRoot.binaryIOData(userVersion:0, userData:myUserData) as Data
+```
+
+```swift
+let outRoot	= try [MyData](binaryIOData: data, userData:myUserData)
+```
+
+The `userData` property defined in the `BEncoder` protocol returns the user data value:
+
+```swift
+func encode(to encoder: inout some BEncoder) throws {
+	let userData = encoder.userData
+	/* ... */		
+}
+```
+
+Similarly, the `userData` property defined in the `BDecoder` protocol returns the user data value:
+
+```swift
+init(from decoder: inout some BDecoder) throws {
+	let userData = decoder.userData
+	/* ... */		
+}
+```
+
+#### Compression
+
+By default BinaryIO compresses integers to reduce the archive size. You can globally disable compression when creating the archive:
+
+```swift
+let data	= try inRoot.binaryIOData(userVersion:0, enableCompression:false) as Data
+```
+
+**Warning:** when compression is disabled, the size in bytes of the data **does not change** according to their content. The same thing doesn't happen if compression is enabled. For example, a variable of type `Int64` always occupies 8 bytes if compression is disabled. If vice versa it is enabled, the same variable can occupy from 1 to 9 bytes depending on the contained value.
+
+### Advanced use of the package
+
+Encoding of an archive is handled by the `BinaryIOEncoder` value type which implements the `BEncoder` protocol. Similarly, decoding of the archive is handled by the `BinaryIODecoder` value type which implements the `BDecoder` protocol. As we saw in the previous paragraph, in the basic use of the package it is not necessary to interact with these two types, which vice versa come into play in the advanced use of the package.
+
+**First**, we observe that `BEncodable`'s `binaryIOData(...)` method is simply a shortcut that creates a `BinaryIOEncoder` instance, encodes the root value, and returns its binary representation:
+
+```swift
+func binaryIOData<Q>(
+	userVersion:UInt32,
+	archiveIdentifier: String? = defaultBinaryIOArchiveIdentifier,
+	userData:Any? = nil,
+	enableCompression:Bool = true
+) throws -> Q
+where Q:MutableDataProtocol {
+	var encoder = BinaryIOEncoder(
+		userVersion:userVersion, archiveIdentifier: archiveIdentifier,
+		userData: userData, enableCompression:enableCompression
+  )
+	try encoder.encode( self )
+	return encoder.data()
+}
+```
+
+Similarly, we observe that `BDecodable`'s `init( binaryIOdada:...)` method is simply a shortcut that creates a `BinaryIODecoder` instance, decodes the root value and sets `self` to it:
+
+```swift
+init<Q>(  
+  binaryIOData: Q,
+  archiveIdentifier: String? = defaultBinaryIOArchiveIdentifier,
+  userData:Any? = nil
+) throws where Q:DataProtocol {
+	var decoder = try BinaryIODecoder(
+    data:binaryIOData, archiveIdentifier:archiveIdentifier, userData:userData
+  )
+	self = try decoder.decode()
+}
+
+```
+
+And so the final part of the above example can also be written like this:
+
+```swift
+let inRoot	= [ MyData(name: "A", range: 0..<256),  MyData(name: "B", range: 0..<256) ]
+
+var encoder	= BinaryIOEncoder( userVersion: 0 )
+try encoder.encode( inRoot )
+let data	= encoder.data() as Data
+
+var decoder	= try BinaryIODecoder(data: data)
+let outRoot	= try decoder.decode( [MyData].self )
+
+print( "DataSize = \( data.count) bytes - Equality check = \(inRoot == outRoot)" )
+```
+
+**Secondly**, we observe that within the `encode(...)` method of the `BEncodable` protocol it is possible to access the `BinaryIOEncoder` instance:
+
+```swift
+func encode(to encoder: inout some BEncoder) throws {
+	encoder.withUnderlyingEncoder {
+		binaryIOEncoder in
+		/* ... */		
+	}
+}
+```
+
+Similarly, we observe that within the `init( from: ...)` method of the `BDecodable` protocol it is possible to access the `BinaryIODecoder` instance:
+
+```swift
+init(from decoder: inout some BDecoder) throws {
+	decoder.withUnderlyingDecoder {
+		binaryIODecoder in
+		/* ... */
+	}
+}
+```
+
+Having clarified how to create and access `BinaryIOEncoder` and `BinaryIODecoder` instances, we can now see what additional functionality is thus available.
+
+#### BinaryIOEncoder
+
+##### Init
+
+An instance of BinaryIOEncoder can be created with the method:
+
+```swift
+init(
+	userVersion: UInt32,
+  archiveIdentifier: String? = defaultBinaryIOArchiveIdentifier,
+  userData:Any? = nil,
+  enableCompression:Bool = true
+)
+```
+
+The parameters are the same as for the  `BEncodable`'s `binaryIOData(...)` method.
+
+##### `data()` function
+
+`func data<Q>() -> Q where Q:MutableDataProtocol` returns a binary representation of the encoded values:
+
+```swift
+let data	= encoder.data() as Data
+```
+
+##### Position
+
+`BinaryIOEncoder` stores some information necessary for decoding in the first bytes of the internal buffer. For this reason the initial position in the buffer is not 0. The `startOfFile` property returns this position. Instead, `endOfFile` returns the final position of the buffer.
+
+The `position` property allows you to get or set the position in the buffer where the next data will be encoded: for this reason it must be `startOfFile` ≤ `position` ≤ `endOfFile`. Each time data is written, position is incremented by the size in bytes of the encoded data.
+
+##### Compression
+
+If the `BinaryIOEncode` instance was created with compression globally turned on, you can disable and re-enable compression with the `enabledCompression` property. If the `BinaryIOEncode` instance was created with compression turned off, setting `enabledCompression` property has no effect.
+
+In other words, you can temporarily disable compression if it is globally enabled, but you cannot temporarily enable compression if it is globally disabled.
+
+The `func withCompressionDisabled<T>( encodeFunc: ( inout BinaryIOEncoder ) throws -> T) rethrows -> T` method allows you to disable compression for the duration of the `encodeFunc`closure.
+
+**Warning:** if compression is globally active and some data is encoded by disabling compression, it is necessary to disable compression while decoding that same data.
+
+##### Insertion mode
+
+By default, if `position` is less than `endOFile`, new data overwrites existing data starting at `position`.
+
+The `func withEncodedIntSizeBefore<T>( encodeFunc: ( inout BinaryIOEncoder ) throws -> T) rethrows -> T` allows the closure `encodeFunc` to insert data at the current position, **moving forward** any subsequent ones that may already be present.
+
+##### Prepending data size
+
+In some cases, decoding requires knowing in advance the size in bytes of the data that will be decoded.
+
+The `func withEncodedIntSizeBefore<T>( encodeFunc: ( inout BinaryIOEncoder ) throws -> T)` allows you to prefix the data that will be encoded by Y with its size (an `Int` value).
+
+If compression is disabled, the function writes 0, writes the data, and then overwrites 0 with the actual data size (8 bytes). If compression is enabled it is not possible to use this procedure because the size is itself variable in size. And then, when compression is enabled, the function writes the data and then inserts its size by shifting the data forward.
+
+#### BinaryIODecoder
+
+##### Init
+
+An instance of BinaryIODecoder can be created with the method:
+
+```swift
+init<Q>(
+  data: Q,
+  archiveIdentifier: String? = defaultBinaryIOArchiveIdentifier,
+  userData:Any? = nil
+) throws where Q:DataProtocol
+```
+
+The parameters are the same as for the  `BDecodable`'s `init(binaryIOData:...)` method.
+
+##### 
+
+
+
+##### Value peeking
+
+The `peek(...)` functions defined in the `BDecoder` protocol allow you to decode a value and decide whether or not to pass to the next one according to the decoded value:
+
+```swift
+public protocol BDecoder {
+	mutating func peek<Value:BDecodable >( _ type:Value.Type, _ isValid:( Value ) -> Bool ) -> Value?
+  /* ... */
+}
+
+public extension BDecoder {
+	mutating func peek<Value:BDecodable>( _ isValid:( Value ) -> Bool ) -> Value? {
+		peek( Value.self, isValid )
+	}
+  /* ... */
+}
+```
+
+If decoding throws an error, the error is catched, the decoder cursor doesn't move and the function returns `nil`.
+
+If decoding is successful, the value is passed to the `isValid` closure.
+
+If `isValid` returns `true`, the value is considered good, the `decoder` cursor moves to the next value, and `peek` returns the value.
+
+If `isValid` returns `false`, the value is not considered good, the `decoder` cursor doesn't move and `peek` returns `nil`.

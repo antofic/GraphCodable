@@ -95,7 +95,7 @@ extension BinaryIOEncoder {
 		// encode userVersion (compressed if enableCompression)
 		try! self.encodeUInt32( self.userVersion )
 		self.startOfFile			= position
-		self.enableCompression		= enableCompression
+		self.enabledCompression		= enableCompression
 	}
 
 	///	Get the encoded data.
@@ -120,7 +120,7 @@ extension BinaryIOEncoder {
 	///	  ) rethrows -> T
 	///	```
 	/// Note: During decoding, compression must be enabled or disabled accordingly.
-	public var enableCompression : Bool {
+	public var enabledCompression : Bool {
 		get { _enableCompression }
 		set { _enableCompression = newValue && binaryIOFlags.contains( .compressionEnabled ) }
 	}
@@ -156,9 +156,9 @@ extension BinaryIOEncoder {
 	public mutating func withCompressionDisabled<T>(
 		encodeFunc: ( inout BinaryIOEncoder ) throws -> T
 	) rethrows -> T {
-		let saveCompression	= enableCompression
-		defer{ enableCompression = saveCompression }
-		enableCompression = false
+		let saveCompression	= enabledCompression
+		defer{ enabledCompression = saveCompression }
+		enabledCompression = false
 		return try encodeFunc( &self )
 	}
 	
@@ -192,12 +192,13 @@ extension BinaryIOEncoder {
 	///
 	/// - Parameter encodeFunc: closure that encode the data.
 	/// - Returns: the `encodeFunc` return value
-	/// - Note: This method is only necessary in case of **non-sequential** encoding/decoding
-	/// of the archive.
+	/// - Note: This method is only necessary in case of **non-sequential**
+	/// encoding/decoding of the archive.
 	public mutating func withEncodedIntSizeBefore<T>(
 		encodeFunc: ( inout BinaryIOEncoder ) throws -> T
 	) rethrows -> T {
-		if binaryIOFlags.contains( .compressionEnabled ) {
+		// if binaryIOFlags.contains( .compressionEnabled ) {
+		if enabledCompression {
 			// size verrà certamente compresso
 			let initialPos	= position
 			let result 		= try encodeFunc( &self )
@@ -226,8 +227,10 @@ extension BinaryIOEncoder {
 		}
 	}
 
-	public mutating func withUnderlyingType<T>( _ apply: (inout BinaryIOEncoder) throws -> T ) rethrows -> T {
-		try apply( &self )
+	public mutating func withUnderlyingEncoder<T>(
+		_ encodeFunc: (inout BinaryIOEncoder) throws -> T
+	) rethrows -> T {
+		try encodeFunc( &self )
 	}
 	
 	public mutating func encode<Value>(_ value: Value)
@@ -251,7 +254,7 @@ extension BinaryIOEncoder {
 	
 	/// Encodes a `UInt16` value
 	mutating func encodeUInt16( _ value:UInt16 ) throws {
-		if enableCompression {
+		if enabledCompression {
 			try compressAndEncode( value )
 		} else {
 			try encodePODValue( value.littleEndian )
@@ -260,7 +263,7 @@ extension BinaryIOEncoder {
 	
 	/// Encodes a `UInt32` value
 	mutating func encodeUInt32( _ value:UInt32 ) throws {
-		if enableCompression {
+		if enabledCompression {
 			try compressAndEncode( value )
 		} else {
 			try encodePODValue( value.littleEndian )
@@ -269,7 +272,7 @@ extension BinaryIOEncoder {
 	
 	/// Encodes a `UInt64` value
 	mutating func encodeUInt64( _ value:UInt64 ) throws {
-		if enableCompression {
+		if enabledCompression {
 			try compressAndEncode( value )
 		} else {
 			try encodePODValue( value.littleEndian )
@@ -297,7 +300,7 @@ extension BinaryIOEncoder {
 	
 	/// Encodes a `Int16` value
 	mutating func encodeInt16( _ value:Int16 ) throws {
-		if enableCompression {
+		if enabledCompression {
 			try encode( ZigZag.encode( value ) )
 		}
 		else {
@@ -307,7 +310,7 @@ extension BinaryIOEncoder {
 	
 	/// Encodes a `Int32` value
 	mutating func encodeInt32( _ value:Int32 ) throws {
-		if enableCompression {
+		if enabledCompression {
 			try encode( ZigZag.encode( value ) )
 		}
 		else {
@@ -317,7 +320,7 @@ extension BinaryIOEncoder {
 	
 	/// Encodes a `Int64` value
 	mutating func encodeInt64( _ value:Int64 ) throws {
-		if enableCompression {
+		if enabledCompression {
 			try encode( ZigZag.encode( value ) )
 		}
 		else {
@@ -340,18 +343,18 @@ extension BinaryIOEncoder {
 		
 	/// Encodes a `Float` value
 	mutating func encodeFloat( _ value:Float ) throws {
-		let saveCompression = enableCompression
-		defer { enableCompression = saveCompression }
-		enableCompression = false
+		let saveCompression = enabledCompression
+		defer { enabledCompression = saveCompression }
+		enabledCompression = false
 		
 		try encode( value.bitPattern )
 	}
 	
 	/// Encodes a `Double` value
 	mutating func encodeDouble( _ value:Double ) throws {
-		let saveCompression = enableCompression
-		defer { enableCompression = saveCompression }
-		enableCompression = false
+		let saveCompression = enabledCompression
+		defer { enabledCompression = saveCompression }
+		enabledCompression = false
 		
 		try encode( value.bitPattern )
 	}

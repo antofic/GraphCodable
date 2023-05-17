@@ -102,8 +102,20 @@ extension GraphEncoder {
 			self.rawValue	= rawValue
 		}
 		
-		///	Select the mangling mode
-		public static let	useNSClassFromStringMangling						= Self( rawValue: 1 << 0 )
+		///	Set the mangling mode
+		///
+		///	During encoding the class name is transformed into a string
+		/// (the `mangledClassName`) which allows, during decoding, to get back
+		/// the class.
+		/// Swift allows you to use two pairs of functions to achieve this result:
+		/// - `_mangledTypeName()` and `_typeByName()`
+		/// - `NSStringFromClass()` and `NSClassFromString()`
+		///
+		/// The first pais is used by default.
+		/// The `nsClassFromStringMangling` flag (to be set when instantiating
+		/// a GraphEncoder) allows you to choose the second pair. This settings
+		/// is then stored in the enum `ManglingFunction` for every class type.
+		public static let	nsClassFromStringMangling							= Self( rawValue: 1 << 0 )
 		///	Disable compression
 		///
 		/// By default integers are compressed to produce smaller files.

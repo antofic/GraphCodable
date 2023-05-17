@@ -82,7 +82,7 @@ final class TypeConstructor {
 			guard let decodedClass = currentClass else {
 				throw Errors.GraphCodable.referenceTypeRequired(
 					Self.self, Errors.Context(
-						debugDescription: "\(#function) not available for value types."
+						debugDescription: "Version not available for value types."
 					)
 				)
 			}
@@ -95,7 +95,7 @@ final class TypeConstructor {
 			guard let decodedClass = currentClass else {
 				throw Errors.GraphCodable.referenceTypeRequired(
 					Self.self, Errors.Context(
-						debugDescription: "\(#function) not available for value types."
+						debugDescription: "Replacement not available for value types."
 					)
 				)
 			}
@@ -142,12 +142,10 @@ extension TypeConstructor {
 	private func decodeAny<T>( node:ReadNode, from decoder:some GDecoder, type:T.Type ) throws -> Any
 	where T:GDecodable {
 		func decodeIdentifiable( type:T.Type, idnID:IdnID, from decoder:some GDecoder ) throws -> (any GDecodable)? {
-			//	quando arriva la prima richiesta di un particolare oggetto (da idnID)
-			//	lo costruiamo (se esiste) e lo mettiamo nell'objectRepository in modo
-			//	che le richieste successive peschino di lì.
-			//	se l'oggetto non esiste (possibile, se memorizzato condizionalmente)
-			//	ritorniamo nil.
-			
+			//	When the first request arrives for a particular value with identity (from idnID)
+			//	we construct it (if it exists) and put it in the objectRepository so that subsequent
+			//	requests can get it from there.
+			//	If the object does not exist (possible, if stored conditionally) we return nil.
 			if let object = objectRepository[ idnID ] {
 				return object
 			} else if let node = decodeBinary.pop( idnID: idnID ) {
@@ -297,7 +295,7 @@ extension TypeConstructor {
 		return object
 	}
 	
-	/// ful fileblock information used only for errors
+	/// full fileblock information used only for errors
 	private func fileblockDescr( _ node: ReadNode ) -> String {
 		let string = node.block.fileBlock.description(
 			options: .readable, decodedClassMap: decodeBinary.decodedClassMap, keyStringMap: keyStringMap

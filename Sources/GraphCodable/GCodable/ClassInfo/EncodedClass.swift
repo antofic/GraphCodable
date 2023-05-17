@@ -8,12 +8,28 @@ import Foundation
 
 typealias ManglingFunction = ClassInfo.ManglingFunction
 
+extension ClassInfo : BCodable {
+	public func encode(to encoder: inout some BEncoder) throws {
+		try encoder.encode( manglingFunction )
+		try encoder.encode( mangledClassName )
+		try encoder.encode( classVersion )
+	}
+	
+	public init(from decoder: inout some BDecoder) throws {
+		manglingFunction	= try decoder.decode( ManglingFunction.self )
+		mangledClassName	= try decoder.decode( String.self )
+		classVersion		= try decoder.decode( UInt32.self )
+	}
+}
+
+
+
 struct EncodedClass {
 	let info : ClassInfo
 	
 	var	manglingFunction:		ManglingFunction { info.manglingFunction }
 	var	mangledClassName:		String { info.mangledClassName }
-	var	encodedClassVersion:	UInt32 { info.encodedClassVersion }
+	var	encodedClassVersion:	UInt32 { info.classVersion }
 	
 	func className( qualified: Bool ) -> String {
 		info.className(qualified: qualified)
@@ -22,17 +38,11 @@ struct EncodedClass {
 
 extension EncodedClass: BCodable {
 	func encode(to encoder: inout some BEncoder) throws {
-		try encoder.encode( info.manglingFunction )
-		try encoder.encode( info.mangledClassName )
-		try encoder.encode( info.encodedClassVersion )
+		try encoder.encode( info )
 	}
 	
 	init(from decoder: inout some BDecoder) throws {
-		let	manglingFunction	= try decoder.decode( ManglingFunction.self )
-		let	mangledClassName	= try decoder.decode( String.self )
-		let	encodedClassVersion	= try decoder.decode( UInt32.self )
-		
-		self.info = ClassInfo( manglingFunction, mangledClassName, encodedClassVersion )
+		info	= try decoder.decode( ClassInfo.self )
 	}
 }
 

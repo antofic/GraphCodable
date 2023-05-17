@@ -225,9 +225,9 @@ extension FileBlock : CustomStringConvertible {
 	}
 	
 	func description(
-		options:		GraphDumpOptions,
+		options:			GraphDumpOptions,
 		encodedClassMap:	EncodedClassMap?,
-		keyStringMap: 	KeyStringMap?
+		keyStringMap: 		KeyStringMap?
 	) -> String {
 		description(options: options, encodedClassMap: encodedClassMap, keyStringMap: keyStringMap ) { nil }
 	}
@@ -235,7 +235,7 @@ extension FileBlock : CustomStringConvertible {
 	
 	func description(
 		options:			GraphDumpOptions,
-		encodedClassMap:		EncodedClassMap?,
+		encodedClassMap:	EncodedClassMap?,
 		keyStringMap: 		KeyStringMap?,
 		valueDescription: 	() -> String?
 	) -> String {
@@ -243,22 +243,22 @@ extension FileBlock : CustomStringConvertible {
 			options:			options,
 			keyStringMap:		keyStringMap,
 			encodedClassSource:	encodedClassMap,
-			getEncodedClass:		{ encodedClassMap, keyID in encodedClassMap?[keyID] },
+			getEncodedClass:	{ encodedClassMap, keyID in encodedClassMap?[keyID] },
 			valueDescription:	valueDescription
 		)
 	}
 
 	func description(
-		options:		GraphDumpOptions,
-		decodedClassMap:		DecodedClassMap?,
-		keyStringMap: 	KeyStringMap?
+		options:			GraphDumpOptions,
+		decodedClassMap:	DecodedClassMap?,
+		keyStringMap: 		KeyStringMap?
 	) -> String {
 		description(options: options, decodedClassMap: decodedClassMap, keyStringMap: keyStringMap ) { nil }
 	}
 	
 	func description(
 		options:			GraphDumpOptions,
-		decodedClassMap:		DecodedClassMap?,
+		decodedClassMap:	DecodedClassMap?,
 		keyStringMap: 		KeyStringMap?,
 		valueDescription: 	() -> String?
 	) -> String {
@@ -266,7 +266,7 @@ extension FileBlock : CustomStringConvertible {
 			options:			options,
 			keyStringMap:		keyStringMap,
 			encodedClassSource:	decodedClassMap,
-			getEncodedClass:		{ decodedClassMap, keyID in decodedClassMap?[keyID]?.encodedClass },
+			getEncodedClass:	{ decodedClassMap, keyID in decodedClassMap?[keyID]?.encodedClass },
 			valueDescription:	valueDescription
 		)
 	}
@@ -275,7 +275,7 @@ extension FileBlock : CustomStringConvertible {
 		options:				GraphDumpOptions,
 		keyStringMap ksm: 		KeyStringMap?,
 		encodedClassSource cds:	T?,
-		getEncodedClass: 			( T?, _ refID:RefID )->EncodedClass?,
+		getEncodedClass: 		( T?, _ refID:RefID )->EncodedClass?,
 		valueDescription: 		() -> String?
 	) -> String {
 		func typeName<T>( _ refID:RefID, _ options:GraphDumpOptions, _ encodedClassSource: T?, _ getEncodedClass: ( T?, _ refID:RefID )->EncodedClass? ) -> String? {
@@ -306,8 +306,10 @@ extension FileBlock : CustomStringConvertible {
 			}
 		}
 
-		func keyName( _ keyID:KeyID?, _ keyStringMap: KeyStringMap? ) -> String {
-			if let keyID {
+		func keyName( _ keyID:KeyID?, _ keyStringMap: KeyStringMap?, _ hideKey:Bool ) -> String {
+			if hideKey {
+				return ""
+			} else if let keyID {
 				if let key = keyStringMap?[keyID] {
 					return "+ KEY(\(key)): "
 				} else {
@@ -318,18 +320,19 @@ extension FileBlock : CustomStringConvertible {
 			}
 		}
 		
-		let encodedClassSource = options.contains( .showClassNamesInBody ) ? cds : nil
-		let keyStringMap = options.contains( .showKeyStringsInBody ) ? ksm : nil
+		let encodedClassSource	= options.contains( .showClassNamesInBody ) ? cds : nil
+		let keyStringMap 		= options.contains( .showKeyStringsInBody ) ? ksm : nil
+		let hideKeyString		= options.contains( .hideKeyString )
 		
 		var string	= ""
 		switch self {
 			case .End:
 				string.append( "." )
 			case .Nil( let keyID ):
-				string.append( keyName( keyID, keyStringMap ) )
+				string.append( keyName( keyID, keyStringMap, hideKeyString ) )
 				string.append( "NIL" )
 			case .Ptr( let keyID, let idnID, let conditional ):
-				string.append( keyName( keyID, keyStringMap ) )
+				string.append( keyName( keyID, keyStringMap, hideKeyString ) )
 				string.append( conditional ? "PTC" : "PTS" )
 				string.append( idnID.description )
 			case .Val( let keyID, let idnID, let refID ):
@@ -337,7 +340,7 @@ extension FileBlock : CustomStringConvertible {
 				//	REF			= [refID]
 				//	VAL<idnID>	= [idnID]
 				//	REF<idnID>	= [idnID,refID]
-				string.append( keyName( keyID, keyStringMap ) )
+				string.append( keyName( keyID, keyStringMap, hideKeyString ) )
 				string.append( refID != nil ? "REF" : "VAL" )
 				if let idnID	{ string.append( idnID.description ) }
 				if let refID	{ string.append( "(\( valTypeName( refID,options,encodedClassSource,getEncodedClass ) ))") }
@@ -350,7 +353,7 @@ extension FileBlock : CustomStringConvertible {
 				//	BIR			= [refID,bytes]
 				//	BIV<idnID>	= [idnID,bytes]
 				//	BIR<idnID>	= [idnID,refID,bytes]
-				string.append( keyName( keyID, keyStringMap ) )
+				string.append( keyName( keyID, keyStringMap, hideKeyString ) )
 				string.append( refID != nil ? "BIR" : "BIV" )
 				if let idnID	{ string.append( idnID.description ) }
 				if let refID	{ string.append( "(\( valTypeName( refID,options,encodedClassSource,getEncodedClass ) ))") }

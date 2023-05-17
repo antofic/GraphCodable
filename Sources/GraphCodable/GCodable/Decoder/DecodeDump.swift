@@ -18,13 +18,13 @@ final class DecodeDump: EncodeFileBlocksDelegate {
 	init( from ioDecoder:BinaryIODecoder, classNameMap:ClassNameMap?, options:GraphDumpOptions ) throws {
 		var readBlockDecoder	= try DecodeReadBlocks( from: ioDecoder )
 		
-		self.fileSize		= ioDecoder.fileSize
-		self.fileHeader		= readBlockDecoder.fileHeader
-		self.readBlocks		= try readBlockDecoder.readBlocks()
+		self.fileSize			= ioDecoder.fileSize
+		self.fileHeader			= readBlockDecoder.fileHeader
+		self.readBlocks			= try readBlockDecoder.readBlocks()
 		self.encodedClassMap	= try readBlockDecoder.encodedClassMap()
-		self.classNameMap	= classNameMap
-		self.keyStringMap	= try readBlockDecoder.keyStringMap()
-		self.dumpOptions	= options
+		self.classNameMap		= classNameMap
+		self.keyStringMap		= try readBlockDecoder.keyStringMap()
+		self.dumpOptions		= options
 	}
 
 	func dump() -> String {
@@ -37,20 +37,20 @@ final class DecodeDump: EncodeFileBlocksDelegate {
 		readBlocks.forEach {
 			encoderDump.append( $0.fileBlock, value: nil )
 		}
-		if dumpOptions.contains( .showFlattenedBody ) {
+		if dumpOptions.contains( .showFlatBody ) {
 			do {
 				let (rootNode,nodeMap)	= try BlockNode.flatGraph(
 					blocks:	readBlocks
 				)
 				let string = rootNode.dump(
-							nodeMap:	nodeMap,
+					nodeMap:			nodeMap,
 					encodedClassMap:	encodedClassMap,
 					keyStringMap:		keyStringMap,
 					options: 			dumpOptions
 				)
 				encoderDump.append( string )
 			} catch {
-				encoderDump.append( "Error generating FLATTENED BODY" )
+				encoderDump.append( "Error generating FLAT BODY" )
 				encoderDump.append( "\(error)" )
 			}
 		}

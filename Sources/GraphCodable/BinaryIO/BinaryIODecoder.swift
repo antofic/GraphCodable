@@ -88,7 +88,7 @@ extension BinaryIODecoder {
 	///	  ) rethrows -> T
 	///	```
 	/// Note: The compression must be set as it was set during encoding.
-	public var enableCompression : Bool {
+	public var enabledCompression : Bool {
 		get { _enableCompression }
 		set { _enableCompression = newValue && encodedBinaryIOFlags.contains( .compressionEnabled ) }
 	}
@@ -169,9 +169,9 @@ extension BinaryIODecoder {
 	public mutating func withCompressionDisabled<T>(
 		decodeFunc: ( inout BinaryIODecoder ) throws -> T
 	) rethrows -> T {
-		let saveCompression	= enableCompression
-		defer{ enableCompression = saveCompression }
-		enableCompression = false
+		let saveCompression	= enabledCompression
+		defer{ enabledCompression = saveCompression }
+		enabledCompression = false
 		return try decodeFunc( &self )
 	}
 
@@ -198,11 +198,22 @@ extension BinaryIODecoder {
 		return result
 	}
 	
-	public mutating func decode<Value>( _ type:Value.Type ) throws -> Value
-	where Value : BDecodable {
-		try Value(from: &self)
-	}
-	
+	/// Try peeking a value from the `decoder`.
+	///
+	///	`peek(_:)` try to decode a `BDecodable` value from the `decoder`.
+	///	If decoding throws an error, the error is catched, the decoder
+	///	cursor doesn't move and the function returns `nil`.
+	/// If decoding is successful, it pass the decoded value to
+	/// the `isValid` closure.
+	/// If `isValid` returns `true`, the value is considered good,
+	/// the `decoder` cursor moves to the next value, and `peek`
+	/// returns the value.
+	/// If `isValid` returns `false`, the value is not considered good,
+	/// the `decoder` cursor doesn't move and `peek` returns `nil`.
+	///
+	/// - parameter type: The type of the value to decode
+	/// - parameter isValid: A function to check the decoded value
+	/// - returns: The decoded and valid value, `nil` otherwise.
 	public mutating func peek<Value>(
 		_ type:Value.Type, _ isValid:( Value ) -> Bool
 	) -> Value?
@@ -218,7 +229,31 @@ extension BinaryIODecoder {
 		return nil
 	}
 	
-	public mutating func withUnderlyingType<T>(
+	/// Try peeking a value from the `decoder`.
+	///
+	///	`peek(_:)` try to decode a `BDecodable` value from the `decoder`.
+	///	If decoding throws an error, the error is catched, the decoder
+	///	cursor doesn't move and the function returns `nil`.
+	/// If decoding is successful, it pass the value to the `accept`
+	/// closure.
+	/// If accept returns `true`, the value is considered good,
+	/// the `decoder` cursor moves to the next value, and `peek`
+	/// returns the value.
+	/// If accept returns `false`, the value is not considered good,
+	/// the `decoder` cursor doesn't move and `peek` returns `nil`.
+	///
+	/// - parameter isValid: A function to check the decoded value
+	/// - returns: The accepted value, `nil` otherwise.
+	mutating func peek<Value:BDecodable>( _ isValid:( Value ) -> Bool ) -> Value? {
+		peek( Value.self, isValid )
+	}
+	
+	public mutating func decode<Value>( _ type:Value.Type ) throws -> Value
+	where Value : BDecodable {
+		try Value(from: &self)
+	}
+	
+	public mutating func withUnderlyingDecoder<T>(
 		_ decodeFunc: (inout BinaryIODecoder) throws -> T
 	) rethrows -> T {
 		try decodeFunc( &self )
@@ -239,22 +274,22 @@ extension BinaryIODecoder {
 	
 	///	Decodes a `UInt16` value
 	mutating func decodeUInt16() throws -> UInt16 {
-		try Self.decodeUInt16( compress: enableCompression, from: &dataRegion )
+		try Self.decodeUInt16( compress: enabledCompression, from: &dataRegion )
 	}
 	
 	///	Decodes a `UInt32` value
 	mutating func decodeUInt32() throws -> UInt32 {
-		try Self.decodeUInt32( compress: enableCompression, from: &dataRegion )
+		try Self.decodeUInt32( compress: enabledCompression, from: &dataRegion )
 	}
 	
 	///	Decodes a `UInt64` value
 	mutating func decodeUInt64() throws -> UInt64 {
-		try Self.decodeUInt64( compress: enableCompression, from: &dataRegion )
+		try Self.decodeUInt64( compress: enabledCompression, from: &dataRegion )
 	}
 
 	///	Decodes a `UInt` value
 	mutating func decodeUInt() throws -> UInt {
-		try Self.decodeUInt( compress: enableCompression, from: &dataRegion )
+		try Self.decodeUInt( compress: enabledCompression, from: &dataRegion )
 	}
 	
 	///	Decodes a `Int8` value
@@ -264,22 +299,22 @@ extension BinaryIODecoder {
 	
 	///	Decodes a `Int16` value
 	mutating func decodeInt16() throws -> Int16 {
-		try Self.decodeInt16( compress: enableCompression, from: &dataRegion )
+		try Self.decodeInt16( compress: enabledCompression, from: &dataRegion )
 	}
 	
 	///	Decodes a `Int32` value
 	mutating func decodeInt32() throws -> Int32 {
-		try Self.decodeInt32( compress: enableCompression, from: &dataRegion )
+		try Self.decodeInt32( compress: enabledCompression, from: &dataRegion )
 	}
 
 	///	Decodes a `Int64` value
 	mutating func decodeInt64() throws -> Int64 {
-		try Self.decodeInt64( compress: enableCompression, from: &dataRegion )
+		try Self.decodeInt64( compress: enabledCompression, from: &dataRegion )
 	}
 
 	///	Decodes a `Int` value
 	mutating func decodeInt() throws -> Int {
-		try Self.decodeInt( compress: enableCompression, from: &dataRegion )
+		try Self.decodeInt( compress: enabledCompression, from: &dataRegion )
 	}
 
 	///	Decodes a `Float` value
@@ -299,7 +334,7 @@ extension BinaryIODecoder {
 	
 	/// Decodes a `Data` value
 	mutating func decodeData() throws -> Data {
-		try Self.decodeData(compress: enableCompression, from: &dataRegion)
+		try Self.decodeData(compress: enabledCompression, from: &dataRegion)
 	}
 }
 

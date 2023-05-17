@@ -66,7 +66,7 @@ final class GEncoderImpl : EncodeFileBlocksDelegate {
 	var keyStringMap: KeyStringMap 	{ keyMap.keyStringMap }
 	
 	private var manglingFunction : ManglingFunction {
-		encodeOptions.contains( .useNSClassFromStringMangling ) ?
+		encodeOptions.contains( .nsClassFromStringMangling ) ?
 			.nsClassFromString : .mangledTypeName
 	}
 	
@@ -136,38 +136,38 @@ extension GEncoderImpl : GEncoder, GEncoderView {
 	}
 	
 	func encode<Value>(_ value: Value) throws where Value:GEncodable {
-		try level1_encodeValue( value, keyID: nil, conditional:false )
+		try encodeValueLevel1( value, keyID: nil, conditional:false )
 	}
 	
 	func encodeConditional<Value>(_ value: Value?) throws where Value:GEncodable {
-		try level1_encodeValue( value, keyID: nil, conditional:true )
+		try encodeValueLevel1( value, keyID: nil, conditional:true )
 	}
 	
 	func encode<Key, Value>(_ value: Value, for key: Key) throws
 	where Key : RawRepresentable, Value : GEncodable, Key.RawValue == String
 	{
-		try level1_encodeValue( value, keyID: try createKeyID( for:key.rawValue, value: value ), conditional:false )
+		try encodeValueLevel1( value, keyID: try createKeyID( for:key.rawValue, value: value ), conditional:false )
 	}
 	
 	func encodeConditional<Key, Value>(_ value: Value?, for key: Key) throws
 	where Key : RawRepresentable, Value : GEncodable, Key.RawValue == String
 	{
-		try level1_encodeValue( value, keyID: try createKeyID( for:key.rawValue, value: value ), conditional:true )
+		try encodeValueLevel1( value, keyID: try createKeyID( for:key.rawValue, value: value ), conditional:true )
 	}
 }
 
 // MARK: GEncoderImpl private section
 extension GEncoderImpl {
-	private func level1_encodeValue(_ value: some GEncodable, keyID: KeyID?, conditional:Bool ) throws {
+	private func encodeValueLevel1(_ value: some GEncodable, keyID: KeyID?, conditional:Bool ) throws {
 		if let value = value._fullOptionalUnwrappedValue {
 			// now value is not nil
-			try level2_encodeValue( value, keyID: keyID, conditional:conditional )
+			try encodeValueLevel2( value, keyID: keyID, conditional:conditional )
 		} else { // if value is nil, encode nil and return
 			try blockEncoder.appendNil(keyID: keyID)
 		}
 	}
 	
-	private func level2_encodeValue(_ value: some GEncodable, keyID: KeyID?, conditional:Bool ) throws {
+	private func encodeValueLevel2(_ value: some GEncodable, keyID: KeyID?, conditional:Bool ) throws {
 		if let trivialValue = value as? any GPackEncodable {
 			if conditional {
 				throw Errors.GraphCodable.conditionalEncodingRequireIdentity(
@@ -192,7 +192,7 @@ extension GEncoderImpl {
 			} else {
 				// not encoded value: we encode it
 				let idnID	= identityMap.createStrongID( for: identity )
-				try level3_encodeValue( value, keyID: keyID, idnID: idnID )
+				try encodeValueLevel3( value, keyID: keyID, idnID: idnID )
 			}
 		} else {	// NO IDENTITY
 			if conditional, encodeOptions.contains(.disableIdentity) == false {
@@ -203,11 +203,11 @@ extension GEncoderImpl {
 					)
 				)
 			}
-			try level3_encodeValue( value, keyID: keyID, idnID: nil )
+			try encodeValueLevel3( value, keyID: keyID, idnID: nil )
 		}
 	}
 	
-	private func level3_encodeValue( _ value:some GEncodable, keyID: KeyID?, idnID: IdnID? ) throws {
+	private func encodeValueLevel3( _ value:some GEncodable, keyID: KeyID?, idnID: IdnID? ) throws {
 		// INHERITANCE: only classes have a refID (value refID == nil)
 		let refID	= try createRefIDIfNeeded( for: value )
 		if let binaryValue = value as? any GBinaryEncodable {
