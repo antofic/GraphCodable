@@ -8,16 +8,16 @@ import Foundation
 
 ///	A value that decodes instances of a **BDecodable** type
 ///	from a data buffer that uses **BinaryIO** format.
-public struct BinaryIODecoder: BDecoder {
+public struct BinaryIODecoder<BinaryData:BinaryDataProtocol>: BDecoder {
 	///	The full data to decode from
-	private let data					: Bytes
+	private let data					: BinaryData
 
 	///	The region of the data from which the current
 	///	decoding occurs.
-	private var dataRegion				: Bytes.SubSequence
+	private var dataRegion				: BinaryData.SubSequence
 
-	/// Use `enableCompression` instead
-	private var _enableCompression		: Bool
+	/// Use `compression` instead
+	private var _compression			: Bool
 
 	///	Encoded flags.
 	///
@@ -67,14 +67,45 @@ extension BinaryIODecoder {
 	///	- Parameter userData: User defined data for decoding strategies.
 	///	GraphCodable uses this parameter to store the `decoderView` property accessible
 	///	from `GBinaryDecodable` types.
-	public init<Q>( data: Q, archiveIdentifier: String? = defaultBinaryIOArchiveIdentifier, userData:Any? = nil ) throws where Q:DataProtocol {
-		if let data = data as? Bytes {
-			try self.init( data, archiveIdentifier:archiveIdentifier, userData:userData )
-		} else {
-			try self.init( Bytes(data), archiveIdentifier:archiveIdentifier, userData:userData )
+	public init( data: BinaryData, archiveIdentifier: String? = defaultBinaryIOArchiveIdentifier, userData:Any? = nil ) throws {
+		var dataRegion					= data[...]
+		
+		// decode BinaryIOFlags
+		let binaryIOFlags = BinaryIOFlags( rawValue: try Self.decodeUInt16(compress: false, from: &dataRegion) )
+		guard binaryIOFlags.isValid else {
+			throw Errors.BinaryIO.malformedArchive(
+				Self.self, Errors.Context(
+					debugDescription: "Invalid encoded BinaryIOFlags |\(binaryIOFlags.rawValue)|."
+				)
+			)
 		}
+		self.encodedBinaryIOFlags 		= binaryIOFlags
+		 
+		// decode archiveIdentifier
+		if binaryIOFlags.contains( .hasArchiveIdentifier ) {
+			self.encodedArchiveIdentifier = try Self.decodeString( from: &dataRegion )
+		} else {
+			self.encodedArchiveIdentifier = nil
+		}
+		self._compression			= binaryIOFlags.contains( .compressionEnabled )
+		if let archiveIdentifier, archiveIdentifier != self.encodedArchiveIdentifier {
+			throw Errors.BinaryIO.archiveIdentifierDontMatch(
+				Self.self, Errors.Context(
+					debugDescription: "Encoded archiveIdentifier |\(encodedArchiveIdentifier ?? "nil" )| doesn't match the requested identifier |\(archiveIdentifier)|."
+				)
+			)
+		}
+		// decode binaryIOVersion (compressed if enableCompression)
+		self.encodedBinaryIOVersion		= try Self.decodeUInt16(compress: _compression, from: &dataRegion)
+		// decode userVersion (compressed if enableCompression)
+		self.encodedUserVersion			= try Self.decodeUInt32(compress: _compression, from: &dataRegion)
+		self.data						= data
+		self.dataRegion					= dataRegion
+		self.startOfFile				= dataRegion.startIndex
+		self.userData					= userData
 	}
 
+	
 	/// Enable/Disable compression
 	///
 	///	You can temporarily disable and then re-enable compression by setting this variable
@@ -88,9 +119,9 @@ extension BinaryIODecoder {
 	///	  ) rethrows -> T
 	///	```
 	/// Note: The compression must be set as it was set during encoding.
-	public var enabledCompression : Bool {
-		get { _enableCompression }
-		set { _enableCompression = newValue && encodedBinaryIOFlags.contains( .compressionEnabled ) }
+	private var compression : Bool {
+		get { _compression }
+		set { _compression = newValue && encodedBinaryIOFlags.contains( .compressionEnabled ) }
 	}
 
 	///	Check if the end of the current region has been reached.
@@ -169,9 +200,9 @@ extension BinaryIODecoder {
 	public mutating func withCompressionDisabled<T>(
 		decodeFunc: ( inout BinaryIODecoder ) throws -> T
 	) rethrows -> T {
-		let saveCompression	= enabledCompression
-		defer{ enabledCompression = saveCompression }
-		enabledCompression = false
+		let saveCompression	= compression
+		defer{ compression = saveCompression }
+		compression = false
 		return try decodeFunc( &self )
 	}
 
@@ -274,22 +305,22 @@ extension BinaryIODecoder {
 	
 	///	Decodes a `UInt16` value
 	mutating func decodeUInt16() throws -> UInt16 {
-		try Self.decodeUInt16( compress: enabledCompression, from: &dataRegion )
+		try Self.decodeUInt16( compress: compression, from: &dataRegion )
 	}
 	
 	///	Decodes a `UInt32` value
 	mutating func decodeUInt32() throws -> UInt32 {
-		try Self.decodeUInt32( compress: enabledCompression, from: &dataRegion )
+		try Self.decodeUInt32( compress: compression, from: &dataRegion )
 	}
 	
 	///	Decodes a `UInt64` value
 	mutating func decodeUInt64() throws -> UInt64 {
-		try Self.decodeUInt64( compress: enabledCompression, from: &dataRegion )
+		try Self.decodeUInt64( compress: compression, from: &dataRegion )
 	}
 
 	///	Decodes a `UInt` value
 	mutating func decodeUInt() throws -> UInt {
-		try Self.decodeUInt( compress: enabledCompression, from: &dataRegion )
+		try Self.decodeUInt( compress: compression, from: &dataRegion )
 	}
 	
 	///	Decodes a `Int8` value
@@ -299,22 +330,22 @@ extension BinaryIODecoder {
 	
 	///	Decodes a `Int16` value
 	mutating func decodeInt16() throws -> Int16 {
-		try Self.decodeInt16( compress: enabledCompression, from: &dataRegion )
+		try Self.decodeInt16( compress: compression, from: &dataRegion )
 	}
 	
 	///	Decodes a `Int32` value
 	mutating func decodeInt32() throws -> Int32 {
-		try Self.decodeInt32( compress: enabledCompression, from: &dataRegion )
+		try Self.decodeInt32( compress: compression, from: &dataRegion )
 	}
 
 	///	Decodes a `Int64` value
 	mutating func decodeInt64() throws -> Int64 {
-		try Self.decodeInt64( compress: enabledCompression, from: &dataRegion )
+		try Self.decodeInt64( compress: compression, from: &dataRegion )
 	}
 
 	///	Decodes a `Int` value
 	mutating func decodeInt() throws -> Int {
-		try Self.decodeInt( compress: enabledCompression, from: &dataRegion )
+		try Self.decodeInt( compress: compression, from: &dataRegion )
 	}
 
 	///	Decodes a `Float` value
@@ -334,51 +365,13 @@ extension BinaryIODecoder {
 	
 	/// Decodes a `Data` value
 	mutating func decodeData() throws -> Data {
-		try Self.decodeData(compress: enabledCompression, from: &dataRegion)
+		try Self.decodeData(compress: compression, from: &dataRegion)
 	}
 }
 
 // MARK: private section
 
 extension BinaryIODecoder {
-	/// `BinaryIODecoder` "true" init method
-	private init( _ data: Bytes, archiveIdentifier: String?, userData:Any?) throws {
-		var dataRegion					= data[...]
-		
-		// decode BinaryIOFlags
-		let binaryIOFlags = BinaryIOFlags( rawValue: try Self.decodeUInt16(compress: false, from: &dataRegion) )
-		guard binaryIOFlags.isValid else {
-			throw Errors.BinaryIO.malformedArchive(
-				Self.self, Errors.Context(
-					debugDescription: "Invalid encoded BinaryIOFlags |\(binaryIOFlags.rawValue)|."
-				)
-			)
-		}
-		self.encodedBinaryIOFlags 		= binaryIOFlags
-		 
-		// decode archiveIdentifier
-		if binaryIOFlags.contains( .hasArchiveIdentifier ) {
-			self.encodedArchiveIdentifier = try Self.decodeString( from: &dataRegion )
-		} else {
-			self.encodedArchiveIdentifier = nil
-		}
-		self._enableCompression			= binaryIOFlags.contains( .compressionEnabled )
-		if let archiveIdentifier, archiveIdentifier != self.encodedArchiveIdentifier {
-			throw Errors.BinaryIO.archiveIdentifierDontMatch(
-				Self.self, Errors.Context(
-					debugDescription: "Encoded archiveIdentifier |\(encodedArchiveIdentifier ?? "nil" )| doesn't match the requested identifier |\(archiveIdentifier)|."
-				)
-			)
-		}
-		// decode binaryIOVersion (compressed if enableCompression)
-		self.encodedBinaryIOVersion		= try Self.decodeUInt16(compress: _enableCompression, from: &dataRegion)
-		// decode userVersion (compressed if enableCompression)
-		self.encodedUserVersion			= try Self.decodeUInt32(compress: _enableCompression, from: &dataRegion)
-		self.data						= data
-		self.dataRegion					= dataRegion
-		self.startOfFile				= dataRegion.startIndex
-		self.userData					= userData
-	}
 
 	/// Decodes a pod value
 	private mutating func decodePODValue<T>() throws  -> T {
@@ -406,7 +399,7 @@ extension BinaryIODecoder {
 	/// Decodes a pod value
 	///
 	///	static version
-	private static func decodePODValue<T>( from dataRegion:inout Bytes.SubSequence ) throws  -> T {
+	private static func decodePODValue<T>( from dataRegion:inout BinaryData.SubSequence ) throws  -> T {
 		let inSize	= MemoryLayout<T>.size
 		try checkRemainingSize( dataRegion, size:inSize )
 		defer { dataRegion.removeFirst( inSize ) }
@@ -430,7 +423,7 @@ extension BinaryIODecoder {
 	/// Checks if the `dataRegion` buffer contains at least `size` bytes
 	///
 	///	static version
-	private static func checkRemainingSize( _ dataRegion:Bytes.SubSequence, size:Int ) throws {
+	private static func checkRemainingSize( _ dataRegion:BinaryData.SubSequence, size:Int ) throws {
 		if dataRegion.count < size {
 			throw Errors.BinaryIO.outOfBounds(
 				Self.self, Errors.Context(
@@ -444,7 +437,7 @@ extension BinaryIODecoder {
 	///	BinaryIOEncoder `compressAndEncode` function.
 	///
 	///	static version
-	private static func decodeAndDecompress<T>( from dataRegion:inout Bytes.SubSequence ) throws -> T
+	private static func decodeAndDecompress<T>( from dataRegion:inout BinaryData.SubSequence ) throws -> T
 	where T:FixedWidthInteger, T:UnsignedInteger {
 		var	byte	= try decodePODValue( from:&dataRegion ) as UInt8
 		var	val		= T( byte & 0x7F )
@@ -462,21 +455,21 @@ extension BinaryIODecoder {
 	///	Decodes a `Bool` value
 	///
 	///	static version
-	private static func decodeBool( from dataRegion:inout Bytes.SubSequence ) throws -> Bool {
+	private static func decodeBool( from dataRegion:inout BinaryData.SubSequence ) throws -> Bool {
 		return try decodePODValue( from:&dataRegion )
 	}
 	
 	///	Decodes a `UInt8` value
 	///
 	///	static version
-	private static func decodeUInt8( from dataRegion:inout Bytes.SubSequence ) throws -> UInt8	{
+	private static func decodeUInt8( from dataRegion:inout BinaryData.SubSequence ) throws -> UInt8	{
 		try decodePODValue( from:&dataRegion )
 	}
 	
 	///	Decodes a `UInt16` value
 	///
 	///	static version
-	private static func decodeUInt16( compress:Bool, from dataRegion:inout Bytes.SubSequence ) throws -> UInt16 {
+	private static func decodeUInt16( compress:Bool, from dataRegion:inout BinaryData.SubSequence ) throws -> UInt16 {
 		if compress {
 			return try decodeAndDecompress( from:&dataRegion )
 		}
@@ -488,7 +481,7 @@ extension BinaryIODecoder {
 	///	Decodes a `UInt32` value
 	///
 	///	static version
-	private static func decodeUInt32( compress:Bool, from dataRegion:inout Bytes.SubSequence ) throws -> UInt32 {
+	private static func decodeUInt32( compress:Bool, from dataRegion:inout BinaryData.SubSequence ) throws -> UInt32 {
 		if compress {
 			return try decodeAndDecompress( from:&dataRegion )
 		}
@@ -500,7 +493,7 @@ extension BinaryIODecoder {
 	///	Decodes a `UInt64` value
 	///
 	///	static version
-	private static func decodeUInt64( compress:Bool, from dataRegion:inout Bytes.SubSequence ) throws -> UInt64 {
+	private static func decodeUInt64( compress:Bool, from dataRegion:inout BinaryData.SubSequence ) throws -> UInt64 {
 		if compress {
 			return try decodeAndDecompress( from:&dataRegion )
 		}
@@ -512,7 +505,7 @@ extension BinaryIODecoder {
 	///	Decodes a `UInt` value
 	///
 	///	static version
-	private static func decodeUInt( compress:Bool, from dataRegion:inout Bytes.SubSequence ) throws -> UInt {
+	private static func decodeUInt( compress:Bool, from dataRegion:inout BinaryData.SubSequence ) throws -> UInt {
 		// UInt are always archived as UInt64
 		let value64 = try decodeUInt64( compress:compress, from:&dataRegion )
 		guard let value = UInt( exactly: value64 ) else {
@@ -528,14 +521,14 @@ extension BinaryIODecoder {
 	///	Decodes a `Int8` value
 	///
 	///	static version
-	private static func decodeInt8( from dataRegion:inout Bytes.SubSequence ) throws -> Int8	{
+	private static func decodeInt8( from dataRegion:inout BinaryData.SubSequence ) throws -> Int8	{
 		try decodePODValue( from:&dataRegion )
 	}
 	
 	///	Decodes a `Int16` value
 	///
 	///	static version
-	private static func decodeInt16( compress:Bool, from dataRegion:inout Bytes.SubSequence ) throws -> Int16 {
+	private static func decodeInt16( compress:Bool, from dataRegion:inout BinaryData.SubSequence ) throws -> Int16 {
 		if compress {
 			return ZigZag.decode( try decodeUInt16(compress: compress, from: &dataRegion) )
 		} else {
@@ -546,7 +539,7 @@ extension BinaryIODecoder {
 	///	Decodes a `Int32` value
 	///
 	///	static version
-	private static func decodeInt32( compress:Bool, from dataRegion:inout Bytes.SubSequence ) throws -> Int32 {
+	private static func decodeInt32( compress:Bool, from dataRegion:inout BinaryData.SubSequence ) throws -> Int32 {
 		if compress {
 			return ZigZag.decode( try decodeUInt32(compress: compress, from: &dataRegion) )
 		} else {
@@ -557,7 +550,7 @@ extension BinaryIODecoder {
 	///	Decodes a `Int64` value
 	///
 	///	static version
-	private static func decodeInt64( compress:Bool, from dataRegion:inout Bytes.SubSequence ) throws -> Int64 {
+	private static func decodeInt64( compress:Bool, from dataRegion:inout BinaryData.SubSequence ) throws -> Int64 {
 		if compress {
 			return ZigZag.decode( try decodeUInt64(compress: compress, from: &dataRegion) )
 		} else {
@@ -568,7 +561,7 @@ extension BinaryIODecoder {
 	///	Decodes a `Int` value
 	///
 	///	static version
-	private static func decodeInt( compress:Bool, from dataRegion:inout Bytes.SubSequence ) throws -> Int {
+	private static func decodeInt( compress:Bool, from dataRegion:inout BinaryData.SubSequence ) throws -> Int {
 		// Int are always encoded as Int64
 		let value64 = try decodeInt64( compress:compress, from: &dataRegion )
 		guard let value = Int( exactly: value64 ) else {
@@ -584,21 +577,21 @@ extension BinaryIODecoder {
 	///	Decodes a `Float` value
 	///
 	///	static version
-	private static func decodeFloat( from dataRegion:inout Bytes.SubSequence ) throws -> Float {
+	private static func decodeFloat( from dataRegion:inout BinaryData.SubSequence ) throws -> Float {
 		return try Float(bitPattern: decodeUInt32(compress: false, from: &dataRegion))
 	}
 	
 	///	Decodes a `Double` value
 	///
 	///	static version
-	private static func decodeDouble( from dataRegion:inout Bytes.SubSequence ) throws -> Double	{
+	private static func decodeDouble( from dataRegion:inout BinaryData.SubSequence ) throws -> Double	{
 		return try Double(bitPattern: decodeUInt64(compress: false, from: &dataRegion))
 	}
 	
 	/// Decode a null terminated utf8 string
 	///
 	///	static version
-	private static func decodeString( from dataRegion:inout Bytes.SubSequence ) throws -> String {
+	private static func decodeString( from dataRegion:inout BinaryData.SubSequence ) throws -> String {
 		var inSize = 0
 		
 		let string = try dataRegion.withUnsafeBytes {
@@ -632,7 +625,7 @@ extension BinaryIODecoder {
 	/// Decodes a `Data` value
 	///
 	///	static version
-	private static func decodeData( compress:Bool, from dataRegion:inout Bytes.SubSequence ) throws -> Data {
+	private static func decodeData( compress:Bool, from dataRegion:inout BinaryData.SubSequence ) throws -> Data {
 		let count	= try decodeInt( compress: compress, from: &dataRegion )
 		let inSize	= count * MemoryLayout<UInt8>.size
 		try checkRemainingSize( dataRegion, size: inSize )

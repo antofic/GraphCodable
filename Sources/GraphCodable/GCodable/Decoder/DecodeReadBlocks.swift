@@ -13,16 +13,16 @@ typealias ReadBlocks = [ReadBlock]
 ///
 /// read the BinaryIODecoder content.
 /// FileBlocks are updated in ReadBlocks
-struct DecodeReadBlocks {
+struct DecodeReadBlocks<Q:BinaryDataProtocol> {
 	let 		fileHeader			: FileHeader
 	private	var sectionMap			: SectionMap
-	private var ioDecoder			: BinaryIODecoder
+	private var ioDecoder			: BinaryIODecoder<Q>
 
 	private var _encodedClassMap	: EncodedClassMap?
 	private var _blocks				: ReadBlocks?
 	private var _keyStringMap		: KeyStringMap?
 
-	init( from ioDecoder:BinaryIODecoder ) throws {
+	init( from ioDecoder:BinaryIODecoder<Q> ) throws {
 		var decoder	= ioDecoder
 		
 		self.fileHeader		= try FileHeader( from: &decoder )

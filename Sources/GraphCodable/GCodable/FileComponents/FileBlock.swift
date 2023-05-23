@@ -139,32 +139,32 @@ extension FileBlock {
 }
 
 extension FileBlock {
-	static func encodeEnd(
-		to encoder: inout BinaryIOEncoder
+	static func encodeEnd<Q:MutableBinaryDataProtocol>(
+		to encoder: inout BinaryIOEncoder<Q>
 	) throws {
 		try encoder.encode( Code.End() )
 	}
 
-	static func encodeNil(
+	static func encodeNil<Q:MutableBinaryDataProtocol>(
 		keyID:KeyID?,
-		to encoder: inout BinaryIOEncoder
+		to encoder: inout BinaryIOEncoder<Q>
 	) throws {
 		try encoder.encode( Code.Nil(keyID: keyID) )
 		if let keyID 	{ try encoder.encode( keyID ) }
 	}
 
-	static func encodePtr(
+	static func encodePtr<Q:MutableBinaryDataProtocol>(
 		keyID:KeyID?, idnID:IdnID, conditional:Bool,
-		to encoder: inout BinaryIOEncoder
+		to encoder: inout BinaryIOEncoder<Q>
 	) throws {
 		try encoder.encode( Code.Ptr(keyID: keyID, idnID: idnID, conditional:conditional ) )
 		if let keyID 	{ try encoder.encode( keyID ) }
 		try encoder.encode( idnID )
 	}
 	
-	static func encodeVal(
+	static func encodeVal<Q:MutableBinaryDataProtocol>(
 		keyID:KeyID?, idnID:IdnID?, refID:RefID?,
-		to encoder: inout BinaryIOEncoder
+		to encoder: inout BinaryIOEncoder<Q>
 	) throws {
 		try encoder.encode( Code.Val(keyID: keyID, idnID: idnID, refID: refID ) )
 		if let keyID	{ try encoder.encode( keyID ) }
@@ -172,9 +172,9 @@ extension FileBlock {
 		if let refID	{ try encoder.encode( refID ) }
 	}
 	
-	static func encodeBin(
+	static func encodeBin<Q:MutableBinaryDataProtocol>(
 		keyID:KeyID?, idnID:IdnID?, refID:RefID?, value: some GBinaryEncodable,
-		to encoder: inout BinaryIOEncoder
+		to encoder: inout BinaryIOEncoder<Q>
 	) throws {
 		try encoder.encode( Code.Bin(keyID: keyID, idnID: idnID, refID: refID ) )
 		if let keyID	{ try encoder.encode( keyID ) }
@@ -185,7 +185,7 @@ extension FileBlock {
 }
 
 extension FileBlock {
-	init(from decoder: inout BinaryIODecoder ) throws {
+	init<Q:BinaryDataProtocol>(from decoder: inout BinaryIODecoder<Q> ) throws {
 		func decode<T:BDecodable>( _ type:T.Type, if test:Bool ) throws -> T? {
 			test ? try decoder.decode( type ) : nil
 		}

@@ -7,7 +7,7 @@
 import Foundation
 
 protocol FileBlockProtocol {
-	init(from ioDecoder: inout BinaryIODecoder ) throws
+	init<Q:BinaryDataProtocol>(from ioDecoder: inout BinaryIODecoder<Q> ) throws
 	init?( pointerTo:Self, conditional:Bool )
 	var fileBlock : FileBlock { get }
 }
@@ -40,7 +40,7 @@ struct ReadBlock : FileBlockProtocol {
 	let fileBlock	: FileBlock
 	let position	: Int
 	
-	init(from ioDecoder: inout BinaryIODecoder ) throws {
+	init<Q:BinaryDataProtocol>(from ioDecoder: inout BinaryIODecoder<Q> ) throws {
 		self.fileBlock	= try FileBlock( from: &ioDecoder )
 		//	store the fileblock terminal position
 		self.position	= ioDecoder.position

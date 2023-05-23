@@ -76,8 +76,9 @@ final class GEncoderImpl : EncodeFileBlocksDelegate {
 		self.archiveIdentifier	= archiveIdentifier
 	}
 
-	private func ioEncoderAndHeader() -> (BinaryIOEncoder, FileHeader) {
-		let ioEncoder		= BinaryIOEncoder(
+	private func ioEncoderAndHeader<Q>() -> (BinaryIOEncoder<Q>, FileHeader)
+	where Q:MutableBinaryDataProtocol {
+		let ioEncoder		= BinaryIOEncoder<Q>(
 			userVersion: userVersion,
 			archiveIdentifier: archiveIdentifier,
 			userData: self,
@@ -90,10 +91,10 @@ final class GEncoderImpl : EncodeFileBlocksDelegate {
 		return (ioEncoder,fileHeader)
 	}
 	
-	func encodeRoot<Q>( _ value: some GEncodable ) throws -> Q where Q:MutableDataProtocol {
+	func encodeRoot<Q>( _ value: some GEncodable ) throws -> Q where Q:MutableBinaryDataProtocol {
 		defer { self.blockEncoder = nil }
 		
-		let (ioEncoder,fileHeader)	= ioEncoderAndHeader()
+		let (ioEncoder,fileHeader) : (BinaryIOEncoder<Q>, FileHeader) = ioEncoderAndHeader()
 		
 		let blockEncoder	= EncodeBinary<Q>(
 			ioEncoder: 		ioEncoder,
@@ -107,7 +108,7 @@ final class GEncoderImpl : EncodeFileBlocksDelegate {
 	func dumpRoot( _ value: some GEncodable, options: GraphDumpOptions ) throws -> String {
 		defer { self.blockEncoder = nil }
 		
-		let (_,fileHeader)	= ioEncoderAndHeader()
+		let (_,fileHeader)	: (BinaryIOEncoder<Bytes>, FileHeader) = ioEncoderAndHeader()
 		let blockEncoder	= EncodeDump(
 			fileHeader:		fileHeader,
 			dumpOptions:	options,

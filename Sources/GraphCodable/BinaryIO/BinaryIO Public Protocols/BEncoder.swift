@@ -6,7 +6,16 @@
 
 import Foundation
 
+public protocol MutableBinaryDataProtocol : MutableDataProtocol, BinaryDataProtocol
+where Self.Indices == Range<Int> {}
+
+extension Data : MutableBinaryDataProtocol {}
+extension Array<UInt8> : MutableBinaryDataProtocol {}
+extension ContiguousArray<UInt8> : MutableBinaryDataProtocol {}
+
 public protocol BEncoder {
+	associatedtype BinaryData : MutableBinaryDataProtocol
+	
 	/// The archiveIdentifier string set by the user.
 	var archiveIdentifier: String? { get }
 
@@ -36,5 +45,5 @@ public protocol BEncoder {
 	///
 	/// - parameter encodeFunc: the closure
 	/// - returns: the return value of the closure
-	mutating func withUnderlyingEncoder<T>( _ encodeFunc: (inout BinaryIOEncoder) throws -> T ) rethrows -> T
+	mutating func withUnderlyingEncoder<T>( _ encodeFunc: (inout BinaryIOEncoder<BinaryData>) throws -> T ) rethrows -> T
 }

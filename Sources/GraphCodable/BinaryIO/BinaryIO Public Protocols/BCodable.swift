@@ -89,10 +89,10 @@ public extension BEncodable {
 		userData:Any? = nil,
 		enableCompression:Bool = true
 	) throws -> Q
-	where Q:MutableDataProtocol {
-		var encoder = BinaryIOEncoder( userVersion:userVersion, archiveIdentifier: archiveIdentifier, userData: userData, enableCompression:enableCompression )
+	where Q:MutableBinaryDataProtocol {
+		var encoder = BinaryIOEncoder<Q>( userVersion:userVersion, archiveIdentifier: archiveIdentifier, userData: userData, enableCompression:enableCompression )
 		try encoder.encode( self )
-		return encoder.data()
+		return encoder.data
 	}
 }
 
@@ -108,8 +108,9 @@ public extension BDecodable {
 	///	- Parameter userData: User defined data for decoding strategies.
 	///	GraphCodable uses this parameter to store the `decoderView` property accessible
 	///	from `GBinaryDecodable` types.
-	init<Q>( binaryIOData: Q, archiveIdentifier: String? = defaultBinaryIOArchiveIdentifier, userData:Any? = nil ) throws where Q:DataProtocol {
-		var decoder = try BinaryIODecoder( data:binaryIOData, archiveIdentifier:archiveIdentifier, userData:userData )
+	init<Q>( binaryIOData: Q, archiveIdentifier: String? = defaultBinaryIOArchiveIdentifier, userData:Any? = nil ) throws
+	where Q:BinaryDataProtocol, Q.Indices == Range<Int>, Q.SubSequence: BinaryDataProtocol, Q.SubSequence.Indices == Range<Int> {
+		var decoder = try BinaryIODecoder<Q>( data:binaryIOData, archiveIdentifier:archiveIdentifier, userData:userData )
 		self = try decoder.decode()
 	}
 }

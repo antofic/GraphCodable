@@ -6,12 +6,19 @@
 
 import Foundation
 
+
 ///	A value that encodes instances of a **BEncodable** type
 ///	into a data buffer that uses **BinaryIO** format.
-public struct BinaryIOEncoder: BEncoder {
-	private var _data 				: Bytes
+public struct BinaryIOEncoder<BinaryData:MutableBinaryDataProtocol>: BEncoder {
+	///	Get the encoded data.
+	public private(set) var data 	: BinaryData
+
+	/// Use `position` instead
 	private var _position			: Int
-	private var _enableCompression	: Bool
+
+	/// Use `compression` instead
+	private var _compression		: Bool
+
 	private var	insertMode			: Bool
 
 	///	The first bytes of the file are reserved so the file
@@ -76,7 +83,7 @@ extension BinaryIOEncoder {
 	///
 	public init( userVersion: UInt32, archiveIdentifier: String? = defaultBinaryIOArchiveIdentifier, userData:Any? = nil, enableCompression:Bool = true ) {
 		self.userVersion			= userVersion
-		self._data					= Bytes()
+		self.data					= BinaryData()
 		self._position				= 0
 		self.startOfFile			= 0
 		self.binaryIOFlags			= [ enableCompression ? .compressionEnabled : [], archiveIdentifier != nil ? .hasArchiveIdentifier : [] ]
@@ -84,10 +91,10 @@ extension BinaryIOEncoder {
 		self.binaryIOVersion		= 0
 		self.insertMode				= false
 		self.userData				= userData
-		self._enableCompression		= false
+		self._compression		= false
 		// encode BinaryIOFlags
 		try! self.encodeUInt16( self.binaryIOFlags.rawValue )	// NO compression
-		self._enableCompression		= enableCompression
+		self._compression		= enableCompression
 		// encode archiveIdentifier
 		if let archiveIdentifier { try! self.encode( archiveIdentifier ) }
 		// encode binaryIOVersion (compressed if enableCompression)
@@ -95,18 +102,9 @@ extension BinaryIOEncoder {
 		// encode userVersion (compressed if enableCompression)
 		try! self.encodeUInt32( self.userVersion )
 		self.startOfFile			= position
-		self.enabledCompression		= enableCompression
+		self.compression		= enableCompression
 	}
 
-	///	Get the encoded data.
-	public func data<Q>() -> Q where Q:MutableDataProtocol {
-		if let data = _data as? Q {
-			return data
-		} else {
-			return Q( _data )
-		}
-	}
-	
 	/// Enable/Disable compression
 	///
 	///	You can temporarily disable and then re-enable compression by setting this variable
@@ -120,13 +118,13 @@ extension BinaryIOEncoder {
 	///	  ) rethrows -> T
 	///	```
 	/// Note: During decoding, compression must be enabled or disabled accordingly.
-	public var enabledCompression : Bool {
-		get { _enableCompression }
-		set { _enableCompression = newValue && binaryIOFlags.contains( .compressionEnabled ) }
+	private var compression : Bool {
+		get { _compression }
+		set { _compression = newValue && binaryIOFlags.contains( .compressionEnabled ) }
 	}
 
 	///	The current end of file position
-	public var endOfFile	: Int { _data.endIndex }
+	public var endOfFile	: Int { data.endIndex }
 	
 	///	Get and sets the the position in the file in which data will be encoded.
 	///
@@ -156,9 +154,9 @@ extension BinaryIOEncoder {
 	public mutating func withCompressionDisabled<T>(
 		encodeFunc: ( inout BinaryIOEncoder ) throws -> T
 	) rethrows -> T {
-		let saveCompression	= enabledCompression
-		defer{ enabledCompression = saveCompression }
-		enabledCompression = false
+		let saveCompression	= compression
+		defer{ compression = saveCompression }
+		compression = false
 		return try encodeFunc( &self )
 	}
 	
@@ -198,7 +196,7 @@ extension BinaryIOEncoder {
 		encodeFunc: ( inout BinaryIOEncoder ) throws -> T
 	) rethrows -> T {
 		// if binaryIOFlags.contains( .compressionEnabled ) {
-		if enabledCompression {
+		if compression {
 			// size verrà certamente compresso
 			let initialPos	= position
 			let result 		= try encodeFunc( &self )
@@ -254,7 +252,7 @@ extension BinaryIOEncoder {
 	
 	/// Encodes a `UInt16` value
 	mutating func encodeUInt16( _ value:UInt16 ) throws {
-		if enabledCompression {
+		if compression {
 			try compressAndEncode( value )
 		} else {
 			try encodePODValue( value.littleEndian )
@@ -263,7 +261,7 @@ extension BinaryIOEncoder {
 	
 	/// Encodes a `UInt32` value
 	mutating func encodeUInt32( _ value:UInt32 ) throws {
-		if enabledCompression {
+		if compression {
 			try compressAndEncode( value )
 		} else {
 			try encodePODValue( value.littleEndian )
@@ -272,7 +270,7 @@ extension BinaryIOEncoder {
 	
 	/// Encodes a `UInt64` value
 	mutating func encodeUInt64( _ value:UInt64 ) throws {
-		if enabledCompression {
+		if compression {
 			try compressAndEncode( value )
 		} else {
 			try encodePODValue( value.littleEndian )
@@ -300,7 +298,7 @@ extension BinaryIOEncoder {
 	
 	/// Encodes a `Int16` value
 	mutating func encodeInt16( _ value:Int16 ) throws {
-		if enabledCompression {
+		if compression {
 			try encode( ZigZag.encode( value ) )
 		}
 		else {
@@ -310,7 +308,7 @@ extension BinaryIOEncoder {
 	
 	/// Encodes a `Int32` value
 	mutating func encodeInt32( _ value:Int32 ) throws {
-		if enabledCompression {
+		if compression {
 			try encode( ZigZag.encode( value ) )
 		}
 		else {
@@ -320,7 +318,7 @@ extension BinaryIOEncoder {
 	
 	/// Encodes a `Int64` value
 	mutating func encodeInt64( _ value:Int64 ) throws {
-		if enabledCompression {
+		if compression {
 			try encode( ZigZag.encode( value ) )
 		}
 		else {
@@ -343,18 +341,18 @@ extension BinaryIOEncoder {
 		
 	/// Encodes a `Float` value
 	mutating func encodeFloat( _ value:Float ) throws {
-		let saveCompression = enabledCompression
-		defer { enabledCompression = saveCompression }
-		enabledCompression = false
+		let saveCompression = compression
+		defer { compression = saveCompression }
+		compression = false
 		
 		try encode( value.bitPattern )
 	}
 	
 	/// Encodes a `Double` value
 	mutating func encodeDouble( _ value:Double ) throws {
-		let saveCompression = enabledCompression
-		defer { enabledCompression = saveCompression }
-		enabledCompression = false
+		let saveCompression = compression
+		defer { compression = saveCompression }
+		compression = false
 		
 		try encode( value.bitPattern )
 	}
@@ -391,15 +389,15 @@ extension BinaryIOEncoder {
 	/// Encodes a bytes collection
 	private mutating func encode<C>( contentsOf source:C ) throws
 	where C:RandomAccessCollection, C.Element == UInt8 {
-		if position == _data.endIndex {
-			_data.append( contentsOf: source )
-		} else if position >= _data.startIndex {
+		if position == data.endIndex {
+			data.append( contentsOf: source )
+		} else if position >= data.startIndex {
 			if insertMode { // insert
-				_data.insert( contentsOf: source, at: position )
+				data.insert( contentsOf: source, at: position )
 			} else { // overwrite
-				_data.replaceSubrange(
+				data.replaceSubrange(
 					Range( uncheckedBounds: (position, position + source.count)
-					).clamped(to: _data.indices), with: source
+					).clamped(to: data.indices), with: source
 				)
 			}
 		} else {

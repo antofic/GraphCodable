@@ -15,7 +15,9 @@ final class DecodeDump: EncodeFileBlocksDelegate {
 	let keyStringMap	: KeyStringMap
 	let dumpOptions		: GraphDumpOptions
 	
-	init( from ioDecoder:BinaryIODecoder, classNameMap:ClassNameMap?, options:GraphDumpOptions ) throws {
+	init<Q:BinaryDataProtocol>(
+		from ioDecoder:BinaryIODecoder<Q>, classNameMap:ClassNameMap?, options:GraphDumpOptions
+	) throws {
 		var readBlockDecoder	= try DecodeReadBlocks( from: ioDecoder )
 		
 		self.fileSize			= ioDecoder.fileSize

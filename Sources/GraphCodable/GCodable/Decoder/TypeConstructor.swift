@@ -6,8 +6,23 @@
 
 import Foundation
 
-final class TypeConstructor {
-	private var			ioDecoder			: BinaryIODecoder
+protocol TypeConstructorProtocol {
+	var 	currentNode : ReadNode { get }
+	var 	currentClass : DecodedClass? { get }
+	var fileHeader : FileHeader { get }
+	func decodeRoot<T,D>( _ type: T.Type, from decoder:D ) throws -> T where T:GDecodable, D:GDecoder
+	func contains(key: String) -> Bool
+	func popNode( key:String ) throws -> ReadNode
+	func popNode() throws -> ReadNode
+	var encodedClassVersion : UInt32 { get throws }
+	var replacedClass : (any (AnyObject & GDecodable).Type)? { get throws }
+	func deferDecode<T>( node:ReadNode, from decoder:some GDecoder, _ setter: @escaping (T) -> () ) throws where T:GDecodable
+	func decode<T>( node:ReadNode, from decoder:some GDecoder ) throws -> T where T:GDecodable
+}
+
+
+final class TypeConstructor<Q:BinaryDataProtocol> : TypeConstructorProtocol {
+	private var			ioDecoder			: BinaryIODecoder<Q>
 	private var			decodeBinary		: DecodeBinary
 	private (set) var 	currentNode 		: ReadNode
 	private (set) var 	currentClass 		: DecodedClass?
@@ -20,7 +35,7 @@ final class TypeConstructor {
 	
 	var fileHeader : FileHeader { decodeBinary.fileHeader }
 	
-	init( ioDecoder:BinaryIODecoder, classNameMap:ClassNameMap? ) throws {
+	init( ioDecoder:BinaryIODecoder<Q>, classNameMap:ClassNameMap? ) throws {
 		self.ioDecoder		= ioDecoder
 		self.decodeBinary	= try DecodeBinary(from: ioDecoder, classNameMap:classNameMap )
 		self.currentNode	= decodeBinary.rootNode

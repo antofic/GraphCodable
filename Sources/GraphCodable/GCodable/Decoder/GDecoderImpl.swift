@@ -10,17 +10,18 @@ final class GDecoderImpl {
 	private var archiveIdentifier	: String?
 	var	userInfo					= [String:Any]()
 	var classNameMap				= ClassNameMap()
-	private var constructor 		: TypeConstructor!
+	private var constructor 		: (any TypeConstructorProtocol)!
 	
 	init( archiveIdentifier: String? ) {
 		self.archiveIdentifier	= archiveIdentifier
 	}
 	
-	private func ioDecoder( from data: some DataProtocol ) throws -> BinaryIODecoder {
+	private func ioDecoder<Q:BinaryDataProtocol>(
+		from data: Q ) throws -> BinaryIODecoder<Q> {
 		try BinaryIODecoder(data: data, archiveIdentifier:archiveIdentifier, userData:self )
 	}
 	
-	func allEncodedClass( from data: some DataProtocol ) throws -> [EncodedClass] {
+	func allEncodedClass( from data: some BinaryDataProtocol ) throws -> [EncodedClass] {
 		let ioDecoder 		= try ioDecoder(from: data)
 		var blockDecoder	= try DecodeReadBlocks( from: ioDecoder )
 		let encodedClassMap	= try blockDecoder.encodedClassMap()
@@ -28,7 +29,7 @@ final class GDecoderImpl {
 		return Array( encodedClassMap.values )
 	}
 	
-	func decodeRoot<T>( _ type: T.Type, from data: some DataProtocol ) throws -> T
+	func decodeRoot<T>( _ type: T.Type, from data: some BinaryDataProtocol ) throws -> T
 	where T:GDecodable {
 		defer { constructor = nil }
 		
@@ -38,14 +39,14 @@ final class GDecoderImpl {
 		return try constructor.decodeRoot(type, from: self)
 	}
 	
-	func dumpRoot( from data: some DataProtocol, options: GraphDumpOptions ) throws -> String {
+	func dumpRoot( from data: some BinaryDataProtocol, options: GraphDumpOptions ) throws -> String {
 		let ioDecoder 	= try ioDecoder(from: data)
 		let decodedDump	= try DecodeDump(from: ioDecoder, classNameMap:classNameMap, options: options)
 		
 		return decodedDump.dump()
 	}
 	
-	func isCyclic( from data: some DataProtocol ) throws -> Bool {
+	func isCyclic( from data: some BinaryDataProtocol ) throws -> Bool {
 		let ioDecoder 		= try ioDecoder(from: data)
 		var blockDecoder	= try DecodeReadBlocks( from: ioDecoder )
 		let readBlocks		= try blockDecoder.readBlocks()
@@ -54,7 +55,7 @@ final class GDecoderImpl {
 		return root.isCyclic(nodeMap: nodeMap)
 	}
 	
-	func encodedArchiveIdentifier( from data: some DataProtocol ) throws -> String? {
+	func encodedArchiveIdentifier( from data: some BinaryDataProtocol ) throws -> String? {
 		let ioDecoder 	= try ioDecoder(from: data)
 		return ioDecoder.encodedArchiveIdentifier
 	}

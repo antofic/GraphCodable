@@ -6,7 +6,20 @@
 
 import Foundation
 
+public protocol BinaryDataProtocol : DataProtocol
+where Self.Indices == Range<Int>, Self.SubSequence: BinaryDataProtocol
+{
+	func withUnsafeBytes<ResultType>(_ body: (UnsafeRawBufferPointer) throws -> ResultType) rethrows -> ResultType
+}
+
+extension Data : BinaryDataProtocol {}
+extension Array<UInt8> : BinaryDataProtocol {}
+extension Array<UInt8>.SubSequence : BinaryDataProtocol {}
+extension ContiguousArray<UInt8> : BinaryDataProtocol {}
+
 public protocol BDecoder {
+	associatedtype BinaryData : BinaryDataProtocol
+	
 	/// The archiveIdentifier string set by the user.
 	var encodedArchiveIdentifier: String? { get }
 
@@ -38,7 +51,7 @@ public protocol BDecoder {
 	///
 	/// - parameter decodeFunc: the closure
 	/// - returns: the return value of the closure
-	mutating func withUnderlyingDecoder<T>( _ decodeFunc: (inout BinaryIODecoder) throws -> T ) rethrows -> T
+	mutating func withUnderlyingDecoder<T>( _ decodeFunc: (inout BinaryIODecoder<BinaryData>) throws -> T ) rethrows -> T
 }
 
 public extension BDecoder {

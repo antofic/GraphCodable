@@ -16,7 +16,7 @@ struct DecodeBinary {
 	
 	private var	nodeMap	: ReadNodeMap
 	
-	init( from ioDecoder:BinaryIODecoder, classNameMap:ClassNameMap? ) throws {
+	init<Q:BinaryDataProtocol>( from ioDecoder:BinaryIODecoder<Q>, classNameMap:ClassNameMap? ) throws {
 		var readBlockDecoder	= try DecodeReadBlocks( from: ioDecoder )
 		let fileHeader			= readBlockDecoder.fileHeader
 		let readBlocks			= try readBlockDecoder.readBlocks()

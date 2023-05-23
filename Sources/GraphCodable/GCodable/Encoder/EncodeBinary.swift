@@ -6,14 +6,14 @@
 
 import Foundation
 
-final class EncodeBinary<Output:MutableDataProtocol> : EncodeFileBlocks {
+final class EncodeBinary<Output:MutableBinaryDataProtocol> : EncodeFileBlocks {
 	weak var			delegate			: (any EncodeFileBlocksDelegate)?
 	private var			fileHeader			: FileHeader
-	private var			ioEncoder			: BinaryIOEncoder
+	private var			ioEncoder			: BinaryIOEncoder<Output>
 	private var 		sectionMap			= SectionMap()
 	private var			sectionMapPosition	= 0
 	
-	init( ioEncoder:BinaryIOEncoder, fileHeader:FileHeader ) {
+	init( ioEncoder:BinaryIOEncoder<Output>, fileHeader:FileHeader ) {
 		self.ioEncoder	= ioEncoder
 		self.fileHeader	= fileHeader
 	}
@@ -108,6 +108,6 @@ final class EncodeBinary<Output:MutableDataProtocol> : EncodeFileBlocks {
 			$0.position		= $0.endOfFile
 		}
 
-		return ioEncoder.data()
+		return ioEncoder.data
 	}
 }

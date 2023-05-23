@@ -55,8 +55,8 @@ struct FileHeader : CustomStringConvertible, BCodable {
 		description(fileSize: nil)
 	}
 
-	init(
-		binaryIOEncoder: BinaryIOEncoder,
+	init<Q:MutableBinaryDataProtocol>(
+		binaryIOEncoder: BinaryIOEncoder<Q>,
 		gcodableFlags: Flags = [],
 		gcodableVersion: UInt16 = Versions.CURRENT_FILE_VERSION
 	) {
