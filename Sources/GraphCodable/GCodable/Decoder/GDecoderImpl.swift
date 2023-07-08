@@ -6,11 +6,11 @@
 
 import Foundation
 
-final class GDecoderImpl {
+final class GDecoderImpl<BinaryData:BinaryDataProtocol> {
 	private var archiveIdentifier	: String?
 	var	userInfo					= [String:Any]()
 	var classNameMap				= ClassNameMap()
-	private var constructor 		: (any TypeConstructorProtocol)!
+	private var constructor 		: TypeConstructor<BinaryData>!
 	
 	init( archiveIdentifier: String? ) {
 		self.archiveIdentifier	= archiveIdentifier
@@ -29,7 +29,7 @@ final class GDecoderImpl {
 		return Array( encodedClassMap.values )
 	}
 	
-	func decodeRoot<T>( _ type: T.Type, from data: some BinaryDataProtocol ) throws -> T
+	func decodeRoot<T>( _ type: T.Type, from data: BinaryData ) throws -> T
 	where T:GDecodable {
 		defer { constructor = nil }
 		
@@ -39,14 +39,14 @@ final class GDecoderImpl {
 		return try constructor.decodeRoot(type, from: self)
 	}
 	
-	func dumpRoot( from data: some BinaryDataProtocol, options: GraphDumpOptions ) throws -> String {
+	func dumpRoot( from data: BinaryData, options: GraphDumpOptions ) throws -> String {
 		let ioDecoder 	= try ioDecoder(from: data)
 		let decodedDump	= try DecodeDump(from: ioDecoder, classNameMap:classNameMap, options: options)
 		
 		return decodedDump.dump()
 	}
 	
-	func isCyclic( from data: some BinaryDataProtocol ) throws -> Bool {
+	func isCyclic( from data: BinaryData ) throws -> Bool {
 		let ioDecoder 		= try ioDecoder(from: data)
 		var blockDecoder	= try DecodeReadBlocks( from: ioDecoder )
 		let readBlocks		= try blockDecoder.readBlocks()
@@ -55,7 +55,7 @@ final class GDecoderImpl {
 		return root.isCyclic(nodeMap: nodeMap)
 	}
 	
-	func encodedArchiveIdentifier( from data: some BinaryDataProtocol ) throws -> String? {
+	func encodedArchiveIdentifier( from data: BinaryData ) throws -> String? {
 		let ioDecoder 	= try ioDecoder(from: data)
 		return ioDecoder.encodedArchiveIdentifier
 	}
