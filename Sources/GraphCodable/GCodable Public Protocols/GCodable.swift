@@ -48,7 +48,7 @@ public protocol GEncodable {
 	
 	/// Optional support:  **reserved for package use**.
 	///
-	/// Unwraps Self until the "inner" non optional type
+	/// Unwraps Self until nil or the "inner" non optional type
 	/// is obtained.
 	var _fullOptionalUnwrappedValue : (any GEncodable)? { get }
 }
@@ -62,7 +62,7 @@ extension GEncodable {
 	
 	/// Optional support: **reserved for package use**.
 	///
-	/// Unwraps Self until the "inner" non optional type
+	/// Unwraps Self until nil or the "inner" non optional type
 	/// is obtained so by default non Optional types returns
 	/// self. Only Optional redefine this.
 	public var _fullOptionalUnwrappedValue : (any GEncodable)? { self }
