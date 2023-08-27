@@ -278,7 +278,7 @@ extension FileBlock : CustomStringConvertible {
 		getEncodedClass: 		( T?, _ refID:RefID )->EncodedClass?,
 		valueDescription: 		() -> String?
 	) -> String {
-		func typeName<T>( _ refID:RefID, _ options:GraphDumpOptions, _ encodedClassSource: T?, _ getEncodedClass: ( T?, _ refID:RefID )->EncodedClass? ) -> String? {
+		func typeName( _ refID:RefID, _ options:GraphDumpOptions, _ encodedClassSource: T?, _ getEncodedClass: ( T?, _ refID:RefID )->EncodedClass? ) -> String? {
 			if let encodedClass	= getEncodedClass( encodedClassSource, refID ) {
 				let qualified	= options.contains( .qualifiedTypeNames )
 				if options.contains( .showClassVersionsInBody ) {
@@ -291,7 +291,7 @@ extension FileBlock : CustomStringConvertible {
 			}
 		}
 		
-		func valTypeName<T>( _ refID:RefID, _ options:GraphDumpOptions, _ encodedClassSource: T?, _ getEncodedClass: ( T?, _ refID:RefID )->EncodedClass? ) -> String {
+		func valTypeName( _ refID:RefID, _ options:GraphDumpOptions, _ encodedClassSource: T?, _ getEncodedClass: ( T?, _ refID:RefID )->EncodedClass? ) -> String {
 			return typeName( refID, options, encodedClassSource, getEncodedClass ) ?? "TYPE\(refID)"
 		}
 		
