@@ -633,14 +633,13 @@ extension BinaryIODecoder {
 	///
 	///	static version
 	private static func decodeData( compress:Bool, from dataRegion:inout Bytes.SubSequence ) throws -> Data {
-		let count	= try decodeInt( compress: compress, from: &dataRegion )
-		let inSize	= count * MemoryLayout<UInt8>.size
+		let inSize	= try decodeInt( compress: compress, from: &dataRegion )
 		try checkRemainingSize( dataRegion, size: inSize )
 		defer { dataRegion.removeFirst( inSize ) }
 		
+		//	return Data( dataRegion.prefix( inSize ) ) // slower
 		return dataRegion.withUnsafeBytes { source in
 			return Data(bytes: source.baseAddress!, count: inSize)
-			//	return Data( source.prefix( inSize ) ) // slower
 		}
 	}
 
