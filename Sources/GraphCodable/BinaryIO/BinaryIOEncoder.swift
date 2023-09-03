@@ -373,10 +373,12 @@ extension BinaryIOEncoder {
 			}
 		}
 	}
-	
+
 	/// Encodes a `Data` value
 	mutating func encodeData( _ value:Data ) throws {
 		try encode( value.count )
+		//	try encode( contentsOf:value ) // slower
+		
 		for region in value.regions {
 			try region.withUnsafeBytes { source in
 				try encode(contentsOf: source)

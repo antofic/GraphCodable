@@ -628,7 +628,7 @@ extension BinaryIODecoder {
 		dataRegion.removeFirst( inSize )
 		return string
 	}
-	
+		
 	/// Decodes a `Data` value
 	///
 	///	static version
@@ -639,7 +639,8 @@ extension BinaryIODecoder {
 		defer { dataRegion.removeFirst( inSize ) }
 		
 		return dataRegion.withUnsafeBytes { source in
-			return Data( source.prefix( inSize ) )
+			return Data(bytes: source.baseAddress!, count: inSize)
+			//	return Data( source.prefix( inSize ) ) // slower
 		}
 	}
 
