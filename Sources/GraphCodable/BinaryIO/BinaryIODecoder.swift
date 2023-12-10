@@ -537,7 +537,8 @@ extension BinaryIODecoder {
 	///	static version
 	private static func decodeInt16( compress:Bool, from dataRegion:inout Bytes.SubSequence ) throws -> Int16 {
 		if compress {
-			return ZigZag.decode( try decodeUInt16(compress: compress, from: &dataRegion) )
+			//	return ZigZagOLD.decode( try decodeUInt16(compress: compress, from: &dataRegion) )
+			return ( try decodeUInt16(compress: compress, from: &dataRegion) ).zigZagDecoded
 		} else {
 			return try Int16( littleEndian: decodePODValue( from: &dataRegion ) )
 		}
@@ -548,7 +549,8 @@ extension BinaryIODecoder {
 	///	static version
 	private static func decodeInt32( compress:Bool, from dataRegion:inout Bytes.SubSequence ) throws -> Int32 {
 		if compress {
-			return ZigZag.decode( try decodeUInt32(compress: compress, from: &dataRegion) )
+			//	return ZigZagOLD.decode( try decodeUInt32(compress: compress, from: &dataRegion) )
+			return ( try decodeUInt32(compress: compress, from: &dataRegion) ).zigZagDecoded
 		} else {
 			return try Int32( littleEndian: decodePODValue( from: &dataRegion ) )
 		}
@@ -559,7 +561,8 @@ extension BinaryIODecoder {
 	///	static version
 	private static func decodeInt64( compress:Bool, from dataRegion:inout Bytes.SubSequence ) throws -> Int64 {
 		if compress {
-			return ZigZag.decode( try decodeUInt64(compress: compress, from: &dataRegion) )
+			// return ZigZagOLD.decode( try decodeUInt64(compress: compress, from: &dataRegion) )
+			return ( try decodeUInt64(compress: compress, from: &dataRegion) ).zigZagDecoded
 		} else {
 			return try Int64( littleEndian: decodePODValue( from: &dataRegion ) )
 		}

@@ -301,9 +301,9 @@ extension BinaryIOEncoder {
 	/// Encodes a `Int16` value
 	mutating func encodeInt16( _ value:Int16 ) throws {
 		if enabledCompression {
-			try encode( ZigZag.encode( value ) )
-		}
-		else {
+			// try encode( ZigZagOLD.encode( value ) )
+			try encode( value.zigZagEncoded )
+		} else {
 			try encodePODValue( value.littleEndian )
 		}
 	}
@@ -311,7 +311,8 @@ extension BinaryIOEncoder {
 	/// Encodes a `Int32` value
 	mutating func encodeInt32( _ value:Int32 ) throws {
 		if enabledCompression {
-			try encode( ZigZag.encode( value ) )
+			// try encode( ZigZagOLD.encode( value ) )
+			try encode( value.zigZagEncoded )
 		}
 		else {
 			try encodePODValue( value.littleEndian )
@@ -321,7 +322,8 @@ extension BinaryIOEncoder {
 	/// Encodes a `Int64` value
 	mutating func encodeInt64( _ value:Int64 ) throws {
 		if enabledCompression {
-			try encode( ZigZag.encode( value ) )
+//			try encode( ZigZagOLD.encode( value ) )
+			try encode( value.zigZagEncoded )
 		}
 		else {
 			try encodePODValue( value.littleEndian )
