@@ -14,26 +14,28 @@ extension CompressibleInteger where
 Self: UnsignedInteger
 {
 	func compress( pushByte: (UInt8) throws -> () ) rethrows {
-		var	val		= self
-		var byte	= UInt8( val & 0x7F )
+		var	value	= self
+		var byte	= UInt8( value & 0x7F )
 		
-		while val & (~0x7F) != 0 {
+		while value & (~0x7F) != 0 {
 			byte 	|= 0x80
 			try 	pushByte( byte )
-			val 	&>>= 7
-			byte	= UInt8( val & 0x7F )
+			value 	&>>= 7
+			byte	= UInt8( value & 0x7F )
 		}
 		try pushByte( byte )
 	}
 }
 
 extension CompressibleInteger where
-Self: SignedInteger & ZigZagInteger,
+Self: SignedInteger & ZigzagInteger,
 Self.Counterpart: CompressibleInteger,
 Self.Counterpart.Counterpart == Self
 {
 	func compress( pushByte: (UInt8) throws -> () ) rethrows {
-		try self.zigZagEncoded.compress( pushByte: pushByte )
+		//	transforms the signed integer into an unsigned one
+		//	and compresses it.
+		try self.zigzag.compress( pushByte: pushByte )
 	}
 }
 

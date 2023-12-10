@@ -15,26 +15,28 @@ Self: UnsignedInteger
 {
 	static func decompress( popByte: () throws -> UInt8 ) rethrows -> Self {
 		var	byte	= try popByte()
-		var	val		= Self( byte & 0x7F )
+		var	value	= Self( byte & 0x7F )
 		
 		for index in 1...MemoryLayout<Self>.size {
 			guard byte & 0x80 != 0 else {
-				return val
+				return value
 			}
 			byte	= 	try popByte()
-			val		|=	Self( byte & 0x7F ) &<< ( index * 7 )
+			value		|=	Self( byte & 0x7F ) &<< ( index * 7 )
 		}
-		return val
+		return value
 	}
 }
 
 extension DecompressibleInteger where
-Self: SignedInteger & ZigZagInteger,
+Self: SignedInteger & ZigzagInteger,
 Self.Counterpart: DecompressibleInteger & UnsignedInteger,
 Self.Counterpart.Counterpart == Self
 {
 	static func decompress( popByte: () throws -> UInt8 ) rethrows -> Self {
-		try Counterpart.decompress(popByte: popByte).zigZagDecoded
+		//	decompresses the bytes into an unsigned integer and
+		//	transforms them into the original signed integer
+		try Counterpart.decompress(popByte: popByte).zigzag
 	}
 }
 

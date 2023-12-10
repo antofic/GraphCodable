@@ -173,7 +173,7 @@ extension BinaryIOEncoder {
 	///
 	/// - parameter encodeFunc: The closure
 	/// - Returns: the `encodeFunc` return value
-	public mutating func withInsertionEnabled<T>(
+	public mutating func withInsertModeEnabled<T>(
 		encodeFunc: ( inout BinaryIOEncoder ) throws -> T
 	) rethrows -> T {
 		let saveInsertMode	= insertMode
@@ -197,14 +197,14 @@ extension BinaryIOEncoder {
 	public mutating func withEncodedIntSizeBefore<T>(
 		encodeFunc: ( inout BinaryIOEncoder ) throws -> T
 	) rethrows -> T {
-		// if binaryIOFlags.contains( .compressionEnabled ) {
+
 		if enabledCompression {
 			// size verrà certamente compresso
 			let initialPos	= position
 			let result 		= try encodeFunc( &self )
 			let finalPos	= position
 			position		= initialPos
-			try withInsertionEnabled {
+			try withInsertModeEnabled {
 				try $0.encode( finalPos - initialPos )
 			}
 			position		= finalPos + (position - initialPos)
@@ -315,20 +315,16 @@ extension BinaryIOEncoder {
 		
 	/// Encodes a `Float` value
 	mutating func encodeFloat( _ value:Float ) throws {
-		let saveCompression = enabledCompression
-		defer { enabledCompression = saveCompression }
-		enabledCompression = false
-		
-		try encode( value.bitPattern )
+		try withCompressionDisabled {
+			try $0.encode( value.bitPattern )
+		}
 	}
 	
 	/// Encodes a `Double` value
 	mutating func encodeDouble( _ value:Double ) throws {
-		let saveCompression = enabledCompression
-		defer { enabledCompression = saveCompression }
-		enabledCompression = false
-		
-		try encode( value.bitPattern )
+		try withCompressionDisabled {
+			try $0.encode( value.bitPattern )
+		}
 	}
 	
 	/// Encodes a `String` value
