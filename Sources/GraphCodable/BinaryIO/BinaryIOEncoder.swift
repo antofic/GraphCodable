@@ -254,29 +254,17 @@ extension BinaryIOEncoder {
 	
 	/// Encodes a `UInt16` value
 	mutating func encodeUInt16( _ value:UInt16 ) throws {
-		if enabledCompression {
-			try compressAndEncode( value )
-		} else {
-			try encodePODValue( value.littleEndian )
-		}
+		try encodeInteger( value )
 	}
 	
 	/// Encodes a `UInt32` value
 	mutating func encodeUInt32( _ value:UInt32 ) throws {
-		if enabledCompression {
-			try compressAndEncode( value )
-		} else {
-			try encodePODValue( value.littleEndian )
-		}
+		try encodeInteger( value )
 	}
 	
 	/// Encodes a `UInt64` value
 	mutating func encodeUInt64( _ value:UInt64 ) throws {
-		if enabledCompression {
-			try compressAndEncode( value )
-		} else {
-			try encodePODValue( value.littleEndian )
-		}
+		try encodeInteger( value )
 	}
 
 	/// Encodes a `UInt` value
@@ -296,38 +284,20 @@ extension BinaryIOEncoder {
 	mutating func encodeInt8( _ value:Int8 ) throws {
 		try encodePODValue( value )
 	}
-
 	
 	/// Encodes a `Int16` value
 	mutating func encodeInt16( _ value:Int16 ) throws {
-		if enabledCompression {
-			// try encode( ZigZagOLD.encode( value ) )
-			try encode( value.zigZagEncoded )
-		} else {
-			try encodePODValue( value.littleEndian )
-		}
+		try encodeInteger( value )
 	}
 	
 	/// Encodes a `Int32` value
 	mutating func encodeInt32( _ value:Int32 ) throws {
-		if enabledCompression {
-			// try encode( ZigZagOLD.encode( value ) )
-			try encode( value.zigZagEncoded )
-		}
-		else {
-			try encodePODValue( value.littleEndian )
-		}
+		try encodeInteger( value )
 	}
 	
 	/// Encodes a `Int64` value
 	mutating func encodeInt64( _ value:Int64 ) throws {
-		if enabledCompression {
-//			try encode( ZigZagOLD.encode( value ) )
-			try encode( value.zigZagEncoded )
-		}
-		else {
-			try encodePODValue( value.littleEndian )
-		}
+		try encodeInteger( value )
 	}
 	
 	/// Encodes a `Int` value
@@ -426,27 +396,18 @@ extension BinaryIOEncoder {
 		}
 	}
 
-	///	Transforms an **unsigned integer** of size n into at most n+1 bytes
+	///	Transforms an **integer** of size n into at most n+1 bytes
 	///	(worst case) but much less for small numbers, and then encodes them.
 	///
 	///	It usually greatly reduces the size of the generated archive.
-	private mutating func compressAndEncode<T>( _ value:T )
-	throws where T:FixedWidthInteger, T:UnsignedInteger {
-		assert(
-			MemoryLayout<T>.size > 1,
-			"\(#function) the unsigned integer value must be at least 2 bytes."
-		)
 
-		var	val		= value
-		var byte	= UInt8( val & 0x7F )
-		
-		while val & (~0x7F) != 0 {
-			byte 	|= 0x80
-			try 	encodePODValue( byte )
-			val 	&>>= 7
-			byte	= UInt8( val & 0x7F )
+	private mutating func encodeInteger<T>( _ value:T )
+	throws where T:CompressibleInteger {
+		if enabledCompression {
+			try value.compress { try encodePODValue( $0 ) }
+		} else {
+			try encodePODValue( value.littleEndian )
 		}
-		try encodePODValue( byte )
 	}
 }
 

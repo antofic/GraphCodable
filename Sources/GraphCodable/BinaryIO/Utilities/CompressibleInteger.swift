@@ -7,13 +7,13 @@
 import Foundation
 
 protocol CompressibleInteger: FixedWidthInteger {
-	func squeeze( pushByte: (UInt8) throws -> () ) rethrows
+	func compress( pushByte: (UInt8) throws -> () ) rethrows
 }
 
 extension CompressibleInteger where
 Self: UnsignedInteger
 {
-	func squeeze( pushByte: (UInt8) throws -> () ) rethrows {
+	func compress( pushByte: (UInt8) throws -> () ) rethrows {
 		var	val		= self
 		var byte	= UInt8( val & 0x7F )
 		
@@ -32,27 +32,30 @@ Self: SignedInteger & ZigZagInteger,
 Self.Counterpart: CompressibleInteger,
 Self.Counterpart.Counterpart == Self
 {
-	func squeeze( pushByte: (UInt8) throws -> () ) rethrows {
-		try self.zigZagEncoded.squeeze( pushByte: pushByte )
+	func compress( pushByte: (UInt8) throws -> () ) rethrows {
+		try self.zigZagEncoded.compress( pushByte: pushByte )
 	}
 }
 
 extension UInt16: CompressibleInteger {}
 extension UInt32: CompressibleInteger {}
 extension UInt64: CompressibleInteger {}
+extension UInt: CompressibleInteger {}
+
 extension Int16: CompressibleInteger {}
 extension Int32: CompressibleInteger {}
 extension Int64: CompressibleInteger {}
+extension Int: CompressibleInteger {}
 
 extension UInt8: CompressibleInteger {
-	func squeeze( pushByte: (UInt8) throws -> () ) rethrows {
+	func compress( pushByte: (UInt8) throws -> () ) rethrows {
 		try pushByte( self )
 	}
 }
 
 extension Int8: CompressibleInteger {
-	func squeeze( pushByte: (UInt8) throws -> () ) rethrows {
-		try UInt8(bitPattern: self).squeeze(pushByte: pushByte)
+	func compress( pushByte: (UInt8) throws -> () ) rethrows {
+		try UInt8(bitPattern: self).compress(pushByte: pushByte)
 	}
 }
 
